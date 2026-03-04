@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.local
+.env.production
+
+# next.js
+.next/
+out/
+
+# strapi
+.tmp/
+.cache/
+dist/
+build/
+
+# misc
+.DS_Store
