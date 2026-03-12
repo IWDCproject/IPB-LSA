@@ -18,3 +18,11 @@ build/
 
 # misc
 .DS_Store
+
+# Docker database and storage
+data/
+uploads/
+.env
+
+# Node modules 
+node_modules/

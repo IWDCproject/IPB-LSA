@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "moduleResolution": "node",
-    "module": "commonjs",
-    "checkJs": false
-  },
-  "exclude": ["node_modules", ".tmp", ".cache"]
-}
