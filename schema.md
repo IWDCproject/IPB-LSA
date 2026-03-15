@@ -64,7 +64,162 @@ WebSocket subscription message dari public display:
 
 ---
 
-## 3. Setup checklist (sebelum production)
+## 3. Struktur data — hierarki dan relasi
+
+### Hierarki kepemilikan data
+
+```
+directus_users (ormawa)
+└── events
+    ├── competition_categories
+    │   ├── match_formats         ← format scoring, diassign ke kategori
+    │   ├── participants          ← atlet atau tim
+    │   │   └── members[]         ← anggota tim (JSONB array, bukan tabel terpisah)
+    │   └── matches               ← pertandingan
+    │       └── live_state        ← state real-time (JSONB)
+    ├── institutions              ← universitas/klub, dipakai oleh participants
+    ├── event_phases              ← timeline publik event
+    └── news                     ← artikel terkait event
+
+activity_logs                    ← audit trail platform-wide (bukan nested di events)
+app_settings                     ← konfigurasi global platform
+```
+
+### ERD (Entity Relationship Diagram)
+
+```mermaid
+erDiagram
+    directus_users {
+        uuid id PK
+        string email
+        string role
+    }
+
+    events {
+        uuid id PK
+        uuid user_created FK
+        string name
+        string slug
+        string type
+        string status
+        boolean is_published
+    }
+
+    competition_categories {
+        uuid id PK
+        uuid event_id FK
+        uuid format_id FK
+        string name
+        string participant_type
+        int display_order
+    }
+
+    match_formats {
+        uuid id PK
+        uuid event_id FK
+        string name
+        string match_type
+        jsonb modules
+    }
+
+    institutions {
+        uuid id PK
+        uuid event_id FK
+        string name
+        string logo_url
+    }
+
+    participants {
+        uuid id PK
+        uuid competition_category_id FK
+        uuid institution_id FK
+        string name
+        jsonb members
+        int seed
+    }
+
+    matches {
+        uuid id PK
+        uuid competition_category_id FK
+        uuid home_participant_id FK
+        uuid away_participant_id FK
+        jsonb participant_ids
+        string status
+        string winner
+        jsonb rankings
+        jsonb live_state
+    }
+
+    event_phases {
+        uuid id PK
+        uuid event_id FK
+        string label
+        string status
+        int display_order
+    }
+
+    news {
+        uuid id PK
+        uuid author_id FK
+        uuid event_id FK
+        string title
+        string slug
+        boolean is_published
+    }
+
+    activity_logs {
+        uuid id PK
+        uuid event_id FK
+        uuid user_id FK
+        string action
+        string entity
+        uuid entity_id
+        string description
+    }
+
+    directus_users ||--o{ events : "owns (user_created)"
+    directus_users ||--o{ match_formats : "created_by"
+    directus_users ||--o{ news : "author_id"
+    directus_users ||--o{ activity_logs : "user_id"
+
+    events ||--o{ competition_categories : "event_id"
+    events ||--o{ institutions : "event_id"
+    events ||--o{ event_phases : "event_id"
+    events ||--o{ news : "event_id"
+    events ||--o{ match_formats : "event_id"
+    events ||--o{ activity_logs : "event_id"
+
+    competition_categories ||--o| match_formats : "format_id"
+    competition_categories ||--o{ participants : "competition_category_id"
+    competition_categories ||--o{ matches : "competition_category_id"
+
+    institutions ||--o{ participants : "institution_id"
+
+    participants ||--o| matches : "home_participant_id"
+    participants ||--o| matches : "away_participant_id"
+```
+
+> 💡 Diagram ini render otomatis di GitHub, GitLab, Notion, dan Obsidian.  
+> Jika perlu render manual: paste ke [mermaid.live](https://mermaid.live)
+
+### Relasi yang perlu diperhatikan
+
+| Relasi | Behavior saat parent dihapus |
+|---|---|
+| `events` → `competition_categories` | CASCADE — kategori ikut terhapus |
+| `events` → `institutions` | CASCADE — institution ikut terhapus |
+| `events` → `event_phases` | CASCADE — fase ikut terhapus |
+| `events` → `news` | SET NULL — artikel tidak terhapus, `event_id` jadi null |
+| `events` → `match_formats` | CASCADE — format ikut terhapus |
+| `competition_categories` → `participants` | CASCADE — peserta ikut terhapus |
+| `competition_categories` → `matches` | CASCADE — match ikut terhapus |
+| `competition_categories` → `match_formats` (via `format_id`) | SET NULL — format tidak terhapus, `format_id` di kategori jadi null |
+| `institutions` → `participants` (via `institution_id`) | SET NULL — peserta tidak terhapus, `institution_id` jadi null |
+| `participants` → `matches` (via `home/away_participant_id`) | SET NULL — match tidak terhapus, slot peserta jadi null |
+
+---
+
+## 4. Setup checklist (sebelum production)
 
 Lakukan ini setelah pertama kali deploy Directus:
 
@@ -137,7 +292,7 @@ WEBSOCKETS_HEARTBEAT_PERIOD=60       # detik, jaga koneksi WS tetap hidup
 
 ---
 
-## 4. Tabel yang dikelola Directus (jangan dibuat di SQL)
+## 5. Tabel yang dikelola Directus (jangan dibuat di SQL)
 
 | Tabel | Kegunaan |
 |---|---|
@@ -149,7 +304,7 @@ WEBSOCKETS_HEARTBEAT_PERIOD=60       # detik, jaga koneksi WS tetap hidup
 
 ---
 
-## 5. Tabel custom kita
+## 6. Tabel custom kita
 
 > Semua PK pakai UUID — wajib untuk kompatibilitas Directus API.  
 > Semua tabel butuh trigger `updated_at` kecuali `activity_logs` (lihat SQL di Bagian 7).
@@ -547,7 +702,7 @@ CREATE TABLE app_settings (
 
 ---
 
-## 6. Struktur `live_state`
+## 7. Struktur `live_state`
 
 Objek JSONB flat di kolom `matches.live_state`. Single source of truth untuk UI operator dan public scoreboard.
 
@@ -609,7 +764,7 @@ Hanya field yang relevan dengan engine aktif yang terisi — sisanya tetap ada d
 
 ---
 
-## 7. SQL: Trigger dan functions
+## 8. SQL: Trigger dan functions
 
 ### Trigger denormalisasi `matches`
 
@@ -674,7 +829,7 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON app_settings
 
 ---
 
-## 8. Index
+## 9. Index
 
 ```sql
 -- events
@@ -725,7 +880,7 @@ CREATE INDEX idx_logs_created             ON activity_logs(created_at DESC);
 
 ---
 
-## 9. Utang teknis v1 → v2
+## 10. Utang teknis v1 → v2
 
 | Item | Kondisi v1 | Yang benar di v2 |
 |---|---|---|
@@ -738,7 +893,7 @@ CREATE INDEX idx_logs_created             ON activity_logs(created_at DESC);
 
 ---
 
-## 10. Catatan implementasi penting
+## 11. Catatan implementasi penting
 
 ### `finish_time` dan kolom `rankings`
 Trigger `sync_match_denorm` mengisi `matches.rankings` dari `live_state.rankings`. Tapi engine `finish_time` menyimpan data di `live_state.timeLog`, bukan `live_state.rankings`.
