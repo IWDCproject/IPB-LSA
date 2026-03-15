@@ -7,11 +7,11 @@ module.exports = {
   ],
   theme: {
     extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-      },
-    },
+      fontFamily: {
+        display: ['Bebas Neue', 'sans-serif'],
+        body: ['Plus Jakarta Sans', 'sans-serif'],
+      }
+    }
   },
   plugins: [],
 };
