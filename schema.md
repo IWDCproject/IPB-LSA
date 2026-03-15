@@ -887,7 +887,7 @@ CREATE INDEX idx_logs_created             ON activity_logs(created_at DESC);
 | Item | Kondisi v1 | Yang benar di v2 |
 |---|---|---|
 | `matches.participant_ids JSONB` | Array UUID tanpa FK constraint | Junction table: `match_participants(match_id UUID, participant_id UUID REFERENCES participants, position INT)` |
-| Timer tick di browser | Refresh halaman = timer reset | Clock server-side via Directus Flow atau cron job kecil |
+| Timer tick di browser | **Fixed** — timer kini pakai snapshot + `timerLastStarted`. Client merekonstruksi nilai saat mount. Refresh tidak lagi mereset tampilan. | Clock server-side masih ideal untuk akurasi absolut di bawah load berat, tapi bukan lagi blocker v1. |
 | `winner TEXT` semantik ganda | String berbeda arti per match_type | Split: `winner_participant_id UUID REFERENCES participants` untuk h2h/solo; `rankings` JSONB untuk open |
 | `seed` tersimpan tapi hidden | Bracket logic belum dibangun | Tampilkan dan aktifkan saat fitur bracket v2 |
 | Media = Google Drive URL | Bukan proper storage | S3-compatible storage atau Directus Files |
