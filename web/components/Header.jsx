@@ -15,7 +15,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-      <div className="flex items-center justify-between px-[160px] py-4">
+      <div className="flex items-center justify-between px-[160px] py-2">
         <Link href="/">
           <Image src="/ipb-logo.png" alt="IPB University" height={64} width={200} className="h-12 w-auto" />
         </Link>
