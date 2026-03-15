@@ -715,7 +715,8 @@ Hanya field yang relevan dengan engine aktif yang terisi — sisanya tetap ada d
   "rankings": [],
   "notes": "",
 
-  "timerSecs": 180,
+  "timerSecs": 180,          // snapshot value at last operator interaction
+  "timerLastStarted": null,  // ISO 8601 UTC — set on Start, cleared on Stop/Reset/Set
   "timerRunning": false,
   "timerFlags": [],
 
@@ -744,9 +745,10 @@ Hanya field yang relevan dengan engine aktif yang terisi — sisanya tetap ada d
 | `winner` | semua | Hasil — diisi saat match selesai, trigger sync ke kolom `matches.winner` |
 | `rankings` | manual_pick open | `[{ "rank": 1, "id": "uuid", "name": "Tim A" }]` — trigger sync ke `matches.rankings` |
 | `notes` | notes add-on | Catatan operator, bisa di-broadcast ke public display |
-| `timerSecs` | timer add-on | Nilai timer saat ini dalam detik |
+| `timerSecs` | timer add-on | Snapshot nilai timer saat operator terakhir berinteraksi (bukan nilai live) |
+| `timerLastStarted` | timer add-on | ISO timestamp saat Start terakhir ditekan. Null jika berhenti. Dipakai client untuk rekonstruksi nilai live: `elapsed = now - timerLastStarted` |
 | `timerRunning` | timer add-on | Apakah timer sedang berjalan |
-| `timerFlags` | timer add-on | `[{ "label": "Flag 1", "secs": 142 }]` — penanda waktu oleh operator |
+| `timerFlags` | timer add-on | `[{ "label": "Flag 1", "secs": 142.5 }]` — secs dihitung saat flag ditekan |
 | `homeScore` / `awayScore` | score_timed | Skor yang terus bertambah, tidak pernah reset |
 | `periodIdx` | score_timed | Index babak saat ini (0-based) |
 | `periodPhase` | score_timed | Status babak |
@@ -901,6 +903,41 @@ Trigger `sync_match_denorm` mengisi `matches.rankings` dari `live_state.rankings
 **Konsekuensi:** `matches.rankings` selalu NULL untuk match `finish_time` kecuali aplikasi secara eksplisit menulis `live_state.rankings` berdasarkan urutan `timeLog` sebelum menutup match.
 
 Ini tanggung jawab aplikasi (frontend match control), bukan trigger.
+
+### Timer tidak PATCH setiap detik — snapshot + elapsed
+
+`timerSecs` adalah snapshot nilai saat operator terakhir berinteraksi. Display value dihitung client-side:
+
+```js
+function calcCurrentSecs(live, timerCfg) {
+  const isStop   = timerCfg?.mode === "stopwatch";
+  const snapshot = Math.max(0, live.timerSecs ?? 0);
+  if (!live.timerRunning || !live.timerLastStarted) return snapshot;
+  const elapsed  = Math.max(0, (Date.now() - new Date(live.timerLastStarted).getTime()) / 1000);
+  return isStop ? snapshot + elapsed : Math.max(0, snapshot - elapsed);
+}
+```
+
+**DB write hanya saat operator menekan tombol:**
+
+| Aksi | Yang di-PATCH |
+|---|---|
+| Start | `{ timerRunning: true, timerLastStarted: now(), timerSecs: calcCurrentSecs() }` |
+| Stop | `{ timerRunning: false, timerSecs: calcCurrentSecs(), timerLastStarted: null }` |
+| Reset | `{ timerRunning: false, timerSecs: initSecs, timerLastStarted: null, timerFlags: [] }` |
+| Set (manual) | `{ timerRunning: false, timerSecs: newVal, timerLastStarted: null }` |
+| Flag | `{ timerFlags: [...flags, { label, secs: calcCurrentSecs() }] }` |
+| End Match | Sertakan `timerRunning: false, timerSecs: calcCurrentSecs(), timerLastStarted: null` dalam patch yang sama |
+
+Public display merekonstruksi nilai timer dari snapshot + elapsed secara lokal — tidak perlu stream setiap detik. Ini mengeliminasi ~7.200 writes/jam per match live.
+
+**Edge cases yang wajib dihandle di client:**
+- `timerLastStarted` null tapi `timerRunning: true` → korup, treat as stopped
+- `elapsed > timerSecs` (countdown kehabisan sebelum dihandle) → clamp ke 0, PATCH stop
+- `timerLastStarted` di masa depan (clock skew) → elapsed negatif, clamp ke 0
+- `timerSecs` negatif → clamp ke 0
+- Start countdown yang sudah di 0 → block (disable button)
+- Double-click Start → debounce 500ms
 
 ### Jangan PATCH `live_state` pada setiap keystroke
 Setiap PATCH = 1 write ke Postgres + broadcast WebSocket ke semua subscriber. Field `_ftName`/`_ftTime` adalah UI state — simpan di React state, bukan DB. Hanya PATCH `live_state` ketika operator menekan "Log Time".
