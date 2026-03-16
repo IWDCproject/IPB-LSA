@@ -13,10 +13,11 @@ const CONFIG = {
 };
 
 const UNIVERSITIES = [
-  { abbr: "UI",    name: ["Universitas", "Indonesia"],                logo: "/universities/ui.png" },
+  { abbr: "UI",    name: ["Universitas", "Indonesia"],               logo: "/universities/ui.png" },
   { abbr: "UGM",   name: ["Universitas", "Gadjah Mada"],             logo: "/universities/ugm.png" },
   { abbr: "ITS",   name: ["Institut Teknologi", "Sepuluh Nopember"], logo: "/universities/its.png" },
   { abbr: "UNPAD", name: ["Universitas", "Padjadjaran"],             logo: "/universities/unpad.png" },
+  { abbr: "IPB",   name: ["Institut Pertanian", "Bogor"],            logo: "/universities/ipb.png" },
 ];
 
 const ITEMS = Array.from({ length: CONFIG.copies }, () => UNIVERSITIES).flat();
