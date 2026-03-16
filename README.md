@@ -10,10 +10,10 @@ Platform manajemen event dan live scoring untuk program IPB Lucky Sport & Art, k
 |---|---|
 | Public Site | Next.js 14, Tailwind CSS, GSAP |
 | Admin Dashboard | Next.js 14, Tailwind CSS, shadcn/ui |
-| Backend / API | Strapi v5 |
+| Backend / API | Directus CMS|
 | Realtime | Socket.io |
-| Database | PostgreSQL (via Strapi) |
-| Auth | Google OAuth |
+| Database | PostgreSQL (via directus) |
+| Auth | Directus auth via google |
 
 ---
 
@@ -23,7 +23,7 @@ Platform manajemen event dan live scoring untuk program IPB Lucky Sport & Art, k
 IPB-LSA/
 ├── web/          # Public site (Next.js)
 ├── dashboard/    # Admin dashboard (Next.js)
-└── backend/      # API & CMS (Strapi)
+└── backend/      # API & CMS (directus)
 ```
 
 ---
@@ -87,7 +87,7 @@ feature/xxx   # fitur baru
 fix/xxx       # bug fix
 ```
 
-Jangan langsung push ke `main`. Buat PR ke `dev`, minta review dulu.
+Jangan langsung push ke `main`. Buat PR ke `dev`, minta review dulu. (kalo udh deploy)
 
 ---
 
