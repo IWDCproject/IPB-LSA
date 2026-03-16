@@ -240,7 +240,7 @@ export default function HeroSection() {
                     className="text-yellow-400 text-xs font-bold uppercase mb-3"
                     style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.2em" }}
                 >
-                    {activeEvent.status === "active" ? "⬤ Ongoing" : "Coming Soon"}
+                    {activeEvent.status === "active" ? "Ongoing" : "Coming Soon"}
                 </p>
                 <h1
                     key={activeEvent.id + "-t"}
