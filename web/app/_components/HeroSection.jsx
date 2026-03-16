@@ -184,6 +184,12 @@ export default function HeroSection() {
                         "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)",
                 }}
             />
+            {/* <div
+                className="absolute inset-0 z-[1]"
+                style={{
+                    background: "linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 30%)",
+                }}
+            /> */}
 
             {/* progressive blur, dari bawah dan dari kiri */}
             <div className="absolute inset-0 z-[3] pointer-events-none">
