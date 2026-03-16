@@ -98,8 +98,56 @@ const EVENTS = [
 const INTERVAL_MS = 10000;
 const SHRINK_MS = 600;
 
+const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
+
+function CardNotch({ color, textColor, label }) {
+    return (
+        <div
+            style={{
+                position: "absolute",
+                bottom: -13,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 20,
+                width: 68,
+                height: 13,
+                animation: "notch-pop 0.2s ease forwards",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+            }}
+        >
+            <svg
+                width="68"
+                height="13"
+                viewBox="0 0 68 13"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ position: "absolute", inset: 0 }}
+            >
+                <path d={NOTCH_PATH} fill={color} />
+            </svg>
+            <span
+                style={{
+                    position: "relative",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: "0.42rem",
+                    fontWeight: 900,
+                    letterSpacing: "0.13em",
+                    color: textColor,
+                    textTransform: "uppercase",
+                    marginTop: -2,
+                }}
+            >
+                {label}
+            </span>
+        </div>
+    );
+}
+
 export default function HeroSection() {
     const [activeIdx, setActiveIdx] = useState(0);
+    const [hoveredIdx, setHoveredIdx] = useState(null);
     const [progress, setProgress] = useState(0);
     const [phase, setPhase] = useState("fill");
     const [animating, setAnimating] = useState(false);
@@ -117,7 +165,6 @@ export default function HeroSection() {
         setTimeout(() => setAnimating(false), 400);
     };
 
-    // Fill left→right, then shrink left→right, then advance slide
     useEffect(() => {
         if (animating) return;
         startRef.current = Date.now();
@@ -134,10 +181,8 @@ export default function HeroSection() {
             if (pct < 100) {
                 progressRef.current = requestAnimationFrame(tick);
             } else if (phase === "fill") {
-                // bar fully filled — kick off the shrink phase
                 setPhase("shrink");
             } else {
-                // shrink done — reset progress first to avoid full-bar flash
                 setProgress(0);
                 setPhase("fill");
                 const next = (activeIdx + 1) % EVENTS.length;
@@ -153,12 +198,7 @@ export default function HeroSection() {
         };
     }, [activeIdx, phase, animating]);
 
-    // Derive bar position from phase + progress:
-    //   fill phase:   left=0,        width=progress%
-    //   shrink phase: left=progress%, width=(100-progress)%
-    // ease-out cubic for the shrink wipeout: fast start, slows to a stop
     const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-
     const barLeft = phase === "shrink" ? `${easeOut(progress / 100) * 100}%` : "0%";
     const barWidth = phase === "fill" ? `${progress}%` : `${100 - easeOut(progress / 100) * 100}%`;
 
@@ -167,79 +207,55 @@ export default function HeroSection() {
             <style>{`
                 @keyframes fade-up {
                     from { opacity: 0; transform: translateY(10px); }
-                    to     { opacity: 1; transform: translateY(0); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
                 @keyframes bgFadeIn {
                     from { opacity: 0; }
-                    to     { opacity: 1; }
+                    to   { opacity: 1; }
+                }
+                @keyframes notch-pop {
+                    from { opacity: 0; transform: translateX(-50%) scaleX(0.5); }
+                    to   { opacity: 1; transform: translateX(-50%) scaleX(1); }
                 }
             `}</style>
 
-            {/* background foto event yang lagi aktif */}
+            {/* background */}
             <div className="absolute inset-0 z-0">
                 <img
                     key={activeEvent.id}
                     src={activeEvent.card_image_url}
                     alt={activeEvent.name}
                     className="absolute inset-0 w-full h-full object-cover"
-                    style={{
-                        objectPosition: "right center",
-                        animation: "bgFadeIn 0.8s ease forwards",
-                    }}
+                    style={{ objectPosition: "right center", animation: "bgFadeIn 0.8s ease forwards" }}
                 />
             </div>
 
-            {/* gradient overlay biar teks keliatan, warna biru IPB */}
-            <div
-                className="absolute inset-0 z-[1]"
-                style={{
-                    background:
-                        "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)",
-                }}
-            />
-            <div
-                className="absolute inset-0 z-[1]"
-                style={{
-                    background:
-                        "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)",
-                }}
-            />
-            <div
-                className="absolute inset-0 z-[2]"
-                style={{
-                    background:
-                        "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)",
-                }}
-            />
+            {/* gradient overlays */}
+            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
+            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
+            <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
 
-            {/* progressive blur, dari bawah dan dari kiri */}
+            {/* progressive blur */}
             <div className="absolute inset-0 z-[3] pointer-events-none">
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",    WebkitBackdropFilter: "blur(2px)",    maskImage: "linear-gradient(to top, black 0%, transparent 100%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",    WebkitBackdropFilter: "blur(4px)",    maskImage: "linear-gradient(to top, black 0%, transparent 75%)"    }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",    WebkitBackdropFilter: "blur(8px)",    maskImage: "linear-gradient(to top, black 0%, transparent 50%)"    }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to top, black 0%, transparent 25%)"    }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",    WebkitBackdropFilter: "blur(2px)",    maskImage: "linear-gradient(to right, black 0%, transparent 50%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",    WebkitBackdropFilter: "blur(4px)",    maskImage: "linear-gradient(to right, black 0%, transparent 37%)"    }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",    WebkitBackdropFilter: "blur(8px)",    maskImage: "linear-gradient(to right, black 0%, transparent 25%)"    }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to right, black 0%, transparent 12%)"    }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",  WebkitBackdropFilter: "blur(2px)",  maskImage: "linear-gradient(to top, black 0%, transparent 100%)" }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",  WebkitBackdropFilter: "blur(4px)",  maskImage: "linear-gradient(to top, black 0%, transparent 75%)" }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",  WebkitBackdropFilter: "blur(8px)",  maskImage: "linear-gradient(to top, black 0%, transparent 50%)" }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to top, black 0%, transparent 25%)" }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",  WebkitBackdropFilter: "blur(2px)",  maskImage: "linear-gradient(to right, black 0%, transparent 50%)" }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",  WebkitBackdropFilter: "blur(4px)",  maskImage: "linear-gradient(to right, black 0%, transparent 37%)" }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",  WebkitBackdropFilter: "blur(8px)",  maskImage: "linear-gradient(to right, black 0%, transparent 25%)" }} />
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to right, black 0%, transparent 12%)" }} />
             </div>
-            {/* blur dari kanan, subtle ~30% */}
-            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",  WebkitBackdropFilter: "blur(2px)",  maskImage: "linear-gradient(to left, black 0%, transparent 30%)" }} />
-            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",  WebkitBackdropFilter: "blur(4px)",  maskImage: "linear-gradient(to left, black 0%, transparent 20%)" }} />
-            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",  WebkitBackdropFilter: "blur(8px)",  maskImage: "linear-gradient(to left, black 0%, transparent 10%)" }} />
+            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", maskImage: "linear-gradient(to left, black 0%, transparent 30%)" }} />
+            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", maskImage: "linear-gradient(to left, black 0%, transparent 20%)" }} />
+            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", maskImage: "linear-gradient(to left, black 0%, transparent 10%)" }} />
 
-            {/* progress bar di atas */}
+            {/* progress bar */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30">
-                <div
-                    className="absolute top-0 h-full bg-yellow-400"
-                    style={{
-                        left: barLeft,
-                        width: barWidth,
-                    }}
-                />
+                <div className="absolute top-0 h-full bg-yellow-400" style={{ left: barLeft, width: barWidth }} />
             </div>
 
-            {/* teks info event, posisi kiri atas */}
+            {/* event info */}
             <div className="absolute z-10 left-[160px] max-w-lg" style={{ top: "80px" }}>
                 <p
                     className="text-yellow-400 text-xs font-bold uppercase mb-3"
@@ -277,7 +293,7 @@ export default function HeroSection() {
                 </Button>
             </div>
 
-            {/* kartu event di bagian bawah */}
+            {/* event cards */}
             <div className="absolute z-10 bottom-20 left-0 right-0 px-[160px] pb-10">
                 <p
                     className="text-white text-sm font-bold uppercase mb-5"
@@ -288,43 +304,71 @@ export default function HeroSection() {
                 <div className="flex gap-1" style={{ height: 240 }}>
                     {[...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)].map((ev, idx) => {
                         const isActive = ev && idx === activeIdx;
+                        const isHovered = ev && !isActive && hoveredIdx === idx;
                         return (
                             <div
                                 key={ev ? ev.id : `placeholder-${idx}`}
                                 onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
+                                onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
+                                onMouseLeave={() => setHoveredIdx(null)}
                                 className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
                                 style={{
                                     height: 240,
                                     borderRadius: "8px",
-                                    overflow: "hidden",
+                                    overflow: "visible",
                                     outline: isActive
                                         ? "2px solid rgba(234,179,8,0.9)"
+                                        : isHovered
+                                        ? "2px solid rgba(255,255,255,0.5)"
                                         : "2px solid transparent",
                                     transition: "outline 0.2s ease",
                                 }}
                             >
-                                {ev ? (
-                                    <EventCard event={ev} />
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center gap-2"
-                                        style={{ background: "#111827" }}>
-                                        <div className="absolute inset-0" style={{
-                                            backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)",
-                                        }} />
-                                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
-                                            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-                                        </svg>
-                                        <span style={{
-                                            fontFamily: "'Plus Jakarta Sans', sans-serif",
-                                            fontSize: "0.55rem",
-                                            fontWeight: 700,
-                                            letterSpacing: "0.2em",
-                                            color: "rgba(255,255,255,0.2)",
-                                            textTransform: "uppercase",
-                                        }}>
-                                            Coming Soon
-                                        </span>
-                                    </div>
+                                {/* inner clip wrapper */}
+                                <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden" }}>
+                                    {ev ? (
+                                        <EventCard event={ev} />
+                                    ) : (
+                                        <div
+                                            className="w-full h-full flex flex-col items-center justify-center gap-2"
+                                            style={{ background: "#111827" }}
+                                        >
+                                            <div className="absolute inset-0" style={{
+                                                backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)",
+                                            }} />
+                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                                            </svg>
+                                            <span style={{
+                                                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                                fontSize: "0.55rem",
+                                                fontWeight: 700,
+                                                letterSpacing: "0.2em",
+                                                color: "rgba(255,255,255,0.2)",
+                                                textTransform: "uppercase",
+                                            }}>
+                                                Coming Soon
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* yellow notch — active card */}
+                                {isActive && (
+                                    <CardNotch
+                                        color="rgb(234,179,8)"
+                                        textColor="rgba(0,0,0,0.75)"
+                                        label="this"
+                                    />
+                                )}
+
+                                {/* white notch — hovered card */}
+                                {isHovered && (
+                                    <CardNotch
+                                        color="rgba(255,255,255,0.92)"
+                                        textColor="rgba(0,0,0,0.6)"
+                                        label="see more"
+                                    />
                                 )}
                             </div>
                         );
@@ -332,7 +376,7 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            {/* university marquee, iya namanya marquee wkwkw */}
+            {/* university marquee */}
             <div className="absolute z-10 bottom-6 left-0 right-0">
                 <UniversityMarquee />
             </div>
