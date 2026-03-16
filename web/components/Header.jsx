@@ -24,7 +24,7 @@ export default function Header() {
             const active = pathname === href;
             return (
               <Link key={href} href={href}
-                className={`text-sm font-semibold tracking-widest uppercase transition-colors
+                className={`text-sm font-bold tracking-widest uppercase transition-colors
                   ${active ? "text-blue-900" : "text-gray-500 hover:text-blue-900"}`}>
                 {label}
               </Link>

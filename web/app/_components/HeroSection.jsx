@@ -95,10 +95,12 @@ const EVENTS = [
 ];
 
 const INTERVAL_MS = 10000;
+const SHRINK_MS = 600;
 
 export default function HeroSection() {
     const [activeIdx, setActiveIdx] = useState(0);
     const [progress, setProgress] = useState(0);
+    const [phase, setPhase] = useState("fill");
     const [animating, setAnimating] = useState(false);
 
     const progressRef = useRef(null);
@@ -108,32 +110,56 @@ export default function HeroSection() {
     const select = (idx) => {
         if (idx === activeIdx || animating) return;
         setAnimating(true);
+        setPhase("fill");
+        setProgress(0);
         setActiveIdx(idx);
         setTimeout(() => setAnimating(false), 400);
     };
 
-    // auto-advance carousel tiap INTERVAL_MS, reset progress tiap ganti slide
+    // Fill left→right, then shrink left→right, then advance slide
     useEffect(() => {
         if (animating) return;
         startRef.current = Date.now();
         setProgress(0);
 
+        const duration = phase === "fill" ? INTERVAL_MS : SHRINK_MS;
+
         const tick = () => {
             const pct = Math.min(
-                ((Date.now() - startRef.current) / INTERVAL_MS) * 100,
+                ((Date.now() - startRef.current) / duration) * 100,
                 100
             );
             setProgress(pct);
             if (pct < 100) {
                 progressRef.current = requestAnimationFrame(tick);
+            } else if (phase === "fill") {
+                // bar fully filled — kick off the shrink phase
+                setPhase("shrink");
             } else {
-                select((activeIdx + 1) % EVENTS.length);
+                // shrink done — reset progress first to avoid full-bar flash
+                setProgress(0);
+                setPhase("fill");
+                const next = (activeIdx + 1) % EVENTS.length;
+                setAnimating(true);
+                setActiveIdx(next);
+                setTimeout(() => setAnimating(false), 400);
             }
         };
 
         progressRef.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(progressRef.current);
-    }, [activeIdx, animating]);
+        return () => {
+            if (progressRef.current) cancelAnimationFrame(progressRef.current);
+        };
+    }, [activeIdx, phase, animating]);
+
+    // Derive bar position from phase + progress:
+    //   fill phase:   left=0,        width=progress%
+    //   shrink phase: left=progress%, width=(100-progress)%
+    // ease-out cubic for the shrink wipeout: fast start, slows to a stop
+    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+    const barLeft = phase === "shrink" ? `${easeOut(progress / 100) * 100}%` : "0%";
+    const barWidth = phase === "fill" ? `${progress}%` : `${100 - easeOut(progress / 100) * 100}%`;
 
     return (
         <section className="relative w-full flex-1 flex flex-col overflow-hidden bg-black">
@@ -184,21 +210,13 @@ export default function HeroSection() {
                         "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)",
                 }}
             />
-            {/* <div
-                className="absolute inset-0 z-[1]"
-                style={{
-                    background: "linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 30%)",
-                }}
-            /> */}
 
             {/* progressive blur, dari bawah dan dari kiri */}
             <div className="absolute inset-0 z-[3] pointer-events-none">
-                {/* blur vertikal dari bawah ke atas */}
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",    WebkitBackdropFilter: "blur(2px)",    maskImage: "linear-gradient(to top, black 0%, transparent 100%)" }} />
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",    WebkitBackdropFilter: "blur(4px)",    maskImage: "linear-gradient(to top, black 0%, transparent 75%)"    }} />
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",    WebkitBackdropFilter: "blur(8px)",    maskImage: "linear-gradient(to top, black 0%, transparent 50%)"    }} />
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to top, black 0%, transparent 25%)"    }} />
-                {/* blur horizontal dari kiri, cuma cover 50% kiri */}
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",    WebkitBackdropFilter: "blur(2px)",    maskImage: "linear-gradient(to right, black 0%, transparent 50%)" }} />
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",    WebkitBackdropFilter: "blur(4px)",    maskImage: "linear-gradient(to right, black 0%, transparent 37%)"    }} />
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",    WebkitBackdropFilter: "blur(8px)",    maskImage: "linear-gradient(to right, black 0%, transparent 25%)"    }} />
@@ -208,8 +226,11 @@ export default function HeroSection() {
             {/* progress bar di atas */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30">
                 <div
-                    className="h-full bg-yellow-400"
-                    style={{ width: `${progress}%`, transition: "width 0.1s linear" }}
+                    className="absolute top-0 h-full bg-yellow-400"
+                    style={{
+                        left: barLeft,
+                        width: barWidth,
+                    }}
                 />
             </div>
 
@@ -257,16 +278,16 @@ export default function HeroSection() {
                     className="text-white text-sm font-bold uppercase mb-5"
                     style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.15em" }}
                 >
-                    Featured Events
+                    {">"}{">"}{">"} Featured Events
                 </p>
                 <div className="flex gap-3" style={{ height: 240 }}>
-                    {EVENTS.map((ev, idx) => {
-                        const isActive = idx === activeIdx;
+                    {[...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)].map((ev, idx) => {
+                        const isActive = ev && idx === activeIdx;
                         return (
                             <div
-                                key={ev.id}
-                                onClick={(e) => { e.preventDefault(); select(idx); }}
-                                className="flex-1 cursor-pointer"
+                                key={ev ? ev.id : `placeholder-${idx}`}
+                                onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
+                                className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
                                 style={{
                                     height: 240,
                                     borderRadius: "8px",
@@ -277,7 +298,29 @@ export default function HeroSection() {
                                     transition: "outline 0.2s ease",
                                 }}
                             >
-                                <EventCard event={ev} />
+                                {ev ? (
+                                    <EventCard event={ev} />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center gap-2"
+                                        style={{ background: "#111827" }}>
+                                        <div className="absolute inset-0" style={{
+                                            backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)",
+                                        }} />
+                                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                                        </svg>
+                                        <span style={{
+                                            fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                            fontSize: "0.55rem",
+                                            fontWeight: 700,
+                                            letterSpacing: "0.2em",
+                                            color: "rgba(255,255,255,0.2)",
+                                            textTransform: "uppercase",
+                                        }}>
+                                            Coming Soon
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

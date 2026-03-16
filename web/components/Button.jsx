@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ArrowIcon from "@/app/icons/arrow-up-right.svg";
 
 /**
  * Button
@@ -24,9 +25,9 @@ const variants = {
 };
 
 const sizes = {
-  sm: "text-xs px-4 py-2 gap-1.5",
-  md: "text-sm px-6 py-3 gap-2",
-  lg: "text-base px-8 py-4 gap-2.5",
+  sm: "text-lg px-4 py-2 gap-1.5",
+  md: "text-lg px-5 py-1.5 gap-1",
+  lg: "text-lg px-8 py-4 gap-2.5",
 };
 
 const base = [
@@ -36,6 +37,7 @@ const base = [
   "transition-colors duration-150",
   "disabled:opacity-50 disabled:pointer-events-none",
   "whitespace-nowrap",
+  
 ].join(" ");
 
 export default function Button({
@@ -51,14 +53,15 @@ export default function Button({
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
         {children}
+        <ArrowIcon style={{ width: 16, height: 16, flexShrink: 0 }} strokeWidth={30} />
       </Link>
     );
   }
 
   return (
-    <button onClick={onClick} disabled={disabled} className={classes}>
+    <button onClick={onClick} disabled={disabled} className={classes} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
       {children}
     </button>
   );
