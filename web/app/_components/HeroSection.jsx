@@ -223,6 +223,10 @@ export default function HeroSection() {
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",    WebkitBackdropFilter: "blur(8px)",    maskImage: "linear-gradient(to right, black 0%, transparent 25%)"    }} />
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to right, black 0%, transparent 12%)"    }} />
             </div>
+            {/* blur dari kanan, subtle ~30% */}
+            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",  WebkitBackdropFilter: "blur(2px)",  maskImage: "linear-gradient(to left, black 0%, transparent 30%)" }} />
+            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",  WebkitBackdropFilter: "blur(4px)",  maskImage: "linear-gradient(to left, black 0%, transparent 20%)" }} />
+            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",  WebkitBackdropFilter: "blur(8px)",  maskImage: "linear-gradient(to left, black 0%, transparent 10%)" }} />
 
             {/* progress bar di atas */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30">
@@ -241,7 +245,7 @@ export default function HeroSection() {
                     className="text-yellow-400 text-xs font-bold uppercase mb-3"
                     style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.2em" }}
                 >
-                    {activeEvent.status === "active" ? "Ongoing" : "Coming Soon"}
+                    {activeEvent.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
                 <h1
                     key={activeEvent.id + "-t"}
@@ -279,7 +283,7 @@ export default function HeroSection() {
                     className="text-white text-sm font-bold uppercase mb-5"
                     style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.15em" }}
                 >
-                    {">"}{">"}{">"} Featured Events
+                    {">>>"} Featured Events
                 </p>
                 <div className="flex gap-1" style={{ height: 240 }}>
                     {[...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)].map((ev, idx) => {
