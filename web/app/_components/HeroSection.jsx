@@ -234,7 +234,7 @@ export default function HeroSection() {
                 </h1>
                 <p
                     key={activeEvent.id + "-d"}
-                    className="text-white text-base leading-relaxed mb-6"
+                    className="text-white text-base leading-relaxed mb-6 font-medium"
                     style={{
                         fontFamily: "'Plus Jakarta Sans', sans-serif",
                         animation: "fade-up 0.4s ease 0.07s both",

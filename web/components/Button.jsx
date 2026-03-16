@@ -31,8 +31,8 @@ const sizes = {
 
 const base = [
   "inline-flex items-center justify-center",
-  "border rounded-sm",                    // Figma shows slightly rounded, not fully pill
-  "uppercase tracking-widest",
+  "border rounded-[7px]",                   
+  "uppercase",
   "transition-colors duration-150",
   "disabled:opacity-50 disabled:pointer-events-none",
   "whitespace-nowrap",
