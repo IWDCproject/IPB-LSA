@@ -36,9 +36,9 @@ export default function EventCard({ event, className = "" }) {
     {/* Text — pinned to bottom */}
     <div className="absolute bottom-0 left-0 right-0 p-4">
         {orgName && (
-        <p className="text-white/60 text-[12px] font-semibold mb-1 truncate">by {orgName}</p>
+        <p className="text-white text-[12px] font-semibold mb-1 truncate">by {orgName}</p>
         )}
-        <p className="text-white font-display text-[24px] leading-tight uppercase tracking-wide line-clamp-2">
+        <p className="text-white font-display text-[24px] leading-tight uppercase tracking-semiwide line-clamp-2">
         {name}
         </p>
     </div>
