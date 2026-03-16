@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Button from "@/components/Button";
 import EventCard from "@/components/EventCard";
+import UniversityMarquee from "@/components/UniversityMarquee";
 
 const EVENTS = [
     {
@@ -280,7 +281,7 @@ export default function HeroSection() {
                 >
                     {">"}{">"}{">"} Featured Events
                 </p>
-                <div className="flex gap-3" style={{ height: 240 }}>
+                <div className="flex gap-1" style={{ height: 240 }}>
                     {[...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)].map((ev, idx) => {
                         const isActive = ev && idx === activeIdx;
                         return (
@@ -325,6 +326,11 @@ export default function HeroSection() {
                         );
                     })}
                 </div>
+            </div>
+
+            {/* university marquee, iya namanya marquee wkwkw */}
+            <div className="absolute z-10 bottom-6 left-0 right-0">
+                <UniversityMarquee />
             </div>
         </section>
     );

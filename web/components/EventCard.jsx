@@ -8,7 +8,7 @@ export default function EventCard({ event, className = "" }) {
   return (
     <Link
     href={`/events/${slug}`}
-    className={`relative block overflow-hidden rounded-lg h-full group ${className}`}
+    className={`relative block overflow-hidden rounded-[0.2rem] h-full group ${className}`}
     >
     {card_image_url ? (
         <Image
