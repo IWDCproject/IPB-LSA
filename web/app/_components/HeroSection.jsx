@@ -145,16 +145,69 @@ function CardNotch({ color, textColor, label }) {
     );
 }
 
+// Intro stagger animation
+function introStyle(delayMs) {
+    return { animation: `hero-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${delayMs}ms both` };
+}
+
+// Per-slot delays for exit (top→bottom) and enter (top→bottom)
+const EXIT_DELAYS  = [150, 100, 50, 0];   // status, title, desc, button — bottom to top
+const ENTER_DELAYS = [0, 70, 140, 210];
+const INTRO_DELAYS = [160, 240, 320, 400];
+
 export default function HeroSection() {
     const [activeIdx, setActiveIdx] = useState(0);
     const [hoveredIdx, setHoveredIdx] = useState(null);
     const [progress, setProgress] = useState(0);
     const [phase, setPhase] = useState("fill");
     const [animating, setAnimating] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    // Lags behind activeIdx — content swaps only after exit finishes
+    const [displayIdx, setDisplayIdx] = useState(0);
+    // "idle" | "exit" | "enter"
+    const [transPhase, setTransPhase] = useState("idle");
+    // Once true, idle state returns opacity:1 instead of re-firing intro
+    const [introPlayed, setIntroPlayed] = useState(false);
 
     const progressRef = useRef(null);
     const startRef = useRef(Date.now());
-    const activeEvent = EVENTS[activeIdx];
+    const activeEvent  = EVENTS[activeIdx];
+    const displayEvent = EVENTS[displayIdx];
+
+    // Returns the right animation style for each info slot based on current phase
+    const infoAnimStyle = (slot) => {
+        if (!mounted) return { opacity: 0 };
+        if (transPhase === "exit")
+            return { animation: `info-exit 0.22s ease ${EXIT_DELAYS[slot]}ms both` };
+        if (transPhase === "enter")
+            return { animation: `info-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${ENTER_DELAYS[slot]}ms both` };
+        // idle — play intro once, then just stay visible
+        if (!introPlayed) return introStyle(INTRO_DELAYS[slot]);
+        return { opacity: 1 };
+    };
+
+    // Trigger intro on first paint
+    useEffect(() => {
+        const rafId = requestAnimationFrame(() => setMounted(true));
+        return () => cancelAnimationFrame(rafId);
+    }, []);
+
+    // Card transition: exit → swap content → enter
+    useEffect(() => {
+        if (!mounted || activeIdx === displayIdx) return;
+        setIntroPlayed(true);
+        setTransPhase("exit");
+        // EXIT_DELAYS last slot (150ms) + exit duration (220ms) + buffer
+        const swapAt = 150 + 220 + 20;
+        // ENTER_DELAYS last slot (210ms) + enter duration (350ms) + buffer
+        const idleAt = swapAt + 210 + 350 + 20;
+        const t1 = setTimeout(() => {
+            setDisplayIdx(activeIdx);
+            setTransPhase("enter");
+        }, swapAt);
+        const t2 = setTimeout(() => setTransPhase("idle"), idleAt);
+        return () => { clearTimeout(t1); clearTimeout(t2); };
+    }, [activeIdx, mounted]);
 
     const select = (idx) => {
         if (idx === activeIdx || animating) return;
@@ -205,10 +258,7 @@ export default function HeroSection() {
     return (
         <section className="relative w-full flex-1 flex flex-col overflow-hidden bg-black">
             <style>{`
-                @keyframes fade-up {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
+                /* ── existing animations ── */
                 @keyframes bgFadeIn {
                     from { opacity: 0; }
                     to   { opacity: 1; }
@@ -216,6 +266,66 @@ export default function HeroSection() {
                 @keyframes notch-pop {
                     from { opacity: 0; transform: translateX(-50%) scaleX(0.5); }
                     to   { opacity: 1; transform: translateX(-50%) scaleX(1); }
+                }
+
+                /* ── card transition ── */
+                @keyframes info-exit {
+                    from { opacity: 1; transform: translateY(0); }
+                    to   { opacity: 0; transform: translateY(-10px); }
+                }
+                @keyframes info-enter {
+                    from { opacity: 0; transform: translateY(12px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+
+                /* ── intro stagger ── */
+                @keyframes hero-intro {
+                    from {
+                        opacity: 0;
+                        transform: translateY(18px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                /* Progress bar slides in from the left edge */
+                @keyframes hero-bar-intro {
+                    from {
+                        opacity: 0;
+                        transform: scaleX(0);
+                        transform-origin: left;
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scaleX(1);
+                        transform-origin: left;
+                    }
+                }
+
+                /* Cards row fans in slightly from below */
+                @keyframes hero-cards-intro {
+                    from {
+                        opacity: 0;
+                        transform: translateY(28px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                /* Marquee fades up last */
+                @keyframes hero-marquee-intro {
+                    from {
+                        opacity: 0;
+                        transform: translateY(12px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
                 }
             `}</style>
 
@@ -250,58 +360,91 @@ export default function HeroSection() {
             <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", maskImage: "linear-gradient(to left, black 0%, transparent 20%)" }} />
             <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", maskImage: "linear-gradient(to left, black 0%, transparent 10%)" }} />
 
-            {/* progress bar */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30">
+            {/* ── progress bar — intro: slides in from left ── */}
+            <div
+                className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30"
+                style={mounted ? {
+                    animation: "hero-bar-intro 0.5s cubic-bezier(0.22, 1, 0.36, 1) 80ms both",
+                } : { opacity: 0 }}
+            >
                 <div className="absolute top-0 h-full bg-yellow-400" style={{ left: barLeft, width: barWidth }} />
             </div>
 
-            {/* event info */}
+            {/* ── event info — staggered top-down ── */}
             <div className="absolute z-10 left-[160px] max-w-lg" style={{ top: "80px" }}>
+
+                {/* 1 — status label */}
                 <p
                     className="text-yellow-400 text-xs font-bold uppercase mb-3"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.2em" }}
+                    style={{
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        letterSpacing: "0.2em",
+                        ...infoAnimStyle(0),
+                    }}
                 >
-                    {activeEvent.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
+                    {displayEvent.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
+
+                {/* 2 — title */}
                 <h1
-                    key={activeEvent.id + "-t"}
                     className="text-white uppercase leading-none mb-3"
                     style={{
                         fontFamily: "'Bebas Neue', sans-serif",
                         fontSize: "clamp(2.8rem, 5vw, 5rem)",
-                        animation: "fade-up 0.4s ease forwards",
+                        ...infoAnimStyle(1),
                     }}
                 >
-                    {activeEvent.name}
+                    {displayEvent.name}
                 </h1>
+
+                {/* 3 — description */}
                 <p
-                    key={activeEvent.id + "-d"}
                     className="text-white text-base leading-relaxed mb-6 font-medium"
                     style={{
                         fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        animation: "fade-up 0.4s ease 0.07s both",
                         display: "-webkit-box",
                         WebkitLineClamp: 3,
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
+                        ...infoAnimStyle(2),
                     }}
                 >
-                    {activeEvent.description}
+                    {displayEvent.description}
                 </p>
-                <Button href={`/events/${activeEvent.slug}`} variant="primary" size="md">
-                    More Details
-                </Button>
+
+                {/* 4 — CTA button */}
+                <div style={infoAnimStyle(3)}>
+                    <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">
+                        More Details
+                    </Button>
+                </div>
             </div>
 
-            {/* event cards */}
+            {/* ── event cards ── */}
             <div className="absolute z-10 bottom-20 left-0 right-0 px-[160px] pb-10">
+
+                {/* 5 — "Featured Events" label */}
                 <p
                     className="text-white text-sm font-bold uppercase mb-5"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.15em" }}
+                    style={{
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        letterSpacing: "0.15em",
+                        ...(mounted ? introStyle(480) : { opacity: 0 }),
+                    }}
                 >
                     {">>>"} Featured Events
                 </p>
-                <div className="flex gap-1" style={{ height: 240 }}>
+
+                {/* 6 — cards row */}
+                <div
+                    className="flex gap-1"
+                    style={{
+                        height: 240,
+                        ...(mounted ? {
+                            animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both",
+                        } : { opacity: 0 }),
+                    }}
+                >
                     {[...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)].map((ev, idx) => {
                         const isActive = ev && idx === activeIdx;
                         const isHovered = ev && !isActive && hoveredIdx === idx;
@@ -376,8 +519,13 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            {/* university marquee */}
-            <div className="absolute z-10 bottom-6 left-0 right-0">
+            {/* ── university marquee — last in ── */}
+            <div
+                className="absolute z-10 bottom-6 left-0 right-0"
+                style={mounted ? {
+                    animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both",
+                } : { opacity: 0 }}
+            >
                 <UniversityMarquee />
             </div>
         </section>
