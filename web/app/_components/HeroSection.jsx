@@ -158,8 +158,6 @@ const INTRO_DELAYS = [160, 240, 320, 400];
 export default function HeroSection() {
     const [activeIdx, setActiveIdx] = useState(0);
     const [hoveredIdx, setHoveredIdx] = useState(null);
-    const [progress, setProgress] = useState(0);
-    const [phase, setPhase] = useState("fill");
     const [animating, setAnimating] = useState(false);
     const [mounted, setMounted] = useState(false);
     // Lags behind activeIdx — content swaps only after exit finishes
@@ -169,8 +167,9 @@ export default function HeroSection() {
     // Once true, idle state returns opacity:1 instead of re-firing intro
     const [introPlayed, setIntroPlayed] = useState(false);
 
-    const progressRef = useRef(null);
-    const startRef = useRef(Date.now());
+    // progress bar langsung dimanipulasi ke DOM, biar ga re-render tiap frame
+    const barRef = useRef(null);
+
     const activeEvent  = EVENTS[activeIdx];
     const displayEvent = EVENTS[displayIdx];
 
@@ -212,32 +211,45 @@ export default function HeroSection() {
     const select = (idx) => {
         if (idx === activeIdx || animating) return;
         setAnimating(true);
-        setPhase("fill");
-        setProgress(0);
         setActiveIdx(idx);
         setTimeout(() => setAnimating(false), 400);
     };
 
+    // progress bar digerakkin langsung lewat ref, nol re-render React
     useEffect(() => {
         if (animating) return;
-        startRef.current = Date.now();
-        setProgress(0);
 
-        const duration = phase === "fill" ? INTERVAL_MS : SHRINK_MS;
+        let startTime = null;
+        let rafId;
+        let currentPhase = "fill";
 
-        const tick = () => {
-            const pct = Math.min(
-                ((Date.now() - startRef.current) / duration) * 100,
-                100
-            );
-            setProgress(pct);
-            if (pct < 100) {
-                progressRef.current = requestAnimationFrame(tick);
-            } else if (phase === "fill") {
-                setPhase("shrink");
+        const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+        const tick = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+
+            const duration = currentPhase === "fill" ? INTERVAL_MS : SHRINK_MS;
+            const t = Math.min(elapsed / duration, 1);
+
+            if (barRef.current) {
+                if (currentPhase === "fill") {
+                    barRef.current.style.left = "0%";
+                    barRef.current.style.width = `${t * 100}%`;
+                } else {
+                    const e = easeOut(t);
+                    barRef.current.style.left = `${e * 100}%`;
+                    barRef.current.style.width = `${(1 - e) * 100}%`;
+                }
+            }
+
+            if (t < 1) {
+                rafId = requestAnimationFrame(tick);
+            } else if (currentPhase === "fill") {
+                currentPhase = "shrink";
+                startTime = null;
+                rafId = requestAnimationFrame(tick);
             } else {
-                setProgress(0);
-                setPhase("fill");
                 const next = (activeIdx + 1) % EVENTS.length;
                 setAnimating(true);
                 setActiveIdx(next);
@@ -245,19 +257,12 @@ export default function HeroSection() {
             }
         };
 
-        progressRef.current = requestAnimationFrame(tick);
-        return () => {
-            if (progressRef.current) cancelAnimationFrame(progressRef.current);
-        };
-    }, [activeIdx, phase, animating]);
-
-    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-    const barLeft = phase === "shrink" ? `${easeOut(progress / 100) * 100}%` : "0%";
-    const barWidth = phase === "fill" ? `${progress}%` : `${100 - easeOut(progress / 100) * 100}%`;
+        rafId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafId);
+    }, [activeIdx, animating]);
 
     return (
-        <section className="relative w-full h-full flex flex-col overflow-hidden bg-black"
-        style={{ height: `calc(100vh - 65px)` }}>
+        <section className="relative w-full h-full flex flex-col overflow-hidden bg-black">
             <style>{`
                 /* ── existing animations ── */
                 @keyframes bgFadeIn {
@@ -330,15 +335,21 @@ export default function HeroSection() {
                 }
             `}</style>
 
-            {/* background */}
+            {/* background, semua gambar di-render sekaligus, ganti pake opacity biar ga remount */}
             <div className="absolute inset-0 z-0">
-                <img
-                    key={activeEvent.id}
-                    src={activeEvent.card_image_url}
-                    alt={activeEvent.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ objectPosition: "right center", animation: "bgFadeIn 0.8s ease forwards" }}
-                />
+                {EVENTS.map((ev, idx) => (
+                    <img
+                        key={ev.id}
+                        src={ev.card_image_url}
+                        alt={ev.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{
+                            objectPosition: "right center",
+                            opacity: idx === activeIdx ? 1 : 0,
+                            transition: "opacity 0.8s ease",
+                        }}
+                    />
+                ))}
             </div>
 
             {/* gradient overlays */}
@@ -368,7 +379,7 @@ export default function HeroSection() {
                     animation: "hero-bar-intro 0.5s cubic-bezier(0.22, 1, 0.36, 1) 80ms both",
                 } : { opacity: 0 }}
             >
-                <div className="absolute top-0 h-full bg-yellow-400" style={{ left: barLeft, width: barWidth }} />
+                <div ref={barRef} className="absolute top-0 h-full bg-yellow-400" />
             </div>
 
             {/* ── event info — staggered top-down ── */}
