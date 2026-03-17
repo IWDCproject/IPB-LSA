@@ -170,6 +170,88 @@ export default function HeroSection() {
     // progress bar langsung dimanipulasi ke DOM, biar ga re-render tiap frame
     const barRef = useRef(null);
 
+    // refs ke canvas elements — bitmaprenderer context, zero encode/decode
+    const canvasRefs = useRef({});
+    const [readyIds, setReadyIds] = useState(new Set());
+
+    // overlay dismiss dipisah dari readyIds — ga nunggu semua kelar,
+    // cukup nunggu gambar pertama (active) biar intro bisa langsung main
+    const [firstReady, setFirstReady] = useState(false);
+
+    useEffect(() => {
+        const W      = window.innerWidth;
+        const H      = window.innerHeight;
+        const worker = new Worker("/blurWorker.js");
+
+        // antrian GPU upload — diproses satu per satu biar ga spike barengan
+        // paint dibuat async biar blur transfer (yang ada createImageBitmap-nya)
+        // ikut ditunggu sebelum item berikutnya jalan
+        const transferQueue = [];
+        let draining = false;
+
+        const drainQueue = async () => {
+            if (draining || transferQueue.length === 0) return;
+            draining = true;
+
+            const paintNext = transferQueue.shift();
+            await paintNext();
+
+            // 120ms jeda antar GPU upload — cukup napas, ga keliatan di UI
+            await new Promise((r) => setTimeout(r, 120));
+            draining = false;
+            drainQueue();
+        };
+
+        worker.onmessage = ({ data: { id, bitmap, error } }) => {
+            if (error) { console.warn("blur worker error:", error); return; }
+
+            // paint dibuat async — nunggu blur transfer selesai juga sebelum resolve
+            const paint = async () => {
+                const sharpCanvas = canvasRefs.current[`${id}_sharp`];
+                if (sharpCanvas) {
+                    sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bitmap);
+                }
+
+                // paint bitmap yang sama ke blur canvas — CSS filter blur yang kerja di GPU
+                const blurCanvas = canvasRefs.current[`${id}_blur`];
+                if (blurCanvas) {
+                    // createImageBitmap dari canvas biar bisa di-transfer dua kali
+                    // di-await biar queue nunggu ini kelar dulu sebelum lanjut
+                    const bmp = await createImageBitmap(sharpCanvas);
+                    blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
+                }
+
+                setReadyIds((prev) => new Set([...prev, id]));
+            };
+
+            // active image (idx 0) langsung dicat tanpa antri — biar overlay cepet ilang
+            // dan intro animation bisa langsung main
+            if (id === EVENTS[0].id) {
+                paint().then(() => setFirstReady(true));
+            } else {
+                transferQueue.push(paint);
+                drainQueue();
+            }
+        };
+
+        // kirim semua sekaligus — worker proses paralel pake Promise.all
+        worker.postMessage({
+            images: EVENTS.map((ev) => ({ id: ev.id, url: ev.card_image_url })),
+            width: W,
+            height: H,
+        });
+
+        return () => worker.terminate();
+    }, []);
+
+    // unlock scroll pas semua canvas kelar — lenis udah di-stop dari awal di SmoothScroller
+    useEffect(() => {
+        const done = readyIds.size === EVENTS.length;
+        if (!done) return;
+        const raf = requestAnimationFrame(() => window.__lenis?.start());
+        return () => cancelAnimationFrame(raf);
+    }, [readyIds]);
+
     const activeEvent  = EVENTS[activeIdx];
     const displayEvent = EVENTS[displayIdx];
 
@@ -333,22 +415,74 @@ export default function HeroSection() {
                         transform: translateY(0);
                     }
                 }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
             `}</style>
 
-            {/* background, semua gambar di-render sekaligus, ganti pake opacity biar ga remount */}
+            {/* loading overlay — fade out pas gambar pertama (active) kelar,
+                ga nunggu semua 8 gambar biar intro animation ga ketinggalan */}
+            <div
+                className="absolute inset-0 z-50 flex items-center justify-center bg-black"
+                style={{
+                    opacity:       firstReady ? 0 : 1,
+                    pointerEvents: firstReady ? "none" : "all",
+                    transition:    "opacity 0.6s ease",
+                }}
+            >
+                <div style={{
+                    width:        20,
+                    height:       20,
+                    borderRadius: "50%",
+                    border:       "2px solid rgba(255,255,255,0.1)",
+                    borderTop:    "2px solid rgba(234,179,8,0.9)",
+                    animation:    "spin 0.8s linear infinite",
+                }} />
+            </div>
+
+            {/* background — sharp canvas + CSS blur overlay, keduanya GPU */}
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
-                    <img
+                    <div
                         key={ev.id}
-                        src={ev.card_image_url}
-                        alt={ev.name}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="absolute inset-0"
                         style={{
-                            objectPosition: "right center",
-                            opacity: idx === activeIdx ? 1 : 0,
+                            opacity:    idx === activeIdx ? 1 : 0,
                             transition: "opacity 0.8s ease",
                         }}
-                    />
+                    >
+                        {/* layer 1 — sharp image */}
+                        <canvas
+                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
+                            width={typeof window !== "undefined" ? Math.round(window.innerWidth  / 2) : 960}
+                            height={typeof window !== "undefined" ? Math.round(window.innerHeight / 2) : 540}
+                            className="absolute inset-0 w-full h-full"
+                        />
+
+                        {/* layer 2 — blur overlay pake CSS filter (GPU), di-mask biar cuma di pinggir */}
+                        <canvas
+                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
+                            width={typeof window !== "undefined" ? Math.round(window.innerWidth  / 2) : 960}
+                            height={typeof window !== "undefined" ? Math.round(window.innerHeight / 2) : 540}
+                            className="absolute inset-0 w-full h-full"
+                            style={{
+                                filter: "blur(24px)",
+                                maskImage: `
+                                    linear-gradient(to top,   black 0%, transparent 35%),
+                                    linear-gradient(to right, black 0%, transparent 40%),
+                                    linear-gradient(to left,  black 0%, transparent 35%)
+                                `,
+                                WebkitMaskImage: `
+                                    linear-gradient(to top,   black 0%, transparent 35%),
+                                    linear-gradient(to right, black 0%, transparent 40%),
+                                    linear-gradient(to left,  black 0%, transparent 35%)
+                                `,
+                                maskComposite:        "add",
+                                WebkitMaskComposite:  "source-over",
+                            }}
+                        />
+                    </div>
                 ))}
             </div>
 
@@ -356,21 +490,6 @@ export default function HeroSection() {
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
-
-            {/* progressive blur */}
-            <div className="absolute inset-0 z-[3] pointer-events-none">
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",  WebkitBackdropFilter: "blur(2px)",  maskImage: "linear-gradient(to top, black 0%, transparent 100%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",  WebkitBackdropFilter: "blur(4px)",  maskImage: "linear-gradient(to top, black 0%, transparent 75%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",  WebkitBackdropFilter: "blur(8px)",  maskImage: "linear-gradient(to top, black 0%, transparent 50%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to top, black 0%, transparent 25%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)",  WebkitBackdropFilter: "blur(2px)",  maskImage: "linear-gradient(to right, black 0%, transparent 50%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)",  WebkitBackdropFilter: "blur(4px)",  maskImage: "linear-gradient(to right, black 0%, transparent 37%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)",  WebkitBackdropFilter: "blur(8px)",  maskImage: "linear-gradient(to right, black 0%, transparent 25%)" }} />
-                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to right, black 0%, transparent 12%)" }} />
-            </div>
-            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", maskImage: "linear-gradient(to left, black 0%, transparent 30%)" }} />
-            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", maskImage: "linear-gradient(to left, black 0%, transparent 20%)" }} />
-            <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", maskImage: "linear-gradient(to left, black 0%, transparent 10%)" }} />
 
             {/* ── progress bar — intro: slides in from left ── */}
             <div
