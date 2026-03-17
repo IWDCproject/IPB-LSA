@@ -50,7 +50,6 @@ export default function UniversityMarquee() {
           width: max-content;
           animation: marquee ${CONFIG.speed}s linear infinite;
         }
-        .marquee-track:hover { animation-play-state: paused; }
       `}</style>
 
       <div className="marquee-track">
