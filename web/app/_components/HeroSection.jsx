@@ -391,6 +391,7 @@ export default function HeroSection() {
                     style={{
                         fontFamily: "'Bebas Neue', sans-serif",
                         fontSize: "clamp(2.8rem, 5vw, 5rem)",
+                        textWrap: "balance",
                         ...infoAnimStyle(1),
                     }}
                 >
@@ -406,6 +407,7 @@ export default function HeroSection() {
                         WebkitLineClamp: 3,
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
+                        textWrap: "balance",
                         ...infoAnimStyle(2),
                     }}
                 >
