@@ -174,67 +174,33 @@ export default function HeroSection() {
     const canvasRefs = useRef({});
     const [readyIds, setReadyIds] = useState(new Set());
 
-    // overlay dismiss dipisah dari readyIds — ga nunggu semua kelar,
-    // cukup nunggu gambar pertama (active) biar intro bisa langsung main
-    const [firstReady, setFirstReady] = useState(false);
-
     useEffect(() => {
         const W      = window.innerWidth;
         const H      = window.innerHeight;
         const worker = new Worker("/blurWorker.js");
 
-        // antrian GPU upload — diproses satu per satu biar ga spike barengan
-        // paint dibuat async biar blur transfer (yang ada createImageBitmap-nya)
-        // ikut ditunggu sebelum item berikutnya jalan
-        const transferQueue = [];
-        let draining = false;
-
-        const drainQueue = async () => {
-            if (draining || transferQueue.length === 0) return;
-            draining = true;
-
-            const paintNext = transferQueue.shift();
-            await paintNext();
-
-            // 120ms jeda antar GPU upload — cukup napas, ga keliatan di UI
-            await new Promise((r) => setTimeout(r, 120));
-            draining = false;
-            drainQueue();
-        };
-
+        // kirim semua sekaligus — worker proses paralel pake Promise.all
         worker.onmessage = ({ data: { id, bitmap, error } }) => {
             if (error) { console.warn("blur worker error:", error); return; }
 
-            // paint dibuat async — nunggu blur transfer selesai juga sebelum resolve
-            const paint = async () => {
-                const sharpCanvas = canvasRefs.current[`${id}_sharp`];
-                if (sharpCanvas) {
-                    sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bitmap);
-                }
-
-                // paint bitmap yang sama ke blur canvas — CSS filter blur yang kerja di GPU
-                const blurCanvas = canvasRefs.current[`${id}_blur`];
-                if (blurCanvas) {
-                    // createImageBitmap dari canvas biar bisa di-transfer dua kali
-                    // di-await biar queue nunggu ini kelar dulu sebelum lanjut
-                    const bmp = await createImageBitmap(sharpCanvas);
-                    blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
-                }
-
-                setReadyIds((prev) => new Set([...prev, id]));
-            };
-
-            // active image (idx 0) langsung dicat tanpa antri — biar overlay cepet ilang
-            // dan intro animation bisa langsung main
-            if (id === EVENTS[0].id) {
-                paint().then(() => setFirstReady(true));
-            } else {
-                transferQueue.push(paint);
-                drainQueue();
+            // paint ke sharp canvas
+            const sharpCanvas = canvasRefs.current[`${id}_sharp`];
+            if (sharpCanvas) {
+                sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bitmap);
             }
+
+            // paint bitmap yang sama ke blur canvas — CSS filter blur yang kerja di GPU
+            const blurCanvas = canvasRefs.current[`${id}_blur`];
+            if (blurCanvas) {
+                // createImageBitmap dari canvas biar bisa di-transfer dua kali
+                createImageBitmap(sharpCanvas).then((bmp) => {
+                    blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
+                });
+            }
+
+            setReadyIds((prev) => new Set([...prev, id]));
         };
 
-        // kirim semua sekaligus — worker proses paralel pake Promise.all
         worker.postMessage({
             images: EVENTS.map((ev) => ({ id: ev.id, url: ev.card_image_url })),
             width: W,
@@ -244,12 +210,20 @@ export default function HeroSection() {
         return () => worker.terminate();
     }, []);
 
-    // unlock scroll pas semua canvas kelar — lenis udah di-stop dari awal di SmoothScroller
+    // semua canvas kelar — unlock scroll + trigger intro animations
+    // spike tetep terjadi tapi di balik overlay, user ga liat
     useEffect(() => {
         const done = readyIds.size === EVENTS.length;
         if (!done) return;
-        const raf = requestAnimationFrame(() => window.__lenis?.start());
-        return () => cancelAnimationFrame(raf);
+
+        // nunggu overlay fade selesai dulu (600ms) baru unlock + main animasi
+        // biar spike dari transfers ga keliatan pas overlay lagi transparan sebagian
+        const t = setTimeout(() => {
+            window.__lenis?.start();
+            setMounted(true);
+        }, 600);
+
+        return () => clearTimeout(t);
     }, [readyIds]);
 
     const activeEvent  = EVENTS[activeIdx];
@@ -266,12 +240,6 @@ export default function HeroSection() {
         if (!introPlayed) return introStyle(INTRO_DELAYS[slot]);
         return { opacity: 1 };
     };
-
-    // Trigger intro on first paint
-    useEffect(() => {
-        const rafId = requestAnimationFrame(() => setMounted(true));
-        return () => cancelAnimationFrame(rafId);
-    }, []);
 
     // Card transition: exit → swap content → enter
     useEffect(() => {
@@ -421,13 +389,12 @@ export default function HeroSection() {
                 }
             `}</style>
 
-            {/* loading overlay — fade out pas gambar pertama (active) kelar,
-                ga nunggu semua 8 gambar biar intro animation ga ketinggalan */}
+            {/* loading overlay — fade out pas semua canvas kelar */}
             <div
                 className="absolute inset-0 z-50 flex items-center justify-center bg-black"
                 style={{
-                    opacity:       firstReady ? 0 : 1,
-                    pointerEvents: firstReady ? "none" : "all",
+                    opacity:       readyIds.size === EVENTS.length ? 0 : 1,
+                    pointerEvents: readyIds.size === EVENTS.length ? "none" : "all",
                     transition:    "opacity 0.6s ease",
                 }}
             >
