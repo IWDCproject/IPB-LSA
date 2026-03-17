@@ -256,7 +256,8 @@ export default function HeroSection() {
     const barWidth = phase === "fill" ? `${progress}%` : `${100 - easeOut(progress / 100) * 100}%`;
 
     return (
-        <section className="relative w-full flex-1 flex flex-col overflow-hidden bg-black">
+        <section className="relative w-full h-full flex flex-col overflow-hidden bg-black"
+        style={{ height: `calc(100vh - 65px)` }}>
             <style>{`
                 /* ── existing animations ── */
                 @keyframes bgFadeIn {

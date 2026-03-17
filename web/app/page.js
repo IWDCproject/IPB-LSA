@@ -1,7 +1,5 @@
-import HeroSection from "./_components/HeroSection";
+import CurtainWrapper from "./_components/CurtainWrapper";
 
 export default function HomePage() {
-  return (
-    <HeroSection />
-  );
+  return <CurtainWrapper />;
 }
