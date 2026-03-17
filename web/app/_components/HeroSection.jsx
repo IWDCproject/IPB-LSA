@@ -96,10 +96,14 @@ const EVENTS = [
 ];
 
 const INTERVAL_MS = 10000;
-const SHRINK_MS = 600;
+const SHRINK_MS   = 600;
+
+// durasi fade overlay, dipakai buat nunda setMounted supaya spike ga keliatan
+const OVERLAY_FADE_MS = 600;
 
 const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
 
+// notch kecil di bawah card yang lagi aktif atau di-hover
 function CardNotch({ color, textColor, label }) {
     return (
         <div
@@ -145,41 +149,48 @@ function CardNotch({ color, textColor, label }) {
     );
 }
 
-// Intro stagger animation
+// style animasi intro dengan delay berbeda tiap slot
 function introStyle(delayMs) {
     return { animation: `hero-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${delayMs}ms both` };
 }
 
-// Per-slot delays for exit (top→bottom) and enter (top→bottom)
-const EXIT_DELAYS  = [150, 100, 50, 0];   // status, title, desc, button — bottom to top
+// delay per slot untuk animasi exit, enter, dan intro pertama kali
+const EXIT_DELAYS  = [150, 100, 50, 0];   // status, title, desc, button (bawah ke atas)
 const ENTER_DELAYS = [0, 70, 140, 210];
 const INTRO_DELAYS = [160, 240, 320, 400];
 
 export default function HeroSection() {
-    const [activeIdx, setActiveIdx] = useState(0);
+    const [activeIdx, setActiveIdx]   = useState(0);
     const [hoveredIdx, setHoveredIdx] = useState(null);
-    const [animating, setAnimating] = useState(false);
+    const [animating, setAnimating]   = useState(false);
+
+    // mounted baru jadi true setelah overlay benar-benar hilang
     const [mounted, setMounted] = useState(false);
-    // Lags behind activeIdx — content swaps only after exit finishes
+
+    // displayIdx ketinggalan dari activeIdx supaya konten swap setelah exit selesai
     const [displayIdx, setDisplayIdx] = useState(0);
-    // "idle" | "exit" | "enter"
+
+    // fase transisi kartu: "idle" | "exit" | "enter"
     const [transPhase, setTransPhase] = useState("idle");
-    // Once true, idle state returns opacity:1 instead of re-firing intro
+
+    // setelah intro pertama main, idle state langsung opacity:1 tanpa re-trigger
     const [introPlayed, setIntroPlayed] = useState(false);
 
-    // progress bar langsung dimanipulasi ke DOM, biar ga re-render tiap frame
+    // progress bar dimanipulasi langsung ke DOM supaya ga re-render tiap frame
     const barRef = useRef(null);
 
-    // refs ke canvas elements — bitmaprenderer context, zero encode/decode
+    // refs ke semua canvas, diakses langsung tanpa state
     const canvasRefs = useRef({});
+
+    // set of id gambar yang sudah selesai di-decode dan dipaint ke canvas
     const [readyIds, setReadyIds] = useState(new Set());
 
+    // decode semua gambar di worker, paint ke canvas via bitmaprenderer (zero-copy GPU upload)
     useEffect(() => {
         const W      = window.innerWidth;
         const H      = window.innerHeight;
         const worker = new Worker("/blurWorker.js");
 
-        // kirim semua sekaligus — worker proses paralel pake Promise.all
         worker.onmessage = ({ data: { id, bitmap, error } }) => {
             if (error) { console.warn("blur worker error:", error); return; }
 
@@ -189,10 +200,10 @@ export default function HeroSection() {
                 sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bitmap);
             }
 
-            // paint bitmap yang sama ke blur canvas — CSS filter blur yang kerja di GPU
+            // paint ulang ke blur canvas supaya bisa di-blur pakai CSS filter di GPU
+            // perlu createImageBitmap lagi karena bitmap sudah di-transfer di atas
             const blurCanvas = canvasRefs.current[`${id}_blur`];
             if (blurCanvas) {
-                // createImageBitmap dari canvas biar bisa di-transfer dua kali
                 createImageBitmap(sharpCanvas).then((bmp) => {
                     blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
                 });
@@ -201,6 +212,7 @@ export default function HeroSection() {
             setReadyIds((prev) => new Set([...prev, id]));
         };
 
+        // kirim semua URL sekaligus, worker fetch dan decode paralel
         worker.postMessage({
             images: EVENTS.map((ev) => ({ id: ev.id, url: ev.card_image_url })),
             width: W,
@@ -210,45 +222,40 @@ export default function HeroSection() {
         return () => worker.terminate();
     }, []);
 
-    // semua canvas kelar — unlock scroll + trigger intro animations
-    // spike tetep terjadi tapi di balik overlay, user ga liat
+    // setelah semua canvas kelar, tunggu overlay fade habis baru unlock scroll dan jalankan animasi
+    // spike dari GPU transfers tetap terjadi tapi tersembunyi di balik overlay yang masih solid
     useEffect(() => {
-        const done = readyIds.size === EVENTS.length;
-        if (!done) return;
+        if (readyIds.size !== EVENTS.length) return;
 
-        // nunggu overlay fade selesai dulu (600ms) baru unlock + main animasi
-        // biar spike dari transfers ga keliatan pas overlay lagi transparan sebagian
         const t = setTimeout(() => {
             window.__lenis?.start();
             setMounted(true);
-        }, 600);
+        }, OVERLAY_FADE_MS);
 
         return () => clearTimeout(t);
     }, [readyIds]);
 
-    const activeEvent  = EVENTS[activeIdx];
     const displayEvent = EVENTS[displayIdx];
 
-    // Returns the right animation style for each info slot based on current phase
+    // kembalikan style animasi yang tepat untuk tiap slot info berdasarkan fase saat ini
     const infoAnimStyle = (slot) => {
         if (!mounted) return { opacity: 0 };
         if (transPhase === "exit")
             return { animation: `info-exit 0.22s ease ${EXIT_DELAYS[slot]}ms both` };
         if (transPhase === "enter")
             return { animation: `info-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${ENTER_DELAYS[slot]}ms both` };
-        // idle — play intro once, then just stay visible
         if (!introPlayed) return introStyle(INTRO_DELAYS[slot]);
         return { opacity: 1 };
     };
 
-    // Card transition: exit → swap content → enter
+    // transisi kartu: exit -> swap konten -> enter
     useEffect(() => {
         if (!mounted || activeIdx === displayIdx) return;
         setIntroPlayed(true);
         setTransPhase("exit");
-        // EXIT_DELAYS last slot (150ms) + exit duration (220ms) + buffer
+        // EXIT_DELAYS slot terakhir (150ms) + durasi exit (220ms) + buffer
         const swapAt = 150 + 220 + 20;
-        // ENTER_DELAYS last slot (210ms) + enter duration (350ms) + buffer
+        // ENTER_DELAYS slot terakhir (210ms) + durasi enter (350ms) + buffer
         const idleAt = swapAt + 210 + 350 + 20;
         const t1 = setTimeout(() => {
             setDisplayIdx(activeIdx);
@@ -269,7 +276,7 @@ export default function HeroSection() {
     useEffect(() => {
         if (animating) return;
 
-        let startTime = null;
+        let startTime   = null;
         let rafId;
         let currentPhase = "fill";
 
@@ -284,11 +291,11 @@ export default function HeroSection() {
 
             if (barRef.current) {
                 if (currentPhase === "fill") {
-                    barRef.current.style.left = "0%";
+                    barRef.current.style.left  = "0%";
                     barRef.current.style.width = `${t * 100}%`;
                 } else {
                     const e = easeOut(t);
-                    barRef.current.style.left = `${e * 100}%`;
+                    barRef.current.style.left  = `${e * 100}%`;
                     barRef.current.style.width = `${(1 - e) * 100}%`;
                 }
             }
@@ -297,8 +304,8 @@ export default function HeroSection() {
                 rafId = requestAnimationFrame(tick);
             } else if (currentPhase === "fill") {
                 currentPhase = "shrink";
-                startTime = null;
-                rafId = requestAnimationFrame(tick);
+                startTime    = null;
+                rafId        = requestAnimationFrame(tick);
             } else {
                 const next = (activeIdx + 1) % EVENTS.length;
                 setAnimating(true);
@@ -314,7 +321,6 @@ export default function HeroSection() {
     return (
         <section className="relative w-full h-full flex flex-col overflow-hidden bg-black">
             <style>{`
-                /* ── existing animations ── */
                 @keyframes bgFadeIn {
                     from { opacity: 0; }
                     to   { opacity: 1; }
@@ -323,8 +329,6 @@ export default function HeroSection() {
                     from { opacity: 0; transform: translateX(-50%) scaleX(0.5); }
                     to   { opacity: 1; transform: translateX(-50%) scaleX(1); }
                 }
-
-                /* ── card transition ── */
                 @keyframes info-exit {
                     from { opacity: 1; transform: translateY(0); }
                     to   { opacity: 0; transform: translateY(-10px); }
@@ -333,69 +337,35 @@ export default function HeroSection() {
                     from { opacity: 0; transform: translateY(-12px); }
                     to   { opacity: 1; transform: translateY(0); }
                 }
-
-                /* ── intro stagger ── */
                 @keyframes hero-intro {
-                    from {
-                        opacity: 0;
-                        transform: translateY(18px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(18px); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
-
-                /* Progress bar slides in from the left edge */
                 @keyframes hero-bar-intro {
-                    from {
-                        opacity: 0;
-                        transform: scaleX(0);
-                        transform-origin: left;
-                    }
-                    to {
-                        opacity: 1;
-                        transform: scaleX(1);
-                        transform-origin: left;
-                    }
+                    from { opacity: 0; transform: scaleX(0); transform-origin: left; }
+                    to   { opacity: 1; transform: scaleX(1); transform-origin: left; }
                 }
-
-                /* Cards row fans in slightly from below */
                 @keyframes hero-cards-intro {
-                    from {
-                        opacity: 0;
-                        transform: translateY(28px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(28px); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
-
-                /* Marquee fades up last */
                 @keyframes hero-marquee-intro {
-                    from {
-                        opacity: 0;
-                        transform: translateY(12px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(12px); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
-
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
             `}</style>
 
-            {/* loading overlay — fade out pas semua canvas kelar */}
+            {/* overlay loading, fade out setelah semua canvas kelar
+                spike dari GPU transfers terjadi di sini tapi tersembunyi di balik overlay */}
             <div
                 className="absolute inset-0 z-50 flex items-center justify-center bg-black"
                 style={{
                     opacity:       readyIds.size === EVENTS.length ? 0 : 1,
                     pointerEvents: readyIds.size === EVENTS.length ? "none" : "all",
-                    transition:    "opacity 0.6s ease",
+                    transition:    `opacity ${OVERLAY_FADE_MS}ms ease`,
                 }}
             >
                 <div style={{
@@ -408,7 +378,7 @@ export default function HeroSection() {
                 }} />
             </div>
 
-            {/* background — sharp canvas + CSS blur overlay, keduanya GPU */}
+            {/* background: sharp canvas + blur canvas, keduanya dirender di GPU */}
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
                     <div
@@ -419,7 +389,7 @@ export default function HeroSection() {
                             transition: "opacity 0.8s ease",
                         }}
                     >
-                        {/* layer 1 — sharp image */}
+                        {/* layer 1: gambar asli */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
                             width={typeof window !== "undefined" ? Math.round(window.innerWidth  / 2) : 960}
@@ -427,7 +397,7 @@ export default function HeroSection() {
                             className="absolute inset-0 w-full h-full"
                         />
 
-                        {/* layer 2 — blur overlay pake CSS filter (GPU), di-mask biar cuma di pinggir */}
+                        {/* layer 2: blur tepi pakai CSS filter GPU, di-mask supaya hanya di pinggir */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
                             width={typeof window !== "undefined" ? Math.round(window.innerWidth  / 2) : 960}
@@ -445,20 +415,20 @@ export default function HeroSection() {
                                     linear-gradient(to right, black 0%, transparent 40%),
                                     linear-gradient(to left,  black 0%, transparent 35%)
                                 `,
-                                maskComposite:        "add",
-                                WebkitMaskComposite:  "source-over",
+                                maskComposite:       "add",
+                                WebkitMaskComposite: "source-over",
                             }}
                         />
                     </div>
                 ))}
             </div>
 
-            {/* gradient overlays */}
+            {/* gradient overlay kiri, kanan, dan bawah */}
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
 
-            {/* ── progress bar — intro: slides in from left ── */}
+            {/* progress bar */}
             <div
                 className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30"
                 style={mounted ? {
@@ -468,10 +438,10 @@ export default function HeroSection() {
                 <div ref={barRef} className="absolute top-0 h-full bg-yellow-400" />
             </div>
 
-            {/* ── event info — staggered top-down ── */}
+            {/* info event: status, judul, deskripsi, tombol */}
             <div className="absolute z-10 left-[160px] max-w-lg" style={{ top: "80px" }}>
 
-                {/* 1 — status label */}
+                {/* 1: status */}
                 <p
                     className="text-yellow-400 text-xs font-bold uppercase mb-3"
                     style={{
@@ -483,7 +453,7 @@ export default function HeroSection() {
                     {displayEvent.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
 
-                {/* 2 — title */}
+                {/* 2: judul */}
                 <h1
                     className="text-white uppercase leading-none mb-3"
                     style={{
@@ -496,7 +466,7 @@ export default function HeroSection() {
                     {displayEvent.name}
                 </h1>
 
-                {/* 3 — description */}
+                {/* 3: deskripsi */}
                 <p
                     className="text-white text-base leading-relaxed mb-6 font-medium"
                     style={{
@@ -512,7 +482,7 @@ export default function HeroSection() {
                     {displayEvent.description}
                 </p>
 
-                {/* 4 — CTA button */}
+                {/* 4: tombol CTA */}
                 <div style={infoAnimStyle(3)}>
                     <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">
                         More Details
@@ -520,10 +490,10 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            {/* ── event cards ── */}
+            {/* daftar kartu event */}
             <div className="absolute z-10 bottom-20 left-0 right-0 px-[160px] pb-10">
 
-                {/* 5 — "Featured Events" label */}
+                {/* 5: label section */}
                 <p
                     className="text-white text-sm font-bold uppercase mb-5"
                     style={{
@@ -535,7 +505,7 @@ export default function HeroSection() {
                     {">>>"} Featured Events
                 </p>
 
-                {/* 6 — cards row */}
+                {/* 6: baris kartu, diisi placeholder kalau event kurang dari 8 */}
                 <div
                     className="flex gap-1"
                     style={{
@@ -546,7 +516,7 @@ export default function HeroSection() {
                     }}
                 >
                     {[...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)].map((ev, idx) => {
-                        const isActive = ev && idx === activeIdx;
+                        const isActive  = ev && idx === activeIdx;
                         const isHovered = ev && !isActive && hoveredIdx === idx;
                         return (
                             <div
@@ -567,7 +537,7 @@ export default function HeroSection() {
                                     transition: "outline 0.2s ease",
                                 }}
                             >
-                                {/* inner clip wrapper */}
+                                {/* wrapper clip supaya konten tidak keluar radius */}
                                 <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden" }}>
                                     {ev ? (
                                         <EventCard event={ev} />
@@ -596,7 +566,7 @@ export default function HeroSection() {
                                     )}
                                 </div>
 
-                                {/* yellow notch — active card */}
+                                {/* notch kuning untuk kartu aktif */}
                                 {isActive && (
                                     <CardNotch
                                         color="rgb(234,179,8)"
@@ -605,7 +575,7 @@ export default function HeroSection() {
                                     />
                                 )}
 
-                                {/* white notch — hovered card */}
+                                {/* notch putih untuk kartu yang di-hover */}
                                 {isHovered && (
                                     <CardNotch
                                         color="rgba(255,255,255,0.92)"
@@ -619,7 +589,7 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            {/* ── university marquee — last in ── */}
+            {/* marquee universitas, muncul paling terakhir */}
             <div
                 className="absolute z-10 bottom-6 left-0 right-0"
                 style={mounted ? {
