@@ -185,27 +185,32 @@ export default function HeroSection() {
     // set of id gambar yang sudah selesai di-decode dan dipaint ke canvas
     const [readyIds, setReadyIds] = useState(new Set());
 
-    // decode semua gambar di worker, paint ke canvas via bitmaprenderer (zero-copy GPU upload)
+    // decode semua gambar di worker, paint ke canvas di ukuran aslinya
+    // object-fit: cover di CSS yang handle scaling dan crop saat resize, bukan JS
     useEffect(() => {
-        const W      = window.innerWidth;
-        const H      = window.innerHeight;
         const worker = new Worker("/blurWorker.js");
 
         worker.onmessage = ({ data: { id, bitmap, error } }) => {
             if (error) { console.warn("blur worker error:", error); return; }
 
-            // paint ke sharp canvas
+            // paint ke sharp canvas di ukuran asli bitmap
             const sharpCanvas = canvasRefs.current[`${id}_sharp`];
             if (sharpCanvas) {
+                sharpCanvas.width  = bitmap.width;
+                sharpCanvas.height = bitmap.height;
                 sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bitmap);
             }
 
-            // paint ulang ke blur canvas supaya bisa di-blur pakai CSS filter di GPU
-            // perlu createImageBitmap lagi karena bitmap sudah di-transfer di atas
+            // blur canvas pakai bitmap kedua dari sharp canvas
+            // ditunda ke idle supaya ga spike barengan sama sharp transfer
             const blurCanvas = canvasRefs.current[`${id}_blur`];
             if (blurCanvas) {
                 createImageBitmap(sharpCanvas).then((bmp) => {
-                    blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
+                    requestIdleCallback(() => {
+                        blurCanvas.width  = bmp.width;
+                        blurCanvas.height = bmp.height;
+                        blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
+                    });
                 });
             }
 
@@ -215,8 +220,6 @@ export default function HeroSection() {
         // kirim semua URL sekaligus, worker fetch dan decode paralel
         worker.postMessage({
             images: EVENTS.map((ev) => ({ id: ev.id, url: ev.card_image_url })),
-            width: W,
-            height: H,
         });
 
         return () => worker.terminate();
@@ -276,7 +279,7 @@ export default function HeroSection() {
     useEffect(() => {
         if (animating) return;
 
-        let startTime   = null;
+        let startTime    = null;
         let rafId;
         let currentPhase = "fill";
 
@@ -378,7 +381,8 @@ export default function HeroSection() {
                 }} />
             </div>
 
-            {/* background: sharp canvas + blur canvas, keduanya dirender di GPU */}
+            {/* background: sharp canvas + blur canvas, keduanya dirender di GPU
+                object-fit: cover di canvas sama persis kayak di img, browser yang handle resize */}
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
                     <div
@@ -392,18 +396,16 @@ export default function HeroSection() {
                         {/* layer 1: gambar asli */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
-                            width={typeof window !== "undefined" ? Math.round(window.innerWidth  / 2) : 960}
-                            height={typeof window !== "undefined" ? Math.round(window.innerHeight / 2) : 540}
                             className="absolute inset-0 w-full h-full"
+                            style={{ objectFit: "cover" }}
                         />
 
                         {/* layer 2: blur tepi pakai CSS filter GPU, di-mask supaya hanya di pinggir */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
-                            width={typeof window !== "undefined" ? Math.round(window.innerWidth  / 2) : 960}
-                            height={typeof window !== "undefined" ? Math.round(window.innerHeight / 2) : 540}
                             className="absolute inset-0 w-full h-full"
                             style={{
+                                objectFit: "cover",
                                 filter: "blur(24px)",
                                 maskImage: `
                                     linear-gradient(to top,   black 0%, transparent 35%),
