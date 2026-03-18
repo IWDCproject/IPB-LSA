@@ -19,6 +19,7 @@ export default function StatCard({
         display: "inline-flex",
         flexDirection: "column",
         flexShrink: 0,
+        
       }}
     >
       {/* Top: foto stat*/}
