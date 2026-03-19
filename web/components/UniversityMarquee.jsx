@@ -35,9 +35,10 @@ export default function UniversityMarquee() {
     return () => ro.disconnect();
   }, []);
 
+  const isMobile   = cw < 768;
   const scale      = Math.min(1, cw / 1440);
-  const fadeStart  = Math.round(CONFIG.fade.start * scale);
-  const fadeEnd    = Math.round(CONFIG.fade.end * scale);
+  const fadeStart  = isMobile ? 24 : Math.round(CONFIG.fade.start * scale);
+  const fadeEnd    = isMobile ? 48 : Math.round(CONFIG.fade.end * scale);
   const logoHeight = Math.round(CONFIG.logoHeight * scale);
   const fontSize   = Math.max(8, Math.round(10.4 * scale)); // 0.65rem = 10.4px
 

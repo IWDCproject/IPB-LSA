@@ -327,7 +327,7 @@ export default function HeroSection() {
                 startTime    = null;
                 rafId        = requestAnimationFrame(tick);
             } else {
-                const next = (activeIdx + 1) % EVENTS.length;
+                const next = (activeIdx + 1) % visibleCountRef.current;
                 setAnimating(true);
                 setActiveIdx(next);
                 setTimeout(() => setAnimating(false), 400);
@@ -338,7 +338,19 @@ export default function HeroSection() {
         return () => cancelAnimationFrame(rafId);
     }, [activeIdx, animating]);
 
-    const mobileCards = EVENTS.slice(0, 4);
+    const mobileCards     = EVENTS.slice(0, 4);
+    const visibleCount    = isMobile ? mobileCards.length : EVENTS.length;
+    // ref biar timer closure selalu baca nilai terbaru tanpa re-subscribe
+    const visibleCountRef = useRef(visibleCount);
+    useEffect(() => { visibleCountRef.current = visibleCount; }, [visibleCount]);
+
+    // reset activeIdx kalau lagi di hidden card pas switch ke mobile
+    useEffect(() => {
+        if (isMobile && activeIdx >= mobileCards.length) {
+            setActiveIdx(0);
+            setDisplayIdx(0);
+        }
+    }, [isMobile]);
 
     return (
         <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
@@ -523,9 +535,11 @@ export default function HeroSection() {
             <div
                 className="absolute z-10"
                 style={{
-                    bottom:        isMobile ? 36 : Math.round(80 * scale),
-                    left:          isMobile ? 16 : margin,
-                    right:         isMobile ? 16 : margin,
+                    // mobile: 44px marquee height + 8px gap = 52px dari bawah
+                    bottom:        isMobile ? 80 : Math.round(80 * scale),
+                    // 24px biar konsisten sama header dan stat section
+                    left:          isMobile ? 24 : margin,
+                    right:         isMobile ? 24 : margin,
                     paddingBottom: isMobile ? 0 : Math.round(40 * scale),
                 }}
             >

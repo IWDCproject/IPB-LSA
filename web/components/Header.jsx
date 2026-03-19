@@ -17,8 +17,9 @@ export default function Header() {
     return () => ro.disconnect();
   }, []);
 
-  const scale   = Math.min(1, cw / 1440);
-  const padding = Math.round(160 * scale);
+  const isMobile = cw < 768;
+  const scale    = Math.min(1, cw / 1440);
+  const padding  = isMobile ? 24 : Math.round(160 * scale);
 
   const links = [
     { href: "/",         label: "Beranda"  },
