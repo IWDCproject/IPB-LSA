@@ -38,7 +38,7 @@ export default function StatCard({
       <div
         style={{
           borderRadius: "0 0 5px 5px",
-          background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)",
+          background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.15) 100%)",
           padding: "18px 22px 22px",
           display: "flex",
           flexDirection: "column",
