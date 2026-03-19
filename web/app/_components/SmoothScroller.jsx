@@ -11,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 export default function SmoothScroller({ children }) {
   useEffect(() => {
     const lenis = new Lenis({
-      lerp: 0.14,
+      lerp: 0.2,
       smoothTouch: false,
     });
 
