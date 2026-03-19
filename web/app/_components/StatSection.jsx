@@ -1,4 +1,3 @@
-// StatSection.jsx
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 
@@ -10,7 +9,7 @@ import universitiesImg from "./stats-stuff/2.jpg";
 import athletesImg     from "./stats-stuff/1.jpg";
 import eventsImg       from "./stats-stuff/3.jpg";
 
-// konstanta layout
+// settingan layout
 const CARD_WIDTHS   = [470, 280, 280];
 const CARD_IMG_H    = 250;
 const CARD_BOTTOM_H = 106;
@@ -21,11 +20,11 @@ const TEXT_COL_W    = 480;
 const ROW_GAP       = 14;
 
 const CARDS_W      = CARD_WIDTHS.reduce((sum, w) => sum + w, 0) + CARD_GAP * 2; // 1058px
-const STAGE1_NAT_W = H_MARGIN * 2 + CARDS_W + ROW_GAP + TEXT_COL_W;            // 1872px
+const STAGE1_NAT_W = H_MARGIN * 2 + CARDS_W + ROW_GAP + TEXT_COL_W;             // 1872px
 
-const S3_PAD   = 24;
-const S3_NAT_W = CARDS_W + S3_PAD * 2;
-const S3_GAP   = 40;
+const S3_PAD    = 24;
+const S3_NAT_W  = CARDS_W + S3_PAD * 2;
+const S3_GAP    = 40;
 const S3_TEXT_H = 128;
 const S3_BTN_H  = 52;
 const S3_NAT_H  = CARD_H + S3_GAP + S3_TEXT_H + 24 + S3_BTN_H;
@@ -40,7 +39,12 @@ const STATS = [
   { src: eventsImg.src,       mainStat: "168+",   label: "Official Events", width: CARD_WIDTHS[2] },
 ];
 
-// style yang bener-bener statis ditaruh di sini biar nggak bikin object baru tiap render
+// delay stagger per slot: card0, card1, card2, heading, button, marquee
+const STAGGER     = [0, 120, 240, 420, 540, 680];
+const ANIM_DUR    = "1s";
+const ANIM_EASE   = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+// style yang statis di sini biar nggak bikin object baru tiap render
 const S = {
   cardRow: {
     display: "flex",
@@ -88,26 +92,27 @@ function useContainerWidth(ref) {
   return width;
 }
 
-// deretan kartu statistik, nggak nerima props karena datanya statis
-function StatCards() {
+// deretan kartu stat, terima anim helper buat stagger
+function StatCards({ anim }) {
   return (
     <div style={S.cardRow}>
-      {STATS.map((stat) => (
-        <StatCard
-          key={stat.label}
-          image_url={stat.src}
-          width={stat.width}
-          height={CARD_IMG_H}
-          main_stat={stat.mainStat}
-          label_stat={stat.label}
-        />
+      {STATS.map((stat, i) => (
+        <div key={stat.label} style={anim(i)}>
+          <StatCard
+            image_url={stat.src}
+            width={stat.width}
+            height={CARD_IMG_H}
+            main_stat={stat.mainStat}
+            label_stat={stat.label}
+          />
+        </div>
       ))}
     </div>
   );
 }
 
-// CTA dipakai di stage 1/2 (rata kanan) dan stage 3 (tengah)
-function CTA({ centered = false }) {
+// CTA di stage 1/2 (rata kanan) dan stage 3 (tengah)
+function CTA({ centered = false, anim }) {
   const ctaStyle = {
     ...S.ctaBase,
     alignItems: centered ? "center" : "flex-end",
@@ -120,29 +125,31 @@ function CTA({ centered = false }) {
 
   return (
     <div style={ctaStyle}>
-      <div style={headingStyle}>
+      <div style={{ ...headingStyle, ...anim(3) }}>
         <div>Are you ready to</div>
         <div>Prove Yourself?</div>
       </div>
-      <Button href="/events" variant="primary" size="md">
-        See Events
-      </Button>
+      <div style={anim(4)}>
+        <Button href="/events" variant="primary" size="md">
+          See Events
+        </Button>
+      </div>
     </div>
   );
 }
 
 // stage 1: lebar penuh, nggak pakai transform sama sekali
-function Stage1Layout() {
+function Stage1Layout({ anim }) {
   return (
     <div style={S.stage1Row}>
-      <StatCards />
-      <CTA />
+      <StatCards anim={anim} />
+      <CTA anim={anim} />
     </div>
   );
 }
 
-// stage 2: container menyusut, konten di-scale dari pojok kiri atas
-function Stage2Layout({ scale }) {
+// stage 2: container menyusut, konten discale dari pojok kiri atas
+function Stage2Layout({ scale, anim }) {
   const outerStyle = useMemo(() => ({
     position: "relative",
     width: "100%",
@@ -162,15 +169,15 @@ function Stage2Layout({ scale }) {
   return (
     <div style={outerStyle}>
       <div style={innerStyle}>
-        <StatCards />
-        <CTA />
+        <StatCards anim={anim} />
+        <CTA anim={anim} />
       </div>
     </div>
   );
 }
 
-// stage 3: layout berubah jadi kolom, di-scale dari tengah atas
-function Stage3Layout({ cw, scale }) {
+// stage 3: layout berubah jadi kolom, discale dari tengah atas
+function Stage3Layout({ cw, scale, anim }) {
   const outerStyle = useMemo(() => ({
     position: "relative",
     width: "100%",
@@ -196,8 +203,8 @@ function Stage3Layout({ cw, scale }) {
   return (
     <div style={outerStyle}>
       <div style={innerStyle}>
-        <StatCards />
-        <CTA centered />
+        <StatCards anim={anim} />
+        <CTA centered anim={anim} />
       </div>
     </div>
   );
@@ -206,6 +213,25 @@ function Stage3Layout({ cw, scale }) {
 export default function StatSection() {
   const sectionRef = useRef(null);
   const cw = useContainerWidth(sectionRef);
+
+  // visible jadi true sekali waktu section masuk viewport -- tidak balik lagi
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); io.disconnect(); } },
+      { threshold: 0.15 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // helper, balik style animasi atau opacity:0 kalau belum visible
+  const anim = (slot) => visible
+    ? { animation: `stat-intro ${ANIM_DUR} ${ANIM_EASE} ${STAGGER[slot]}ms both` }
+    : { opacity: 0 };
 
   // hitung stage dan scale sekaligus, biar nggak ada kalkulasi duplikat
   const { stage, scale, s3Scale } = useMemo(() => {
@@ -238,15 +264,23 @@ export default function StatSection() {
 
   return (
     <section ref={sectionRef} style={sectionStyle}>
+      <style>{`
+        @keyframes stat-intro {
+          from { opacity: 0; transform: translateY(28px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       <div style={innerStyle}>
         {stage === 3 ? (
-          <Stage3Layout cw={cw} scale={s3Scale} />
+          <Stage3Layout cw={cw} scale={s3Scale} anim={anim} />
         ) : stage === 2 ? (
-          <Stage2Layout scale={scale} />
+          <Stage2Layout scale={scale} anim={anim} />
         ) : (
-          <Stage1Layout />
+          <Stage1Layout anim={anim} />
         )}
-        <UniversityMarquee />
+        <div style={anim(5)}>
+          <UniversityMarquee />
+        </div>
       </div>
     </section>
   );
