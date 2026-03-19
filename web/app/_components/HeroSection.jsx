@@ -462,6 +462,7 @@ export default function HeroSection() {
                         fontFamily: "'Bebas Neue', sans-serif",
                         fontSize: "clamp(2.8rem, 5vw, 5rem)",
                         textWrap: "balance",
+                        filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
                         ...infoAnimStyle(1),
                     }}
                 >
@@ -512,6 +513,7 @@ export default function HeroSection() {
                     className="flex gap-1"
                     style={{
                         height: 240,
+                        filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
                         ...(mounted ? {
                             animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both",
                         } : { opacity: 0 }),
