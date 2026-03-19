@@ -8,7 +8,7 @@ import UniversityMarquee from "@/components/UniversityMarquee";
 
 import universitiesImg from "./stats-stuff/2.jpg";
 import athletesImg     from "./stats-stuff/1.jpg";
-import eventsImg       from "./stats-stuff/2.jpg";
+import eventsImg       from "./stats-stuff/3.jpg";
 
 // konstanta layout
 const CARD_WIDTHS   = [470, 280, 280];
