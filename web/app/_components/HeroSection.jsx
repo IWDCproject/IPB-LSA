@@ -185,6 +185,23 @@ export default function HeroSection() {
     // set of id gambar yang sudah selesai di-decode dan dipaint ke canvas
     const [readyIds, setReadyIds] = useState(new Set());
 
+    // ukur lebar container yang beneran -- akurat untuk zoom dan sidebar
+    const sectionRef  = useRef(null);
+    const [cw, setCw] = useState(1440);
+
+    useEffect(() => {
+        const el = sectionRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(([e]) => setCw(e.contentRect.width));
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    const isMobile = cw < 768;
+    const scale    = isMobile ? 1 : Math.min(1, cw / 1440);
+    const margin   = Math.round(160 * scale);
+    const cardH    = Math.round(240 * scale);
+
     // decode semua gambar di worker, paint ke canvas di ukuran aslinya
     // object-fit: cover di CSS yang handle scaling dan crop saat resize, bukan JS
     useEffect(() => {
@@ -321,8 +338,10 @@ export default function HeroSection() {
         return () => cancelAnimationFrame(rafId);
     }, [activeIdx, animating]);
 
+    const mobileCards = EVENTS.slice(0, 4);
+
     return (
-        <section className="relative w-full h-full flex flex-col overflow-hidden bg-black">
+        <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
             <style>{`
                 @keyframes bgFadeIn {
                     from { opacity: 0; }
@@ -441,8 +460,15 @@ export default function HeroSection() {
             </div>
 
             {/* info event: status, judul, deskripsi, tombol */}
-            <div className="absolute z-10 left-[160px] max-w-lg" style={{ top: "80px" }}>
-
+            <div
+                className="absolute z-10"
+                style={{
+                    top:      isMobile ? 48 : Math.round(80 * scale),
+                    left:     isMobile ? 24 : margin,
+                    right:    isMobile ? 24 : undefined,
+                    maxWidth: isMobile ? undefined : Math.round(512 * scale),
+                }}
+            >
                 {/* 1: status */}
                 <p
                     className="text-yellow-400 text-xs font-bold uppercase mb-3"
@@ -494,8 +520,15 @@ export default function HeroSection() {
             </div>
 
             {/* daftar kartu event */}
-            <div className="absolute z-10 bottom-20 left-0 right-0 px-[160px] pb-10">
-
+            <div
+                className="absolute z-10"
+                style={{
+                    bottom:        isMobile ? 36 : Math.round(80 * scale),
+                    left:          isMobile ? 16 : margin,
+                    right:         isMobile ? 16 : margin,
+                    paddingBottom: isMobile ? 0 : Math.round(40 * scale),
+                }}
+            >
                 {/* 5: label section */}
                 <p
                     className="text-white text-sm font-bold uppercase mb-5"
@@ -508,18 +541,19 @@ export default function HeroSection() {
                     {">>>"} Featured Events
                 </p>
 
-                {/* 6: baris kartu, diisi placeholder kalau event kurang dari 8 */}
+                {/* 6: baris kartu */}
                 <div
-                    className="flex gap-1"
+                    className="flex"
                     style={{
-                        height: 240,
-                        filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
+                        height: isMobile ? 160 : cardH,
+                        gap:    Math.round(4 * scale),
+                        // filter dipindah ke inner clip div -- filter di sini clips overflow children (notch)
                         ...(mounted ? {
                             animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both",
                         } : { opacity: 0 }),
                     }}
                 >
-                    {[...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)].map((ev, idx) => {
+                    {(isMobile ? mobileCards : [...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)]).map((ev, idx) => {
                         const isActive  = ev && idx === activeIdx;
                         const isHovered = ev && !isActive && hoveredIdx === idx;
                         return (
@@ -530,9 +564,9 @@ export default function HeroSection() {
                                 onMouseLeave={() => setHoveredIdx(null)}
                                 className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
                                 style={{
-                                    height: 240,
+                                    height:       isMobile ? 160 : cardH,
                                     borderRadius: "8px",
-                                    overflow: "visible",
+                                    overflow:     "visible",
                                     outline: isActive
                                         ? "2px solid rgba(234,179,8,0.9)"
                                         : isHovered
@@ -542,7 +576,7 @@ export default function HeroSection() {
                                 }}
                             >
                                 {/* wrapper clip supaya konten tidak keluar radius */}
-                                <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden" }}>
+                                <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 4px rgba(0,0,0,0.25)" }}>
                                     {ev ? (
                                         <EventCard event={ev} />
                                     ) : (
@@ -595,10 +629,13 @@ export default function HeroSection() {
 
             {/* marquee universitas, muncul paling terakhir */}
             <div
-                className="absolute z-10 bottom-6 left-0 right-0"
-                style={mounted ? {
-                    animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both",
-                } : { opacity: 0 }}
+                className="absolute z-10 left-0 right-0"
+                style={{
+                    bottom: isMobile ? 6 : Math.round(24 * scale),
+                    ...(mounted ? {
+                        animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both",
+                    } : { opacity: 0 }),
+                }}
             >
                 <UniversityMarquee />
             </div>
