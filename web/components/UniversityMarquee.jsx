@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect, useRef } from "react";
 
 const CONFIG = {
   speed: 35,
@@ -23,19 +24,36 @@ const UNIVERSITIES = [
 const ITEMS = Array.from({ length: CONFIG.copies }, () => UNIVERSITIES).flat();
 
 export default function UniversityMarquee() {
-  const { start, end } = CONFIG.fade;
+  const wrapRef  = useRef(null);
+  const [cw, setCw] = useState(1440);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setCw(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale      = Math.min(1, cw / 1440);
+  const fadeStart  = Math.round(CONFIG.fade.start * scale);
+  const fadeEnd    = Math.round(CONFIG.fade.end * scale);
+  const logoHeight = Math.round(CONFIG.logoHeight * scale);
+  const fontSize   = Math.max(8, Math.round(10.4 * scale)); // 0.65rem = 10.4px
+
   const mask = `linear-gradient(to right,
-    transparent ${start}px,
-    black ${end}px,
-    black calc(100% - ${end}px),
-    transparent calc(100% - ${start}px)
+    transparent ${fadeStart}px,
+    black ${fadeEnd}px,
+    black calc(100% - ${fadeEnd}px),
+    transparent calc(100% - ${fadeStart}px)
   )`;
 
   return (
     <div
+      ref={wrapRef}
       className="w-full overflow-hidden py-4"
       style={{
-        maskImage: mask,
+        maskImage:       mask,
         WebkitMaskImage: mask,
       }}
     >
@@ -63,18 +81,18 @@ export default function UniversityMarquee() {
               src={uni.logo}
               alt={uni.name.join(" ")}
               style={{
-                height: CONFIG.logoHeight,
-                width: "auto",
-                filter: "brightness(0) invert(1)",
+                height:  logoHeight,
+                width:   "auto",
+                filter:  "brightness(0) invert(1)",
                 opacity: CONFIG.logoOpacity,
               }}
             />
             <span
               style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: "0.65rem",
+                fontSize:   fontSize,
                 fontWeight: 600,
-                color: "rgba(255,255,255,0.5)",
+                color:      "rgba(255,255,255,0.5)",
                 lineHeight: 1.3,
               }}
             >
