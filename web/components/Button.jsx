@@ -118,7 +118,7 @@ export default function Button({
       onClick={onClick}
       disabled={disabled}
       className={classes}
-      style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+      style={{ fontFamily: "'Bebas Neue', sans-serif", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))", }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
