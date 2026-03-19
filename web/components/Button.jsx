@@ -11,13 +11,13 @@ const variants = {
 
 const sizes = {
   sm: "text-lg px-4 py-2 gap-1.5",
-  md: "text-lg px-5 py-2.5 gap-1",
+  md: "text-lg px-6 py-3 gap-1",
   lg: "text-lg px-8 py-4 gap-2.5",
 };
 
 const base = [
   "inline-flex items-center justify-center",
-  "border rounded-[7px]",
+  "border rounded-[5px]",
   "uppercase",
   "transition-colors duration-150",
   "disabled:opacity-50 disabled:pointer-events-none",
