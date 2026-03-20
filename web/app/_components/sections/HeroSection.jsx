@@ -33,7 +33,7 @@ const EVENTS = [
         slug: "open-charity-golf-tournament",
         name: "Open Charity Golf Tournament",
         description:
-            "Turnamen golf amal terbuka untuk sivitas akademika IPB. Hasil disumbangkan untuk beasiswa mahasiswa.",
+            "Turnabmen golf amal terbuka untuk sivitas akademika IPB. Hasil disumbangkan untuk easiswa mahasiswa.",
         status: "upcoming",
         card_image_url:
             "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200",
