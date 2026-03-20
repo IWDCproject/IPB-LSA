@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import StatCard from "../stats-stuff/StatCard";
 import Button from "@/components/Button";
 import UniversityMarquee from "@/components/UniversityMarquee";
+import FightBackground from '../match-stuff/FightBackground';
 
 import universitiesImg from "../stats-stuff/2.jpg";
 import athletesImg     from "../stats-stuff/1.jpg";
@@ -270,6 +271,9 @@ export default function StatSection() {
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      <FightBackground />
+
       <div style={innerStyle}>
         {stage === 3 ? (
           <Stage3Layout cw={cw} scale={s3Scale} anim={anim} />
