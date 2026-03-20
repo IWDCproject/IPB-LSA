@@ -779,7 +779,7 @@ export default function EventTimeline() {
                       e.currentTarget.style.boxShadow = shadowBase;
                     }}
                   >
-                    <EventCard event={ev} className="w-full h-full" />
+                    <EventCard event={ev} className="w-full h-full" size="lg" />
                   </div>
                 </div>
               </div>
