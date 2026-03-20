@@ -253,7 +253,7 @@ export default function StatSection() {
     alignItems: "center",
     justifyContent: "flex-start",
     color: "white",
-    overflow: "hidden",
+    overflow: "visible",
   }), [stage]);
 
   const innerStyle = useMemo(() => ({
