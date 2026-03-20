@@ -1,58 +1,43 @@
 "use client";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
-
-export default function FightBackground() {
+export default function FightBackground({ visible = false }) {
   const svgRef = useRef(null);
+  const tlRef  = useRef(null);
 
   useEffect(() => {
-    let ctx = gsap.context(() => {
-      
-      const paths = svgRef.current.querySelectorAll("path, polygon, polyline, line");
+	const paths = svgRef.current.querySelectorAll("path, polygon, polyline, line");
 
-      paths.forEach((path) => {
-        if (path.getTotalLength) {
-          const length = path.getTotalLength();
-          gsap.set(path, {
-            strokeDasharray: length,
-            strokeDashoffset: length,
-            fill: "#ffffff",
-            fillOpacity: 0,  
-          });
-        }
-      });
+	paths.forEach((path) => {
+		if (!path.getTotalLength) return;
+		const length = path.getTotalLength();
+		gsap.set(path, {
+		strokeDasharray: length,
+		strokeDashoffset: length,
+		fillOpacity: 0,   // lock fill out permanently
+		});
+	});
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: svgRef.current,
-          start: "top 95%",  
-          once: true,
-        }
-      });
+	tlRef.current = gsap.timeline({ paused: true })
+		.to(paths, {
+		strokeDashoffset: 0,
+		duration: 2.4,
+		ease: "power2.inOut",
+		stagger: { each: 0.03, from: "start" },
+		});
 
-      // Tahap 1: Gambar garis tepi (Stroke)
-      tl.to(paths, {
-        strokeDashoffset: 0,
-        duration: 4,         
-        ease: "power2.inOut",
-        stagger: 0.1,        
-      })
-      // Tahap 2: Fade in warna putihnya (Menggunakan fillOpacity) masih belum benr nanti gw capek co
-      .to(paths, {
-        fillOpacity: 1,      // 3. Animasikan agar warna putihnya perlahan muncul pekat
-        duration: 2,         
-        ease: "power2.inOut",
-      }, "-=1.5");
-    }, svgRef); 
+	return () => tlRef.current?.kill();
+	}, []);
 
-    return () => ctx.revert();
-  }, []);
+	useEffect(() => {
+	if (visible && tlRef.current) tlRef.current.play();
+	}, [visible]);
 
   return (
-    <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+    <div className="absolute z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
+		style={{ inset: 0, height: "100%" }}
+	>
       <svg 
         ref={svgRef} 
         viewBox="0 0 2048 1122" 

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { MatchCard } from "../match-stuff/MatchCard";
 import { MatchTable } from "../match-stuff/MatchTable";
 import Button from "@/components/Button";
+import FightBackground from '../match-stuff/FightBackground';
 
 
 import ipbLogo from "@/public/mock-data/ipblogo.png";
@@ -259,7 +260,7 @@ export default function MatchSection() {
       justifyContent: "center",
       color: "white",
       overflow: "hidden",
-      padding: isMobile ? "80px 0 60px" : "150px 0",
+      padding: isMobile ? "80px 0 60px" : "100px 0",
     }}>
       <style>{`
         @keyframes live-intro {
@@ -269,6 +270,8 @@ export default function MatchSection() {
         .match-scroll::-webkit-scrollbar { display: none; }
         .match-scroll { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
+
+      {/* <FightBackground visible={visible} /> */}
 
       <div style={{
         width: "100%",

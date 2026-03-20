@@ -243,7 +243,7 @@ export default function StatSection() {
   }, [cw]);
 
   const sectionStyle = useMemo(() => ({
-    padding: `${stage === 3 ? 80 : 150}px 0 0 0`,
+    padding: `${stage === 3 ? 80 : 150}px 0 0px 0`,
     minHeight: "100vh",
     position: "relative",
     zIndex: 2,
@@ -261,6 +261,7 @@ export default function StatSection() {
     flexDirection: "column",
     gap: stage === 3 ? 48 : 100,
     width: "100%",
+    // paddingBottom: 80,
   }), [stage]);
 
   return (
@@ -272,7 +273,7 @@ export default function StatSection() {
         }
       `}</style>
 
-      <FightBackground />
+      <FightBackground visible={visible} />
 
       <div style={innerStyle}>
         {stage === 3 ? (
