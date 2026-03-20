@@ -400,7 +400,7 @@ export function MatchTable({
   const firstDate = matches.find((m) => m.scheduled_at)?.scheduled_at;
 
   return (
-    <div style={{ background: "#fff", borderRadius: 10, padding: "24px 32px" }}>
+    <div style={{ background: "#fff", borderRadius: 10, padding: "24px 32px", boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ ...JK, fontSize: 18, fontWeight: 800, color: "#06125C" }}>{title}</span>
         {firstDate && <span style={{ ...JK, fontSize: 14, color: "#aaa" }}>{fmtDate(firstDate)}</span>}

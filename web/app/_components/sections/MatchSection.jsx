@@ -290,7 +290,7 @@ export default function LiveMatchesSection() {
         <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP }}>
           {cardMatches.map((match, i) => (
             <div key={match.id} style={{ ...anim(i + 2), flex: 1, minWidth: 0 }}>
-              <div style={{ width: "100%", height: CARD_H, overflow: "hidden", borderRadius: 10 }}>
+              <div style={{ width: "100%", height: CARD_H, overflow: "hidden", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
                 <MatchCard match={match} />
               </div>
             </div>

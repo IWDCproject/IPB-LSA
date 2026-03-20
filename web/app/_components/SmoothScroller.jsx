@@ -10,8 +10,12 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function SmoothScroller({ children }) {
   useEffect(() => {
+    // browser nggak boleh restore scroll position, Lenis yang pegang
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+
     const lenis = new Lenis({
-      lerp: 0.2,
+      lerp:        0.1, 
       smoothTouch: false,
     });
 

@@ -35,14 +35,14 @@ const S = {
   liveBadge: {
     ...BB,
     display: "flex", alignItems: "center", gap: 5,
-    background: "#ef4444", borderRadius: 4, padding: "0px 6px",
+    background: "#ef4444", borderRadius: 4, padding: "0px 7px",
     fontSize: 14, letterSpacing: 1, flexShrink: 0,
   },
-  liveDot: {
-    width: 6, height: 6, borderRadius: "50%",
-    background: "#fff", display: "inline-block",
-    animation: "pulse 1.2s ease-in-out infinite",
-  },
+  // liveDot: {
+  //   width: 6, height: 6, borderRadius: "50%",
+  //   background: "#fff", display: "inline-block",
+  //   animation: "pulse 1.2s ease-in-out infinite",
+  // },
   participant:     { display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
   participantName: { ...JK, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   participantInst: { ...JK, fontSize: 12, fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" },
@@ -271,7 +271,7 @@ export function MatchCard({ match }) {
             <div style={S.meta}>{label}</div>
           </div>
           <div style={S.liveBadge}>
-            <span style={S.liveDot} />
+            {/* <span style={S.liveDot} /> */}
             {timerMod ? fmtSecs(secs) : "LIVE"}
           </div>
         </div>

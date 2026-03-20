@@ -5,7 +5,7 @@ import HeroSection from "./sections/HeroSection";
 import StatSection from "./sections/StatSection";
 import MatchSection from "./sections/MatchSection";
 
-const HEADER_HEIGHT = 65;
+const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
 
 export default function CurtainWrapper() {
@@ -24,8 +24,9 @@ export default function CurtainWrapper() {
         heroRef.current.style.transform = `translate3d(0, -${scroll * PARALLAX_SPEED}px, 0)`;
       }
 
-      // hero ketutupan StatSection kalau udah lewat heroHeight
-      setHeroPaused(scroll > heroHeight);
+      // guard: cegah setState tiap frame kalau nilainya sama
+      const isPaused = scroll > heroHeight;
+      setHeroPaused((prev) => prev === isPaused ? prev : isPaused);
     };
 
     window.addEventListener("lenis-scroll", onScroll);
@@ -37,13 +38,13 @@ export default function CurtainWrapper() {
       <div
         ref={heroRef}
         style={{
-          position: "fixed",
-          top: HEADER_HEIGHT,
-          left: 0,
-          right: 0,
-          height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-          zIndex: 1,
-          willChange: "transform",
+          position:          "fixed",
+          top:               HEADER_HEIGHT,
+          left:              0,
+          right:             0,
+          height:            `calc(100vh - ${HEADER_HEIGHT}px)`,
+          zIndex:            1,
+          willChange:        "transform",
           backfaceVisibility: "hidden",
         }}
       >

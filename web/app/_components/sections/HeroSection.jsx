@@ -187,25 +187,21 @@ export default function HeroSection({ paused = false }) {
     useEffect(() => {
         const worker = new Worker("/blurWorker.js");
 
-        worker.onmessage = ({ data: { id, bitmap, error } }) => {
+        worker.onmessage = ({ data: { id, sharp, blurred, error } }) => {
             if (error) { console.warn("blur worker error:", error); return; }
 
             const sharpCanvas = canvasRefs.current[`${id}_sharp`];
             if (sharpCanvas) {
-                sharpCanvas.width  = bitmap.width;
-                sharpCanvas.height = bitmap.height;
-                sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bitmap);
+                sharpCanvas.width  = sharp.width;
+                sharpCanvas.height = sharp.height;
+                sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(sharp);
             }
 
             const blurCanvas = canvasRefs.current[`${id}_blur`];
             if (blurCanvas) {
-                createImageBitmap(sharpCanvas).then((bmp) => {
-                    requestIdleCallback(() => {
-                        blurCanvas.width  = bmp.width;
-                        blurCanvas.height = bmp.height;
-                        blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
-                    });
-                });
+                blurCanvas.width  = blurred.width;
+                blurCanvas.height = blurred.height;
+                blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(blurred);
             }
 
             setReadyIds((prev) => new Set([...prev, id]));
