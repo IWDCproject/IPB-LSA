@@ -679,7 +679,7 @@ export default function EventTimeline() {
             width: 420,
             transform: 'translateX(-50%)',
             pointerEvents: 'none',
-            zIndex: 8,
+            zIndex: 50,
             filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))',
           }}
         />
