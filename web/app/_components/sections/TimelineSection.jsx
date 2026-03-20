@@ -16,12 +16,12 @@ const THEME = {
 
 // [phantom-left, slot-0..3, phantom-right]
 const CP = [
-  { pctX:-0.060, pctY:0.350, hIn:{dx:-0.100,dy: 0.000}, hOut:{dx: 0.100,dy: 0.180} },
-  { pctX: 0.290, pctY:0.158, hIn:{dx:-0.089,dy:-0.123}, hOut:{dx: 0.092,dy: 0.158} },
-  { pctX: 0.321, pctY:0.742, hIn:{dx:-0.080,dy:-0.085}, hOut:{dx: 0.115,dy: 0.124} },
-  { pctX: 0.670, pctY:0.304, hIn:{dx:-0.122,dy:-0.126}, hOut:{dx: 0.087,dy: 0.087} },
-  { pctX: 0.780, pctY:0.704, hIn:{dx:-0.054,dy:-0.071}, hOut:{dx: 0.114,dy: 0.103} },
-  { pctX: 1.060, pctY:0.380, hIn:{dx:-0.208,dy:-0.010}, hOut:{dx: 0.100,dy: 0.000} },
+    { pctX:-0.060, pctY:0.350, hIn:{dx:-0.100,dy: 0.000}, hOut:{dx: 0.100,dy: 0.180} },
+    { pctX: 0.290, pctY:0.158, hIn:{dx:-0.089,dy:-0.123}, hOut:{dx: 0.092,dy: 0.158} },
+    { pctX: 0.341, pctY:0.752, hIn:{dx:-0.080,dy:-0.085}, hOut:{dx: 0.115,dy: 0.124} },
+    { pctX: 0.670, pctY:0.304, hIn:{dx:-0.122,dy:-0.126}, hOut:{dx: 0.087,dy: 0.087} },
+    { pctX: 0.770, pctY:0.714, hIn:{dx:-0.054,dy:-0.071}, hOut:{dx: 0.114,dy: 0.103} },
+    { pctX: 1.060, pctY:0.380, hIn:{dx:-0.208,dy:-0.010}, hOut:{dx: 0.100,dy: 0.000} },
 ];
 
 const SLOTS = [
@@ -444,6 +444,23 @@ export default function EventTimeline() {
           <path ref={pathYRef} fill="none" />
           <path ref={pathGRef} fill="none" />
         </svg>
+
+        {/* Mascot — sits between slots 1 and 2, bottom-anchored */}
+        <img
+          src="/maskot/maskot1.png"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '57%',
+            bottom: '-3%',
+            width: 420,
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
+            zIndex: 8,
+            filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))',
+          }}
+        />
 
         <div ref={ctaRef} style={{ position:'absolute', left:'10%', top:'65%', transform:'translateY(-50%)', zIndex:5, maxWidth:300 }}>
           <h2 style={{ fontFamily:"'Bebas Neue', cursive", fontSize:'3.8rem', color:'#fff', lineHeight:1, margin:0, textShadow:'0 0 40px rgba(255,255,255,0.15)' }}>
