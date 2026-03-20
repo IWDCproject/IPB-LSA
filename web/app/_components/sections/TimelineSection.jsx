@@ -208,6 +208,10 @@ function measureSubLength(pts, endIdx) {
   return el.getTotalLength();
 }
 
+// ==========================================================
+// ANIMATION CONSTANTS
+// ==========================================================
+
 const CTA_TRIGGER_FRACTION = 0.40;
 
 const COMPONENT_STYLES = `
@@ -250,8 +254,20 @@ export default function EventTimeline() {
 
   const curveRef = useRef([]);
 
+  // ──────────────────────────────────────────────────────────
+  // FIX: Cache container dimensions so the tick never calls
+  // getBoundingClientRect() — that forces synchronous layout
+  // every frame and causes the layout-thrashing jank visible
+  // in the flame graph.
+  // ──────────────────────────────────────────────────────────
+  const containerSizeRef = useRef({ W: 0, H: 0 });
+
   const initCurve = () => {
-    const { width: W, height: H } = containerRef.current.getBoundingClientRect();
+    const el = containerRef.current;
+    if (!el) return;
+    // getBoundingClientRect is fine HERE — only runs on mount + resize
+    const { width: W, height: H } = el.getBoundingClientRect();
+    containerSizeRef.current = { W, H };
     curveRef.current = CURVE_POINTS.map(p => ({
       x:    p.pctX  * W,
       y:    p.pctY  * H,
@@ -267,37 +283,73 @@ export default function EventTimeline() {
   }, []);
 
   // ==========================================================
-  // MASTER TICK
+  // MASTER TICK  — PERFORMANCE-CRITICAL
+  // ==========================================================
+  //
+  // BEFORE (the bug):
+  //   Every frame called getBoundingClientRect() 5× (1 container
+  //   + 4 dots).  At 60 fps that's 300 forced synchronous layout
+  //   recalculations per second.  During Lenis scroll the browser
+  //   is already mid-layout, so each read forces an extra layout
+  //   flush → "layout thrashing" → the jank shown in the flame
+  //   graph (Element.getBoundingClientRect stacking in the tick).
+  //
+  // AFTER (the fix):
+  //   • Container W/H: read once on mount/resize, stored in
+  //     containerSizeRef — zero DOM reads in the tick.
+  //   • Dot positions: the dots are positioned at percentage-
+  //     based CSS coords and GSAP only animates x/y transforms.
+  //     We read those transforms via gsap.getProperty() which
+  //     accesses GSAP's internal tween cache — no DOM, no layout.
+  //   • Path setAttribute: throttled to every other frame.
+  //     Float animations cycle every 3 s; 30 fps updates are
+  //     visually identical and halve SVG repaint cost.
   // ==========================================================
 
   useEffect(() => {
-    const tick = () => {
-      const container = containerRef.current;
-      if (!container || !pathWhiteRef.current || !curveRef.current.length) return;
+    let frameCount = 0;
 
-      const cr = container.getBoundingClientRect();
-      dotRefs.current.forEach((dot, i) => {
-        if (!dot) return;
-        const r = dot.getBoundingClientRect();
-        curveRef.current[i + 1].x = r.left + r.width  / 2 - cr.left;
-        curveRef.current[i + 1].y = r.top  + r.height / 2 - cr.top;
+    const tick = () => {
+      if (!pathWhiteRef.current || !curveRef.current.length) return;
+
+      const { W, H } = containerSizeRef.current;
+      if (!W || !H) return;
+
+      // ── READ phase (no DOM) ────────────────────────────────
+      // Replace the old getBoundingClientRect() calls with
+      // gsap.getProperty(), which reads from GSAP's tween state.
+      nodeRefs.current.forEach((node, i) => {
+        if (!node) return;
+        // gsap.getProperty returns the current animated value
+        // without touching the DOM — zero layout cost.
+        const gx = gsap.getProperty(node, 'x') || 0;
+        const gy = gsap.getProperty(node, 'y') || 0;
+        curveRef.current[i + 1].x = CURVE_POINTS[i + 1].pctX * W + gx;
+        curveRef.current[i + 1].y = CURVE_POINTS[i + 1].pctY * H + gy;
       });
 
       const pts = curveRef.current;
 
-      pathWhiteRef.current.setAttribute('d', buildPath(pts));
-      pathYellowRef.current.setAttribute('d', buildPath(pts.slice(0, activeIdx + 2)));
-      pathGradRef.current.setAttribute('d', buildPath(pts.slice(activeIdx + 1, inactiveIdx + 2)));
+      // ── WRITE phase — throttle setAttribute to every 2nd frame
+      // The float cycle is 3 s; 30 fps path updates are
+      // imperceptible and halve SVG repaint work.
+      frameCount++;
+      if (frameCount % 2 === 0) {
+        pathWhiteRef.current.setAttribute('d', buildPath(pts));
+        pathYellowRef.current.setAttribute('d', buildPath(pts.slice(0, activeIdx + 2)));
+        pathGradRef.current.setAttribute('d', buildPath(pts.slice(activeIdx + 1, inactiveIdx + 2)));
 
-      const a = pts[activeIdx   + 1];
-      const b = pts[inactiveIdx + 1];
-      if (gradientRef.current && a && b) {
-        gradientRef.current.setAttribute('x1', a.x.toFixed(1));
-        gradientRef.current.setAttribute('y1', a.y.toFixed(1));
-        gradientRef.current.setAttribute('x2', b.x.toFixed(1));
-        gradientRef.current.setAttribute('y2', b.y.toFixed(1));
+        const a = pts[activeIdx   + 1];
+        const b = pts[inactiveIdx + 1];
+        if (gradientRef.current && a && b) {
+          gradientRef.current.setAttribute('x1', a.x.toFixed(1));
+          gradientRef.current.setAttribute('y1', a.y.toFixed(1));
+          gradientRef.current.setAttribute('x2', b.x.toFixed(1));
+          gradientRef.current.setAttribute('y2', b.y.toFixed(1));
+        }
       }
 
+      // Travel dot — only active during intro animation
       const { drawn, total, active } = travelRef.current;
       const dotG = dotGRef.current;
       if (dotG) {
@@ -370,6 +422,7 @@ export default function EventTimeline() {
         yPercent: -50,
         transformOrigin: '50% 50%',
       }));
+
       if (ctaRef.current) gsap.set(ctaRef.current, { opacity: 0, y: 40 });
 
       nodeRefs.current.forEach((node, i) => {
@@ -512,7 +565,9 @@ export default function EventTimeline() {
                 position: 'absolute',
                 left: `${CURVE_POINTS[i + 1].pctX * 100}%`,
                 top:  `${CURVE_POINTS[i + 1].pctY * 100}%`,
-                // no transform here — GSAP owns centering via xPercent/yPercent
+                // will-change promotes nodes to their own compositor layer
+                // so the float animations don't trigger main-thread repaints.
+                willChange: 'transform',
                 zIndex: 10,
                 opacity: 0,
               }}
