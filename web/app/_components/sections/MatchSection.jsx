@@ -260,7 +260,7 @@ export default function MatchSection() {
       justifyContent: "center",
       color: "white",
       overflow: "hidden",
-      padding: isMobile ? "80px 0 60px" : "100px 0",
+      padding: isMobile ? "80px 0 60px" : "0px 0 0 0",
     }}>
       <style>{`
         @keyframes live-intro {

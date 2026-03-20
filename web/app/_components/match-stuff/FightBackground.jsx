@@ -35,8 +35,14 @@ export default function FightBackground({ visible = false }) {
 	}, [visible]);
 
   return (
-    <div className="absolute z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
-		style={{ inset: 0, height: "100%" }}
+    <div
+		className="absolute z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
+		style={{
+			inset: 0,
+			height: "100%",
+			maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+			WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+		}}
 	>
       <svg 
         ref={svgRef} 

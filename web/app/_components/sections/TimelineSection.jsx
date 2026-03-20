@@ -649,7 +649,7 @@ export default function EventTimeline() {
             position: 'absolute', inset: 0,
             backgroundImage: 'url(/Batik_Pattern_dark.svg)',
             backgroundSize: 'cover', backgroundPosition: 'center',
-            pointerEvents: 'none', zIndex: 0, opacity: 0.5,
+            pointerEvents: 'none', zIndex: 0, opacity: 0.4,
           }}
         />
 
