@@ -3,7 +3,6 @@ import { useMemo } from "react";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
 
-// format jam WIB dari ISO string
 function fmtTime(iso) {
   if (!iso) return "?";
   return new Date(iso).toLocaleTimeString("id-ID", {
@@ -18,7 +17,6 @@ function fmtDate(iso) {
   });
 }
 
-// ambil scoring engine (selalu index 0 di modules)
 function getEngine(fmt) {
   return fmt?.modules?.[0] ?? null;
 }
@@ -33,7 +31,6 @@ function calcAvg(scores = [], method = "avg") {
   return method === "sum" ? sum : sum / scores.length;
 }
 
-// grouping helpers
 function groupByEvent(matches) {
   return matches.reduce((map, m) => {
     const key = m.event?.name ?? "Unknown Event";
@@ -55,7 +52,6 @@ function groupByDate(matches) {
   }, new Map());
 }
 
-// badge kuning "Live"
 function LiveBadge() {
   return (
     <div style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#000", background: "#FFC936", borderRadius: 7, padding: "5px 22px" }}>
@@ -155,9 +151,7 @@ function ParticipantInfo({ inst, name, align = "left" }) {
 
 const LOGO_OPACITIES = [1, 0.75, 0.5, 0.25];
 
-// kolom kiri untuk open match: logo stack + nama 2 baris
 function OpenParticipants({ match }) {
-  // unwrap junction rows, urutkan by position
   const entries = [...(match?.participants ?? [])]
     .sort((a, b) => a.position - b.position)
     .map((j) => j.participant_id);
@@ -241,7 +235,6 @@ function AwayCell({ participant }) {
   );
 }
 
-// podium finish_time (finished): span kolom 2-4
 function PodiumRow({ live }) {
   const podium = (live?.timeLog ?? []).slice(0, 3);
   const labels = ["1st", "2nd", "3rd"];
@@ -271,7 +264,6 @@ function MiddleBadge({ matchType }) {
   );
 }
 
-// render konten kolom tengah sesuai engine + status
 function ScoreCell({ match }) {
   const engine     = getEngine(match.format);
   const live       = match.live_state ?? {};
@@ -297,13 +289,15 @@ function ScoreCell({ match }) {
     case "judge_scores":
       return isLive ? <LiveBadge /> : <JudgeScoreFinished live={live} engine={engine} />;
     case "finish_time":
-      return isLive ? <LiveBadge /> : null; // finished pakai PodiumRow
+      return isLive ? <LiveBadge /> : null;
     case "manual_pick":
       return isLive ? <LiveBadge /> : <ManualPickFinished live={live} />;
     default:
       return null;
   }
 }
+
+// ─── Desktop row (original, untouched) ────────────────────────────────────────
 
 const ROW_GRID = {
   display: "grid",
@@ -312,7 +306,7 @@ const ROW_GRID = {
   padding: "11px 0",
 };
 
-function MatchRow({ match }) {
+function DesktopMatchRow({ match }) {
   const engine     = getEngine(match.format);
   const live       = match.live_state ?? {};
   const isH2H      = match.format?.match_type === "head_to_head";
@@ -323,7 +317,6 @@ function MatchRow({ match }) {
   const statusLabel = isLive ? "Ongoing" : isFinished ? "Finished" : "Upcoming";
   const timeLabel   = isLive ? "Live Match" : fmtTime(match.scheduled_at);
 
-  // finish_time selesai: baris khusus dengan podium
   if (engine?.type === "finish_time" && isFinished) {
     return (
       <div style={ROW_GRID}>
@@ -375,6 +368,164 @@ function MatchRow({ match }) {
   );
 }
 
+// ─── Mobile row (Sofascore-style) ─────────────────────────────────────────────
+//
+// Layout:
+//   [Logo] Home Name               [score/badge]
+//          Institution · Institution
+//   time · venue                    category · status
+
+function MobileScoreBadge({ match }) {
+  const engine     = getEngine(match.format);
+  const live       = match.live_state ?? {};
+  const isLive     = match.status === "live";
+  const isUpcoming = match.status === "upcoming";
+  const matchType  = match.format?.match_type;
+
+  // upcoming → grey "vs" or "--"
+  if (isUpcoming) {
+    return (
+      <div style={{ ...JK, fontSize: 12, fontWeight: 700, color: "#999", background: "#f3f4f6", borderRadius: 6, padding: "4px 10px", whiteSpace: "nowrap" }}>
+        {matchType === "head_to_head" ? "vs" : "--"}
+      </div>
+    );
+  }
+
+  // live score_timed → compact numbers
+  if (engine?.type === "score_timed") {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ ...JK, fontSize: 16, fontWeight: 900, color: "#111" }}>{live.homeScore ?? 0}</span>
+        <span style={{ ...JK, fontSize: 13, color: "#aaa" }}>-</span>
+        <span style={{ ...JK, fontSize: 16, fontWeight: 900, color: "#111" }}>{live.awayScore ?? 0}</span>
+      </div>
+    );
+  }
+
+  // live score_sets → sets won
+  if (engine?.type === "score_sets" && isLive) {
+    const [h, a] = live.setsWon ?? [0, 0];
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ ...JK, fontSize: 16, fontWeight: 900, color: "#111" }}>{h}</span>
+        <span style={{ ...JK, fontSize: 13, color: "#aaa" }}>-</span>
+        <span style={{ ...JK, fontSize: 16, fontWeight: 900, color: "#111" }}>{a}</span>
+      </div>
+    );
+  }
+
+  // everything else live → yellow LIVE pill
+  if (isLive) {
+    return (
+      <div style={{ ...JK, fontSize: 11, fontWeight: 800, color: "#000", background: "#FFC936", borderRadius: 5, padding: "3px 8px", whiteSpace: "nowrap" }}>
+        LIVE
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function MobileMatchRow({ match }) {
+  const isH2H  = match.format?.match_type === "head_to_head";
+  const isOpen = match.format?.match_type === "open";
+  const isLive = match.status === "live";
+
+  const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
+  const category  = match.competition_category?.name ?? "";
+  const status    = isLive ? "Ongoing" : "Upcoming";
+
+  // participants label — one line for open/solo, two names for h2h
+  const home = match.home_participant;
+  const away = match.away_participant;
+
+  // open: first 3 names joined
+  const openEntries = isOpen
+    ? [...(match.participants ?? [])]
+        .sort((a, b) => a.position - b.position)
+        .map((j) => j.participant_id?.name)
+        .filter(Boolean)
+    : [];
+
+  const truncate = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+
+  return (
+    <div style={{ padding: "10px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+
+      {/* ── Participants row ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+        {/* Left: logo + name(s) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+          {isOpen ? (
+            // stacked logos for open
+            <div style={{ display: "flex", flexShrink: 0 }}>
+              {[...match.participants ?? []].slice(0, 3).map((j, i) => {
+                const inst = j.participant_id?.institution;
+                return inst?.logo_url ? (
+                  <img key={i} src={inst.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px solid #e5e7eb", marginLeft: i > 0 ? -8 : 0, objectFit: "contain", opacity: LOGO_OPACITIES[i] ?? 0.3 }} />
+                ) : (
+                  <div key={i} style={{ width: 28, height: 28, borderRadius: "50%", background: inst?.color ?? "#334155", border: "1.5px solid #e5e7eb", marginLeft: i > 0 ? -8 : 0, opacity: LOGO_OPACITIES[i] ?? 0.3 }} />
+                );
+              })}
+            </div>
+          ) : (
+            <Logo inst={home?.institution} size={28} />
+          )}
+
+          <div style={{ minWidth: 0 }}>
+            {isOpen ? (
+              <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 600, color: "#111" }}>
+                {openEntries.slice(0, 3).join(", ")}{openEntries.length > 3 ? " +" + (openEntries.length - 3) : ""}
+              </div>
+            ) : isH2H ? (
+              <>
+                <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: "#111" }}>{home?.name ?? "?"}</div>
+                <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#999" }}>
+                  {home?.institution?.name ?? ""}{away ? ` · ${away.institution?.name ?? ""}` : ""}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: "#111" }}>{home?.name ?? "?"}</div>
+                <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#999" }}>{home?.institution?.name ?? ""}</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Centre: score badge */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>
+          <MobileScoreBadge match={match} />
+        </div>
+
+        {/* Right: away participant (h2h only) */}
+        {isH2H && away && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111", whiteSpace: "nowrap" }}>{away.name}</div>
+            </div>
+            <Logo inst={away.institution} size={28} />
+          </div>
+        )}
+      </div>
+
+      {/* ── Meta row: time · venue — category · status ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ ...JK, fontSize: 11, color: "#aaa", fontWeight: 500 }}>
+          <span style={{ fontWeight: 700, color: isLive ? "#CA8A04" : "#aaa" }}>{timeLabel}</span>
+          {match.venue ? ` · ${match.venue}` : ""}
+        </span>
+        <span style={{ ...JK, fontSize: 11, color: "#aaa", fontWeight: 500, textAlign: "right" }}>
+          {category} · {status}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared pieces ─────────────────────────────────────────────────────────────
+
 function GroupHeader({ label }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "20px 0 4px" }}>
@@ -384,12 +535,15 @@ function GroupHeader({ label }) {
   );
 }
 
+// ─── MatchTable ────────────────────────────────────────────────────────────────
+
 export function MatchTable({
   matches = [],
   groupBy = "event",
   showGroupFilter = false,
   onGroupByChange,
   title = "Upcoming Matches",
+  isMobile = false,
 }) {
   const groups = useMemo(() => {
     if (groupBy === "category") return groupByCategory(matches);
@@ -400,10 +554,10 @@ export function MatchTable({
   const firstDate = matches.find((m) => m.scheduled_at)?.scheduled_at;
 
   return (
-    <div style={{ background: "#fff", borderRadius: 10, padding: "24px 32px", boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
+    <div style={{ background: "#fff", borderRadius: 10, padding: isMobile ? "16px 16px" : "24px 32px", boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ ...JK, fontSize: 18, fontWeight: 800, color: "#06125C" }}>{title}</span>
-        {firstDate && <span style={{ ...JK, fontSize: 14, color: "#aaa" }}>{fmtDate(firstDate)}</span>}
+        <span style={{ ...JK, fontSize: isMobile ? 15 : 18, fontWeight: 800, color: "#06125C" }}>{title}</span>
+        {firstDate && <span style={{ ...JK, fontSize: isMobile ? 11 : 14, color: "#aaa" }}>{fmtDate(firstDate)}</span>}
       </div>
 
       {showGroupFilter && (
@@ -426,7 +580,11 @@ export function MatchTable({
       {[...groups.entries()].map(([key, rows]) => (
         <div key={key}>
           <GroupHeader label={key} />
-          {rows.map((match) => <MatchRow key={match.id} match={match} />)}
+          {rows.map((match) =>
+            isMobile
+              ? <MobileMatchRow key={match.id} match={match} />
+              : <DesktopMatchRow key={match.id} match={match} />
+          )}
         </div>
       ))}
     </div>
