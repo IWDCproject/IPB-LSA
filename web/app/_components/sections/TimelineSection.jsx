@@ -254,18 +254,20 @@ export default function EventTimeline() {
 
   const curveRef = useRef([]);
 
-  // ──────────────────────────────────────────────────────────
-  // FIX: Cache container dimensions so the tick never calls
-  // getBoundingClientRect() — that forces synchronous layout
-  // every frame and causes the layout-thrashing jank visible
-  // in the flame graph.
-  // ──────────────────────────────────────────────────────────
+  // Container W/H — cached on mount + resize, never read in the tick.
   const containerSizeRef = useRef({ W: 0, H: 0 });
+
+  // Last positions written to SVG — used for the dirty check.
+  // null forces a write on the very first tick.
+  const prevCurvePosRef = useRef(null);
+
+  // True while the section is intersecting the viewport.
+  // Tick exits immediately when false → zero work during other sections.
+  const visibleRef = useRef(false);
 
   const initCurve = () => {
     const el = containerRef.current;
     if (!el) return;
-    // getBoundingClientRect is fine HERE — only runs on mount + resize
     const { width: W, height: H } = el.getBoundingClientRect();
     containerSizeRef.current = { W, H };
     curveRef.current = CURVE_POINTS.map(p => ({
@@ -274,6 +276,8 @@ export default function EventTimeline() {
       hIn:  { dx: p.hIn.dx  * W, dy: p.hIn.dy  * H },
       hOut: { dx: p.hOut.dx * W, dy: p.hOut.dy * H },
     }));
+    // Force path redraw on next tick after a resize
+    prevCurvePosRef.current = null;
   };
 
   useEffect(() => {
@@ -282,59 +286,79 @@ export default function EventTimeline() {
     return () => window.removeEventListener('resize', initCurve);
   }, []);
 
+  // Pause all tick work when section is scrolled out of view
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => { visibleRef.current = entry.isIntersecting; },
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   // ==========================================================
   // MASTER TICK  — PERFORMANCE-CRITICAL
   // ==========================================================
   //
-  // BEFORE (the bug):
-  //   Every frame called getBoundingClientRect() 5× (1 container
-  //   + 4 dots).  At 60 fps that's 300 forced synchronous layout
-  //   recalculations per second.  During Lenis scroll the browser
-  //   is already mid-layout, so each read forces an extra layout
-  //   flush → "layout thrashing" → the jank shown in the flame
-  //   graph (Element.getBoundingClientRect stacking in the tick).
+  // DOT CENTER FORMULA (no DOM reads, no getBoundingClientRect):
   //
-  // AFTER (the fix):
-  //   • Container W/H: read once on mount/resize, stored in
-  //     containerSizeRef — zero DOM reads in the tick.
-  //   • Dot positions: the dots are positioned at percentage-
-  //     based CSS coords and GSAP only animates x/y transforms.
-  //     We read those transforms via gsap.getProperty() which
-  //     accesses GSAP's internal tween cache — no DOM, no layout.
-  //   • Path setAttribute: throttled to every other frame.
-  //     Float animations cycle every 3 s; 30 fps updates are
-  //     visually identical and halve SVG repaint cost.
+  //   center_x = CURVE_POINTS[i+1].pctX * W
+  //              - dotSize / 2          ← GSAP xPercent:-50 shifts the
+  //                                       node left by half its width
+  //                                       (node width = dotSize since
+  //                                       label + card are position:abs).
+  //                                       The dot's own CSS translate
+  //                                       (-50%,-50%) then places its
+  //                                       visual center at node origin (0,0).
+  //                                       Net: center = pctX*W - dotSize/2.
+  //              + gsap.getProperty('x') ← current float offset (GSAP
+  //                                       tween cache, zero DOM access)
+  //
+  // DIRTY FLAG: paths only repainted when a node moves > 0.4 px.
+  //   Float cycles are 3–4 s with sine easing → many frames near the
+  //   extremes have near-zero velocity → those frames are free.
+  //
+  // OFFSCREEN PAUSE: exits immediately when visibleRef=false.
+  //   User on hero/stat/match → zero tick work from this component.
   // ==========================================================
 
   useEffect(() => {
-    let frameCount = 0;
-
     const tick = () => {
+      if (!visibleRef.current) return;
       if (!pathWhiteRef.current || !curveRef.current.length) return;
 
       const { W, H } = containerSizeRef.current;
       if (!W || !H) return;
 
-      // ── READ phase (no DOM) ────────────────────────────────
-      // Replace the old getBoundingClientRect() calls with
-      // gsap.getProperty(), which reads from GSAP's tween state.
+      // ── READ — zero DOM reads ──────────────────────────────
+      let changed = false;
+      const prev  = prevCurvePosRef.current;
+
       nodeRefs.current.forEach((node, i) => {
         if (!node) return;
-        // gsap.getProperty returns the current animated value
-        // without touching the DOM — zero layout cost.
-        const gx = gsap.getProperty(node, 'x') || 0;
-        const gy = gsap.getProperty(node, 'y') || 0;
-        curveRef.current[i + 1].x = CURVE_POINTS[i + 1].pctX * W + gx;
-        curveRef.current[i + 1].y = CURVE_POINTS[i + 1].pctY * H + gy;
+        const gx      = gsap.getProperty(node, 'x') || 0;
+        const gy      = gsap.getProperty(node, 'y') || 0;
+        const half    = events[i].slot.dotSize / 2;
+        const nx      = CURVE_POINTS[i + 1].pctX * W - half + gx;
+        const ny      = CURVE_POINTS[i + 1].pctY * H - half + gy;
+
+        if (!prev || Math.abs(nx - prev[i].x) > 0.4 || Math.abs(ny - prev[i].y) > 0.4) {
+          changed = true;
+        }
+        curveRef.current[i + 1].x = nx;
+        curveRef.current[i + 1].y = ny;
       });
 
-      const pts = curveRef.current;
+      // ── WRITE — only when a node actually moved ────────────
+      if (changed) {
+        prevCurvePosRef.current = events.map((_, i) => ({
+          x: curveRef.current[i + 1].x,
+          y: curveRef.current[i + 1].y,
+        }));
 
-      // ── WRITE phase — throttle setAttribute to every 2nd frame
-      // The float cycle is 3 s; 30 fps path updates are
-      // imperceptible and halve SVG repaint work.
-      frameCount++;
-      if (frameCount % 2 === 0) {
+        const pts = curveRef.current;
         pathWhiteRef.current.setAttribute('d', buildPath(pts));
         pathYellowRef.current.setAttribute('d', buildPath(pts.slice(0, activeIdx + 2)));
         pathGradRef.current.setAttribute('d', buildPath(pts.slice(activeIdx + 1, inactiveIdx + 2)));
@@ -349,7 +373,7 @@ export default function EventTimeline() {
         }
       }
 
-      // Travel dot — only active during intro animation
+      // ── Travel dot (only active ~2.8 s during intro) ───────
       const { drawn, total, active } = travelRef.current;
       const dotG = dotGRef.current;
       if (dotG) {
@@ -511,8 +535,12 @@ export default function EventTimeline() {
         <div style={{ position: 'absolute', top: '10%', left: '5%', width: 400, height: 400, borderRadius: '50%', pointerEvents: 'none', background: THEME.bg.blobLeft }} />
         <div style={{ position: 'absolute', bottom: '5%', right: '10%', width: 350, height: 350, borderRadius: '50%', pointerEvents: 'none', background: THEME.bg.blobRight }} />
 
-        {/* SVG layer: kurva + travel dot */}
-        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, overflow: 'visible' }}>
+        {/* SVG layer: kurva + travel dot
+            will-change promotes it to its own compositor layer so path
+            setAttribute repaints are contained and don't trigger a
+            full-page paint. overflow:visible is kept for the phantoms
+            that extend beyond the container edges. */}
+        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, overflow: 'visible', willChange: 'transform' }}>
           <defs>
             <linearGradient ref={gradientRef} id="seg-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor={THEME.path.gradFrom} />
