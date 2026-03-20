@@ -78,13 +78,16 @@ export default function CurtainWrapper() {
           top:      HEADER_HEIGHT,
           height:   sectionH,
           zIndex:   2,
-          overflow: "hidden",
+          // overflow: "hidden",
         }}
       >
         <div ref={timelineInnerRef} style={{ willChange: "transform" }}>
           <TimelineSection />
         </div>
       </div>
+
+      {/* kasih ruang buat timeline keliatan full sebelum news naik */}
+      <div style={{ height: "15vh" }} aria-hidden="true" />
 
       {/* news: normal flow z=3 */}
       <div style={{ position: "relative", zIndex: 3, height: sectionH }}>
