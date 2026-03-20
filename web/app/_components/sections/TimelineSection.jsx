@@ -34,7 +34,7 @@ const SLOTS = [
   { cardOffset:{x:-240,y:0}, labelOffset:{x:22,y:-46},  tilt: 5, dotSize:20,
     floatY:17, floatX:18,  floatDur:6, floatDelay:1.4,
     palette:{border:'#fff',shadow:null,dotColor:'#fff',dotGlow:'rgba(255,255,255,0.4)',labelColor:'#fff',labelGlow:'rgba(255,255,255,0.3)'} },
-  { cardOffset:{x:0,y:-330},   labelOffset:{x:-80,y:20},  tilt:-9, dotSize:20,
+  { cardOffset:{x:0,y:-335},   labelOffset:{x:-80,y:20},  tilt:-9, dotSize:20,
     floatY:13, floatX:-12, floatDur:3.5, floatDelay:0.3,
     palette:{border:'#fff',shadow:null,dotColor:'#fff',dotGlow:'rgba(255,255,255,0.4)',labelColor:'#fff',labelGlow:'rgba(255,255,255,0.3)'} },
 ];
