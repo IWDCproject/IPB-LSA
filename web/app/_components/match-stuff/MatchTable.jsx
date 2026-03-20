@@ -266,7 +266,7 @@ function PodiumRow({ live }) {
 function MiddleBadge({ matchType }) {
   return (
     <div style={{ ...JK, fontSize: 14, fontWeight: 700, color: "#676767", background: "#eeeeee", borderRadius: 7, padding: "6px 20px", whiteSpace: "nowrap" }}>
-      {matchType === "head_to_head" ? "vs" : "---"}
+      {matchType === "head_to_head" ? "vs" : "--"}
     </div>
   );
 }
