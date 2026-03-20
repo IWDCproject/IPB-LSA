@@ -22,7 +22,7 @@ export default function FightBackground({ visible = false }) {
 	tlRef.current = gsap.timeline({ paused: true })
 		.to(paths, {
 		strokeDashoffset: 0,
-		duration: 2.4,
+		duration: 4,
 		ease: "power2.inOut",
 		stagger: { each: 0.03, from: "start" },
 		});
