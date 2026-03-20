@@ -98,12 +98,10 @@ const EVENTS = [
 const INTERVAL_MS = 10000;
 const SHRINK_MS   = 600;
 
-// durasi fade overlay, dipakai buat nunda setMounted supaya spike ga keliatan
 const OVERLAY_FADE_MS = 600;
 
 const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
 
-// notch kecil di bawah card yang lagi aktif atau di-hover
 function CardNotch({ color, textColor, label }) {
     return (
         <div
@@ -149,44 +147,28 @@ function CardNotch({ color, textColor, label }) {
     );
 }
 
-// style animasi intro dengan delay berbeda tiap slot
 function introStyle(delayMs) {
     return { animation: `hero-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${delayMs}ms both` };
 }
 
-// delay per slot untuk animasi exit, enter, dan intro pertama kali
-const EXIT_DELAYS  = [150, 100, 50, 0];   // status, title, desc, button (bawah ke atas)
+const EXIT_DELAYS  = [150, 100, 50, 0];
 const ENTER_DELAYS = [0, 70, 140, 210];
 const INTRO_DELAYS = [160, 240, 320, 400];
 
-export default function HeroSection() {
-    const [activeIdx, setActiveIdx]   = useState(0);
-    const [hoveredIdx, setHoveredIdx] = useState(null);
-    const [animating, setAnimating]   = useState(false);
-
-    // mounted baru jadi true setelah overlay benar-benar hilang
-    const [mounted, setMounted] = useState(false);
-
-    // displayIdx ketinggalan dari activeIdx supaya konten swap setelah exit selesai
-    const [displayIdx, setDisplayIdx] = useState(0);
-
-    // fase transisi kartu: "idle" | "exit" | "enter"
-    const [transPhase, setTransPhase] = useState("idle");
-
-    // setelah intro pertama main, idle state langsung opacity:1 tanpa re-trigger
+// paused dikasih dari CurtainWrapper lewat prop, bukan IO
+export default function HeroSection({ paused = false }) {
+    const [activeIdx, setActiveIdx]     = useState(0);
+    const [hoveredIdx, setHoveredIdx]   = useState(null);
+    const [animating, setAnimating]     = useState(false);
+    const [mounted, setMounted]         = useState(false);
+    const [displayIdx, setDisplayIdx]   = useState(0);
+    const [transPhase, setTransPhase]   = useState("idle");
     const [introPlayed, setIntroPlayed] = useState(false);
 
-    // progress bar dimanipulasi langsung ke DOM supaya ga re-render tiap frame
-    const barRef = useRef(null);
-
-    // refs ke semua canvas, diakses langsung tanpa state
+    const barRef     = useRef(null);
     const canvasRefs = useRef({});
-
-    // set of id gambar yang sudah selesai di-decode dan dipaint ke canvas
     const [readyIds, setReadyIds] = useState(new Set());
-
-    // ukur lebar container yang beneran -- akurat untuk zoom dan sidebar
-    const sectionRef  = useRef(null);
+    const sectionRef = useRef(null);
     const [cw, setCw] = useState(1440);
 
     useEffect(() => {
@@ -202,39 +184,29 @@ export default function HeroSection() {
     const margin   = Math.round(160 * scale);
     const cardH    = Math.round(240 * scale);
 
-    // decode semua gambar di worker, paint ke canvas di ukuran aslinya
-    // object-fit: cover di CSS yang handle scaling dan crop saat resize, bukan JS
     useEffect(() => {
         const worker = new Worker("/blurWorker.js");
 
-        worker.onmessage = ({ data: { id, bitmap, error } }) => {
+        worker.onmessage = ({ data: { id, sharp, blurred, error } }) => {
             if (error) { console.warn("blur worker error:", error); return; }
 
-            // paint ke sharp canvas di ukuran asli bitmap
             const sharpCanvas = canvasRefs.current[`${id}_sharp`];
             if (sharpCanvas) {
-                sharpCanvas.width  = bitmap.width;
-                sharpCanvas.height = bitmap.height;
-                sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bitmap);
+                sharpCanvas.width  = sharp.width;
+                sharpCanvas.height = sharp.height;
+                sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(sharp);
             }
 
-            // blur canvas pakai bitmap kedua dari sharp canvas
-            // ditunda ke idle supaya ga spike barengan sama sharp transfer
             const blurCanvas = canvasRefs.current[`${id}_blur`];
             if (blurCanvas) {
-                createImageBitmap(sharpCanvas).then((bmp) => {
-                    requestIdleCallback(() => {
-                        blurCanvas.width  = bmp.width;
-                        blurCanvas.height = bmp.height;
-                        blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(bmp);
-                    });
-                });
+                blurCanvas.width  = blurred.width;
+                blurCanvas.height = blurred.height;
+                blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(blurred);
             }
 
             setReadyIds((prev) => new Set([...prev, id]));
         };
 
-        // kirim semua URL sekaligus, worker fetch dan decode paralel
         worker.postMessage({
             images: EVENTS.map((ev) => ({ id: ev.id, url: ev.card_image_url })),
         });
@@ -242,8 +214,6 @@ export default function HeroSection() {
         return () => worker.terminate();
     }, []);
 
-    // setelah semua canvas kelar, tunggu overlay fade habis baru unlock scroll dan jalankan animasi
-    // spike dari GPU transfers tetap terjadi tapi tersembunyi di balik overlay yang masih solid
     useEffect(() => {
         if (readyIds.size !== EVENTS.length) return;
 
@@ -257,7 +227,6 @@ export default function HeroSection() {
 
     const displayEvent = EVENTS[displayIdx];
 
-    // kembalikan style animasi yang tepat untuk tiap slot info berdasarkan fase saat ini
     const infoAnimStyle = (slot) => {
         if (!mounted) return { opacity: 0 };
         if (transPhase === "exit")
@@ -268,14 +237,11 @@ export default function HeroSection() {
         return { opacity: 1 };
     };
 
-    // transisi kartu: exit -> swap konten -> enter
     useEffect(() => {
         if (!mounted || activeIdx === displayIdx) return;
         setIntroPlayed(true);
         setTransPhase("exit");
-        // EXIT_DELAYS slot terakhir (150ms) + durasi exit (220ms) + buffer
         const swapAt = 150 + 220 + 20;
-        // ENTER_DELAYS slot terakhir (210ms) + durasi enter (350ms) + buffer
         const idleAt = swapAt + 210 + 350 + 20;
         const t1 = setTimeout(() => {
             setDisplayIdx(activeIdx);
@@ -292,9 +258,9 @@ export default function HeroSection() {
         setTimeout(() => setAnimating(false), 400);
     };
 
-    // progress bar digerakkin langsung lewat ref, nol re-render React
+    // RAF mati total kalau paused, startTime direset biar progress bar ga loncat pas resume
     useEffect(() => {
-        if (animating) return;
+        if (animating || paused) return;
 
         let startTime    = null;
         let rafId;
@@ -336,15 +302,13 @@ export default function HeroSection() {
 
         rafId = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(rafId);
-    }, [activeIdx, animating]);
+    }, [activeIdx, animating, paused]);
 
     const mobileCards     = EVENTS.slice(0, 4);
     const visibleCount    = isMobile ? mobileCards.length : EVENTS.length;
-    // ref biar timer closure selalu baca nilai terbaru tanpa re-subscribe
     const visibleCountRef = useRef(visibleCount);
     useEffect(() => { visibleCountRef.current = visibleCount; }, [visibleCount]);
 
-    // reset activeIdx kalau lagi di hidden card pas switch ke mobile
     useEffect(() => {
         if (isMobile && activeIdx >= mobileCards.length) {
             setActiveIdx(0);
@@ -392,8 +356,6 @@ export default function HeroSection() {
                 }
             `}</style>
 
-            {/* overlay loading, fade out setelah semua canvas kelar
-                spike dari GPU transfers terjadi di sini tapi tersembunyi di balik overlay */}
             <div
                 className="absolute inset-0 z-50 flex items-center justify-center bg-black"
                 style={{
@@ -412,8 +374,6 @@ export default function HeroSection() {
                 }} />
             </div>
 
-            {/* background: sharp canvas + blur canvas, keduanya dirender di GPU
-                object-fit: cover di canvas sama persis kayak di img, browser yang handle resize */}
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
                     <div
@@ -421,17 +381,16 @@ export default function HeroSection() {
                         className="absolute inset-0"
                         style={{
                             opacity:    idx === activeIdx ? 1 : 0,
-                            transition: "opacity 0.8s ease",
+                            // skip compositor work kalau hero lagi ketutupan
+                            transition: paused ? "none" : "opacity 0.8s ease",
                         }}
                     >
-                        {/* layer 1: gambar asli */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
                             className="absolute inset-0 w-full h-full"
                             style={{ objectFit: "cover" }}
                         />
 
-                        {/* layer 2: blur tepi pakai CSS filter GPU, di-mask supaya hanya di pinggir */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
                             className="absolute inset-0 w-full h-full"
@@ -456,12 +415,10 @@ export default function HeroSection() {
                 ))}
             </div>
 
-            {/* gradient overlay kiri, kanan, dan bawah */}
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
 
-            {/* progress bar */}
             <div
                 className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30"
                 style={mounted ? {
@@ -471,7 +428,6 @@ export default function HeroSection() {
                 <div ref={barRef} className="absolute top-0 h-full bg-yellow-400" />
             </div>
 
-            {/* info event: status, judul, deskripsi, tombol */}
             <div
                 className="absolute z-10"
                 style={{
@@ -481,7 +437,6 @@ export default function HeroSection() {
                     maxWidth: isMobile ? undefined : Math.round(512 * scale),
                 }}
             >
-                {/* 1: status */}
                 <p
                     className="text-yellow-400 text-xs font-bold uppercase mb-3"
                     style={{
@@ -493,7 +448,6 @@ export default function HeroSection() {
                     {displayEvent.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
 
-                {/* 2: judul */}
                 <h1
                     className="text-white uppercase leading-none mb-3"
                     style={{
@@ -507,7 +461,6 @@ export default function HeroSection() {
                     {displayEvent.name}
                 </h1>
 
-                {/* 3: deskripsi */}
                 <p
                     className="text-white text-base leading-relaxed mb-6 font-medium"
                     style={{
@@ -523,7 +476,6 @@ export default function HeroSection() {
                     {displayEvent.description}
                 </p>
 
-                {/* 4: tombol CTA */}
                 <div style={infoAnimStyle(3)}>
                     <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">
                         More Details
@@ -531,19 +483,15 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            {/* daftar kartu event */}
             <div
                 className="absolute z-10"
                 style={{
-                    // mobile: 44px marquee height + 8px gap = 52px dari bawah
                     bottom:        isMobile ? 80 : Math.round(80 * scale),
-                    // 24px biar konsisten sama header dan stat section
                     left:          isMobile ? 24 : margin,
                     right:         isMobile ? 24 : margin,
                     paddingBottom: isMobile ? 0 : Math.round(40 * scale),
                 }}
             >
-                {/* 5: label section */}
                 <p
                     className="text-white text-sm font-bold uppercase mb-5"
                     style={{
@@ -555,13 +503,11 @@ export default function HeroSection() {
                     {">>>"} Featured Events
                 </p>
 
-                {/* 6: baris kartu */}
                 <div
                     className="flex"
                     style={{
                         height: isMobile ? 160 : cardH,
                         gap:    Math.round(4 * scale),
-                        // filter dipindah ke inner clip div -- filter di sini clips overflow children (notch)
                         ...(mounted ? {
                             animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both",
                         } : { opacity: 0 }),
@@ -589,7 +535,6 @@ export default function HeroSection() {
                                     transition: "outline 0.2s ease",
                                 }}
                             >
-                                {/* wrapper clip supaya konten tidak keluar radius */}
                                 <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 4px rgba(0,0,0,0.25)" }}>
                                     {ev ? (
                                         <EventCard event={ev} />
@@ -618,7 +563,6 @@ export default function HeroSection() {
                                     )}
                                 </div>
 
-                                {/* notch kuning untuk kartu aktif */}
                                 {isActive && (
                                     <CardNotch
                                         color="rgb(234,179,8)"
@@ -627,7 +571,6 @@ export default function HeroSection() {
                                     />
                                 )}
 
-                                {/* notch putih untuk kartu yang di-hover */}
                                 {isHovered && (
                                     <CardNotch
                                         color="rgba(255,255,255,0.92)"
@@ -641,7 +584,6 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            {/* marquee universitas, muncul paling terakhir */}
             <div
                 className="absolute z-10 left-0 right-0"
                 style={{

@@ -33,7 +33,7 @@ export default function EventCard({ event, className = "" }) {
         <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", maskImage: "linear-gradient(to top, black 0%, transparent 25%)"  }} />
     </div>
 
-    {/* Text — pinned to bottom */}
+    {/* Text pinned to bottom */}
     <div className="absolute bottom-0 left-0 right-0 p-4">
         {orgName && (
         <p className="text-white/85 text-[12px] tracking-wider font-semibold mb-1 truncate">by {orgName}</p>

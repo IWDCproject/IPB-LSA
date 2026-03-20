@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 
-import StatCard from "./stats-stuff/StatCard";
+import StatCard from "../stats-stuff/StatCard";
 import Button from "@/components/Button";
 import UniversityMarquee from "@/components/UniversityMarquee";
 
-import universitiesImg from "./stats-stuff/2.jpg";
-import athletesImg     from "./stats-stuff/1.jpg";
-import eventsImg       from "./stats-stuff/3.jpg";
+import universitiesImg from "../stats-stuff/2.jpg";
+import athletesImg     from "../stats-stuff/1.jpg";
+import eventsImg       from "../stats-stuff/3.jpg";
 
 // settingan layout
 const CARD_WIDTHS   = [470, 280, 280];
