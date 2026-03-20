@@ -1,6 +1,31 @@
 # IPB Lucky Sport & Art — Database & API Schema
-> Last updated: 2026-03-15  
+> Last updated: 2026-03-20
 > For: Backend developer. Self-hosted on VPS. Directus as API layer over PostgreSQL.
+
+---
+
+## Updates
+
+### 2026-03-20
+**Replaced `matches.participant_ids JSONB` with `match_participants` junction table.**
+
+Affected sections: 3 (ERD, relasi), 6 (tabel `matches`, tabel baru `match_participants`), 9 (index baru), 10 (debt table), 11 (tidak ada lagi catatan `participant_ids`).
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Penyimpanan peserta open match | `matches.participant_ids JSONB` — array UUID tanpa FK | `match_participants(match_id, participant_id, position)` — junction table dengan FK penuh |
+| Integritas data | Tidak ada — UUID bisa menunjuk participant yang sudah dihapus | CASCADE pada kedua sisi — junction rows ikut terhapus |
+| Query dari frontend | Perlu enrichment fetch terpisah karena Directus tidak bisa expand JSONB | Directus expand otomatis via `fields[]=participants.participant_id.institution.*` |
+| Duplikasi peserta | Tidak ada constraint | `UNIQUE(match_id, participant_id)` |
+
+**Yang perlu dilakukan backend:**
+1. Buat tabel `match_participants` — DDL ada di Bagian 6
+2. Buat dua index baru — ada di Bagian 9
+3. Migrasi data lama: ekstrak UUID dari `matches.participant_ids`, insert ke `match_participants` dengan `position` sesuai urutan array
+4. Drop kolom `matches.participant_ids`
+5. Set permission Directus untuk role `ormawa` dan public pada collection `match_participants` — contoh ada di Bagian 4B
+
+---
 
 ---
 
@@ -76,7 +101,8 @@ directus_users (ormawa)
     │   ├── participants          ← atlet atau tim
     │   │   └── members[]         ← anggota tim (JSONB array, bukan tabel terpisah)
     │   └── matches               ← pertandingan
-    │       └── live_state        ← state real-time (JSONB)
+    │       ├── live_state        ← state real-time (JSONB)
+    │       └── match_participants[] ← peserta open match (junction table, bukan JSONB)
     ├── institutions              ← universitas/klub, dipakai oleh participants
     ├── event_phases              ← timeline publik event
     └── news                     ← artikel terkait event
@@ -143,11 +169,17 @@ erDiagram
         uuid competition_category_id FK
         uuid home_participant_id FK
         uuid away_participant_id FK
-        jsonb participant_ids
         string status
         string winner
         jsonb rankings
         jsonb live_state
+    }
+
+    match_participants {
+        uuid id PK
+        uuid match_id FK
+        uuid participant_id FK
+        int position
     }
 
     event_phases {
@@ -197,9 +229,12 @@ erDiagram
 
     participants ||--o| matches : "home_participant_id"
     participants ||--o| matches : "away_participant_id"
+    participants ||--o{ match_participants : "participant_id"
+
+    matches ||--o{ match_participants : "match_id"
 ```
 
-> 💡 Diagram ini render otomatis di GitHub, GitLab, Notion, dan Obsidian.  
+> 💡 Diagram ini render otomatis di GitHub, GitLab, Notion, dan Obsidian.
 > Jika perlu render manual: paste ke [mermaid.live](https://mermaid.live)
 
 ### Relasi yang perlu diperhatikan
@@ -216,6 +251,8 @@ erDiagram
 | `competition_categories` → `match_formats` (via `format_id`) | SET NULL — format tidak terhapus, `format_id` di kategori jadi null |
 | `institutions` → `participants` (via `institution_id`) | SET NULL — peserta tidak terhapus, `institution_id` jadi null |
 | `participants` → `matches` (via `home/away_participant_id`) | SET NULL — match tidak terhapus, slot peserta jadi null |
+| `matches` → `match_participants` | CASCADE — junction rows ikut terhapus |
+| `participants` → `match_participants` | CASCADE — junction rows ikut terhapus |
 
 ---
 
@@ -228,13 +265,13 @@ Lakukan ini setelah pertama kali deploy Directus:
 POST /roles
 { "name": "ormawa", "app_access": true, "admin_access": false }
 
-POST /roles  
+POST /roles
 { "name": "superadmin", "app_access": true, "admin_access": true }
 ```
 
 **B. Set permissions untuk role `ormawa`:**
 
-Ormawa hanya bisa baca/tulis data miliknya sendiri. Untuk setiap collection (`events`, `competition_categories`, `matches`, `participants`, dll.):
+Ormawa hanya bisa baca/tulis data miliknya sendiri. Untuk setiap collection (`events`, `competition_categories`, `matches`, `participants`, `match_participants`, dll.):
 ```http
 POST /permissions
 {
@@ -245,6 +282,17 @@ POST /permissions
 }
 ```
 Ulangi untuk `create`, `update`, `delete` dengan filter yang sama.
+
+Untuk `match_participants`: ormawa bisa baca/tulis junction rows milik match mereka sendiri:
+```http
+POST /permissions
+{
+  "role": "<ormawa-role-id>",
+  "collection": "match_participants",
+  "action": "read",
+  "permissions": { "match_id": { "competition_category_id": { "event_id": { "user_created": { "_eq": "$CURRENT_USER" } } } } }
+}
+```
 
 Untuk `news`: ormawa bisa buat artikel untuk event mereka sendiri:
 ```http
@@ -258,7 +306,7 @@ POST /permissions
 }
 ```
 
-Public role (tidak login): bisa READ `events`, `matches`, `news`, `event_phases`, `participants` — tidak bisa write apapun.
+Public role (tidak login): bisa READ `events`, `matches`, `match_participants`, `news`, `event_phases`, `participants` — tidak bisa write apapun.
 
 **C. ⚠️ KRITIS — Matikan revisions untuk `matches`:**
 ```http
@@ -306,8 +354,8 @@ WEBSOCKETS_HEARTBEAT_PERIOD=60       # detik, jaga koneksi WS tetap hidup
 
 ## 6. Tabel custom kita
 
-> Semua PK pakai UUID — wajib untuk kompatibilitas Directus API.  
-> Semua tabel butuh trigger `updated_at` kecuali `activity_logs` (lihat SQL di Bagian 7).
+> Semua PK pakai UUID — wajib untuk kompatibilitas Directus API.
+> Semua tabel butuh trigger `updated_at` kecuali `activity_logs` dan `match_participants` (lihat SQL di Bagian 7).
 
 ---
 
@@ -478,9 +526,9 @@ Urutan ini hanya divalidasi di frontend Format Builder — tidak ada constraint 
   "ranked_order": true
 }
 ```
-> `allow_draw`: hanya untuk `head_to_head`  
-> `top_n`: berapa posisi yang dicatat (1 = winner only, 3 = podium)  
-> `ranked_order`: `true` = 1st/2nd/3rd berurutan | `false` = N unranked winners (untuk "lolos/tidak lolos")  
+> `allow_draw`: hanya untuk `head_to_head`
+> `top_n`: berapa posisi yang dicatat (1 = winner only, 3 = podium)
+> `ranked_order`: `true` = 1st/2nd/3rd berurutan | `false` = N unranked winners (untuk "lolos/tidak lolos")
 > `top_n` dan `ranked_order` hanya relevan untuk `open`
 
 **`timer` (add-on)** — hanya untuk `score_timed` dan `score_sets`
@@ -490,7 +538,7 @@ Urutan ini hanya divalidasi di frontend Format Builder — tidak ada constraint 
   "duration": 180
 }
 ```
-> `mode`: `"countdown"` = hitung mundur dari durasi | `"stopwatch"` = hitung naik dari 0  
+> `mode`: `"countdown"` = hitung mundur dari durasi | `"stopwatch"` = hitung naik dari 0
 > `duration`: dalam detik, diabaikan jika mode = `"stopwatch"`
 
 **`notes` (add-on)** — untuk semua engine
@@ -572,10 +620,8 @@ CREATE TABLE matches (
   away_participant_id       UUID    REFERENCES participants(id) ON DELETE SET NULL,
   CHECK (home_participant_id IS DISTINCT FROM away_participant_id),
 
-  -- Peserta untuk open match (shortcut v1 — lihat Bagian 8)
-  participant_ids           JSONB,
-  -- format: ["uuid1", "uuid2", "uuid3"]
-  -- array UUID tanpa FK constraint — shortcut yang disadari
+  -- Peserta untuk open match: lihat tabel match_participants (junction table)
+  -- Tidak ada lagi participant_ids JSONB di sini
 
   -- Hasil akhir
   winner                    TEXT,
@@ -594,7 +640,7 @@ CREATE TABLE matches (
   away_score                INTEGER  DEFAULT 0,
   timer_secs                INTEGER  DEFAULT 0,
 
-  -- State real-time lengkap — lihat struktur di Bagian 6
+  -- State real-time lengkap — lihat struktur di Bagian 7
   live_state                JSONB    NOT NULL DEFAULT '{}',
 
   status                    TEXT    NOT NULL DEFAULT 'upcoming'
@@ -603,6 +649,46 @@ CREATE TABLE matches (
   updated_at                TIMESTAMPTZ DEFAULT now()
 );
 ```
+
+---
+
+### `match_participants`
+
+Junction table untuk peserta open match. Menggantikan `participant_ids JSONB` yang lama.
+
+```sql
+CREATE TABLE match_participants (
+  id             UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id       UUID    NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+  participant_id UUID    NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+  position       INTEGER NOT NULL DEFAULT 0,
+  -- urutan tampil di UI, bukan ranking hasil — ranking ada di live_state / matches.rankings
+  created_at     TIMESTAMPTZ DEFAULT now(),
+
+  UNIQUE (match_id, participant_id)
+  -- satu peserta tidak bisa didaftarkan dua kali dalam match yang sama
+);
+```
+
+**Catatan penting:**
+- Tidak ada `updated_at` — junction rows tidak diedit, hanya dihapus dan dibuat ulang jika peserta diganti.
+- Tidak ada trigger `updated_at` untuk tabel ini.
+- `position` dipakai untuk urutan tampil di UI saja (stacked logos, daftar nama). Hasil pertandingan tetap di `live_state` dan `matches.rankings`.
+- Directus otomatis mengekspos ini sebagai relasi M2M pada collection `matches`. Field alias yang dipakai di frontend query: `participants`.
+
+**Directus query untuk open match (frontend):**
+```
+GET /items/matches
+  &fields[]=participants.id
+  &fields[]=participants.position
+  &fields[]=participants.participant_id.id
+  &fields[]=participants.participant_id.name
+  &fields[]=participants.participant_id.institution.name
+  &fields[]=participants.participant_id.institution.logo_url
+  &fields[]=participants.participant_id.institution.color
+```
+
+> `participants` adalah alias Directus untuk relasi M2M ke `match_participants`. Setiap item adalah satu junction row: `{ id, position, participant_id: { id, name, institution: { ... } } }`.
 
 ---
 
@@ -656,7 +742,7 @@ CREATE TABLE news (
 
 Audit trail untuk aksi penting. Ditulis eksplisit oleh aplikasi — bukan `directus_activity`.
 
-**Dicatat:** match dimulai/diakhiri/dideklarasi pemenang, peserta ditambah/dihapus, event dibuat/dipublish/diubah status, format dihapus.  
+**Dicatat:** match dimulai/diakhiri/dideklarasi pemenang, peserta ditambah/dihapus, event dibuat/dipublish/diubah status, format dihapus.
 **Tidak dicatat:** timer tick, increment skor, perubahan notes.
 
 ```sql
@@ -827,6 +913,7 @@ CREATE TRIGGER trg_updated_at BEFORE UPDATE ON news
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON app_settings
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- match_participants tidak punya updated_at — tidak perlu trigger
 ```
 
 ---
@@ -865,6 +952,10 @@ CREATE INDEX idx_matches_winner           ON matches(winner)
 CREATE INDEX idx_matches_rankings         ON matches USING GIN (rankings)
   WHERE rankings IS NOT NULL;
 
+-- match_participants
+CREATE INDEX idx_match_participants_match       ON match_participants(match_id);
+CREATE INDEX idx_match_participants_participant ON match_participants(participant_id);
+
 -- news
 CREATE UNIQUE INDEX idx_news_slug         ON news(slug);
 CREATE INDEX idx_news_event               ON news(event_id)
@@ -884,10 +975,10 @@ CREATE INDEX idx_logs_created             ON activity_logs(created_at DESC);
 
 ## 10. Utang teknis v1 → v2
 
-| Item | Kondisi v1 | Yang benar di v2 |
+| Item | Kondisi v1 | Status |
 |---|---|---|
-| `matches.participant_ids JSONB` | Array UUID tanpa FK constraint | Junction table: `match_participants(match_id UUID, participant_id UUID REFERENCES participants, position INT)` |
-| Timer tick di browser | **Fixed** — timer kini pakai snapshot + `timerLastStarted`. Client merekonstruksi nilai saat mount. Refresh tidak lagi mereset tampilan. | Clock server-side masih ideal untuk akurasi absolut di bawah load berat, tapi bukan lagi blocker v1. |
+| `matches.participant_ids JSONB` | Array UUID tanpa FK constraint | ✅ **Selesai** — diganti `match_participants` junction table |
+| Timer tick di browser | **Fixed** — timer kini pakai snapshot + `timerLastStarted`. Client merekonstruksi nilai saat mount. Refresh tidak lagi mereset tampilan. | ✅ Selesai |
 | `winner TEXT` semantik ganda | String berbeda arti per match_type | Split: `winner_participant_id UUID REFERENCES participants` untuk h2h/solo; `rankings` JSONB untuk open |
 | `seed` tersimpan tapi hidden | Bracket logic belum dibangun | Tampilkan dan aktifkan saat fitur bracket v2 |
 | Media = Google Drive URL | Bukan proper storage | S3-compatible storage atau Directus Files |
