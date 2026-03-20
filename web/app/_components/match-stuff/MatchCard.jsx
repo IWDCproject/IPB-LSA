@@ -6,7 +6,7 @@ const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
 
 const S = {
   card: {
-    borderRadius: 16, overflow: "hidden", color: "#fff",
+    borderRadius: 10, overflow: "hidden", color: "#fff",
     display: "flex", flexDirection: "column",
     width: "100%", height: "100%", position: "relative",
   },
@@ -22,8 +22,9 @@ const S = {
   cardInner: {
     position: "relative", zIndex: 1,
     display: "flex", flexDirection: "column", flex: 1,
+    boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,1)",
     height: "100%",
-    boxShadow: "inset 0 0 0 1px #ffffff", borderRadius: 16,
+     borderRadius: 10,
   },
   header: {
     display: "flex", justifyContent: "space-between", alignItems: "flex-start",
@@ -34,8 +35,8 @@ const S = {
   liveBadge: {
     ...BB,
     display: "flex", alignItems: "center", gap: 5,
-    background: "#ef4444", borderRadius: 6, padding: "3px 10px",
-    fontSize: 16, letterSpacing: 1, flexShrink: 0,
+    background: "#ef4444", borderRadius: 4, padding: "0px 6px",
+    fontSize: 14, letterSpacing: 1, flexShrink: 0,
   },
   liveDot: {
     width: 6, height: 6, borderRadius: "50%",

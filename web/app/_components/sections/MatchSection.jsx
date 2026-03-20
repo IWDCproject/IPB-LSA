@@ -14,14 +14,13 @@ const BB = { fontFamily: "'Bebas Neue', sans-serif" };
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
 
 const CARD_H   = 280;
-const CARD_GAP = 14;
+const CARD_GAP = 10;
 const CTA_W    = 240;
 const H_MARGIN = 160;
-const SHOW_MAX = 4;
+const SHOW_MAX = 5;
 
-const STAGGER   = [0, 80, 160, 240, 320, 400, 480];
-const ANIM_DUR  = "1s";
-const ANIM_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const STAGGER_MS = 80;
+
 
 // institusi shorthand buat mock
 const IPB = { name: "IPB University",        logo_url: ipbLogo.src, color: "#1D4ED8" };
@@ -246,7 +245,7 @@ export default function LiveMatchesSection() {
   }, []);
 
   const anim = (slot) => visible
-    ? { animation: `live-intro ${ANIM_DUR} ${ANIM_EASE} ${STAGGER[slot]}ms both` }
+    ? { animation: `live-intro 1s cubic-bezier(0.22, 1, 0.36, 1) ${slot * STAGGER_MS}ms both` }
     : { opacity: 0 };
 
   const cardMatches = LIVE_MATCHES.slice(0, SHOW_MAX);
@@ -280,7 +279,7 @@ export default function LiveMatchesSection() {
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: 32,
+        gap: 20,
       }}>
         <div style={anim(0)}>
           <div style={{ ...BB, fontSize: "4rem", lineHeight: 1, color: "#fff", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))" }}>
@@ -291,7 +290,7 @@ export default function LiveMatchesSection() {
         <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP }}>
           {cardMatches.map((match, i) => (
             <div key={match.id} style={{ ...anim(i + 2), flex: 1, minWidth: 0 }}>
-              <div style={{ width: "100%", height: CARD_H, overflow: "hidden", borderRadius: 16 }}>
+              <div style={{ width: "100%", height: CARD_H, overflow: "hidden", borderRadius: 10 }}>
                 <MatchCard match={match} />
               </div>
             </div>
@@ -315,7 +314,7 @@ export default function LiveMatchesSection() {
         </div>
 
         <div style={anim(cardMatches.length + 3)}>
-          <MatchTable matches={UPCOMING_MATCHES} groupBy="event" title="Upcoming Matches" />
+          <MatchTable matches={UPCOMING_MATCHES.slice(0, 5)} groupBy="event" title="Upcoming Matches" />
         </div>
 
         <div style={{ ...anim(cardMatches.length + 4), display: "flex", justifyContent: "flex-end" }}>
