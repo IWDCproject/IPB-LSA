@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from "react";
 import HeroSection from "./sections/HeroSection";
 import StatSection from "./sections/StatSection";
 import MatchSection from "./sections/MatchSection";
+import TimelineSection from "./sections/TimelineSection";
 
 const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
@@ -55,6 +56,7 @@ export default function CurtainWrapper() {
 
       <StatSection />
       <MatchSection />
+      <TimelineSection />
     </>
   );
 }
