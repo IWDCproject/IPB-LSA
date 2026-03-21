@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { MatchCard } from "../match-stuff/MatchCard";
 import { MatchTable } from "../match-stuff/MatchTable";
 import Button from "@/components/Button";
+import FightBackground from '../match-stuff/FightBackground';
+
 
 
 import ipbLogo from "@/public/mock-data/ipblogo.png";
@@ -14,24 +16,20 @@ import itbLogo from "@/public/mock-data/itblogo.png";
 const BB = { fontFamily: "'Bebas Neue', sans-serif" };
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
 
-const CARD_H   = 280;
-const CARD_GAP = 10;
-const CTA_W    = 240;
-const H_MARGIN = 160;
-const SHOW_MAX = 5;
+const CARD_H      = 280;
+const CARD_GAP    = 10;
+const CTA_W       = 240;
+const H_MARGIN    = 160;
+const SHOW_MAX    = 5;
+const NAT_W       = 1440;
+const STAGGER_MS  = 80;
 
-const STAGGER_MS = 80;
-
-
-// institusi shorthand buat mock
 const IPB = { name: "IPB University",        logo_url: ipbLogo.src, color: "#1D4ED8" };
 const UPN = { name: "UPNVYK",                logo_url: upnLogo.src, color: "#DC2626" };
 const UI  = { name: "Universitas Indonesia", logo_url: uiLogo.src,  color: "#7C3AED" };
 const UGM = { name: "UGM",                   logo_url: ugmLogo.src, color: "#059669" };
 const ITB = { name: "ITB",                   logo_url: itbLogo.src, color: "#EA580C" };
 
-// bikin junction rows match_participants dari array peserta biasa
-// bentuk yang direturn Directus: [{ id, position, participant_id: { id, name, institution } }]
 function mkParticipants(list) {
   return list.map((p, i) => ({
     id:             `mp-${p.id}`,
@@ -203,22 +201,15 @@ const UPCOMING_MATCHES = [
       { id: "ht01", name: "Team Garuda",    institution: IPB },
       { id: "ht02", name: "Team Nusantara", institution: UGM },
       { id: "ht03", name: "Team Langit",    institution: UI  },
-      { id: "ht04", name: "Team Bumi",      institution: ITB },
+      { id: "ht04", name: "Team Fajar",     institution: ITB },
       { id: "ht05", name: "Team Bahari",    institution: UPN },
-      { id: "ht06", name: "Team Cakrawala", institution: IPB },
-      { id: "ht07", name: "Team Delta",     institution: UGM },
-      { id: "ht08", name: "Team Elang",     institution: UI  },
-      { id: "ht09", name: "Team Fajar",     institution: ITB },
-      { id: "ht10", name: "Team Gema",      institution: UPN },
-      { id: "ht11", name: "Team Halo",      institution: IPB },
-      { id: "ht12", name: "Team Indigo",    institution: UGM },
     ]),
     live_state: {},
   },
 ];
 
 function useContainerWidth(ref) {
-  const [width, setWidth] = useState(1440);
+  const [width, setWidth] = useState(NAT_W);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -229,7 +220,7 @@ function useContainerWidth(ref) {
   return width;
 }
 
-export default function LiveMatchesSection() {
+export default function MatchSection() {
   const sectionRef = useRef(null);
   const cw         = useContainerWidth(sectionRef);
 
@@ -245,13 +236,19 @@ export default function LiveMatchesSection() {
     return () => io.disconnect();
   }, []);
 
+  const isMobile = cw < 768;
+  const scale    = Math.min(1, cw / NAT_W);
+  const margin   = Math.round(H_MARGIN * scale);
+
   const anim = (slot) => visible
     ? { animation: `live-intro 1s cubic-bezier(0.22, 1, 0.36, 1) ${slot * STAGGER_MS}ms both` }
     : { opacity: 0 };
 
   const cardMatches = LIVE_MATCHES.slice(0, SHOW_MAX);
-  const scale       = Math.min(1, cw / 1440);
-  const margin      = Math.round(H_MARGIN * scale);
+
+  // mobile card: wide enough to feel immersive, narrow enough to peek next card
+  const mobileCardW = Math.round(cw * 0.78);
+  const mobilePad   = 20;
 
   return (
     <section ref={sectionRef} style={{
@@ -264,63 +261,150 @@ export default function LiveMatchesSection() {
       justifyContent: "center",
       color: "white",
       overflow: "hidden",
-      padding: "150px 0",
+      padding: isMobile ? "80px 0 60px" : "0px 0 0 0",
     }}>
       <style>{`
         @keyframes live-intro {
           from { opacity: 0; transform: translateY(28px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .match-scroll::-webkit-scrollbar { display: none; }
+        .match-scroll { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
+
+      {/* <FightBackground visible={visible} /> */}
 
       <div style={{
         width: "100%",
-        paddingLeft: margin,
-        paddingRight: margin,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: 20,
+        gap: isMobile ? 14 : 20,
       }}>
-        <div style={anim(0)}>
-          <div style={{ ...BB, fontSize: "4rem", lineHeight: 1, color: "#fff", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))" }}>
+
+        {/* ── Heading ── */}
+        <div style={{ ...anim(0), paddingLeft: isMobile ? mobilePad : margin, paddingRight: isMobile ? mobilePad : margin }}>
+          <div style={{
+            ...BB,
+            fontSize: isMobile ? "2.2rem" : "4rem",
+            lineHeight: 1,
+            color: "#fff",
+            filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
+          }}>
             Live Matches
           </div>
         </div>
 
-        <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP }}>
-          {cardMatches.map((match, i) => (
-            <div key={match.id} style={{ ...anim(i + 2), flex: 1, minWidth: 0 }}>
-              <div style={{ width: "100%", height: CARD_H, overflow: "hidden", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
+        {/* ── Card Row ── */}
+        {isMobile ? (
+          // MOBILE: scroll-snap, one card fills ~78% of screen so next peeks at the right
+          <div
+            className="match-scroll"
+            style={{
+              ...anim(1),
+              display: "flex",
+              flexDirection: "row",
+              gap: CARD_GAP,
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+              paddingLeft: mobilePad,
+              // trailing padding = mobilePad so last card doesn't butt right edge
+              paddingRight: mobilePad,
+            }}
+          >
+            {cardMatches.map((match, i) => (
+              <div
+                key={match.id}
+                style={{
+                  flex: `0 0 ${mobileCardW}px`,
+                  height: CARD_H,
+                  scrollSnapAlign: "start",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+                }}
+              >
                 <MatchCard match={match} />
               </div>
-            </div>
-          ))}
+            ))}
 
-          <div style={anim(cardMatches.length + 2)}>
+            {/* CTA card at end of scroll */}
             <div style={{
-              width: CTA_W, height: CARD_H, flexShrink: 0,
+              flex: `0 0 ${Math.round(mobileCardW * 0.65)}px`,
+              height: CARD_H,
+              scrollSnapAlign: "start",
               border: "2px dashed rgba(255,255,255,0.4)",
-              borderRadius: 16, boxSizing: "border-box",
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              gap: 16, padding: 24,
+              borderRadius: 16,
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 14,
+              padding: 20,
+              flexShrink: 0,
             }}>
-              <div style={{ ...JK, fontSize: 15, fontWeight: 700, color: "#fff", textAlign: "center", lineHeight: 1.4 }}>
+              <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#fff", textAlign: "center", lineHeight: 1.4 }}>
                 See real time update scores
               </div>
-              <Button href="/matches" variant="primary" size="md">See All Matches</Button>
+              <Button href="/matches" variant="primary" size="md">See All</Button>
             </div>
           </div>
+        ) : (
+          // DESKTOP: original fluid flex row — untouched
+          <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP, paddingLeft: margin, paddingRight: margin }}>
+            {cardMatches.map((match, i) => (
+              <div key={match.id} style={{ ...anim(i + 2), flex: 1, minWidth: 0 }}>
+                <div style={{ width: "100%", height: CARD_H, overflow: "hidden", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
+                  <MatchCard match={match} />
+                </div>
+              </div>
+            ))}
+
+            <div style={anim(cardMatches.length + 2)}>
+              <div style={{
+                width: CTA_W, height: CARD_H, flexShrink: 0,
+                border: "2px dashed rgba(255,255,255,0.4)",
+                borderRadius: 16, boxSizing: "border-box",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                gap: 16, padding: 24,
+              }}>
+                <div style={{ ...JK, fontSize: 15, fontWeight: 700, color: "#fff", textAlign: "center", lineHeight: 1.4 }}>
+                  See real time update scores
+                </div>
+                <Button href="/matches" variant="primary" size="md">See All Matches</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Upcoming Table ── */}
+        <div style={{
+          ...anim(cardMatches.length + 3),
+          paddingLeft:  isMobile ? mobilePad : margin,
+          paddingRight: isMobile ? mobilePad : margin,
+        }}>
+          <MatchTable
+            matches={UPCOMING_MATCHES.slice(0, 5)}
+            groupBy="event"
+            title="Upcoming Matches"
+            isMobile={isMobile}
+          />
         </div>
 
-        <div style={anim(cardMatches.length + 3)}>
-          <MatchTable matches={UPCOMING_MATCHES.slice(0, 5)} groupBy="event" title="Upcoming Matches" />
-        </div>
-
-        <div style={{ ...anim(cardMatches.length + 4), display: "flex", justifyContent: "flex-end" }}>
+        {/* ── See More ── */}
+        <div style={{
+          ...anim(cardMatches.length + 4),
+          display: "flex",
+          justifyContent: isMobile ? "center" : "flex-end",
+          paddingLeft:  isMobile ? mobilePad : margin,
+          paddingRight: isMobile ? mobilePad : margin,
+        }}>
           <Button href="/schedule" variant="primary" size="md">See More</Button>
         </div>
+
       </div>
     </section>
   );

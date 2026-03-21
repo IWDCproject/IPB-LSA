@@ -537,7 +537,7 @@ export default function HeroSection({ paused = false }) {
                             >
                                 <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 4px rgba(0,0,0,0.25)" }}>
                                     {ev ? (
-                                        <EventCard event={ev} />
+                                        <EventCard event={ev} size="md" />
                                     ) : (
                                         <div
                                             className="w-full h-full flex flex-col items-center justify-center gap-2"

@@ -39,6 +39,8 @@ export default function StatCard({
         style={{
           borderRadius: "0 0 5px 5px",
           background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.15) 100%)",
+          backdropFilter: "blur(4px)",
+          WebkitBackdropFilter: "blur(4px)",
           padding: "18px 22px 22px",
           display: "flex",
           flexDirection: "column",

@@ -243,7 +243,7 @@ export default function StatSection() {
   }, [cw]);
 
   const sectionStyle = useMemo(() => ({
-    padding: `${stage === 3 ? 80 : 150}px 0 0 0`,
+    padding: `${stage === 3 ? 80 : 150}px 0 0px 0`,
     minHeight: "100vh",
     position: "relative",
     zIndex: 2,
@@ -253,7 +253,7 @@ export default function StatSection() {
     alignItems: "center",
     justifyContent: "flex-start",
     color: "white",
-    overflow: "hidden",
+    overflow: "visible",
   }), [stage]);
 
   const innerStyle = useMemo(() => ({
@@ -261,6 +261,7 @@ export default function StatSection() {
     flexDirection: "column",
     gap: stage === 3 ? 48 : 100,
     width: "100%",
+    // paddingBottom: 80,
   }), [stage]);
 
   return (
@@ -272,7 +273,11 @@ export default function StatSection() {
         }
       `}</style>
 
+<<<<<<< HEAD
       <FightBackground />
+=======
+      <FightBackground visible={visible} />
+>>>>>>> 0c0bcb4f7216ceb73c72cb1f2be94f79b6ed84a1
 
       <div style={innerStyle}>
         {stage === 3 ? (
