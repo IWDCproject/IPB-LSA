@@ -273,11 +273,7 @@ export default function StatSection() {
         }
       `}</style>
 
-<<<<<<< HEAD
-      <FightBackground />
-=======
       <FightBackground visible={visible} />
->>>>>>> 0c0bcb4f7216ceb73c72cb1f2be94f79b6ed84a1
 
       <div style={innerStyle}>
         {stage === 3 ? (
