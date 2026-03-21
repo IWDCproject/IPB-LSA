@@ -6,6 +6,7 @@ import Button from "@/components/Button";
 import FightBackground from '../match-stuff/FightBackground';
 
 
+
 import ipbLogo from "@/public/mock-data/ipblogo.png";
 import upnLogo from "@/public/mock-data/upnlogo.png";
 import uiLogo  from "@/public/mock-data/uilogo.png";
