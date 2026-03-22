@@ -1113,6 +1113,20 @@ CREATE TABLE public.match_formats (
 ALTER TABLE public.match_formats OWNER TO directus;
 
 --
+-- Name: match_participants; Type: TABLE; Schema: public; Owner: directus
+--
+
+CREATE TABLE public.match_participants (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    match_id uuid NOT NULL,
+    participant_id uuid NOT NULL,
+    "position" integer
+);
+
+
+ALTER TABLE public.match_participants OWNER TO directus;
+
+--
 -- Name: matches; Type: TABLE; Schema: public; Owner: directus
 --
 
@@ -1125,7 +1139,6 @@ CREATE TABLE public.matches (
     scheduled_at timestamp with time zone,
     home_participant_id uuid,
     away_participant_id uuid,
-    participant_ids jsonb,
     winner text,
     rankings jsonb,
     home_score integer DEFAULT 0,
@@ -1135,7 +1148,7 @@ CREATE TABLE public.matches (
     status text DEFAULT 'upcoming'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    CONSTRAINT matches_check CHECK ((home_participant_id IS DISTINCT FROM away_participant_id)),
+    CONSTRAINT matches_home_away_check CHECK ((home_participant_id <> away_participant_id)),
     CONSTRAINT matches_status_check CHECK ((status = ANY (ARRAY['upcoming'::text, 'live'::text, 'finished'::text, 'cancelled'::text])))
 );
 
@@ -1280,6 +1293,9 @@ COPY public.app_settings (id, setting_key, setting_value, description, updated_a
 --
 
 COPY public.competition_categories (id, event_id, format_id, name, participant_type, display_order, created_at, updated_at) FROM stdin;
+c1c1c1c1-0001-4000-8000-000000000001	a1b2c3d4-0001-4000-8000-000000000001	\N	Live Painting Competition	individual	0	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+c1c1c1c1-0002-4000-8000-000000000002	a1b2c3d4-0002-4000-8000-000000000002	\N	Kumite Putra -60kg	individual	0	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+c1c1c1c1-0003-4000-8000-000000000003	a1b2c3d4-0003-4000-8000-000000000003	\N	Mobile Legends Team	team	0	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
 \.
 
 
@@ -1485,6 +1501,18 @@ COPY public.directus_activity (id, action, "user", "timestamp", ip, user_agent, 
 183	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-18 11:33:05.072+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_settings	1	http://localhost:8055
 184	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-18 11:33:44.984+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_settings	1	http://localhost:8055
 185	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-18 11:33:49.268+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_settings	1	http://localhost:8055
+186	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-18 12:18:19.718+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_roles	7883c172-0f51-45d1-8abc-5eab66ef4a65	http://localhost:8055
+187	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-18 12:18:33.444+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_roles	dc42a2f7-80d7-4515-9719-8e2f77646540	http://localhost:8055
+188	login	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:24:34.914+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_users	f1ae03a9-c7a2-480b-a2af-cdba203a5636	http://localhost:8055
+189	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:24:52.976+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_collections	match_participants	http://localhost:8055
+190	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:24:54.848+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_fields	30	http://localhost:8055
+191	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:25:15.679+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_fields	30	http://localhost:8055
+192	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:25:37.816+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_fields	31	http://localhost:8055
+193	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:28:00.971+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_fields	31	http://localhost:8055
+194	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:28:02.374+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_fields	32	http://localhost:8055
+195	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 11:28:04.905+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_fields	33	http://localhost:8055
+196	logout	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 12:06:56.81+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_users	f1ae03a9-c7a2-480b-a2af-cdba203a5636	http://localhost:8055
+197	login	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 12:06:59.58+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	directus_users	f1ae03a9-c7a2-480b-a2af-cdba203a5636	http://localhost:8055
 \.
 
 
@@ -1504,6 +1532,7 @@ news	\N	\N	\N	f	f	\N	\N	t	\N	\N	\N	all	\N	\N	\N	\N	open	\N	f
 participants	\N	\N	\N	f	f	\N	\N	t	\N	\N	\N	all	\N	\N	\N	\N	open	\N	f
 sponsors	\N	\N	\N	f	f	\N	\N	t	\N	\N	\N	\N	\N	\N	\N	\N	open	\N	f
 events	\N	\N	\N	f	f	\N	\N	t	\N	\N	\N	\N	\N	[]	\N	\N	open	\N	f
+match_participants	\N	\N	\N	f	f	\N	\N	t	\N	\N	\N	all	\N	\N	\N	\N	open	\N	f
 \.
 
 
@@ -1589,6 +1618,10 @@ COPY public.directus_fields (id, collection, field, special, interface, options,
 27	competition_categories	display_order	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 28	competition_categories	created_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 29	competition_categories	updated_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+30	match_participants	match_id	uuid	select-dropdown-m2o	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+31	match_participants	participant_id	uuid	select-dropdown-m2o	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+32	match_participants	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+33	match_participants	position	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 \.
 
 
@@ -1777,7 +1810,9 @@ COPY public.directus_permissions (id, collection, action, permissions, validatio
 87	events	create	\N	\N	\N	*	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 92	events	update	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	id,user_created,name,slug,type,status,start_date,end_date,location,description,contact_person,registration_url,guidebook_url,instagram_url,website_url,card_image_url,banner_image_url,is_published,is_registration_open,created_at,updated_at	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 93	events	delete	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
+120	match_participants	create	{}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 91	events	read	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	user_created,name,slug,type,status,end_date,location,start_date,description,contact_person,registration_url,guidebook_url,instagram_url,website_url,card_image_url,banner_image_url,is_published,is_registration_open,created_at,updated_at,id	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
+121	match_participants	read	{"match_id":{"competition_category_id":{"event_id":{"user_created":{"_eq":"$CURRENT_USER"}}}}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 100	competition_categories	create	{}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 101	competition_categories	read	{"event_id":{"user_created":{"_eq":"$CURRENT_USER"}}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 102	competition_categories	update	{"event_id":{"user_created":{"_eq":"$CURRENT_USER"}}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
@@ -1798,6 +1833,8 @@ COPY public.directus_permissions (id, collection, action, permissions, validatio
 117	news	read	{"author_id":{"_eq":"$CURRENT_USER"}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 118	news	update	{"author_id":{"_eq":"$CURRENT_USER"}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 119	news	delete	{"author_id":{"_eq":"$CURRENT_USER"}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
+122	match_participants	update	{"match_id":{"competition_category_id":{"event_id":{"user_created":{"_eq":"$CURRENT_USER"}}}}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
+123	match_participants	delete	{"match_id":{"competition_category_id":{"event_id":{"user_created":{"_eq":"$CURRENT_USER"}}}}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 \.
 
 
@@ -2000,6 +2037,15 @@ COPY public.directus_revisions (id, activity, collection, item, data, delta, par
 163	183	directus_settings	1	{"id":1,"project_name":"Directus","project_url":null,"project_color":"#4258FF","project_logo":null,"public_foreground":null,"public_background":null,"public_note":null,"auth_login_attempts":25,"auth_password_policy":null,"storage_asset_transform":"all","storage_asset_presets":null,"custom_css":null,"storage_default_folder":null,"basemaps":null,"mapbox_key":null,"module_bar":null,"project_descriptor":null,"default_language":"en-US","custom_aspect_ratios":null,"public_favicon":null,"default_appearance":"auto","default_theme_light":null,"theme_light_overrides":null,"default_theme_dark":null,"theme_dark_overrides":null,"report_error_url":null,"report_bug_url":null,"report_feature_url":null,"public_registration":false,"public_registration_verify_email":true,"public_registration_role":null,"public_registration_email_filter":null,"visual_editor_urls":null,"project_id":"019cfcc1-2243-74dc-bcd4-af4497e0ddfc","mcp_enabled":false,"mcp_allow_deletes":false,"mcp_prompts_collection":null,"mcp_system_prompt_enabled":true,"mcp_system_prompt":null,"project_owner":null,"project_usage":null,"org_name":null,"product_updates":null,"project_status":null,"ai_openai_api_key":null,"ai_anthropic_api_key":null,"ai_system_prompt":null,"ai_google_api_key":null,"ai_openai_compatible_api_key":null,"ai_openai_compatible_base_url":null,"ai_openai_compatible_name":null,"ai_openai_compatible_models":null,"ai_openai_compatible_headers":null,"ai_openai_allowed_models":["gpt-5-nano","gpt-5-mini","gpt-5"],"ai_anthropic_allowed_models":["claude-haiku-4-5","claude-sonnet-4-5"],"ai_google_allowed_models":["gemini-3-pro-preview","gemini-3-flash-preview","gemini-2.5-pro","gemini-2.5-flash"],"collaborative_editing_enabled":false}	{"project_color":"#4258FF"}	\N	\N
 164	184	directus_settings	1	{"id":1,"project_name":"Directus","project_url":null,"project_color":"#4258FF","project_logo":null,"public_foreground":null,"public_background":null,"public_note":null,"auth_login_attempts":25,"auth_password_policy":null,"storage_asset_transform":"all","storage_asset_presets":null,"custom_css":null,"storage_default_folder":null,"basemaps":null,"mapbox_key":null,"module_bar":null,"project_descriptor":null,"default_language":"en-US","custom_aspect_ratios":null,"public_favicon":null,"default_appearance":"auto","default_theme_light":"Directus Color Match","theme_light_overrides":null,"default_theme_dark":null,"theme_dark_overrides":null,"report_error_url":null,"report_bug_url":null,"report_feature_url":null,"public_registration":false,"public_registration_verify_email":true,"public_registration_role":null,"public_registration_email_filter":null,"visual_editor_urls":null,"project_id":"019cfcc1-2243-74dc-bcd4-af4497e0ddfc","mcp_enabled":false,"mcp_allow_deletes":false,"mcp_prompts_collection":null,"mcp_system_prompt_enabled":true,"mcp_system_prompt":null,"project_owner":null,"project_usage":null,"org_name":null,"product_updates":null,"project_status":null,"ai_openai_api_key":null,"ai_anthropic_api_key":null,"ai_system_prompt":null,"ai_google_api_key":null,"ai_openai_compatible_api_key":null,"ai_openai_compatible_base_url":null,"ai_openai_compatible_name":null,"ai_openai_compatible_models":null,"ai_openai_compatible_headers":null,"ai_openai_allowed_models":["gpt-5-nano","gpt-5-mini","gpt-5"],"ai_anthropic_allowed_models":["claude-haiku-4-5","claude-sonnet-4-5"],"ai_google_allowed_models":["gemini-3-pro-preview","gemini-3-flash-preview","gemini-2.5-pro","gemini-2.5-flash"],"collaborative_editing_enabled":false}	{"default_theme_light":"Directus Color Match"}	\N	\N
 165	185	directus_settings	1	{"id":1,"project_name":"Directus","project_url":null,"project_color":"#4258FF","project_logo":null,"public_foreground":null,"public_background":null,"public_note":null,"auth_login_attempts":25,"auth_password_policy":null,"storage_asset_transform":"all","storage_asset_presets":null,"custom_css":null,"storage_default_folder":null,"basemaps":null,"mapbox_key":null,"module_bar":null,"project_descriptor":null,"default_language":"en-US","custom_aspect_ratios":null,"public_favicon":null,"default_appearance":"auto","default_theme_light":"Directus Default","theme_light_overrides":null,"default_theme_dark":null,"theme_dark_overrides":null,"report_error_url":null,"report_bug_url":null,"report_feature_url":null,"public_registration":false,"public_registration_verify_email":true,"public_registration_role":null,"public_registration_email_filter":null,"visual_editor_urls":null,"project_id":"019cfcc1-2243-74dc-bcd4-af4497e0ddfc","mcp_enabled":false,"mcp_allow_deletes":false,"mcp_prompts_collection":null,"mcp_system_prompt_enabled":true,"mcp_system_prompt":null,"project_owner":null,"project_usage":null,"org_name":null,"product_updates":null,"project_status":null,"ai_openai_api_key":null,"ai_anthropic_api_key":null,"ai_system_prompt":null,"ai_google_api_key":null,"ai_openai_compatible_api_key":null,"ai_openai_compatible_base_url":null,"ai_openai_compatible_name":null,"ai_openai_compatible_models":null,"ai_openai_compatible_headers":null,"ai_openai_allowed_models":["gpt-5-nano","gpt-5-mini","gpt-5"],"ai_anthropic_allowed_models":["claude-haiku-4-5","claude-sonnet-4-5"],"ai_google_allowed_models":["gemini-3-pro-preview","gemini-3-flash-preview","gemini-2.5-pro","gemini-2.5-flash"],"collaborative_editing_enabled":false}	{"default_theme_light":"Directus Default"}	\N	\N
+166	186	directus_roles	7883c172-0f51-45d1-8abc-5eab66ef4a65	{"id":"7883c172-0f51-45d1-8abc-5eab66ef4a65","name":"PJ Ormawa","icon":"supervised_user_circle","description":"Izin Akses untuk PJ Ormawa","parent":null,"children":[],"policies":["a29489ba-80b3-4eef-9ea3-5eb68ec60b25"],"users":[]}	{"description":"Izin Akses untuk PJ Ormawa"}	\N	\N
+167	187	directus_roles	dc42a2f7-80d7-4515-9719-8e2f77646540	{"id":"dc42a2f7-80d7-4515-9719-8e2f77646540","name":"SuperAdmin","icon":"supervised_user_circle","description":"Izin Akses untuk SuperAdmin","parent":null,"children":[],"policies":["37a30545-9f59-4431-8f99-deb46a73184d"],"users":[]}	{"description":"Izin Akses untuk SuperAdmin"}	\N	\N
+168	189	directus_collections	match_participants	{"collection":"match_participants"}	{"collection":"match_participants"}	\N	\N
+169	190	directus_fields	30	{"special":["uuid"],"collection":"match_participants","field":"match_id"}	{"special":["uuid"],"collection":"match_participants","field":"match_id"}	\N	\N
+170	191	directus_fields	30	{"id":30,"collection":"match_participants","field":"match_id","special":["uuid"],"interface":"select-dropdown-m2o","options":null,"display":null,"display_options":null,"readonly":false,"hidden":false,"sort":null,"width":"full","translations":null,"note":null,"conditions":null,"required":false,"group":null,"validation":null,"validation_message":null,"searchable":true}	{"collection":"match_participants","field":"match_id","interface":"select-dropdown-m2o"}	\N	\N
+171	192	directus_fields	31	{"special":["uuid"],"collection":"match_participants","field":"participant_id"}	{"special":["uuid"],"collection":"match_participants","field":"participant_id"}	\N	\N
+172	193	directus_fields	31	{"id":31,"collection":"match_participants","field":"participant_id","special":["uuid"],"interface":"select-dropdown-m2o","options":null,"display":null,"display_options":null,"readonly":false,"hidden":false,"sort":null,"width":"full","translations":null,"note":null,"conditions":null,"required":false,"group":null,"validation":null,"validation_message":null,"searchable":true}	{"collection":"match_participants","field":"participant_id","interface":"select-dropdown-m2o"}	\N	\N
+173	194	directus_fields	32	{"special":["uuid"],"collection":"match_participants","field":"id"}	{"special":["uuid"],"collection":"match_participants","field":"id"}	\N	\N
+174	195	directus_fields	33	{"special":null,"collection":"match_participants","field":"position"}	{"special":null,"collection":"match_participants","field":"position"}	\N	\N
 \.
 
 
@@ -2009,8 +2055,8 @@ COPY public.directus_revisions (id, activity, collection, item, data, delta, par
 
 COPY public.directus_roles (id, name, icon, description, parent) FROM stdin;
 b18d3bfd-2c54-46d4-99a5-13fdee6a2b21	Administrator	verified	$t:admin_description	\N
-7883c172-0f51-45d1-8abc-5eab66ef4a65	PJ Ormawa	supervised_user_circle	\N	\N
-dc42a2f7-80d7-4515-9719-8e2f77646540	SuperAdmin	supervised_user_circle	\N	\N
+7883c172-0f51-45d1-8abc-5eab66ef4a65	PJ Ormawa	supervised_user_circle	Izin Akses untuk PJ Ormawa	\N
+dc42a2f7-80d7-4515-9719-8e2f77646540	SuperAdmin	supervised_user_circle	Izin Akses untuk SuperAdmin	\N
 \.
 
 
@@ -2019,8 +2065,8 @@ dc42a2f7-80d7-4515-9719-8e2f77646540	SuperAdmin	supervised_user_circle	\N	\N
 --
 
 COPY public.directus_sessions (token, "user", expires, ip, user_agent, share, origin, next_token) FROM stdin;
-InAvTFeMold1mlYnUpfFvSYY6c1lHNf1xBllSJROvxZUEJtznStQAnbK1WMJ7Wrz	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-18 11:19:44.654+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	\N	http://localhost:8055	XfGwYLAmrkNgK4oaxtSHIOOaU-A-IL2aEHvUBff-lDPz39NrROxqydYnsCMOROxB
-XfGwYLAmrkNgK4oaxtSHIOOaU-A-IL2aEHvUBff-lDPz39NrROxqydYnsCMOROxB	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-19 11:19:34.654+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	\N	http://localhost:8055	\N
+kkK1MfyGLpAWvIJvtFakdWxOqSpq4-GBfDt7UTU1cxkzrReOXP1gCZlF2uoGlboc	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-22 14:08:54.412+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	\N	http://localhost:8055	r20zRrx8DtvlqC5Y8ULoAqJr0tMWvi4b3DApClCzYmgGyWh0m_WnRqwsbRDKm2Nx
+r20zRrx8DtvlqC5Y8ULoAqJr0tMWvi4b3DApClCzYmgGyWh0m_WnRqwsbRDKm2Nx	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-23 14:08:44.412+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	\N	http://localhost:8055	\N
 \.
 
 
@@ -2054,7 +2100,7 @@ COPY public.directus_translations (id, language, key, value) FROM stdin;
 --
 
 COPY public.directus_users (id, first_name, last_name, email, password, location, title, description, tags, avatar, language, tfa_secret, status, role, token, last_access, last_page, provider, external_identifier, auth_data, email_notifications, appearance, theme_dark, theme_light, theme_light_overrides, theme_dark_overrides, text_direction) FROM stdin;
-f1ae03a9-c7a2-480b-a2af-cdba203a5636	Admin	User	admin@event.com	$argon2id$v=19$m=65536,t=3,p=4$9i8ztPWUTbwY5vdcA0Ie6w$6O8qtC6D9+58Aun6VFCxBoqPsfLVjqC2OR/TIVyfnX4	\N	\N	\N	\N	\N	\N	\N	active	b18d3bfd-2c54-46d4-99a5-13fdee6a2b21	\N	2026-03-18 11:19:34.681+00	/settings/appearance	default	\N	\N	t	\N	\N	\N	\N	\N	auto
+f1ae03a9-c7a2-480b-a2af-cdba203a5636	Admin	User	admin@event.com	$argon2id$v=19$m=65536,t=3,p=4$9i8ztPWUTbwY5vdcA0Ie6w$6O8qtC6D9+58Aun6VFCxBoqPsfLVjqC2OR/TIVyfnX4	\N	\N	\N	\N	\N	\N	\N	active	b18d3bfd-2c54-46d4-99a5-13fdee6a2b21	\N	2026-03-22 14:08:44.425+00	/content/sponsors	default	\N	\N	t	\N	\N	\N	\N	\N	auto
 \.
 
 
@@ -2079,6 +2125,9 @@ COPY public.event_phases (id, event_id, label, description, date_start, date_end
 --
 
 COPY public.events (id, user_created, name, slug, type, status, start_date, end_date, location, description, contact_person, registration_url, guidebook_url, instagram_url, website_url, card_image_url, banner_image_url, is_published, is_registration_open, created_at, updated_at) FROM stdin;
+a1b2c3d4-0001-4000-8000-000000000001	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IPB Art 2026	ipb-art-2026	arts	upcoming	2026-06-01	\N	Gedung Graha Widya Wisuda	Festival seni terbesar yang menampilkan karya luar biasa dari mahasiswa IPB.	\N	\N	\N	\N	\N	\N	\N	t	f	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+a1b2c3d4-0002-4000-8000-000000000002	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IPB Karate Championship	ipb-karate-2026	sport	upcoming	2026-07-15	\N	Gymnasium IPB	Kejuaraan Karate bergengsi antar fakultas dan UKM di lingkungan IPB.	\N	\N	\N	\N	\N	\N	\N	t	f	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+a1b2c3d4-0003-4000-8000-000000000003	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IPB E-Sports League	ipb-esports-2026	sport	upcoming	2026-08-20	\N	Auditorium FMIPA	Liga E-Sports tahunan terbesar mempertandingkan game populer.	\N	\N	\N	\N	\N	\N	\N	t	f	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
 \.
 
 
@@ -2099,10 +2148,33 @@ COPY public.match_formats (id, event_id, name, match_type, modules, created_by, 
 
 
 --
+-- Data for Name: match_participants; Type: TABLE DATA; Schema: public; Owner: directus
+--
+
+COPY public.match_participants (id, match_id, participant_id, "position") FROM stdin;
+e727189a-4538-4c97-b894-c98263ff0dda	e1e1e1e1-0001-4000-8000-000000000001	d1d1d1d1-0001-4000-8000-000000000001	1
+5dc495d8-edf0-4219-8cfa-a99a4eb6d556	e1e1e1e1-0001-4000-8000-000000000001	d1d1d1d1-0002-4000-8000-000000000002	2
+a3dfd8b0-4c0a-42dc-9ba4-cb2c9aeb2738	e1e1e1e1-0002-4000-8000-000000000002	d1d1d1d1-0003-4000-8000-000000000003	1
+7be5f24b-848f-4edc-86f0-13d3efa74ee5	e1e1e1e1-0002-4000-8000-000000000002	d1d1d1d1-0004-4000-8000-000000000004	2
+210ae4ff-5977-43ed-bd7d-54361b1be75d	e1e1e1e1-0003-4000-8000-000000000003	d1d1d1d1-0001-4000-8000-000000000001	1
+41dedc2f-1b9c-4e18-852a-97752f0b1c4c	e1e1e1e1-0003-4000-8000-000000000003	d1d1d1d1-0003-4000-8000-000000000003	2
+\.
+
+
+--
 -- Data for Name: matches; Type: TABLE DATA; Schema: public; Owner: directus
 --
 
-COPY public.matches (id, competition_category_id, round, match_name, venue, scheduled_at, home_participant_id, away_participant_id, participant_ids, winner, rankings, home_score, away_score, timer_secs, live_state, status, created_at, updated_at) FROM stdin;
+COPY public.matches (id, competition_category_id, round, match_name, venue, scheduled_at, home_participant_id, away_participant_id, winner, rankings, home_score, away_score, timer_secs, live_state, status, created_at, updated_at) FROM stdin;
+e1e1e1e1-0001-4000-8000-000000000001	c1c1c1c1-0001-4000-8000-000000000001	\N	Penyisihan 1: Faperta vs Fahutan	\N	2026-06-01 09:00:00+00	\N	\N	\N	\N	0	0	0	{}	finished	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e1e1e1e1-0002-4000-8000-000000000002	c1c1c1c1-0001-4000-8000-000000000001	\N	Penyisihan 2: FMIPA vs SV	\N	2026-06-01 13:00:00+00	\N	\N	\N	\N	0	0	0	{}	finished	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e1e1e1e1-0003-4000-8000-000000000003	c1c1c1c1-0001-4000-8000-000000000001	\N	Grand Final Live Painting	\N	2026-06-02 10:00:00+00	\N	\N	\N	\N	0	0	0	{}	upcoming	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e2e2e2e2-0001-4000-8000-000000000001	c1c1c1c1-0002-4000-8000-000000000002	\N	Semifinal 1: Teknik vs FPIK	\N	2026-07-15 08:00:00+00	d2d2d2d2-0001-4000-8000-000000000001	d2d2d2d2-0002-4000-8000-000000000002	\N	\N	0	0	0	{}	finished	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e2e2e2e2-0002-4000-8000-000000000002	c1c1c1c1-0002-4000-8000-000000000002	\N	Semifinal 2: FEM vs FKH	\N	2026-07-15 09:00:00+00	d2d2d2d2-0003-4000-8000-000000000003	d2d2d2d2-0004-4000-8000-000000000004	\N	\N	0	0	0	{}	finished	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e2e2e2e2-0003-4000-8000-000000000003	c1c1c1c1-0002-4000-8000-000000000002	\N	Final Kumite Putra	\N	2026-07-15 15:00:00+00	d2d2d2d2-0001-4000-8000-000000000001	d2d2d2d2-0004-4000-8000-000000000004	\N	\N	0	0	0	{}	upcoming	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e3e3e3e3-0001-4000-8000-000000000001	c1c1c1c1-0003-4000-8000-000000000003	\N	Upper Bracket: Fasilkom vs Fateta	\N	2026-08-20 10:00:00+00	d3d3d3d3-0001-4000-8000-000000000001	d3d3d3d3-0002-4000-8000-000000000002	\N	\N	0	0	0	{}	finished	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e3e3e3e3-0002-4000-8000-000000000002	c1c1c1c1-0003-4000-8000-000000000003	\N	Lower Bracket: SB vs Vokasi	\N	2026-08-20 13:00:00+00	d3d3d3d3-0003-4000-8000-000000000003	d3d3d3d3-0004-4000-8000-000000000004	\N	\N	0	0	0	{}	finished	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+e3e3e3e3-0003-4000-8000-000000000003	c1c1c1c1-0003-4000-8000-000000000003	\N	Grand Final E-Sports	\N	2026-08-21 19:00:00+00	d3d3d3d3-0001-4000-8000-000000000001	d3d3d3d3-0003-4000-8000-000000000003	\N	\N	0	0	0	{}	upcoming	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
 \.
 
 
@@ -2119,6 +2191,18 @@ COPY public.news (id, author_id, event_id, category, title, slug, excerpt, thumb
 --
 
 COPY public.participants (id, competition_category_id, institution_id, name, members, seed, notes, custom_logo_url, created_at, updated_at) FROM stdin;
+d1d1d1d1-0001-4000-8000-000000000001	c1c1c1c1-0001-4000-8000-000000000001	\N	Karya Rupa Faperta	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d1d1d1d1-0002-4000-8000-000000000002	c1c1c1c1-0001-4000-8000-000000000001	\N	Kuas Fakultas Kehutanan	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d1d1d1d1-0003-4000-8000-000000000003	c1c1c1c1-0001-4000-8000-000000000001	\N	Palet FMIPA	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d1d1d1d1-0004-4000-8000-000000000004	c1c1c1c1-0001-4000-8000-000000000001	\N	Garis SV	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d2d2d2d2-0001-4000-8000-000000000001	c1c1c1c1-0002-4000-8000-000000000002	\N	Dojo Fakultas Teknik	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d2d2d2d2-0002-4000-8000-000000000002	c1c1c1c1-0002-4000-8000-000000000002	\N	Dojo FPIK	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d2d2d2d2-0003-4000-8000-000000000003	c1c1c1c1-0002-4000-8000-000000000002	\N	Dojo FEM	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d2d2d2d2-0004-4000-8000-000000000004	c1c1c1c1-0002-4000-8000-000000000002	\N	Dojo FKH	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d3d3d3d3-0001-4000-8000-000000000001	c1c1c1c1-0003-4000-8000-000000000003	\N	Fasilkom Esports	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d3d3d3d3-0002-4000-8000-000000000002	c1c1c1c1-0003-4000-8000-000000000003	\N	Fateta Gaming	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d3d3d3d3-0003-4000-8000-000000000003	c1c1c1c1-0003-4000-8000-000000000003	\N	SB IPB Legends	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
+d3d3d3d3-0004-4000-8000-000000000004	c1c1c1c1-0003-4000-8000-000000000003	\N	Vokasi Team	\N	\N		\N	2026-03-22 14:18:12.635045+00	2026-03-22 14:18:12.635045+00
 \.
 
 
@@ -2190,14 +2274,14 @@ COPY topology.layer (topology_id, layer_id, schema_name, table_name, feature_col
 -- Name: directus_activity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_activity_id_seq', 185, true);
+SELECT pg_catalog.setval('public.directus_activity_id_seq', 197, true);
 
 
 --
 -- Name: directus_fields_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_fields_id_seq', 29, true);
+SELECT pg_catalog.setval('public.directus_fields_id_seq', 33, true);
 
 
 --
@@ -2211,7 +2295,7 @@ SELECT pg_catalog.setval('public.directus_notifications_id_seq', 1, false);
 -- Name: directus_permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_permissions_id_seq', 119, true);
+SELECT pg_catalog.setval('public.directus_permissions_id_seq', 127, true);
 
 
 --
@@ -2232,7 +2316,7 @@ SELECT pg_catalog.setval('public.directus_relations_id_seq', 1, false);
 -- Name: directus_revisions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_revisions_id_seq', 165, true);
+SELECT pg_catalog.setval('public.directus_revisions_id_seq', 174, true);
 
 
 --
@@ -2615,6 +2699,22 @@ ALTER TABLE ONLY public.institutions
 
 ALTER TABLE ONLY public.match_formats
     ADD CONSTRAINT match_formats_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: match_participants match_participants_match_id_participant_id_key; Type: CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.match_participants
+    ADD CONSTRAINT match_participants_match_id_participant_id_key UNIQUE (match_id, participant_id);
+
+
+--
+-- Name: match_participants match_participants_pkey; Type: CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.match_participants
+    ADD CONSTRAINT match_participants_pkey PRIMARY KEY (id);
 
 
 --
@@ -3355,6 +3455,22 @@ ALTER TABLE ONLY public.match_formats
 
 ALTER TABLE ONLY public.match_formats
     ADD CONSTRAINT match_formats_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_participants match_participants_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.match_participants
+    ADD CONSTRAINT match_participants_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_participants match_participants_participant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.match_participants
+    ADD CONSTRAINT match_participants_participant_id_fkey FOREIGN KEY (participant_id) REFERENCES public.participants(id) ON DELETE CASCADE;
 
 
 --
