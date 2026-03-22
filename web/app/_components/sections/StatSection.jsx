@@ -29,7 +29,7 @@ const S3_TEXT_H = 128;
 const S3_BTN_H  = 52;
 const S3_NAT_H  = CARD_H + S3_GAP + S3_TEXT_H + 24 + S3_BTN_H;
 
-const STAGE3_THRESHOLD = 0.5;
+const STAGE3_THRESHOLD = 0.65;
 
 const STATS = [
   { src: universitiesImg.src, mainStat: "4.000+", label: "Participants",    width: CARD_WIDTHS[0] },
@@ -105,7 +105,7 @@ function StatCards({ anim }) {
   );
 }
 
-function CTA({ centered = false, anim }) {
+function CTA({ centered = false, fontSize = "4rem", anim }) {
   const ctaStyle = {
     ...S.ctaBase,
     alignItems: centered ? "center" : "flex-end",
@@ -114,6 +114,7 @@ function CTA({ centered = false, anim }) {
   const headingStyle = {
     ...S.headingBase,
     textAlign: centered ? "center" : "right",
+    fontSize: fontSize,
   };
 
   return (
@@ -168,34 +169,49 @@ function Stage2Layout({ scale, anim }) {
 }
 
 function Stage3Layout({ cw, scale, anim }) {
-  const outerStyle = useMemo(() => ({
+  const cardsOuterStyle = useMemo(() => ({
     position: "relative",
     width: "100%",
-    height: S3_NAT_H * scale,
+    height: CARD_H * scale,
+    flexShrink: 0,
+    overflow: "hidden",
   }), [scale]);
 
-  const innerStyle = useMemo(() => ({
+  const cardsInnerStyle = useMemo(() => ({
     position: "absolute",
     top: 0,
-    left: (cw - S3_NAT_W) / 2,
+    left: (cw - S3_NAT_W * scale) / 2,
     width: S3_NAT_W,
     display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: S3_GAP,
-    paddingLeft: S3_PAD,
-    paddingRight: S3_PAD,
+    flexDirection: "row",
+    gap: CARD_GAP,
     transform: `scale(${scale})`,
-    transformOrigin: "top center",
-    boxSizing: "border-box",
+    transformOrigin: "top left",
   }), [cw, scale]);
 
   return (
-    <div style={outerStyle}>
-      <div style={innerStyle}>
-        <StatCards anim={anim} />
-        <CTA centered anim={anim} />
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: S3_GAP,
+      paddingLeft: S3_PAD,
+      paddingRight: S3_PAD,
+      boxSizing: "border-box",
+      width: "100%",
+    }}>
+      <div style={cardsOuterStyle}>
+        <div style={cardsInnerStyle}>
+          <StatCards anim={anim} />
+        </div>
       </div>
+
+      {/* CTA is outside the scale transform — renders at full natural size */}
+      <CTA
+        centered
+        fontSize="clamp(1.8rem, 7vw, 3rem)"
+        anim={anim}
+      />
     </div>
   );
 }
@@ -239,14 +255,16 @@ export default function StatSection() {
   }, [cw]);
 
   const sectionStyle = useMemo(() => ({
-    padding: `${stage === 3 ? 80 : 150}px 0 0px 0`,
-    minHeight: "100vh",
+    padding: stage === 3
+    ? "50px 0 0px 0"  
+    : "150px 0 0px 0",
+    minHeight: stage === 3 ? "auto" : "100vh",
     position: "relative",
     zIndex: 2,
     background: "linear-gradient(to bottom, #06125C 5%, #0D26C2 100%)",
     boxShadow: "0 -30px 60px rgba(0,0,0,0.5)",
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "flex-start",
     color: "white",
     overflow: "visible",
@@ -255,7 +273,7 @@ export default function StatSection() {
   const innerStyle = useMemo(() => ({
     display: "flex",
     flexDirection: "column",
-    gap: stage === 3 ? 48 : 100,
+    gap: stage === 3 ? 32 : 100,
     width: "100%",
   }), [stage]);
 
