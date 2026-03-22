@@ -207,10 +207,12 @@ const UPCOMING_MATCHES = [
 ];
 
 function useContainerWidth(ref) {
-  const [width, setWidth] = useState(NAT_W);
+  const [width, setWidth] = useState(0);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // set langsung pakai ukuran awal biar ga nunggu resize
+    setWidth(el.getBoundingClientRect().width);
     const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
     ro.observe(el);
     return () => ro.disconnect();
@@ -234,14 +236,11 @@ export default function MatchSection() {
     return () => io.disconnect();
   }, []);
 
-  const isMobile = cw < 768;
-  const scale    = Math.min(1, cw / NAT_W);
+  const isMobile = cw > 0 && cw < 768;
+  const scale    = Math.min(1, (cw || NAT_W) / NAT_W);
   const margin   = Math.round(H_MARGIN * scale);
 
-  // Fix 8: pre-compute all animation style objects once when `visible` changes.
-  // Previously `anim(slot)` returned a new object literal on every call,
-  // meaning every child always saw a new prop reference on every render.
-  const TOTAL_SLOTS = SHOW_MAX + 5; // heading + cards + cta + table + see-more
+  const TOTAL_SLOTS = SHOW_MAX + 5;
   const animStyles = useMemo(() => {
     return Array.from({ length: TOTAL_SLOTS }, (_, slot) =>
       visible
@@ -254,7 +253,7 @@ export default function MatchSection() {
 
   const cardMatches = LIVE_MATCHES.slice(0, SHOW_MAX);
 
-  const mobileCardW = Math.round(cw * 0.78);
+  const mobileCardW = Math.round(cw * 0.62);
   const mobilePad   = 20;
 
   return (
@@ -282,7 +281,7 @@ export default function MatchSection() {
         gap: isMobile ? 14 : 20,
       }}>
 
-        {/* ── Heading ── */}
+        {/* Heading */}
         <div style={{ ...anim(0), paddingLeft: isMobile ? mobilePad : margin, paddingRight: isMobile ? mobilePad : margin }}>
           <div style={{
             ...BB,
@@ -295,7 +294,7 @@ export default function MatchSection() {
           </div>
         </div>
 
-        {/* ── Card Row ── */}
+        {/* Card Row */}
         {isMobile ? (
           <div
             className="match-scroll"
@@ -306,16 +305,19 @@ export default function MatchSection() {
               gap: CARD_GAP,
               overflowX: "auto",
               scrollSnapType: "x mandatory",
+              scrollPaddingLeft: mobilePad,
+              scrollPaddingRight: mobilePad,
               WebkitOverflowScrolling: "touch",
               paddingLeft: mobilePad,
-              paddingRight: mobilePad,
+              paddingRight: 0,
             }}
           >
-            {cardMatches.map((match, i) => (
+            {cardMatches.map((match) => (
               <div
                 key={match.id}
                 style={{
-                  flex: `0 0 ${mobileCardW}px`,
+                  flex: "0 0 62vw",
+                  width: "62vw",
                   height: CARD_H,
                   scrollSnapAlign: "start",
                   borderRadius: 10,
@@ -328,7 +330,8 @@ export default function MatchSection() {
             ))}
 
             <div style={{
-              flex: `0 0 ${Math.round(mobileCardW * 0.65)}px`,
+              flex: "0 0 40vw",
+              width: "40vw",
               height: CARD_H,
               scrollSnapAlign: "start",
               border: "2px dashed rgba(255,255,255,0.4)",
@@ -347,6 +350,8 @@ export default function MatchSection() {
               </div>
               <Button href="/matches" variant="primary" size="md">See All</Button>
             </div>
+
+            <div style={{ flexShrink: 0, width: 8 }} />
           </div>
         ) : (
           <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP, paddingLeft: margin, paddingRight: margin }}>
@@ -376,7 +381,7 @@ export default function MatchSection() {
           </div>
         )}
 
-        {/* ── Upcoming Table ── */}
+        {/* Upcoming Table */}
         <div style={{
           ...anim(cardMatches.length + 3),
           paddingLeft:  isMobile ? mobilePad : margin,
@@ -390,11 +395,11 @@ export default function MatchSection() {
           />
         </div>
 
-        {/* ── See More ── */}
+        {/* See More — selalu di kanan, baik mobile maupun desktop */}
         <div style={{
           ...anim(cardMatches.length + 4),
           display: "flex",
-          justifyContent: isMobile ? "center" : "flex-end",
+          justifyContent: "flex-end",
           paddingLeft:  isMobile ? mobilePad : margin,
           paddingRight: isMobile ? mobilePad : margin,
         }}>

@@ -8,8 +8,8 @@ const CONFIG = {
   logoOpacity: 0.8,
   copies: 4,
   fade: {
-    start: 150,    // kalo mau sesuai margin 150
-    end: 200,      // yg ini 200
+    start: 150,
+    end: 200,
   },
 };
 
@@ -24,7 +24,7 @@ const UNIVERSITIES = [
 const ITEMS = Array.from({ length: CONFIG.copies }, () => UNIVERSITIES).flat();
 
 export default function UniversityMarquee() {
-  const wrapRef  = useRef(null);
+  const wrapRef = useRef(null);
   const [cw, setCw] = useState(1440);
 
   useEffect(() => {
@@ -37,10 +37,12 @@ export default function UniversityMarquee() {
 
   const isMobile   = cw < 768;
   const scale      = Math.min(1, cw / 1440);
-  const fadeStart  = isMobile ? 24 : Math.round(CONFIG.fade.start * scale);
-  const fadeEnd    = isMobile ? 48 : Math.round(CONFIG.fade.end * scale);
-  const logoHeight = Math.round(CONFIG.logoHeight * scale);
-  const fontSize   = Math.max(8, Math.round(10.4 * scale)); // 0.65rem = 10.4px
+
+  const fadeStart  = isMobile ? 24  : Math.round(CONFIG.fade.start * scale);
+  const fadeEnd    = isMobile ? 48  : Math.round(CONFIG.fade.end   * scale);
+  const logoHeight = isMobile ? CONFIG.logoHeight : Math.round(CONFIG.logoHeight * scale);
+  const fontSize   = isMobile ? 10.4 : Math.max(8, Math.round(10.4 * scale));
+  const itemGap    = isMobile ? CONFIG.itemGap    : Math.round(CONFIG.itemGap    * scale);
 
   const mask = `linear-gradient(to right,
     transparent ${fadeStart}px,
@@ -76,7 +78,7 @@ export default function UniversityMarquee() {
           <div
             key={i}
             className="flex items-center gap-3 shrink-0"
-            style={{ marginInline: CONFIG.itemGap }}
+            style={{ marginInline: itemGap }}
           >
             <img
               src={uni.logo}
