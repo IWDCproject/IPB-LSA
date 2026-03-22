@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 
 import StatCard from "../stats-stuff/StatCard";
 import Button from "@/components/Button";
@@ -10,7 +10,6 @@ import universitiesImg from "../stats-stuff/2.jpg";
 import athletesImg     from "../stats-stuff/1.jpg";
 import eventsImg       from "../stats-stuff/3.jpg";
 
-// settingan layout
 const CARD_WIDTHS   = [470, 280, 280];
 const CARD_IMG_H    = 250;
 const CARD_BOTTOM_H = 106;
@@ -20,8 +19,8 @@ const H_MARGIN      = 160;
 const TEXT_COL_W    = 480;
 const ROW_GAP       = 14;
 
-const CARDS_W      = CARD_WIDTHS.reduce((sum, w) => sum + w, 0) + CARD_GAP * 2; // 1058px
-const STAGE1_NAT_W = H_MARGIN * 2 + CARDS_W + ROW_GAP + TEXT_COL_W;             // 1872px
+const CARDS_W      = CARD_WIDTHS.reduce((sum, w) => sum + w, 0) + CARD_GAP * 2;
+const STAGE1_NAT_W = H_MARGIN * 2 + CARDS_W + ROW_GAP + TEXT_COL_W;
 
 const S3_PAD    = 24;
 const S3_NAT_W  = CARDS_W + S3_PAD * 2;
@@ -30,22 +29,18 @@ const S3_TEXT_H = 128;
 const S3_BTN_H  = 52;
 const S3_NAT_H  = CARD_H + S3_GAP + S3_TEXT_H + 24 + S3_BTN_H;
 
-// stage 3 masuk kalau lebar kontainer kurang dari 50% lebar natural
 const STAGE3_THRESHOLD = 0.5;
 
-// data statis, nggak perlu dibuat ulang tiap render
 const STATS = [
   { src: universitiesImg.src, mainStat: "4.000+", label: "Participants",    width: CARD_WIDTHS[0] },
   { src: athletesImg.src,     mainStat: "28+",    label: "Universities",    width: CARD_WIDTHS[1] },
   { src: eventsImg.src,       mainStat: "168+",   label: "Official Events", width: CARD_WIDTHS[2] },
 ];
 
-// delay stagger per slot: card0, card1, card2, heading, button, marquee
 const STAGGER     = [0, 120, 240, 420, 540, 680];
 const ANIM_DUR    = "1s";
 const ANIM_EASE   = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-// style yang statis di sini biar nggak bikin object baru tiap render
 const S = {
   cardRow: {
     display: "flex",
@@ -78,7 +73,6 @@ const S = {
   },
 };
 
-// hook buat pantau lebar kontainer pakai ResizeObserver
 function useContainerWidth(ref) {
   const [width, setWidth] = useState(STAGE1_NAT_W);
 
@@ -93,7 +87,6 @@ function useContainerWidth(ref) {
   return width;
 }
 
-// deretan kartu stat, terima anim helper buat stagger
 function StatCards({ anim }) {
   return (
     <div style={S.cardRow}>
@@ -112,7 +105,6 @@ function StatCards({ anim }) {
   );
 }
 
-// CTA di stage 1/2 (rata kanan) dan stage 3 (tengah)
 function CTA({ centered = false, anim }) {
   const ctaStyle = {
     ...S.ctaBase,
@@ -139,7 +131,6 @@ function CTA({ centered = false, anim }) {
   );
 }
 
-// stage 1: lebar penuh, nggak pakai transform sama sekali
 function Stage1Layout({ anim }) {
   return (
     <div style={S.stage1Row}>
@@ -149,7 +140,6 @@ function Stage1Layout({ anim }) {
   );
 }
 
-// stage 2: container menyusut, konten discale dari pojok kiri atas
 function Stage2Layout({ scale, anim }) {
   const outerStyle = useMemo(() => ({
     position: "relative",
@@ -177,7 +167,6 @@ function Stage2Layout({ scale, anim }) {
   );
 }
 
-// stage 3: layout berubah jadi kolom, discale dari tengah atas
 function Stage3Layout({ cw, scale, anim }) {
   const outerStyle = useMemo(() => ({
     position: "relative",
@@ -215,7 +204,6 @@ export default function StatSection() {
   const sectionRef = useRef(null);
   const cw = useContainerWidth(sectionRef);
 
-  // visible jadi true sekali waktu section masuk viewport -- tidak balik lagi
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -229,12 +217,20 @@ export default function StatSection() {
     return () => io.disconnect();
   }, []);
 
-  // helper, balik style animasi atau opacity:0 kalau belum visible
-  const anim = (slot) => visible
-    ? { animation: `stat-intro ${ANIM_DUR} ${ANIM_EASE} ${STAGGER[slot]}ms both` }
-    : { opacity: 0 };
+  // Fix 8: pre-compute all animation style objects once when `visible` changes.
+  // Previously `anim(slot)` returned a new object literal on every call,
+  // so any child receiving anim(i) as a prop always saw a new reference,
+  // preventing React from bailing out of re-renders.
+  const animStyles = useMemo(() => {
+    return STAGGER.map((delay) =>
+      visible
+        ? { animation: `stat-intro ${ANIM_DUR} ${ANIM_EASE} ${delay}ms both` }
+        : { opacity: 0 }
+    );
+  }, [visible]);
 
-  // hitung stage dan scale sekaligus, biar nggak ada kalkulasi duplikat
+  const anim = useCallback((slot) => animStyles[slot], [animStyles]);
+
   const { stage, scale, s3Scale } = useMemo(() => {
     const scale   = cw / STAGE1_NAT_W;
     const s3Scale = Math.min(1, cw / S3_NAT_W);
@@ -261,17 +257,11 @@ export default function StatSection() {
     flexDirection: "column",
     gap: stage === 3 ? 48 : 100,
     width: "100%",
-    // paddingBottom: 80,
   }), [stage]);
 
   return (
     <section ref={sectionRef} style={sectionStyle}>
-      <style>{`
-        @keyframes stat-intro {
-          from { opacity: 0; transform: translateY(28px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      {/* @keyframes stat-intro lives in globals.css — not re-parsed on every render */}
 
       <FightBackground visible={visible} />
 

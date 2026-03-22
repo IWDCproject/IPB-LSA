@@ -1,48 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import Lenis from "lenis";
-import "lenis/dist/lenis.css";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
+// Lenis removed entirely.
+//
+// The parallax and smooth feel are now handled by Motion for React
+// (useScroll + useTransform + useSpring in CurtainWrapper), which uses
+// the browser's native ScrollTimeline API for hardware-accelerated scroll-linked
+// animations. Native scroll is never intercepted, so Firefox APZ stays async.
+//
+// If you imported lenis/dist/lenis.css in this file, you can remove that CSS
+// import too. Also ensure globals.css has no `overflow: hidden` on html/body
+// that was previously set by Lenis to lock native scroll.
 
 export default function SmoothScroller({ children }) {
-  useEffect(() => {
-    // browser nggak boleh restore scroll position, Lenis yang pegang
-    window.history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
-
-    const lenis = new Lenis({
-      lerp:        0.1, 
-      smoothTouch: false,
-    });
-
-    // stop dulu dari awal
-    // HeroSection yang bakal start() pas prerender kelar
-    lenis.stop();
-    window.__lenis = lenis;
-
-    const dispatchScroll = (e) => {
-      window.dispatchEvent(new CustomEvent("lenis-scroll", { detail: e }));
-    };
-
-    const tickerFn = (time) => lenis.raf(time * 1000);
-
-    lenis.on("scroll", dispatchScroll);
-    lenis.on("scroll", ScrollTrigger.update);
-    gsap.ticker.add(tickerFn);
-    gsap.ticker.lagSmoothing(0);
-
-    return () => {
-      lenis.off("scroll", dispatchScroll);
-      lenis.off("scroll", ScrollTrigger.update);
-      gsap.ticker.remove(tickerFn);
-      lenis.destroy();
-      window.__lenis = null;
-    };
-  }, []);
-
   return <>{children}</>;
 }

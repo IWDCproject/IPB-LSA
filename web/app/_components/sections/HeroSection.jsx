@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { gsap } from "gsap";
 import Button from "@/components/Button";
 import EventCard from "@/components/EventCard";
 import UniversityMarquee from "@/components/UniversityMarquee";
@@ -95,9 +96,8 @@ const EVENTS = [
     },
 ];
 
-const INTERVAL_MS = 10000;
-const SHRINK_MS   = 600;
-
+const INTERVAL_MS    = 10000;
+const SHRINK_MS      = 600;
 const OVERLAY_FADE_MS = 600;
 
 const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
@@ -155,7 +155,6 @@ const EXIT_DELAYS  = [150, 100, 50, 0];
 const ENTER_DELAYS = [0, 70, 140, 210];
 const INTRO_DELAYS = [160, 240, 320, 400];
 
-// paused dikasih dari CurtainWrapper lewat prop, bukan IO
 export default function HeroSection({ paused = false }) {
     const [activeIdx, setActiveIdx]     = useState(0);
     const [hoveredIdx, setHoveredIdx]   = useState(null);
@@ -216,26 +215,33 @@ export default function HeroSection({ paused = false }) {
 
     useEffect(() => {
         if (readyIds.size !== EVENTS.length) return;
-
         const t = setTimeout(() => {
-            window.__lenis?.start();
+            // window.__lenis?.start() removed — Lenis no longer used.
+            // Native scroll starts immediately; no gate-keeping needed.
             setMounted(true);
         }, OVERLAY_FADE_MS);
-
         return () => clearTimeout(t);
     }, [readyIds]);
 
     const displayEvent = EVENTS[displayIdx];
 
-    const infoAnimStyle = (slot) => {
-        if (!mounted) return { opacity: 0 };
-        if (transPhase === "exit")
-            return { animation: `info-exit 0.22s ease ${EXIT_DELAYS[slot]}ms both` };
-        if (transPhase === "enter")
-            return { animation: `info-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${ENTER_DELAYS[slot]}ms both` };
-        if (!introPlayed) return introStyle(INTRO_DELAYS[slot]);
-        return { opacity: 1 };
-    };
+    // infoAnimStyle previously created a new object literal on every call every render.
+    // useMemo recomputes the 4 style objects only when the driving state actually changes,
+    // so spread usage like {...infoAnimStyle(1)} gets a stable reference between renders.
+    const infoAnimStyles = useMemo(() => {
+        const make = (slot) => {
+            if (!mounted) return { opacity: 0 };
+            if (transPhase === "exit")
+                return { animation: `info-exit 0.22s ease ${EXIT_DELAYS[slot]}ms both` };
+            if (transPhase === "enter")
+                return { animation: `info-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${ENTER_DELAYS[slot]}ms both` };
+            if (!introPlayed) return introStyle(INTRO_DELAYS[slot]);
+            return { opacity: 1 };
+        };
+        return [0, 1, 2, 3].map(make);
+    }, [mounted, transPhase, introPlayed]);
+
+    const infoAnimStyle = useCallback((slot) => infoAnimStyles[slot], [infoAnimStyles]);
 
     useEffect(() => {
         if (!mounted || activeIdx === displayIdx) return;
@@ -258,17 +264,22 @@ export default function HeroSection({ paused = false }) {
         setTimeout(() => setAnimating(false), 400);
     };
 
-    // RAF mati total kalau paused, startTime direset biar progress bar ga loncat pas resume
     useEffect(() => {
         if (animating || paused) return;
 
         let startTime    = null;
-        let rafId;
         let currentPhase = "fill";
 
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
-        const tick = (timestamp) => {
+        // Uses gsap.ticker instead of a separate requestAnimationFrame loop.
+        // Consolidates from 3 tick systems (lenis, timeline canvas, bar RAF)
+        // down to 2, reducing scheduling jitter between them.
+        //
+        // Percentages are integer-rounded: 101 unique strings over 10s at 144Hz
+        // vs 1441 without rounding — 14x fewer string allocations.
+        const tick = () => {
+            const timestamp = performance.now();
             if (!startTime) startTime = timestamp;
             const elapsed = timestamp - startTime;
 
@@ -286,22 +297,22 @@ export default function HeroSection({ paused = false }) {
                 }
             }
 
-            if (t < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else if (currentPhase === "fill") {
-                currentPhase = "shrink";
-                startTime    = null;
-                rafId        = requestAnimationFrame(tick);
-            } else {
-                const next = (activeIdx + 1) % visibleCountRef.current;
-                setAnimating(true);
-                setActiveIdx(next);
-                setTimeout(() => setAnimating(false), 400);
+            if (t >= 1) {
+                if (currentPhase === "fill") {
+                    currentPhase = "shrink";
+                    startTime    = null;
+                } else {
+                    gsap.ticker.remove(tick);
+                    const next = (activeIdx + 1) % visibleCountRef.current;
+                    setAnimating(true);
+                    setActiveIdx(next);
+                    setTimeout(() => setAnimating(false), 400);
+                }
             }
         };
 
-        rafId = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(rafId);
+        gsap.ticker.add(tick);
+        return () => gsap.ticker.remove(tick);
     }, [activeIdx, animating, paused]);
 
     const mobileCards     = EVENTS.slice(0, 4);
@@ -316,46 +327,10 @@ export default function HeroSection({ paused = false }) {
         }
     }, [isMobile]);
 
+    // Issue 7 fix: <style> block removed. All @keyframes now live in globals.css.
+    // Previously 9 keyframe rules were re-parsed by the browser on every render.
     return (
         <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
-            <style>{`
-                @keyframes bgFadeIn {
-                    from { opacity: 0; }
-                    to   { opacity: 1; }
-                }
-                @keyframes notch-pop {
-                    from { opacity: 0; transform: translateX(-50%) scaleX(0.5); }
-                    to   { opacity: 1; transform: translateX(-50%) scaleX(1); }
-                }
-                @keyframes info-exit {
-                    from { opacity: 1; transform: translateY(0); }
-                    to   { opacity: 0; transform: translateY(-10px); }
-                }
-                @keyframes info-enter {
-                    from { opacity: 0; transform: translateY(-12px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes hero-intro {
-                    from { opacity: 0; transform: translateY(18px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes hero-bar-intro {
-                    from { opacity: 0; transform: scaleX(0); transform-origin: left; }
-                    to   { opacity: 1; transform: scaleX(1); transform-origin: left; }
-                }
-                @keyframes hero-cards-intro {
-                    from { opacity: 0; transform: translateY(28px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes hero-marquee-intro {
-                    from { opacity: 0; transform: translateY(12px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
-
             <div
                 className="absolute inset-0 z-50 flex items-center justify-center bg-black"
                 style={{
@@ -381,7 +356,6 @@ export default function HeroSection({ paused = false }) {
                         className="absolute inset-0"
                         style={{
                             opacity:    idx === activeIdx ? 1 : 0,
-                            // skip compositor work kalau hero lagi ketutupan
                             transition: paused ? "none" : "opacity 0.8s ease",
                         }}
                     >
@@ -390,7 +364,6 @@ export default function HeroSection({ paused = false }) {
                             className="absolute inset-0 w-full h-full"
                             style={{ objectFit: "cover" }}
                         />
-
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
                             className="absolute inset-0 w-full h-full"

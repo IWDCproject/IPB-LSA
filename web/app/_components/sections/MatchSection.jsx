@@ -1,11 +1,9 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { MatchCard } from "../match-stuff/MatchCard";
 import { MatchTable } from "../match-stuff/MatchTable";
 import Button from "@/components/Button";
 import FightBackground from '../match-stuff/FightBackground';
-
-
 
 import ipbLogo from "@/public/mock-data/ipblogo.png";
 import upnLogo from "@/public/mock-data/upnlogo.png";
@@ -240,13 +238,22 @@ export default function MatchSection() {
   const scale    = Math.min(1, cw / NAT_W);
   const margin   = Math.round(H_MARGIN * scale);
 
-  const anim = (slot) => visible
-    ? { animation: `live-intro 1s cubic-bezier(0.22, 1, 0.36, 1) ${slot * STAGGER_MS}ms both` }
-    : { opacity: 0 };
+  // Fix 8: pre-compute all animation style objects once when `visible` changes.
+  // Previously `anim(slot)` returned a new object literal on every call,
+  // meaning every child always saw a new prop reference on every render.
+  const TOTAL_SLOTS = SHOW_MAX + 5; // heading + cards + cta + table + see-more
+  const animStyles = useMemo(() => {
+    return Array.from({ length: TOTAL_SLOTS }, (_, slot) =>
+      visible
+        ? { animation: `live-intro 1s cubic-bezier(0.22, 1, 0.36, 1) ${slot * STAGGER_MS}ms both` }
+        : { opacity: 0 }
+    );
+  }, [visible]);
+
+  const anim = useCallback((slot) => animStyles[slot] ?? animStyles[animStyles.length - 1], [animStyles]);
 
   const cardMatches = LIVE_MATCHES.slice(0, SHOW_MAX);
 
-  // mobile card: wide enough to feel immersive, narrow enough to peek next card
   const mobileCardW = Math.round(cw * 0.78);
   const mobilePad   = 20;
 
@@ -263,14 +270,7 @@ export default function MatchSection() {
       overflow: "hidden",
       padding: isMobile ? "80px 0 60px" : "0px 0 0 0",
     }}>
-      <style>{`
-        @keyframes live-intro {
-          from { opacity: 0; transform: translateY(28px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .match-scroll::-webkit-scrollbar { display: none; }
-        .match-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
+      {/* .match-scroll scrollbar rules live in globals.css */}
 
       {/* <FightBackground visible={visible} /> */}
 
@@ -297,7 +297,6 @@ export default function MatchSection() {
 
         {/* ── Card Row ── */}
         {isMobile ? (
-          // MOBILE: scroll-snap, one card fills ~78% of screen so next peeks at the right
           <div
             className="match-scroll"
             style={{
@@ -309,7 +308,6 @@ export default function MatchSection() {
               scrollSnapType: "x mandatory",
               WebkitOverflowScrolling: "touch",
               paddingLeft: mobilePad,
-              // trailing padding = mobilePad so last card doesn't butt right edge
               paddingRight: mobilePad,
             }}
           >
@@ -329,7 +327,6 @@ export default function MatchSection() {
               </div>
             ))}
 
-            {/* CTA card at end of scroll */}
             <div style={{
               flex: `0 0 ${Math.round(mobileCardW * 0.65)}px`,
               height: CARD_H,
@@ -352,7 +349,6 @@ export default function MatchSection() {
             </div>
           </div>
         ) : (
-          // DESKTOP: original fluid flex row — untouched
           <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP, paddingLeft: margin, paddingRight: margin }}>
             {cardMatches.map((match, i) => (
               <div key={match.id} style={{ ...anim(i + 2), flex: 1, minWidth: 0 }}>
@@ -409,4 +405,3 @@ export default function MatchSection() {
     </section>
   );
 }
-
