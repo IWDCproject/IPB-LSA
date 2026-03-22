@@ -239,12 +239,12 @@ export default function EventTimeline() {
   const inactiveIdx = activeIdx + 1;
 
   // mobile swap
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' && window.innerWidth < 768
-  );
+  // selalu false di server biar tree-nya sama saat hydration
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
+    check(); // deteksi langsung setelah mount
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -334,8 +334,10 @@ export default function EventTimeline() {
     initCurve();
 
     // pakai ResizeObserver supaya lebih akurat dan ga perlu debounce
+    const el = containerRef.current;
+    if (!el) return;
     const ro = new ResizeObserver(() => initCurve());
-    ro.observe(containerRef.current);
+    ro.observe(el);
     return () => ro.disconnect();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -556,9 +558,9 @@ export default function EventTimeline() {
 
       gsap.to(proxy, {
         drawn: wLen,
-        duration: 2.8,
+        duration: 1.6,
         ease: 'power1.inOut',
-        delay: 0.2,
+        delay: 0.1,
         onUpdate() {
           const d = proxy.drawn;
           introProg.current       = d / wLen;

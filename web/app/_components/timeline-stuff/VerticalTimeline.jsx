@@ -142,6 +142,7 @@ export default function VerticalTimeline({ events }) {
       {/* Batik pattern */}
       <div
         aria-hidden="true"
+        suppressHydrationWarning
         style={{
           position: 'absolute', inset: 0,
           backgroundImage: 'url(/Batik_Pattern_dark.svg)',
@@ -381,6 +382,7 @@ export default function VerticalTimeline({ events }) {
           src="/maskot/maskot1.png"
           alt=""
           aria-hidden="true"
+          suppressHydrationWarning
           style={{
             height:   '18vh', // taller than its row so it peeks up
             width:    'auto',
