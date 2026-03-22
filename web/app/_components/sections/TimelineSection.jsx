@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import Button from '@/components/Button';
 import EventCard from '@/components/EventCard';
+import VerticalTimeline from '../timeline-stuff/VerticalTimeline';
 
 const THEME = {
   path: {
@@ -229,20 +230,25 @@ const _dashG  = new Float32Array(2);
 const _NODASH = [];
 
 const H_MARGIN = 160;
-
-// Fix 5: lowered from 1000/16 (60fps) to 1000/30 (30fps).
-// The float animations have 3.5–6s periods — 30fps is imperceptible for this motion
-// and halves the canvas draw calls post-intro.
-const POST_MS = 1000 / 30;
-
+const POST_MS  = 1000 / 30;
 const CTA_FRAC = 0.40;
-
-// .et-pulse and @keyframes pulse-ring live in globals.css — not injected here.
 
 export default function EventTimeline() {
   const events      = buildEvents();
   const activeIdx   = events.findLastIndex(e => e.isActive);
   const inactiveIdx = activeIdx + 1;
+
+  // ─── Mobile swap ───────────────────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 768
+  );
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  // ───────────────────────────────────────────────────────────────────────────
 
   const containerRef = useRef(null);
   const canvasRef    = useRef(null);
@@ -257,14 +263,11 @@ export default function EventTimeline() {
   const segLen     = useRef({ w: 0, y: 0, g: 0 });
   const curveRef   = useRef([]);
   const sizeRef    = useRef({ W: 0, H: 0 });
-  // Pre-allocated position caches — mutated in-place, never re-allocated
   const basePosRef = useRef([
     { x: 0, y: 0 }, { x: 0, y: 0 },
     { x: 0, y: 0 }, { x: 0, y: 0 },
   ]);
 
-  // Fix 5: pre-computed slices stored in refs so draw() never allocates new arrays.
-  // Updated only when dot positions actually change, not on every frame.
   const yPtsRef = useRef([]);
   const gPtsRef = useRef([]);
 
@@ -273,14 +276,11 @@ export default function EventTimeline() {
   const travelRef    = useRef({ drawn: 0, total: 0, active: false });
   const visibleRef   = useRef(false);
   const postCapMs    = useRef(0);
-  // Pre-allocated prevPts — 4 objects created once, reused forever.
-  // Previously: pts.slice(1,5).map(p => ({x,y})) created a new array + 4 objects
-  // every time dot positions changed (~33×/sec post-intro). Now we mutate in place.
   const prevPts = useRef([
     { x: -1, y: -1 }, { x: -1, y: -1 },
     { x: -1, y: -1 }, { x: -1, y: -1 },
   ]);
-  const prevPtsValid = useRef(false); // tracks whether prevPts has been seeded
+  const prevPtsValid = useRef(false);
 
   const ctaRef      = useRef(null);
   const mascotRef   = useRef(null);
@@ -316,14 +316,11 @@ export default function EventTimeline() {
 
     prevPtsValid.current = false;
 
-    // Recompute slices after resize since absolute positions changed
     const pts = curveRef.current;
     yPtsRef.current = pts.slice(0, activeIdx + 2);
     gPtsRef.current = pts.slice(activeIdx + 1, inactiveIdx + 2);
   };
 
-  // Fix 9: debounced resize — was firing on every pixel during a drag resize,
-  // triggering expensive getTotalLength() measurements and LUT rebuilds.
   useEffect(() => {
     initCurve();
     let resizeTimer;
@@ -385,7 +382,6 @@ export default function EventTimeline() {
           const pts = curveRef.current;
           yPtsRef.current = pts.slice(0, activeIdx + 2);
           gPtsRef.current = pts.slice(activeIdx + 1, inactiveIdx + 2);
-          // Mutate pre-allocated objects instead of allocating a new array + 4 objects
           for (let i = 0; i < 4; i++) {
             prev[i].x = pts[i + 1].x;
             prev[i].y = pts[i + 1].y;
@@ -413,7 +409,6 @@ export default function EventTimeline() {
     ctx.clearRect(0, 0, W, H);
     if (progress <= 0) return;
 
-    // Fix 5: use pre-computed refs, no slice() allocation on every frame
     const yPts    = yPtsRef.current;
     const gPts    = gPtsRef.current;
     const isIntro = progress < 1;
@@ -503,7 +498,6 @@ export default function EventTimeline() {
       const yPts = pts.slice(0, activeIdx + 2);
       const gPts = pts.slice(activeIdx + 1, inactiveIdx + 2);
 
-      // Seed the pre-computed refs before the first draw call
       yPtsRef.current = yPts;
       gPtsRef.current = gPts;
 
@@ -521,7 +515,6 @@ export default function EventTimeline() {
       const subLengths = events.map((_, i) => subLen(pts, i + 1));
 
       const { W, H } = sizeRef.current;
-      // Mutate pre-allocated objects — no new array, no new plain objects
       CP.slice(1, 5).forEach((cp, i) => {
         basePosRef.current[i].x = cp.pctX * W;
         basePosRef.current[i].y = cp.pctY * H;
@@ -593,9 +586,10 @@ export default function EventTimeline() {
     }));
   }
 
+  if (isMobile) return <VerticalTimeline events={events} />;
+
   return (
     <>
-
       <div
         ref={containerRef}
         style={{
