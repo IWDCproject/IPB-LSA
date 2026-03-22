@@ -21,6 +21,7 @@ export default function VerticalTimeline({ events }) {
   const fillRef   = useRef(null);
   const nodeRefs  = useRef([]);
   const cardRefs  = useRef([]);
+  const xFloatRefs = useRef([]);
   const labelRefs = useRef([]);
   const mascotRef = useRef(null);
 
@@ -73,22 +74,29 @@ export default function VerticalTimeline({ events }) {
           );
 
           gsap.to(card, {
-            y: isLeft ? 8 : -8,
+            y: isLeft ? 3 : -3,
             duration: 3 + i * 0.4,
             repeat: -1, yoyo: true, ease: 'sine.inOut',
             delay: delay + 0.5,
           });
           gsap.to(card, {
-            x: isLeft ? -4 : 4,
+            // x: isLeft ? -0.5 : 0.5,
             duration: (3 + i * 0.4) * 1.3,
             repeat: -1, yoyo: true, ease: 'sine.inOut',
             delay: delay + 0.8,
           });
           gsap.to(card, {
-            rotate: isLeft ? -1.2 : 1.2,
+            rotate: isLeft ? -0.3 : 0.3,
             duration: (3 + i * 0.4) * 1.7,
             repeat: -1, yoyo: true, ease: 'sine.inOut',
             delay: delay + 1.0,
+          });
+          const xEl = xFloatRefs.current[i];
+          if (xEl) gsap.to(xEl, {
+            x: isLeft ? -2 : 2,
+            duration: (3 + i * 0.4) * 1.3,
+            repeat: -1, yoyo: true, ease: 'sine.inOut',
+            delay: delay + 0.8,
           });
         }
 
@@ -214,8 +222,8 @@ export default function VerticalTimeline({ events }) {
             borderRadius: 999,
             background: `linear-gradient(to bottom,
               ${LINE_COLOR_ACTIVE} 0%,
-              ${LINE_COLOR_ACTIVE} ${((activeIdx + 1) / events.length) * 100}%,
-              rgba(255,255,255,0.6) ${((activeIdx + 1) / events.length) * 100}%,
+              ${LINE_COLOR_ACTIVE} ${((activeIdx + 0.5) / events.length) * 100}%,
+              rgba(255,255,255,0.6) ${((activeIdx + 1.2) / events.length) * 100}%,
               rgba(255,255,255,0.08) 100%
             )`,
           }}
@@ -226,8 +234,9 @@ export default function VerticalTimeline({ events }) {
           display:             'grid',
           gridTemplateRows:    `repeat(${events.length}, 1fr)`,
           height:              '100%',
-          paddingTop:          '1vh',
-          paddingBottom:       '1vh',
+          // paddingTop:          '1vh',
+          // paddingBottom:       '1vh',
+          marginTop:           '-3vh',
         }}>
           {events.map((ev, i) => {
             const isLeft   = i % 2 === 0;
@@ -270,31 +279,35 @@ export default function VerticalTimeline({ events }) {
                   paddingRight:   isLeft ? 12  : 0,
                   overflow:       'visible',
                 }}>
-                  <div
-                    ref={el => (cardRefs.current[i] = el)}
-                    style={{
-                      opacity:      0,
-                      // Card sized relative to viewport height so 4 fit
-                      width:        'clamp(80px, 28vw, 140px)',
-                      height:       'clamp(110px, 16vh, 175px)',
-                      borderRadius: 10,
-                      overflow:     'hidden',
-                      border:       `2px solid ${cardBorder}`,
-                      boxShadow:    cardShadow,
-                      cursor:       'pointer',
-                      transform:    `rotate(${isLeft ? -3 : 3}deg)`,
-                      transition:   'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
-                      willChange:   'transform',
-                      flexShrink:   0,
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'rotate(0deg) scale(1.06)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = `rotate(${isLeft ? -3 : 3}deg)`;
-                    }}
-                  >
-                    <EventCard event={ev} className="w-full h-full" size="lg" />
+                  <div ref={el => (xFloatRefs.current[i] = el)} style={{ willChange: 'transform' }}>
+                    <div
+                      ref={el => (cardRefs.current[i] = el)}
+                      style={{
+                        opacity:      0,
+                        // Card sized relative to viewport height so 4 fit
+                        width:  'clamp(90px, 32vw, 160px)',
+                        height: 'clamp(150px, 22vh, 260px)',
+                        borderRadius: 10,
+                        overflow:     'hidden',
+                        border:       `2px solid ${cardBorder}`,
+                        boxShadow:    cardShadow,
+                        cursor:       'pointer',
+                        position: 'relative',
+                        top: 50,
+                        transform: `rotate(${isLeft ? -3 : 3}deg)`,
+                        // transition:   'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
+                        willChange:   'transform',
+                        flexShrink:   0,
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'rotate(0deg) scale(1.06)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = `rotate(${isLeft ? -3 : 3}deg)`;
+                      }}
+                    >
+                      <EventCard event={ev} className="w-full h-full" size="lg" />
+                    </div>
                   </div>
                 </div>
 
@@ -366,7 +379,7 @@ export default function VerticalTimeline({ events }) {
       </div>
 
       {/* ── Mascot ~10vh ─────────────────────────────────────────────────── */}
-      <div style={{
+      {/* <div style={{
         flexShrink:  0,
         textAlign:   'center',
         height:      '10vh',
@@ -392,7 +405,7 @@ export default function VerticalTimeline({ events }) {
             bottom:   0,
           }}
         />
-      </div>
+      </div> */}
 
     </div>
   );
