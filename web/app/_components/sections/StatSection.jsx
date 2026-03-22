@@ -258,7 +258,7 @@ export default function StatSection() {
     padding: stage === 3
     ? "50px 0 0px 0"  
     : "150px 0 0px 0",
-    minHeight: stage === 3 ? "auto" : "100vh",
+    minHeight: stage === 3 ? "auto" : "80vh",
     position: "relative",
     zIndex: 2,
     background: "linear-gradient(to bottom, #06125C 5%, #0D26C2 100%)",

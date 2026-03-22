@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function FightBackground({ visible = false }) {
-  const videoRef = useRef(null);
+  const videoRef     = useRef(null);
+  const containerRef = useRef(null);
+  const [fadeStart, setFadeStart] = useState(20);
 
   useEffect(() => {
     // Jalankan video dari awal saat props visible jadi true
@@ -13,15 +15,41 @@ export default function FightBackground({ visible = false }) {
     }
   }, [visible]);
 
+  useEffect(() => {
+    const video     = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
+
+    function measure() {
+      const videoBottom    = video.getBoundingClientRect().bottom;
+      const containerTop   = container.getBoundingClientRect().top;
+      const containerH     = container.getBoundingClientRect().height;
+      const videoBottomPct = ((videoBottom - containerTop) / containerH) * 100;
+      setFadeStart(Math.min(videoBottomPct - 10, 85));
+    }
+
+    video.addEventListener("loadedmetadata", measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(container);
+
+    return () => {
+      video.removeEventListener("loadedmetadata", measure);
+      ro.disconnect();
+    };
+  }, []);
+
+  const mask = `linear-gradient(to bottom, black 20%, transparent ${fadeStart + 10}%)`;
+
   return (
     <div
-      className="absolute z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
+      ref={containerRef}
+      className="absolute z-0 flex items-start justify-center pointer-events-none select-none overflow-hidden"
       style={{
         inset: 0,
         height: "100%",
         // Gradient mask bawaanmu tetap dipakai biar bawahnya pudar natural
-        maskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
+        maskImage: mask,
+        WebkitMaskImage: mask,
       }}
     >
       <video
