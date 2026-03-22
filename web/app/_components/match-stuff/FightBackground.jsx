@@ -2,56 +2,9 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
-export default function FightBackground({ visible = false }) {
-  const svgRef = useRef(null);
-  const tlRef  = useRef(null);
-
-  useEffect(() => {
-	const paths = svgRef.current.querySelectorAll("path, polygon, polyline, line");
-
-	paths.forEach((path) => {
-		if (!path.getTotalLength) return;
-		const length = path.getTotalLength();
-		gsap.set(path, {
-		strokeDasharray: length,
-		strokeDashoffset: length,
-		fillOpacity: 0,   // lock fill out permanently
-		});
-	});
-
-	tlRef.current = gsap.timeline({ paused: true })
-		.to(paths, {
-		strokeDashoffset: 0,
-		duration: 4,
-		ease: "power2.inOut",
-		stagger: { each: 0.03, from: "start" },
-		});
-
-	return () => tlRef.current?.kill();
-	}, []);
-
-	useEffect(() => {
-	if (visible && tlRef.current) tlRef.current.play();
-	}, [visible]);
-
-  return (
-    <div
-		className="absolute z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
-		style={{
-			inset: 0,
-			height: "100%",
-			maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
-			WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
-		}}
-	>
-      <svg 
-        ref={svgRef} 
-        viewBox="0 0 2048 1122" 
-        className="w-full h-auto opacity-40 stroke-white/80"
-        style={{ transform: "scale(1.2)" }} 
-        strokeWidth="3"
-      >
-        {/* PASTE KODE PATH SVG KAMU DI BAWAH SINI */}
+// SVG stored as a static string so React never reconciles 301 path nodes.
+// GSAP still works because we query the real DOM from the wrapper ref.
+const SVG_HTML = `<svg viewBox="0 0 2048 1122" class="w-full h-auto opacity-40 stroke-white/80" style="transform:scale(1.2)" stroke-width="3">        
         <path d="M173.000000,1123.000000 
 	C115.670387,1123.000000 58.340771,1123.000000 1.008366,1123.000000 
 	C1.005577,749.027954 1.005577,375.055939 1.005577,1.041958 
@@ -4852,8 +4805,53 @@ z"/>
 M838.183594,960.557129 
 	C837.938477,957.335083 837.769470,953.688416 837.985168,949.772034 
 	C838.333191,953.045715 838.296509,956.589050 838.183594,960.557129 
-z"/>
-      </svg>
-    </div>
+z"/></svg>`;
+
+export default function FightBackground({ visible = false }) {
+  const wrapRef = useRef(null);
+  const tlRef   = useRef(null);
+
+  useEffect(() => {
+    const svg = wrapRef.current?.querySelector("svg");
+    if (!svg) return;
+
+    const paths = svg.querySelectorAll("path, polygon, polyline, line");
+
+    paths.forEach((path) => {
+      if (!path.getTotalLength) return;
+      const length = path.getTotalLength();
+      gsap.set(path, {
+        strokeDasharray:  length,
+        strokeDashoffset: length,
+        fillOpacity: 0,
+      });
+    });
+
+    tlRef.current = gsap.timeline({ paused: true }).to(paths, {
+      strokeDashoffset: 0,
+      duration: 4,
+      ease: "power2.inOut",
+      stagger: { each: 0.03, from: "start" },
+    });
+
+    return () => tlRef.current?.kill();
+  }, []);
+
+  useEffect(() => {
+    if (visible && tlRef.current) tlRef.current.play();
+  }, [visible]);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="absolute z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
+      style={{
+        inset: 0,
+        height: "100%",
+        maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+      }}
+      dangerouslySetInnerHTML={{ __html: SVG_HTML }}
+    />
   );
 }

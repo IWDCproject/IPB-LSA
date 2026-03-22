@@ -321,7 +321,7 @@ function DesktopMatchRow({ match }) {
     return (
       <div style={ROW_GRID}>
         <div style={{ paddingRight: 16, minWidth: 0 }}>
-          <div style={{ ...JK, fontSize: 15, fontWeight: 800, color: "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{timeLabel}</div>
+          <div suppressHydrationWarning style={{ ...JK, fontSize: 15, fontWeight: 800, color: "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{timeLabel}</div>
           <div style={{ ...JK, fontSize: 13, color: "#676767", marginTop: 2 }}>{match.venue ?? ""}</div>
         </div>
         <div style={{ gridColumn: "2 / 5", paddingLeft: 24 }}>
@@ -338,7 +338,7 @@ function DesktopMatchRow({ match }) {
   return (
     <div style={ROW_GRID}>
       <div style={{ paddingRight: 16, minWidth: 0 }}>
-        <div style={{ ...JK, fontSize: 15, fontWeight: 800, color: isLive ? "#CA8A04" : "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div suppressHydrationWarning style={{ ...JK, fontSize: 15, fontWeight: 800, color: isLive ? "#CA8A04" : "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {timeLabel}
         </div>
         <div style={{ ...JK, fontSize: 13, color: "#676767", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -513,7 +513,7 @@ function MobileMatchRow({ match }) {
       {/* ── Meta row: time · venue — category · status ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ ...JK, fontSize: 11, color: "#aaa", fontWeight: 500 }}>
-          <span style={{ fontWeight: 700, color: isLive ? "#CA8A04" : "#aaa" }}>{timeLabel}</span>
+          <span style={{ fontWeight: 700, color: isLive ? "#CA8A04" : "#aaa" }} suppressHydrationWarning>{timeLabel}</span>
           {match.venue ? ` · ${match.venue}` : ""}
         </span>
         <span style={{ ...JK, fontSize: 11, color: "#aaa", fontWeight: 500, textAlign: "right" }}>
@@ -557,7 +557,7 @@ export function MatchTable({
     <div style={{ background: "#fff", borderRadius: 10, padding: isMobile ? "16px 16px" : "24px 32px", boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ ...JK, fontSize: isMobile ? 15 : 18, fontWeight: 800, color: "#06125C" }}>{title}</span>
-        {firstDate && <span style={{ ...JK, fontSize: isMobile ? 11 : 14, color: "#aaa" }}>{fmtDate(firstDate)}</span>}
+        {firstDate && <span suppressHydrationWarning style={{ ...JK, fontSize: isMobile ? 11 : 14, color: "#aaa" }}>{fmtDate(firstDate)}</span>}
       </div>
 
       {showGroupFilter && (

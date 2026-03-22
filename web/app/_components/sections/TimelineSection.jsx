@@ -5,7 +5,6 @@ import { gsap } from 'gsap';
 import Button from '@/components/Button';
 import EventCard from '@/components/EventCard';
 
-// Warna utama untuk jalur kurva dan background section
 const THEME = {
   path: {
     base: '#ffffff',
@@ -18,10 +17,6 @@ const THEME = {
   },
 };
 
-// Control points untuk kurva bezier. Urutan: [phantom-kiri, slot-0..3, phantom-kanan]
-// phantom kiri/kanan itu titik fiktif supaya kurva masuk/keluar layar dengan mulus
-// pctX/pctY = posisi relatif terhadap lebar/tinggi container
-// hIn/hOut = handle bezier masuk dan keluar (juga relatif)
 const CP = [
   { pctX: -0.060, pctY: 0.350, hIn: { dx: -0.100, dy:  0.000 }, hOut: { dx:  0.100, dy:  0.180 } },
   { pctX:  0.290, pctY: 0.158, hIn: { dx: -0.089, dy: -0.123 }, hOut: { dx:  0.092, dy:  0.158 } },
@@ -31,10 +26,6 @@ const CP = [
   { pctX:  1.060, pctY: 0.380, hIn: { dx: -0.208, dy: -0.010 }, hOut: { dx:  0.100, dy:  0.000 } },
 ];
 
-// Konfigurasi tiap slot event: posisi kartu, label, animasi float, dan warna
-// cardOffset = jarak kartu dari titik dot (piksel)
-// labelOffset = jarak label tanggal dari titik dot
-// floatY/floatX/floatDur/floatDelay = parameter animasi melayang (gsap)
 const SLOTS = [
   {
     cardOffset: { x: -255, y: -10  },
@@ -86,7 +77,6 @@ const SLOTS = [
   },
 ];
 
-// Data event dummy. Ganti dengan fetch dari API kalau sudah ada data real.
 const MOCK_EVENTS = [
   {
     id: 'evt-001',
@@ -130,7 +120,6 @@ const MOCK_EVENTS = [
   },
 ];
 
-// Tambahkan field turunan ke tiap event: slot, label tanggal, dan sublabel registrasi
 function buildEvents() {
   return MOCK_EVENTS.map((ev, i) => {
     const label =
@@ -150,11 +139,8 @@ function buildEvents() {
   });
 }
 
-// Konversi array control points ke string path SVG (format cubic bezier)
-// Dipakai sekali di playIntro untuk ngukur panjang jalur via getTotalLength()
 function svgPath(pts) {
   if (!pts || pts.length < 2) return '';
-
   const d = [`M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`];
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i];
@@ -168,18 +154,14 @@ function svgPath(pts) {
   return d.join(' ');
 }
 
-// Hitung panjang sub-kurva sampai index titik tertentu
-// Dipakai untuk tau kapan setiap dot harus muncul saat animasi intro
 function subLen(pts, endIdx) {
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   el.setAttribute('d', svgPath(pts.slice(0, endIdx + 1)));
   return el.getTotalLength();
 }
 
-// Gambar semua segmen kurva ke canvas. Ini hot path, jadi hindari alokasi di sini.
 function strokePath(ctx, pts) {
   if (!pts || pts.length < 2) return;
-
   ctx.beginPath();
   ctx.moveTo(pts[0].x, pts[0].y);
   for (let i = 0; i < pts.length - 1; i++) {
@@ -194,7 +176,6 @@ function strokePath(ctx, pts) {
   ctx.stroke();
 }
 
-// Evaluasi posisi di segmen bezier ke-si pada parameter t (0..1)
 function evalCubic(pts, si, t) {
   const p0 = pts[si];
   const p1 = pts[si + 1];
@@ -207,16 +188,11 @@ function evalCubic(pts, si, t) {
   };
 }
 
-// Bangun lookup table arc-length supaya bisa cari posisi di kurva tanpa DOM.
-// Jauh lebih cepat dari getPointAtLength() karena zero DOM dan O(log n) lookup.
-// steps = jumlah sampel; makin besar makin akurat tapi makin lambat build-nya.
 function buildArcLUT(pts, steps = 400) {
   const segCount = pts.length - 1;
-  // Setiap entri simpan: [cumLen, x, y] -> stride 3
   const data = new Float32Array((steps + 1) * 3);
   let cumLen = 0, px = pts[0].x, py = pts[0].y;
   data[0] = 0; data[1] = px; data[2] = py;
-
   for (let i = 1; i <= steps; i++) {
     const tScaled = (i / steps) * segCount;
     const si = Math.min(segCount - 1, Math.floor(tScaled));
@@ -226,23 +202,18 @@ function buildArcLUT(pts, steps = 400) {
     data[b] = cumLen; data[b + 1] = x; data[b + 2] = y;
     px = x; py = y;
   }
-
   return { data, totalLen: cumLen, steps };
 }
 
-// Cari posisi (x, y) di kurva berdasarkan jarak dari awal (arc-length)
-// Pakai binary search di LUT, hasilnya diinterpolasi linear antar sampel
 function getPointFromLUT({ data, totalLen, steps }, targetLen) {
-  if (targetLen <= 0)        return { x: data[1],           y: data[2]           };
-  if (targetLen >= totalLen) return { x: data[steps * 3 + 1], y: data[steps * 3 + 2] };
-
+  if (targetLen <= 0)        return { x: data[1],               y: data[2]               };
+  if (targetLen >= totalLen) return { x: data[steps * 3 + 1],   y: data[steps * 3 + 2]   };
   let lo = 0, hi = steps;
   while (lo < hi - 1) {
     const mid = (lo + hi) >> 1;
     if (data[mid * 3] < targetLen) lo = mid;
     else hi = mid;
   }
-
   const a    = lo * 3;
   const bIdx = hi * 3;
   const frac = (targetLen - data[a]) / (data[bIdx] - data[a]);
@@ -252,77 +223,70 @@ function getPointFromLUT({ data, totalLen, steps }, targetLen) {
   };
 }
 
-// Array pre-alokasi untuk setLineDash supaya tidak ada GC pressure tiap frame
 const _dashW  = new Float32Array(2);
 const _dashY  = new Float32Array(2);
 const _dashG  = new Float32Array(2);
 const _NODASH = [];
 
-// Margin horizontal section ini, sama dengan StatSection dan HeroSection
 const H_MARGIN = 160;
 
-// Throttle post-intro (ms per frame). 1000/16 = 60fps cap setelah animasi selesai.
-const POST_MS = 1000 / 16;
+// Fix 5: lowered from 1000/16 (60fps) to 1000/30 (30fps).
+// The float animations have 3.5–6s periods — 30fps is imperceptible for this motion
+// and halves the canvas draw calls post-intro.
+const POST_MS = 1000 / 30;
 
-// Fraksi jalur total saat CTA mulai muncul (40% dari panjang kurva)
 const CTA_FRAC = 0.40;
 
-// CSS untuk efek pulse ring di dot event yang sedang aktif
-const STYLES = `
-  .et-pulse::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    border: 1.5px solid currentColor;
-    animation: pulse-ring 2.4s ease-out infinite;
-    will-change: transform, opacity;
-  }
-  @keyframes pulse-ring {
-    0%   { transform: scale(1);   opacity: 0.7; }
-    100% { transform: scale(2.8); opacity: 0;   }
-  }
-`;
+// .et-pulse and @keyframes pulse-ring live in globals.css — not injected here.
 
-// ->->-> Komponen utama ->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
 export default function EventTimeline() {
-  const events    = buildEvents();
+  const events      = buildEvents();
   const activeIdx   = events.findLastIndex(e => e.isActive);
   const inactiveIdx = activeIdx + 1;
 
-  // Ref ke elemen DOM utama
   const containerRef = useRef(null);
   const canvasRef    = useRef(null);
   const ctxRef       = useRef(null);
-  const gradCacheRef = useRef(null); // cache gradient supaya tidak dibuat ulang tiap frame
+  const gradCacheRef = useRef(null);
 
-  // Path SVG tersembunyi, hanya dipakai sekali di playIntro untuk ngukur panjang jalur
-  const pathWRef = useRef(null); // jalur putih (semua)
-  const pathYRef = useRef(null); // jalur kuning (segmen aktif)
-  const pathGRef = useRef(null); // jalur gradient (transisi aktif->inaktif)
+  const pathWRef = useRef(null);
+  const pathYRef = useRef(null);
+  const pathGRef = useRef(null);
 
-  // State geometri dan animasi, disimpan di ref agar tidak trigger re-render
-  const arcLUTRef  = useRef(null);  // lookup table arc-length
-  const segLen     = useRef({ w: 0, y: 0, g: 0 }); // panjang tiap segmen jalur
-  const curveRef   = useRef([]);    // posisi titik kurva dalam piksel (diupdate tiap resize)
+  const arcLUTRef  = useRef(null);
+  const segLen     = useRef({ w: 0, y: 0, g: 0 });
+  const curveRef   = useRef([]);
   const sizeRef    = useRef({ W: 0, H: 0 });
-  const basePosRef = useRef([]);    // posisi dasar tiap dot (sebelum animasi float)
+  // Pre-allocated position caches — mutated in-place, never re-allocated
+  const basePosRef = useRef([
+    { x: 0, y: 0 }, { x: 0, y: 0 },
+    { x: 0, y: 0 }, { x: 0, y: 0 },
+  ]);
 
-  // State animasi intro
+  // Fix 5: pre-computed slices stored in refs so draw() never allocates new arrays.
+  // Updated only when dot positions actually change, not on every frame.
+  const yPtsRef = useRef([]);
+  const gPtsRef = useRef([]);
+
   const introStarted = useRef(false);
-  const introProg    = useRef(0);   // progress jalur: 0..1
-  const travelRef    = useRef({ drawn: 0, total: 0, active: false }); // posisi dot traveler
+  const introProg    = useRef(0);
+  const travelRef    = useRef({ drawn: 0, total: 0, active: false });
   const visibleRef   = useRef(false);
-  const postCapMs    = useRef(0);   // timestamp frame terakhir (untuk throttle post-intro)
-  const prevPts      = useRef(null);
+  const postCapMs    = useRef(0);
+  // Pre-allocated prevPts — 4 objects created once, reused forever.
+  // Previously: pts.slice(1,5).map(p => ({x,y})) created a new array + 4 objects
+  // every time dot positions changed (~33×/sec post-intro). Now we mutate in place.
+  const prevPts = useRef([
+    { x: -1, y: -1 }, { x: -1, y: -1 },
+    { x: -1, y: -1 }, { x: -1, y: -1 },
+  ]);
+  const prevPtsValid = useRef(false); // tracks whether prevPts has been seeded
 
-  // Ref ke elemen DOM untuk animasi GSAP
   const ctaRef      = useRef(null);
   const mascotRef   = useRef(null);
-  const nodeRefs    = useRef([]); // div float tiap event
-  const rotateRefs  = useRef([]); // div rotate tiap event
+  const nodeRefs    = useRef([]);
+  const rotateRefs  = useRef([]);
 
-  // ->-> Inisialisasi ukuran canvas dan posisi kurva ->->->->->->->->->->->->->->->->->->->
   const initCurve = () => {
     const el = containerRef.current;
     if (!el) return;
@@ -332,7 +296,6 @@ export default function EventTimeline() {
 
     const canvas = canvasRef.current;
     if (canvas) {
-      // Cap DPR di 2x supaya tidak mati di layar DPR 3 (9x luas piksel)
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width  = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
@@ -341,10 +304,9 @@ export default function EventTimeline() {
         ctxRef.current = canvas.getContext('2d', { alpha: true, desynchronized: true });
       }
       ctxRef.current.setTransform(dpr, 0, 0, dpr, 0, 0);
-      gradCacheRef.current = null; // reset cache karena ukuran berubah
+      gradCacheRef.current = null;
     }
 
-    // Konversi CP dari relatif (0..1) ke piksel nyata
     curveRef.current = CP.map(p => ({
       x: p.pctX * W,
       y: p.pctY * H,
@@ -352,17 +314,30 @@ export default function EventTimeline() {
       hOut: { dx: p.hOut.dx * W, dy: p.hOut.dy * H },
     }));
 
-    prevPts.current = null;
+    prevPtsValid.current = false;
+
+    // Recompute slices after resize since absolute positions changed
+    const pts = curveRef.current;
+    yPtsRef.current = pts.slice(0, activeIdx + 2);
+    gPtsRef.current = pts.slice(activeIdx + 1, inactiveIdx + 2);
   };
 
-  // Jalankan initCurve saat mount dan saat resize
+  // Fix 9: debounced resize — was firing on every pixel during a drag resize,
+  // triggering expensive getTotalLength() measurements and LUT rebuilds.
   useEffect(() => {
     initCurve();
-    window.addEventListener('resize', initCurve);
-    return () => window.removeEventListener('resize', initCurve);
-  }, []);
+    let resizeTimer;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(initCurve, 150);
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      clearTimeout(resizeTimer);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ->-> Pause animasi kalau section tidak terlihat ->->->->->->->->->->
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -374,7 +349,6 @@ export default function EventTimeline() {
     return () => io.disconnect();
   }, []);
 
-  // ->-> Tick animasi, jalan di setiap frame GSAP ticker ->->->->->->->
   useEffect(() => {
     const tick = () => {
       if (!visibleRef.current || !introStarted.current) return;
@@ -382,7 +356,6 @@ export default function EventTimeline() {
       const progress = introProg.current;
       const now      = performance.now();
 
-      // Setelah intro selesai, throttle ke POST_MS supaya tidak boros CPU
       if (progress >= 1) {
         if (now - postCapMs.current < POST_MS) return;
         postCapMs.current = now;
@@ -391,28 +364,35 @@ export default function EventTimeline() {
       const { W, H } = sizeRef.current;
       if (!W || !H) return;
 
-      // Update posisi titik kurva berdasarkan animasi float dari GSAP
       let changed = false;
       const prev  = prevPts.current;
+      const valid = prevPtsValid.current;
 
       nodeRefs.current.forEach((node, i) => {
         if (!node || !basePosRef.current[i]) return;
         const nx = basePosRef.current[i].x + (gsap.getProperty(node, 'x') || 0);
         const ny = basePosRef.current[i].y + (gsap.getProperty(node, 'y') || 0);
 
-        if (!prev || Math.abs(nx - prev[i].x) > 0.5 || Math.abs(ny - prev[i].y) > 0.5) {
+        if (!valid || Math.abs(nx - prev[i].x) > 0.5 || Math.abs(ny - prev[i].y) > 0.5) {
           changed = true;
         }
         curveRef.current[i + 1].x = nx;
         curveRef.current[i + 1].y = ny;
       });
 
-      // Gambar ulang hanya kalau ada yang berubah atau intro belum selesai
       if (progress < 1 || changed) {
-        draw(curveRef.current, progress);
         if (changed) {
-          prevPts.current = curveRef.current.slice(1, 5).map(p => ({ x: p.x, y: p.y }));
+          const pts = curveRef.current;
+          yPtsRef.current = pts.slice(0, activeIdx + 2);
+          gPtsRef.current = pts.slice(activeIdx + 1, inactiveIdx + 2);
+          // Mutate pre-allocated objects instead of allocating a new array + 4 objects
+          for (let i = 0; i < 4; i++) {
+            prev[i].x = pts[i + 1].x;
+            prev[i].y = pts[i + 1].y;
+          }
+          prevPtsValid.current = true;
         }
+        draw(curveRef.current, progress);
       }
     };
 
@@ -420,7 +400,6 @@ export default function EventTimeline() {
     return () => gsap.ticker.remove(tick);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ->-> Fungsi gambar utama (dipanggil tiap frame oleh tick) ->->->->->->->->->->->->->->->->->
   function draw(pts, progress) {
     const ctx = ctxRef.current;
     if (!ctx) return;
@@ -434,15 +413,14 @@ export default function EventTimeline() {
     ctx.clearRect(0, 0, W, H);
     if (progress <= 0) return;
 
-    // Titik-titik untuk segmen kuning (aktif) dan gradient (transisi)
-    const yPts    = pts.slice(0, activeIdx + 2);
-    const gPts    = pts.slice(activeIdx + 1, inactiveIdx + 2);
+    // Fix 5: use pre-computed refs, no slice() allocation on every frame
+    const yPts    = yPtsRef.current;
+    const gPts    = gPtsRef.current;
     const isIntro = progress < 1;
     const drawn   = progress * wLen;
 
     ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = 5;
 
-    // Jalur putih sebagai dasar (semua titik)
     ctx.strokeStyle = THEME.path.base;
     if (isIntro) {
       _dashW[0] = Math.min(drawn, wLen); _dashW[1] = wLen + 1;
@@ -452,7 +430,6 @@ export default function EventTimeline() {
     }
     strokePath(ctx, pts);
 
-    // Jalur kuning di atas jalur putih untuk segmen event aktif
     const yDrawn = Math.min(drawn, yLen);
     if (yDrawn > 0) {
       ctx.strokeStyle = THEME.path.active;
@@ -463,7 +440,6 @@ export default function EventTimeline() {
       strokePath(ctx, yPts);
     }
 
-    // Segmen gradient dari kuning ke putih (transisi aktif ke inaktif)
     if (gPts.length >= 2) {
       const gDrawn = isIntro ? Math.max(0, drawn - yLen) : gLen;
 
@@ -475,7 +451,6 @@ export default function EventTimeline() {
         } else {
           ctx.setLineDash(_NODASH);
 
-          // Cache gradient supaya tidak dibikin ulang tiap frame
           const p0  = gPts[0];
           const p1  = gPts[gPts.length - 1];
           const key = `${p0.x | 0},${p0.y | 0},${p1.x | 0},${p1.y | 0}`;
@@ -493,7 +468,6 @@ export default function EventTimeline() {
 
     ctx.setLineDash(_NODASH);
 
-    // Dot traveler yang jalan di sepanjang kurva saat intro (pakai LUT, bukan DOM)
     const { drawn: td, total: tt, active: ta } = travelRef.current;
     if (ta && tt > 0 && td > 0 && td < tt && arcLUTRef.current) {
       const pt = getPointFromLUT(arcLUTRef.current, td);
@@ -503,7 +477,6 @@ export default function EventTimeline() {
     }
   }
 
-  // ->-> Trigger intro saat section pertama kali masuk viewport ->->->->->->->->->->->->->->->
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -519,9 +492,7 @@ export default function EventTimeline() {
     return () => io.disconnect();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ->-> Animasi intro: jalur menggambar diri sendiri, lalu dot dan kartu muncul
   function playIntro() {
-    // Tunggu dua frame supaya layout sudah stabil sebelum ngukur
     requestAnimationFrame(() => requestAnimationFrame(() => {
       const white  = pathWRef.current;
       const yellow = pathYRef.current;
@@ -532,7 +503,10 @@ export default function EventTimeline() {
       const yPts = pts.slice(0, activeIdx + 2);
       const gPts = pts.slice(activeIdx + 1, inactiveIdx + 2);
 
-      // Set path SVG tersembunyi lalu ukur panjangnya via browser
+      // Seed the pre-computed refs before the first draw call
+      yPtsRef.current = yPts;
+      gPtsRef.current = gPts;
+
       white.setAttribute( 'd', svgPath(pts));
       yellow.setAttribute('d', svgPath(yPts));
       grad.setAttribute(  'd', svgPath(gPts));
@@ -544,19 +518,19 @@ export default function EventTimeline() {
 
       arcLUTRef.current = buildArcLUT(pts, 400);
 
-      // Panjang sub-kurva sampai tiap dot, untuk tau kapan masing-masing muncul
       const subLengths = events.map((_, i) => subLen(pts, i + 1));
 
-      // Posisi dasar tiap dot (sebelum offset float dari GSAP)
       const { W, H } = sizeRef.current;
-      basePosRef.current = CP.slice(1, 5).map(cp => ({ x: cp.pctX * W, y: cp.pctY * H }));
+      // Mutate pre-allocated objects — no new array, no new plain objects
+      CP.slice(1, 5).forEach((cp, i) => {
+        basePosRef.current[i].x = cp.pctX * W;
+        basePosRef.current[i].y = cp.pctY * H;
+      });
 
-      // Reset semua elemen ke state tersembunyi sebelum animasi mulai
       nodeRefs.current.forEach(n => n && gsap.set(n, { opacity: 0, scale: 0, transformOrigin: '0px 0px' }));
       if (ctaRef.current)    gsap.set(ctaRef.current,    { opacity: 0, y: 40 });
       if (mascotRef.current) gsap.set(mascotRef.current, { opacity: 0, y: 40 });
 
-      // Animasi float tiap kartu (berjalan terus setelah intro selesai)
       const tl = gsap.timeline();
       nodeRefs.current.forEach((node, i) => {
         if (!node) return;
@@ -574,17 +548,15 @@ export default function EventTimeline() {
         }
       });
 
-      // Tracking state untuk reveal selama animasi drawing berjalan
-      const revealed      = events.map(() => false);
-      let ctaRevealed     = false;
-      let mascotRevealed  = false;
+      const revealed     = events.map(() => false);
+      let ctaRevealed    = false;
+      let mascotRevealed = false;
 
       const proxy = { drawn: 0 };
       introStarted.current = true;
       introProg.current    = 0;
       travelRef.current    = { drawn: 0, total: wLen, active: true };
 
-      // Animasi utama: drawing jalur dari kiri ke kanan
       gsap.to(proxy, {
         drawn: wLen,
         duration: 2.8,
@@ -595,19 +567,16 @@ export default function EventTimeline() {
           introProg.current       = d / wLen;
           travelRef.current.drawn = d;
 
-          // CTA muncul setelah jalur mencapai 40%
           if (!ctaRevealed && d >= wLen * CTA_FRAC) {
             ctaRevealed = true;
             ctaRef.current && gsap.to(ctaRef.current, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' });
           }
 
-          // Maskot muncul setelah jalur melewati dot slot ke-1
           if (!mascotRevealed && d >= subLengths[1]) {
             mascotRevealed = true;
             mascotRef.current && gsap.to(mascotRef.current, { opacity: 1, y: 0, duration: 0.8, ease: 'back.out(1.2)' });
           }
 
-          // Tiap kartu muncul saat jalur sampai di dotnya masing-masing
           subLengths.forEach((sl, i) => {
             if (!revealed[i] && d >= sl) {
               revealed[i] = true;
@@ -624,17 +593,15 @@ export default function EventTimeline() {
     }));
   }
 
-  // ->-> Render -->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
 
       <div
         ref={containerRef}
         style={{
           position: 'relative',
           width: '100%',
-          height: '100vh',
+          height: 'calc(100vh - 65px)',
           minHeight: 600,
           overflow: 'hidden',
           fontFamily: "'Outfit', sans-serif",
@@ -642,7 +609,6 @@ export default function EventTimeline() {
           zIndex: 2,
         }}
       >
-        {/* Background batik pattern */}
         <div
           aria-hidden="true"
           style={{
@@ -653,20 +619,17 @@ export default function EventTimeline() {
           }}
         />
 
-        {/* Canvas untuk menggambar jalur bezier */}
         <canvas
           ref={canvasRef}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}
         />
 
-        {/* Path SVG tersembunyi, hanya untuk pengukuran panjang jalur di playIntro */}
         <svg aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'visible' }}>
           <path ref={pathWRef} fill="none" />
           <path ref={pathYRef} fill="none" />
           <path ref={pathGRef} fill="none" />
         </svg>
 
-        {/* Maskot, posisi antara slot 1 dan 2 */}
         <img
           ref={mascotRef}
           src="/maskot/maskot1.png"
@@ -684,7 +647,6 @@ export default function EventTimeline() {
           }}
         />
 
-        {/* CTA "WHY WAIT?" di sisi kiri */}
         <div
           ref={ctaRef}
           style={{
@@ -707,7 +669,6 @@ export default function EventTimeline() {
           </div>
         </div>
 
-        {/* Kartu event, dirender di atas tiap dot */}
         {events.map((ev, i) => {
           const { slot } = ev;
           const shadowBase  = slot.palette.shadow
@@ -718,7 +679,6 @@ export default function EventTimeline() {
             : '0 8px 28px rgba(0,0,0,0.85)';
 
           return (
-            // Anchor statis di posisi CP, tidak pernah digerakkan GSAP
             <div
               key={ev.id}
               style={{
@@ -728,10 +688,8 @@ export default function EventTimeline() {
                 zIndex: 10, width: 0, height: 0,
               }}
             >
-              {/* Float node: GSAP hanya gerakkan x/y/opacity/scale, bukan transform lain */}
               <div ref={el => (nodeRefs.current[i] = el)} style={{ willChange: 'transform', opacity: 0 }}>
 
-                {/* Label tanggal dan info registrasi */}
                 <div style={{ position: 'absolute', left: slot.labelOffset.x, top: slot.labelOffset.y, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
                   <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: '36px', lineHeight: 1, color: slot.palette.labelColor, textShadow: `0 0 20px ${slot.palette.labelGlow}` }}>
                     {ev.label}
@@ -742,7 +700,6 @@ export default function EventTimeline() {
                 </div>
 
                 <div ref={el => (rotateRefs.current[i] = el)}>
-                  {/* Dot di jalur kurva, dengan pulse ring kalau event sedang aktif */}
                   <div
                     className={ev.isActive ? 'et-pulse' : undefined}
                     style={{
@@ -757,7 +714,6 @@ export default function EventTimeline() {
                     }}
                   />
 
-                  {/* Kartu event dengan efek hover tilt */}
                   <div
                     style={{
                       position: 'absolute',
