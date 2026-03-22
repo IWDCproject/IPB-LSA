@@ -21,8 +21,8 @@ const CP = [
   { pctX: -0.060, pctY: 0.350, hIn: { dx: -0.100, dy:  0.000 }, hOut: { dx:  0.100, dy:  0.180 } },
   { pctX:  0.290, pctY: 0.158, hIn: { dx: -0.089, dy: -0.123 }, hOut: { dx:  0.092, dy:  0.158 } },
   { pctX:  0.341, pctY: 0.752, hIn: { dx: -0.080, dy: -0.085 }, hOut: { dx:  0.115, dy:  0.124 } },
-  { pctX:  0.670, pctY: 0.304, hIn: { dx: -0.122, dy: -0.126 }, hOut: { dx:  0.087, dy:  0.087 } },
-  { pctX:  0.770, pctY: 0.714, hIn: { dx: -0.054, dy: -0.071 }, hOut: { dx:  0.114, dy:  0.103 } },
+  { pctX:  0.670, pctY: 0.260, hIn: { dx: -0.122, dy: -0.126 }, hOut: { dx:  0.087, dy:  0.087 } },
+  { pctX:  0.770, pctY: 0.700, hIn: { dx: -0.054, dy: -0.071 }, hOut: { dx:  0.114, dy:  0.103 } },
   { pctX:  1.060, pctY: 0.380, hIn: { dx: -0.208, dy: -0.010 }, hOut: { dx:  0.100, dy:  0.000 } },
 ];
 
