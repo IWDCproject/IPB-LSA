@@ -1,17 +1,20 @@
 -- File ini hanya sebagai referensi/dokumentasi bagaimana data awal dimasukkan.
 -- Data di bawah ini sudah otomatis ter-include di dalam init_db.sql.
-
 DO $$
 DECLARE
     v_user_id uuid;
-    e1 uuid := gen_random_uuid(); e2 uuid := gen_random_uuid(); e3 uuid := gen_random_uuid();
-    c1 uuid := gen_random_uuid(); c2 uuid := gen_random_uuid(); c3 uuid := gen_random_uuid();
-    p1a uuid := gen_random_uuid(); p1b uuid := gen_random_uuid(); p1c uuid := gen_random_uuid(); p1d uuid := gen_random_uuid();
-    p2a uuid := gen_random_uuid(); p2b uuid := gen_random_uuid(); p2c uuid := gen_random_uuid(); p2d uuid := gen_random_uuid();
-    p3a uuid := gen_random_uuid(); p3b uuid := gen_random_uuid(); p3c uuid := gen_random_uuid(); p3d uuid := gen_random_uuid();
-    m1a uuid := gen_random_uuid(); m1b uuid := gen_random_uuid(); m1c uuid := gen_random_uuid();
-    m2a uuid := gen_random_uuid(); m2b uuid := gen_random_uuid(); m2c uuid := gen_random_uuid();
-    m3a uuid := gen_random_uuid(); m3b uuid := gen_random_uuid(); m3c uuid := gen_random_uuid();
+    
+    e1 uuid := 'a1b2c3d4-0001-4000-8000-000000000001'; e2 uuid := 'a1b2c3d4-0002-4000-8000-000000000002'; e3 uuid := 'a1b2c3d4-0003-4000-8000-000000000003';
+    
+    c1 uuid := 'c1c1c1c1-0001-4000-8000-000000000001'; c2 uuid := 'c1c1c1c1-0002-4000-8000-000000000002'; c3 uuid := 'c1c1c1c1-0003-4000-8000-000000000003';
+    
+    p1a uuid := 'd1d1d1d1-0001-4000-8000-000000000001'; p1b uuid := 'd1d1d1d1-0002-4000-8000-000000000002'; p1c uuid := 'd1d1d1d1-0003-4000-8000-000000000003'; p1d uuid := 'd1d1d1d1-0004-4000-8000-000000000004';
+    p2a uuid := 'd2d2d2d2-0001-4000-8000-000000000001'; p2b uuid := 'd2d2d2d2-0002-4000-8000-000000000002'; p2c uuid := 'd2d2d2d2-0003-4000-8000-000000000003'; p2d uuid := 'd2d2d2d2-0004-4000-8000-000000000004';
+    p3a uuid := 'd3d3d3d3-0001-4000-8000-000000000001'; p3b uuid := 'd3d3d3d3-0002-4000-8000-000000000002'; p3c uuid := 'd3d3d3d3-0003-4000-8000-000000000003'; p3d uuid := 'd3d3d3d3-0004-4000-8000-000000000004';
+    
+    m1a uuid := 'e1e1e1e1-0001-4000-8000-000000000001'; m1b uuid := 'e1e1e1e1-0002-4000-8000-000000000002'; m1c uuid := 'e1e1e1e1-0003-4000-8000-000000000003';
+    m2a uuid := 'e2e2e2e2-0001-4000-8000-000000000001'; m2b uuid := 'e2e2e2e2-0002-4000-8000-000000000002'; m2c uuid := 'e2e2e2e2-0003-4000-8000-000000000003';
+    m3a uuid := 'e3e3e3e3-0001-4000-8000-000000000001'; m3b uuid := 'e3e3e3e3-0002-4000-8000-000000000002'; m3c uuid := 'e3e3e3e3-0003-4000-8000-000000000003';
 BEGIN
     SELECT id INTO v_user_id FROM directus_users LIMIT 1;
 
@@ -45,4 +48,5 @@ BEGIN
     (m1a, p1a, 1), (m1a, p1b, 2),
     (m1b, p1c, 1), (m1b, p1d, 2),
     (m1c, p1a, 1), (m1c, p1c, 2);
+
 END $$;
