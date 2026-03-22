@@ -5,8 +5,8 @@ export default function EventCard({ event, className = "", size = "md" }) {
   const { slug, name, card_image_url, user_created } = event;
   const orgName = user_created?.organisation_name ?? null;
 
-  const orgSize   = size === "lg" ? "text-[15px]" : "text-[12px]";
-  const titleSize = size === "lg" ? "text-[32px]" : "text-[24px]";
+  const orgSize   = size === "lg" ? "text-[15px]" : size === "sm" ? "text-[10px]"  : "text-[12px]";
+  const titleSize = size === "lg" ? "text-[32px]" : size === "sm" ? "text-[18px]" : "text-[24px]";
 
   return (
     <Link
