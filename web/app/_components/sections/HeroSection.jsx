@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import Button from "@/components/Button";
 import EventCard from "@/components/EventCard";
 import UniversityMarquee from "@/components/UniversityMarquee";
+import { useBlur } from "@/contexts/BlurContext";
 
 const EVENTS = [
     {
@@ -96,9 +97,8 @@ const EVENTS = [
     },
 ];
 
-const INTERVAL_MS    = 10000;
-const SHRINK_MS      = 600;
-const OVERLAY_FADE_MS = 600;
+const INTERVAL_MS = 10000;
+const SHRINK_MS   = 600;
 
 const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
 
@@ -166,35 +166,16 @@ export default function HeroSection({ paused = false }) {
 
     const barRef     = useRef(null);
     const canvasRefs = useRef({});
-    const [readyIds, setReadyIds] = useState(new Set());
     const sectionRef = useRef(null);
     const [cw, setCw] = useState(1440);
 
-    // FIX 1: pausedRef mirrors the paused prop into a ref so it can be read inside
-    // the ticker without appearing in the effect's dependency array.
-    //
-    // Why not just use the prop directly? Because `paused` is in the dep array of
-    // the ticker effect. Every time CurtainWrapper's IO flips heroPaused, React
-    // tears the whole effect down (gsap.ticker.remove) and re-registers it fresh
-    // (gsap.ticker.add). That resets `startTime` to null, making the progress bar
-    // restart from 0 each time the user scrolls the hero back into view — a
-    // visible glitch. With a ref, the ticker stays registered permanently and just
-    // reads the current value on each frame with zero React involvement.
-    //
-    // Note: we do NOT use an IntersectionObserver here. HeroSection lives inside a
-    // `position: fixed` container in CurtainWrapper, which means it is always
-    // intersecting the viewport — an IO on sectionRef would never fire false.
-    // CurtainWrapper already observes the heroSpacerRef scroll proxy and passes the
-    // result down as the `paused` prop, which is the correct source of truth.
-    //
-    // tabVisRef — Page Visibility API. gsap.ticker throttles to ~1fps on hidden
-    // tabs but does not reach zero. This ref makes the tick truly no-op when the
-    // tab is backgrounded, saving CPU/battery on long-scrolling pages.
+    // pausedRef dan tabVisRef tetap dipakai untuk ticker
     const pausedRef = useRef(paused);
-    const tabVisRef = useRef(true); // assume visible on first render (SSR-safe default)
+    const tabVisRef = useRef(true);
 
-    // Keep pausedRef in sync whenever the prop changes. useEffect runs after render
-    // so the ref is always current before the next ticker frame.
+    // ambil bitmaps dan isReady dari BlurProvider
+    const { bitmaps, isReady } = useBlur();
+
     useEffect(() => { pausedRef.current = paused; }, [paused]);
 
     useEffect(() => {
@@ -205,48 +186,39 @@ export default function HeroSection({ paused = false }) {
         return () => ro.disconnect();
     }, []);
 
+    // gambar bitmaps hero ke canvas tiap kali bitmaps context update
+    // pakai drawImage (bukan bitmaprenderer) biar bisa digambar ulang kalau perlu
+    useEffect(() => {
+        EVENTS.forEach((ev) => {
+            const pair = bitmaps[ev.card_image_url]?.hero;
+            if (!pair?.sharp || !pair?.blurred) return;
+
+            const sharpCanvas = canvasRefs.current[`${ev.id}_sharp`];
+            if (sharpCanvas) {
+                sharpCanvas.width  = pair.sharp.width;
+                sharpCanvas.height = pair.sharp.height;
+                sharpCanvas.getContext("2d").drawImage(pair.sharp, 0, 0);
+            }
+
+            const blurCanvas = canvasRefs.current[`${ev.id}_blur`];
+            if (blurCanvas) {
+                blurCanvas.width  = pair.blurred.width;
+                blurCanvas.height = pair.blurred.height;
+                blurCanvas.getContext("2d").drawImage(pair.blurred, 0, 0);
+            }
+        });
+    }, [bitmaps]);
+
+    // mulai animasi intro setelah overlay BlurProvider selesai fade
+    // isReady jadi true SETELAH fade out — jadi nggak perlu delay tambahan
+    useEffect(() => {
+        if (isReady) setMounted(true);
+    }, [isReady]);
+
     const isMobile = cw < 768;
     const scale    = isMobile ? 1 : Math.min(1, cw / 1440);
     const margin   = Math.round(160 * scale);
     const cardH    = Math.round(240 * scale);
-
-    useEffect(() => {
-        const worker = new Worker("/blurWorker.js");
-
-        worker.onmessage = ({ data: { id, sharp, blurred, error } }) => {
-            if (error) { console.warn("blur worker error:", error); return; }
-
-            const sharpCanvas = canvasRefs.current[`${id}_sharp`];
-            if (sharpCanvas) {
-                sharpCanvas.width  = sharp.width;
-                sharpCanvas.height = sharp.height;
-                sharpCanvas.getContext("bitmaprenderer").transferFromImageBitmap(sharp);
-            }
-
-            const blurCanvas = canvasRefs.current[`${id}_blur`];
-            if (blurCanvas) {
-                blurCanvas.width  = blurred.width;
-                blurCanvas.height = blurred.height;
-                blurCanvas.getContext("bitmaprenderer").transferFromImageBitmap(blurred);
-            }
-
-            setReadyIds((prev) => new Set([...prev, id]));
-        };
-
-        worker.postMessage({
-            images: EVENTS.map((ev) => ({ id: ev.id, url: ev.card_image_url })),
-        });
-
-        return () => worker.terminate();
-    }, []);
-
-    useEffect(() => {
-        if (readyIds.size !== EVENTS.length) return;
-        const t = setTimeout(() => {
-            setMounted(true);
-        }, OVERLAY_FADE_MS);
-        return () => clearTimeout(t);
-    }, [readyIds]);
 
     const displayEvent = EVENTS[displayIdx];
 
@@ -295,13 +267,6 @@ export default function HeroSection({ paused = false }) {
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
         const tick = () => {
-            // FIX 2: Gate the tick on paused state (via ref, not prop) and tab
-            // visibility. Both are pure ref reads — zero allocations, zero React
-            // involvement, ticker registration never changes.
-            //
-            // startTime is nulled on gate so that when the ticker resumes, elapsed
-            // starts from 0. Without this, after e.g. 8 seconds scrolled away the
-            // bar would snap to the next slide on the very first visible frame.
             if (pausedRef.current || !tabVisRef.current) {
                 startTime = null;
                 return;
@@ -355,9 +320,6 @@ export default function HeroSection({ paused = false }) {
         }
     }, [isMobile]);
 
-    // FIX 4: Page Visibility API for tab-switch gating.
-    // Handles: tab switch, window minimize, mobile app switch, browser hidden.
-    // Writes to tabVisRef — same zero-re-render pattern as above.
     useEffect(() => {
         const onVisibilityChange = () => { tabVisRef.current = !document.hidden; };
         document.addEventListener("visibilitychange", onVisibilityChange);
@@ -366,23 +328,7 @@ export default function HeroSection({ paused = false }) {
 
     return (
         <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
-            <div
-                className="absolute inset-0 z-50 flex items-center justify-center bg-black"
-                style={{
-                    opacity:       readyIds.size === EVENTS.length ? 0 : 1,
-                    pointerEvents: readyIds.size === EVENTS.length ? "none" : "all",
-                    transition:    `opacity ${OVERLAY_FADE_MS}ms ease`,
-                }}
-            >
-                <div style={{
-                    width:        20,
-                    height:       20,
-                    borderRadius: "50%",
-                    border:       "2px solid rgba(255,255,255,0.1)",
-                    borderTop:    "2px solid rgba(234,179,8,0.9)",
-                    animation:    "spin 0.8s linear infinite",
-                }} />
-            </div>
+            {/* overlay dihapus — BlurProvider yang handle overlay sekarang */}
 
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (

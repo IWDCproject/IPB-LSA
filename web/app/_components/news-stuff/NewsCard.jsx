@@ -10,12 +10,7 @@ import ArrowIcon             from "@/app/icons/arrow-up-right.svg";
 // title          <- news.title
 // isMain         <- frontend-only, nentuin layout besar/kecil
 // compact        <- frontend-only, nentuin ukuran konten (mobile mode)
-
-// kombinasi isMain + compact ngasih 4 state:
-//   isMain=true,  compact=false  -> desktop main  (gede banget)
-//   isMain=true,  compact=true   -> mobile main   (sedang)
-//   isMain=false, compact=false  -> desktop small (normal)
-//   isMain=false, compact=true   -> mobile small  (mungil)
+// bitmap         <- opsional, dari BlurProvider — pre-rendered blur overlay
 
 const BLUR_LAYERS = [
   { blur: "1px",  mask: "linear-gradient(rgba(0,0,0,0), rgba(0,0,0,1) 15%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 58%)" },
@@ -24,30 +19,25 @@ const BLUR_LAYERS = [
   { blur: "10px", mask: "linear-gradient(rgba(0,0,0,0) 68%, rgba(0,0,0,1) 82%, rgba(0,0,0,1) 100%)" },
 ];
 
-// semua nilai ukuran dalam satu tempat, gampang diubah
 const SIZE = {
-  // desktop main
   mainTitle:    35,
   mainTag:      18,
   mainArrow:    28,
   mainPad:      45,
   mainStroke:   3,
 
-  // mobile main -- sekitar 55% dari desktop main
   mainCompactTitle: 20,
   mainCompactTag:   14,
   mainCompactArrow: 20,
   mainCompactPad:   20,
   mainCompactStroke: 2,
 
-  // desktop small
   smallTitle:   25,
   smallTag:     12,
   smallArrow:   20,
   smallPad:     30,
   smallStroke:  2,
 
-  // mobile small -- mepet banget, prioritasin title keliatan
   smallCompactTitle: 14,
   smallCompactTag:   10,
   smallCompactArrow: 16,
@@ -77,7 +67,6 @@ function getSizes(isMain, compact) {
     pad:    SIZE.smallPad,
     stroke: SIZE.smallStroke,
   };
-  // !isMain && compact
   return {
     title:  SIZE.smallCompactTitle,
     tag:    SIZE.smallCompactTag,
@@ -87,12 +76,84 @@ function getSizes(isMain, compact) {
   };
 }
 
-export default function NewsCard({ thumbnail_url, tag, title, isMain = false, compact = false }) {
+// canvas yang nge-scale bitmap ke ukuran container via ResizeObserver
+// dipasang di dalam blurContainer — menggantikan 4× backdropFilter div
+// kalau bitmap null, komponen ini nggak di-render (fallback ke CSS)
+function BitmapBlurCanvas() {
+  const canvasRef = useRef(null);
+
+  // bitmap disimpan di ref biar ResizeObserver bisa akses tanpa closure masalah
+  const bitmapRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+
+    function draw() {
+      if (!bitmapRef.current) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w   = canvas.offsetWidth  || 1;
+      const h   = canvas.offsetHeight || 1;
+      canvas.width        = Math.round(w * dpr);
+      canvas.height       = Math.round(h * dpr);
+      canvas.style.width  = w + "px";
+      canvas.style.height = h + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.drawImage(bitmapRef.current, 0, 0, w, h);
+    }
+
+
+
+
+
+
+    const ro = new ResizeObserver(draw);
+    ro.observe(canvas);
+
+    return () => ro.disconnect();
+  }, []);
+
+  // expose ref setter buat parent
+  return { canvasRef, bitmapRef };
+}
+
+export default function NewsCard({ thumbnail_url, tag, title, isMain = false, compact = false, bitmap = null }) {
   const sz = getSizes(isMain, compact);
 
-  // wrapRef yang pegang border -- DI LUAR overflow:hidden
   const wrapRef  = useRef(null);
   const arrowRef = useRef(null);
+  // canvas untuk blur bitmap — dipakai hanya kalau bitmap ada
+  const canvasRef  = useRef(null);
+  const bitmapRef  = useRef(null);
+
+  // setup ResizeObserver untuk canvas bitmap
+  useEffect(() => {
+    if (!bitmap || !canvasRef.current) return;
+
+    bitmapRef.current = bitmap;
+    const canvas = canvasRef.current;
+
+    function draw() {
+      if (!bitmapRef.current) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w   = canvas.offsetWidth  || 1;
+      const h   = canvas.offsetHeight || 1;
+      canvas.width        = Math.round(w * dpr);
+      canvas.height       = Math.round(h * dpr);
+      canvas.style.width  = w + "px";
+      canvas.style.height = h + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.drawImage(bitmapRef.current, 0, 0, w, h);
+    }
+
+    const ro = new ResizeObserver(draw);
+    ro.observe(canvas);
+
+    return () => ro.disconnect();
+  }, [bitmap]);
 
   useEffect(() => {
     const paths = arrowRef.current?.querySelectorAll("path, line, polyline");
@@ -137,15 +198,12 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
   }
 
   return (
-    // wrapper: pegang border-radius, box-shadow, cursor, events
-    // TIDAK punya overflow:hidden -- biar stroke di sudut ga kepotong
     <div
       ref={wrapRef}
       style={styles.wrap(compact)}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
-      {/* inner: overflow:hidden buat crop image dan blur */}
       <div style={styles.card(thumbnail_url, compact)}>
 
         <div ref={arrowRef} style={styles.arrowWrap}>
@@ -158,9 +216,25 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
         </div>
 
         <div style={styles.blurContainer}>
-          {BLUR_LAYERS.map(({ blur, mask }) => (
-            <div key={blur} style={styles.blurLayer(blur, mask)} />
-          ))}
+          {bitmap ? (
+            // path A: canvas pre-rendered dari worker — nggak ada CSS filter
+            <canvas
+              ref={canvasRef}
+              style={{
+                position:      "absolute",
+                inset:         0,
+                width:         "100%",
+                height:        "100%",
+                pointerEvents: "none",
+              }}
+            />
+          ) : (
+            // path B: CSS backdrop-filter fallback — dipakai kalau bitmap belum siap
+            BLUR_LAYERS.map(({ blur, mask }) => (
+              <div key={blur} style={styles.blurLayer(blur, mask)} />
+            ))
+          )}
+          {/* colorOverlay tetap di sini di kedua path — ini bukan backdrop-filter */}
           <div style={styles.colorOverlay} />
         </div>
 
@@ -233,7 +307,6 @@ const styles = {
     background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 68%)",
   },
 
-  // pad dari sz, sama semua sisi biar konsisten
   content: (pad) => ({
     position: "absolute",
     bottom:   pad,

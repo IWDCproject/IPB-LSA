@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import NewsCard from "../news-stuff/NewsCard";
-import Button   from "@/components/Button";
+import NewsCard  from "../news-stuff/NewsCard";
+import Button    from "@/components/Button";
+import { useBlur } from "@/contexts/BlurContext";
 
 // sama kayak StatSection biar konsisten
 const H_MARGIN   = 160;
@@ -109,10 +110,18 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
   const sectionRef = useRef(null);
   const cw         = useContainerWidth(sectionRef);
 
+  // ambil bitmaps dari BlurProvider — keyed by thumbnail_url → { newscard: { bitmap } }
+  const { bitmaps } = useBlur();
+
   const isMobile = cw < MOBILE_THRESHOLD;
   const pad      = isMobile ? MOBILE_PAD : H_MARGIN;
 
   const [main, ...rest] = news;
+
+  // helper buat ambil bitmap per item — null kalau belum siap (fallback ke CSS)
+  function getBitmap(url) {
+    return bitmaps[url]?.newscard?.bitmap ?? null;
+  }
 
   return (
     <section
@@ -135,8 +144,6 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
         <h2
           style={{
             ...styles.heading,
-            // clamp sama persis kayak CTA di StatSection stage 3,
-            // cuma ceiling-nya naik ke 4rem buat desktop
             fontSize:     "clamp(1.8rem, 7vw, 4rem)",
             marginBottom: isMobile ? 12 : 17,
           }}
@@ -146,7 +153,6 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
 
         {isMobile ? (
           // mobile: kartu besar di atas, 4 kecil 2x2 di bawah
-          // basically desktop grid dirotasi 90 derajat
           <div style={styles.mobileLayout}>
             <div style={styles.mobileMainCell}>
               <NewsCard
@@ -155,6 +161,7 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
                 title={main.title}
                 isMain
                 compact
+                bitmap={getBitmap(main.thumbnail_url)}
               />
             </div>
             <div style={styles.mobileSmallGrid}>
@@ -165,6 +172,7 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
                     tag={item.event_id?.name ?? null}
                     title={item.title}
                     compact
+                    bitmap={getBitmap(item.thumbnail_url)}
                   />
                 </div>
               ))}
@@ -179,6 +187,7 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
                 tag={main.event_id?.name ?? null}
                 title={main.title}
                 isMain
+                bitmap={getBitmap(main.thumbnail_url)}
               />
             </div>
             {rest.map((item) => (
@@ -187,6 +196,7 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
                   thumbnail_url={item.thumbnail_url}
                   tag={item.event_id?.name ?? null}
                   title={item.title}
+                  bitmap={getBitmap(item.thumbnail_url)}
                 />
               </div>
             ))}
@@ -205,8 +215,6 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
 }
 
 const styles = {
-  // sama persis dengan StatSection: zIndex, boxShadow
-  // hapus minHeight dari sini karena kita set dinamis di atas
   section: {
     position:       "relative",
     zIndex:         2,
@@ -224,8 +232,6 @@ const styles = {
     width:     "100%",
   },
 
-  // copy paste dari S.headingBase di StatSection, cuma color disesuaikan ke bg putih
-  // textTransform dan letterSpacing sengaja dihapus biar identik
   heading: {
     margin:     0,
     fontFamily: "'Bebas Neue', sans-serif",
@@ -257,7 +263,6 @@ const styles = {
     gap:           12,
   },
 
-  // tinggi main card mobile, lebih pendek dari desktop (520px) tapi tetap dominan
   mobileMainCell: {
     width:  "100%",
     height: 280,
