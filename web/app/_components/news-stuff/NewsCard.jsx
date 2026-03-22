@@ -27,15 +27,15 @@ const BLUR_LAYERS = [
 // semua nilai ukuran dalam satu tempat, gampang diubah
 const SIZE = {
   // desktop main
-  mainTitle:    52,
-  mainTag:      22,
+  mainTitle:    35,
+  mainTag:      18,
   mainArrow:    28,
   mainPad:      45,
   mainStroke:   3,
 
   // mobile main -- sekitar 55% dari desktop main
-  mainCompactTitle: 28,
-  mainCompactTag:   13,
+  mainCompactTitle: 20,
+  mainCompactTag:   10,
   mainCompactArrow: 20,
   mainCompactPad:   20,
   mainCompactStroke: 2,
@@ -141,12 +141,12 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
     // TIDAK punya overflow:hidden -- biar stroke di sudut ga kepotong
     <div
       ref={wrapRef}
-      style={styles.wrap}
+      style={styles.wrap(compact)}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
       {/* inner: overflow:hidden buat crop image dan blur */}
-      <div style={styles.card(thumbnail_url)}>
+      <div style={styles.card(thumbnail_url, compact)}>
 
         <div ref={arrowRef} style={styles.arrowWrap}>
           <ArrowIcon
@@ -175,23 +175,23 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
 }
 
 const styles = {
-  wrap: {
+  wrap: (compact) => ({
     position:     "relative",
     width:        "100%",
     height:       "100%",
-    borderRadius: "20px",
+    borderRadius: compact ? "6px" : "12px",
     cursor:       "pointer",
     boxShadow:    "0 0 0 0px #F5C400, 0 4px 4px rgba(0,0,0,0.25)",
-  },
+  }),
 
-  card: (thumbnail_url) => ({
+  card: (thumbnail_url, compact) => ({
     position:           "relative",
     width:              "100%",
     height:             "100%",
     backgroundImage:    `url(${thumbnail_url})`,
     backgroundSize:     "cover",
     backgroundPosition: "center",
-    borderRadius:       "20px",
+    borderRadius: compact ? "6px" : "12px",
     overflow:           "hidden",
   }),
 
