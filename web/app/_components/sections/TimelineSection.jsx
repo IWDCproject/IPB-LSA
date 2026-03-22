@@ -19,12 +19,12 @@ const THEME = {
 };
 
 const CP = [
-  { pctX: -0.060, pctY: 0.350, hIn: { dx: -0.100, dy:  0.000 }, hOut: { dx:  0.100, dy:  0.180 } },
-  { pctX:  0.290, pctY: 0.158, hIn: { dx: -0.089, dy: -0.123 }, hOut: { dx:  0.092, dy:  0.158 } },
-  { pctX:  0.341, pctY: 0.752, hIn: { dx: -0.080, dy: -0.085 }, hOut: { dx:  0.115, dy:  0.124 } },
-  { pctX:  0.670, pctY: 0.260, hIn: { dx: -0.122, dy: -0.126 }, hOut: { dx:  0.087, dy:  0.087 } },
-  { pctX:  0.770, pctY: 0.700, hIn: { dx: -0.054, dy: -0.071 }, hOut: { dx:  0.114, dy:  0.103 } },
-  { pctX:  1.060, pctY: 0.380, hIn: { dx: -0.208, dy: -0.010 }, hOut: { dx:  0.100, dy:  0.000 } },
+  { pctX: -0.060, pctY: 0.290, hIn: { dx: -0.100, dy:  0.000 }, hOut: { dx:  0.100, dy:  0.180 } },
+  { pctX:  0.290, pctY: 0.098, hIn: { dx: -0.089, dy: -0.123 }, hOut: { dx:  0.092, dy:  0.158 } },
+  { pctX:  0.341, pctY: 0.692, hIn: { dx: -0.080, dy: -0.085 }, hOut: { dx:  0.115, dy:  0.124 } },
+  { pctX:  0.670, pctY: 0.200, hIn: { dx: -0.122, dy: -0.126 }, hOut: { dx:  0.087, dy:  0.087 } },
+  { pctX:  0.770, pctY: 0.640, hIn: { dx: -0.054, dy: -0.071 }, hOut: { dx:  0.114, dy:  0.103 } },
+  { pctX:  1.060, pctY: 0.320, hIn: { dx: -0.208, dy: -0.010 }, hOut: { dx:  0.100, dy:  0.000 } },
 ];
 
 const SLOTS = [
@@ -238,7 +238,7 @@ export default function EventTimeline() {
   const activeIdx   = events.findLastIndex(e => e.isActive);
   const inactiveIdx = activeIdx + 1;
 
-  // ─── Mobile swap ───────────────────────────────────────────────────────────
+  // mobile swap
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < 768
   );
@@ -248,7 +248,6 @@ export default function EventTimeline() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
-  // ───────────────────────────────────────────────────────────────────────────
 
   const containerRef = useRef(null);
   const canvasRef    = useRef(null);
@@ -319,20 +318,25 @@ export default function EventTimeline() {
     const pts = curveRef.current;
     yPtsRef.current = pts.slice(0, activeIdx + 2);
     gPtsRef.current = pts.slice(activeIdx + 1, inactiveIdx + 2);
+
+    // kalau intro sudah jalan, update basePosRef biar ticker ga pakai koordinat lama
+    if (introStarted.current) {
+      CP.slice(1, 5).forEach((cp, i) => {
+        basePosRef.current[i].x = cp.pctX * W;
+        basePosRef.current[i].y = cp.pctY * H;
+      });
+      // canvas.width tadi udah ngehapus bitmap, langsung gambar ulang
+      draw(curveRef.current, introProg.current);
+    }
   };
 
   useEffect(() => {
     initCurve();
-    let resizeTimer;
-    const onResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(initCurve, 150);
-    };
-    window.addEventListener('resize', onResize);
-    return () => {
-      clearTimeout(resizeTimer);
-      window.removeEventListener('resize', onResize);
-    };
+
+    // pakai ResizeObserver supaya lebih akurat dan ga perlu debounce
+    const ro = new ResizeObserver(() => initCurve());
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -632,7 +636,7 @@ export default function EventTimeline() {
           style={{
             position: 'absolute',
             left: '57%',
-            bottom: '-3%',
+            bottom: '2%',
             width: 420,
             transform: 'translateX(-50%)',
             pointerEvents: 'none',
@@ -646,7 +650,7 @@ export default function EventTimeline() {
           style={{
             position: 'absolute',
             left: H_MARGIN,
-            top: '60%',
+            top: '55%',
             transform: 'translateY(-50%)',
             zIndex: 5,
             maxWidth: 300,
