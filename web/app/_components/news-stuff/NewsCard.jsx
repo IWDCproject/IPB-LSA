@@ -35,7 +35,7 @@ const SIZE = {
 
   // mobile main -- sekitar 55% dari desktop main
   mainCompactTitle: 20,
-  mainCompactTag:   10,
+  mainCompactTag:   14,
   mainCompactArrow: 20,
   mainCompactPad:   20,
   mainCompactStroke: 2,

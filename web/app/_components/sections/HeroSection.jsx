@@ -170,6 +170,33 @@ export default function HeroSection({ paused = false }) {
     const sectionRef = useRef(null);
     const [cw, setCw] = useState(1440);
 
+    // FIX 1: pausedRef mirrors the paused prop into a ref so it can be read inside
+    // the ticker without appearing in the effect's dependency array.
+    //
+    // Why not just use the prop directly? Because `paused` is in the dep array of
+    // the ticker effect. Every time CurtainWrapper's IO flips heroPaused, React
+    // tears the whole effect down (gsap.ticker.remove) and re-registers it fresh
+    // (gsap.ticker.add). That resets `startTime` to null, making the progress bar
+    // restart from 0 each time the user scrolls the hero back into view — a
+    // visible glitch. With a ref, the ticker stays registered permanently and just
+    // reads the current value on each frame with zero React involvement.
+    //
+    // Note: we do NOT use an IntersectionObserver here. HeroSection lives inside a
+    // `position: fixed` container in CurtainWrapper, which means it is always
+    // intersecting the viewport — an IO on sectionRef would never fire false.
+    // CurtainWrapper already observes the heroSpacerRef scroll proxy and passes the
+    // result down as the `paused` prop, which is the correct source of truth.
+    //
+    // tabVisRef — Page Visibility API. gsap.ticker throttles to ~1fps on hidden
+    // tabs but does not reach zero. This ref makes the tick truly no-op when the
+    // tab is backgrounded, saving CPU/battery on long-scrolling pages.
+    const pausedRef = useRef(paused);
+    const tabVisRef = useRef(true); // assume visible on first render (SSR-safe default)
+
+    // Keep pausedRef in sync whenever the prop changes. useEffect runs after render
+    // so the ref is always current before the next ticker frame.
+    useEffect(() => { pausedRef.current = paused; }, [paused]);
+
     useEffect(() => {
         const el = sectionRef.current;
         if (!el) return;
@@ -216,8 +243,6 @@ export default function HeroSection({ paused = false }) {
     useEffect(() => {
         if (readyIds.size !== EVENTS.length) return;
         const t = setTimeout(() => {
-            // window.__lenis?.start() removed — Lenis no longer used.
-            // Native scroll starts immediately; no gate-keeping needed.
             setMounted(true);
         }, OVERLAY_FADE_MS);
         return () => clearTimeout(t);
@@ -225,9 +250,6 @@ export default function HeroSection({ paused = false }) {
 
     const displayEvent = EVENTS[displayIdx];
 
-    // infoAnimStyle previously created a new object literal on every call every render.
-    // useMemo recomputes the 4 style objects only when the driving state actually changes,
-    // so spread usage like {...infoAnimStyle(1)} gets a stable reference between renders.
     const infoAnimStyles = useMemo(() => {
         const make = (slot) => {
             if (!mounted) return { opacity: 0 };
@@ -265,20 +287,26 @@ export default function HeroSection({ paused = false }) {
     };
 
     useEffect(() => {
-        if (animating || paused) return;
+        if (animating) return;
 
         let startTime    = null;
         let currentPhase = "fill";
 
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
-        // Uses gsap.ticker instead of a separate requestAnimationFrame loop.
-        // Consolidates from 3 tick systems (lenis, timeline canvas, bar RAF)
-        // down to 2, reducing scheduling jitter between them.
-        //
-        // Percentages are integer-rounded: 101 unique strings over 10s at 144Hz
-        // vs 1441 without rounding — 14x fewer string allocations.
         const tick = () => {
+            // FIX 2: Gate the tick on paused state (via ref, not prop) and tab
+            // visibility. Both are pure ref reads — zero allocations, zero React
+            // involvement, ticker registration never changes.
+            //
+            // startTime is nulled on gate so that when the ticker resumes, elapsed
+            // starts from 0. Without this, after e.g. 8 seconds scrolled away the
+            // bar would snap to the next slide on the very first visible frame.
+            if (pausedRef.current || !tabVisRef.current) {
+                startTime = null;
+                return;
+            }
+
             const timestamp = performance.now();
             if (!startTime) startTime = timestamp;
             const elapsed = timestamp - startTime;
@@ -313,7 +341,7 @@ export default function HeroSection({ paused = false }) {
 
         gsap.ticker.add(tick);
         return () => gsap.ticker.remove(tick);
-    }, [activeIdx, animating, paused]);
+    }, [activeIdx, animating]);
 
     const mobileCards     = EVENTS.slice(0, 4);
     const visibleCount    = isMobile ? mobileCards.length : EVENTS.length;
@@ -327,8 +355,15 @@ export default function HeroSection({ paused = false }) {
         }
     }, [isMobile]);
 
-    // Issue 7 fix: <style> block removed. All @keyframes now live in globals.css.
-    // Previously 9 keyframe rules were re-parsed by the browser on every render.
+    // FIX 4: Page Visibility API for tab-switch gating.
+    // Handles: tab switch, window minimize, mobile app switch, browser hidden.
+    // Writes to tabVisRef — same zero-re-render pattern as above.
+    useEffect(() => {
+        const onVisibilityChange = () => { tabVisRef.current = !document.hidden; };
+        document.addEventListener("visibilitychange", onVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+    }, []);
+
     return (
         <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
             <div
