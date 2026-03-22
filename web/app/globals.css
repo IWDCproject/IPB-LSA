@@ -17,6 +17,8 @@ body {
 
 html, body {
   overscroll-behavior: none;
+  scroll-behavior: smooth;
+
 }
 
 /* ── MatchSection — scrollbar hide (was a per-render <style> tag) ── */

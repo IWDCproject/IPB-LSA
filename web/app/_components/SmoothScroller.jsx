@@ -1,16 +1,26 @@
 "use client";
 
-// Lenis removed entirely.
-//
-// The parallax and smooth feel are now handled by Motion for React
-// (useScroll + useTransform + useSpring in CurtainWrapper), which uses
-// the browser's native ScrollTimeline API for hardware-accelerated scroll-linked
-// animations. Native scroll is never intercepted, so Firefox APZ stays async.
-//
-// If you imported lenis/dist/lenis.css in this file, you can remove that CSS
-// import too. Also ensure globals.css has no `overflow: hidden` on html/body
-// that was previously set by Lenis to lock native scroll.
+import { useEffect } from "react";
+import Lenis from "lenis";
+import "lenis/dist/lenis.css";
 
 export default function SmoothScroller({ children }) {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 0.5,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => lenis.destroy();
+  }, []);
+
   return <>{children}</>;
 }
