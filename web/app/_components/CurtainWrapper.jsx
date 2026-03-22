@@ -1,78 +1,93 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import HeroSection from "./sections/HeroSection";
-import NewsSection from "./sections/NewsSection";
-import StatSection from "./sections/StatSection";
-import MatchSection from "./sections/MatchSection";
+import { motion, useScroll, useTransform } from "motion/react";
+
+import HeroSection     from "./sections/HeroSection";
+import NewsSection     from "./sections/NewsSection";
+import StatSection     from "./sections/StatSection";
+import MatchSection    from "./sections/MatchSection";
 import TimelineSection from "./sections/TimelineSection";
 
 const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
 
 export default function CurtainWrapper() {
-  const heroRef          = useRef(null);
-  const timelineStickyRef = useRef(null);
-  const timelineInnerRef  = useRef(null);
+  const heroSpacerRef  = useRef(null);
+  const newsSectionRef = useRef(null);
   const [heroPaused, setHeroPaused] = useState(false);
 
+  const viewportH = useRef(0);
   useEffect(() => {
-    const sectionH = window.innerHeight - HEADER_HEIGHT;
-    // snapshot sekali setelah layout, sebelum scroll apapun
-    const timelineStart = (timelineStickyRef.current?.offsetTop ?? 0) - HEADER_HEIGHT;
-
-    const onScroll = (e) => {
-      const { scroll } = e.detail;
-
-      // parallax hero
-      if (scroll <= sectionH) {
-        heroRef.current.style.transform = `translate3d(0, -${scroll * PARALLAX_SPEED}px, 0)`;
-      }
-      const isPaused = scroll > sectionH;
-      setHeroPaused((prev) => (prev === isPaused ? prev : isPaused));
-
-      // parallax timeline, pakai nilai yang dicache
-      const timelineScroll = scroll - timelineStart;
-      timelineInnerRef.current.style.transform = timelineScroll > 0
-        ? `translate3d(0, -${timelineScroll * PARALLAX_SPEED}px, 0)`
-        : `translate3d(0, 0px, 0)`;
-    };
-
-    window.addEventListener("lenis-scroll", onScroll);
-    return () => window.removeEventListener("lenis-scroll", onScroll);
+    viewportH.current = window.innerHeight;
+    const onResize = () => { viewportH.current = window.innerHeight; };
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const sectionH = `calc(100vh - ${HEADER_HEIGHT}px)`;
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroSpacerRef,
+    offset: ["start start", "end start"],
+  });
+
+  const heroY = useTransform(() => {
+    const sectionH = viewportH.current - HEADER_HEIGHT;
+    return -heroProgress.get() * sectionH * PARALLAX_SPEED;
+  });
+
+  const { scrollYProgress: tlProgress } = useScroll({
+    target: newsSectionRef,
+    offset: ["start end", "start start"],
+  });
+
+  const timelineY = useTransform(() => {
+    const sectionH = viewportH.current - HEADER_HEIGHT;
+    return -tlProgress.get() * sectionH * PARALLAX_SPEED;
+  });
+
+  useEffect(() => {
+    const el = heroSpacerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setHeroPaused(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const sectionH  = `calc(100vh - ${HEADER_HEIGHT}px)`;
+  const parallaxH = `calc((100vh - ${HEADER_HEIGHT}px) * ${1 + PARALLAX_SPEED})`;
 
   return (
     <>
-      {/* hero: fixed z=1 */}
-      <div
-        ref={heroRef}
+      <motion.div
         style={{
           position:           "fixed",
           top:                HEADER_HEIGHT,
           left:               0,
           right:              0,
-          height:             sectionH,
+          height:             parallaxH,
           zIndex:             1,
+          y:                  heroY,
           willChange:         "transform",
           backfaceVisibility: "hidden",
+          overflow:           "hidden",
         }}
       >
-        <HeroSection paused={heroPaused} />
-      </div>
-      <div style={{ height: sectionH }} aria-hidden="true" />
+        <div style={{ height: sectionH, overflow: "hidden" }}>
+          <HeroSection paused={heroPaused} />
+        </div>
+      </motion.div>
 
-      {/* stat + match: normal flow z=2 */}
+      <div ref={heroSpacerRef} style={{ height: sectionH }} aria-hidden="true" />
+
       <div style={{ position: "relative", zIndex: 2 }}>
         <StatSection />
         <MatchSection />
       </div>
 
-      {/* timeline: sticky z=2 */}
       <div
-        ref={timelineStickyRef}
         style={{
           position: "sticky",
           top:      HEADER_HEIGHT,
@@ -81,13 +96,20 @@ export default function CurtainWrapper() {
           overflow: "hidden",
         }}
       >
-        <div ref={timelineInnerRef} style={{ willChange: "transform" }}>
+        <motion.div
+          style={{
+            y:          timelineY,
+            willChange: "transform",
+          }}
+        >
           <TimelineSection />
-        </div>
+        </motion.div>
       </div>
 
-      {/* news: normal flow z=3 */}
-      <div style={{ position: "relative", zIndex: 3, height: sectionH }}>
+      <div
+        ref={newsSectionRef}
+        style={{ position: "relative", zIndex: 3, height: sectionH }}
+      >
         <NewsSection />
       </div>
     </>

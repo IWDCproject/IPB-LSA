@@ -17,4 +17,89 @@ body {
 
 html, body {
   overscroll-behavior: none;
+  scroll-behavior: smooth;
+
 }
+
+/* ── MatchSection — scrollbar hide (was a per-render <style> tag) ── */
+ 
+.match-scroll::-webkit-scrollbar { display: none; }
+.match-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+ 
+@keyframes bgFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+ 
+@keyframes notch-pop {
+  from { opacity: 0; transform: translateX(-50%) scaleX(0.5); }
+  to   { opacity: 1; transform: translateX(-50%) scaleX(1); }
+}
+ 
+@keyframes info-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+ 
+@keyframes info-enter {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+@keyframes hero-intro {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+@keyframes hero-bar-intro {
+  from { opacity: 0; transform: scaleX(0); transform-origin: left; }
+  to   { opacity: 1; transform: scaleX(1); transform-origin: left; }
+}
+ 
+@keyframes hero-cards-intro {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+@keyframes hero-marquee-intro {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+ 
+/* ── StatSection ── */
+ 
+@keyframes stat-intro {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+/* ── MatchSection ── */
+ 
+@keyframes live-intro {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+/* ── TimelineSection ──
+   The .et-pulse::after rule was injected via dangerouslySetInnerHTML.
+   Moved here so it's also parsed once. ── */
+ 
+.et-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  animation: pulse-ring 2.4s ease-out infinite;
+  will-change: transform, opacity;
+}
+ 
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.8); opacity: 0;   }
+}
+ 

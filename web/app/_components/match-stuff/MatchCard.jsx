@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const BB = { fontFamily: "'Bebas Neue', 'Arial Narrow', sans-serif" };
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
@@ -9,22 +9,42 @@ const S = {
     borderRadius: 10, overflow: "hidden", color: "#fff",
     display: "flex", flexDirection: "column",
     width: "100%", height: "100%", position: "relative",
+    // Fix 6: contain tells the browser this card is an isolated paint region.
+    // It prevents style recalc and layout from propagating outside, and lets
+    // the browser cache the composited result without re-checking neighbours.
+    contain: "layout paint",
   },
   cardBg: {
     position: "absolute", inset: 0,
     backgroundSize: "cover", backgroundPosition: "center",
-    filter: "blur(6px)", transform: "scale(1.1)",
+    // Fix 6: no filter here — the blur is on its own dedicated layer (cardBgBlur).
+    // Keeping blur and the base image on the same element forces them to share
+    // a rasterization surface; splitting them lets the GPU cache each independently.
+  },
+  cardBgBlur: {
+    position: "absolute",
+    // negative inset counteracts the scale(1.1) edge bleed
+    inset: "-5%",
+    backgroundSize: "cover", backgroundPosition: "center",
+    filter: "blur(6px)",
+    transform: "scale(1.1)",
+    // Fix 6: willChange: "transform" promotes this element to its own GPU layer.
+    // The browser rasterizes it once and composites it without re-running the
+    // blur kernel every frame, even while the page is scrolling.
+    willChange: "transform",
+    zIndex: 0,
   },
   cardOverlay: {
     position: "absolute", inset: 0,
     background: "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.75) 100%)",
+    zIndex: 1,
   },
   cardInner: {
-    position: "relative", zIndex: 1,
+    position: "relative", zIndex: 2,
     display: "flex", flexDirection: "column", flex: 1,
     boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,1)",
     height: "100%",
-     borderRadius: 10,
+    borderRadius: 10,
   },
   header: {
     display: "flex", justifyContent: "space-between", alignItems: "flex-start",
@@ -38,11 +58,6 @@ const S = {
     background: "#ef4444", borderRadius: 4, padding: "0px 7px",
     fontSize: 14, letterSpacing: 1, flexShrink: 0,
   },
-  // liveDot: {
-  //   width: 6, height: 6, borderRadius: "50%",
-  //   background: "#fff", display: "inline-block",
-  //   animation: "pulse 1.2s ease-in-out infinite",
-  // },
   participant:     { display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
   participantName: { ...JK, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   participantInst: { ...JK, fontSize: 12, fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" },
@@ -72,12 +87,14 @@ function calcJudgeScore(scores = [], method = "avg") {
   return method === "sum" ? sum : sum / scores.length;
 }
 
-// timer pakai snapshot + elapsed, biar nggak nulis ke DB tiap detik
-// lihat schema Bagian 11 untuk detail pattern ini
-function useMatchTimer(live, timerMod) {
-  const [secs, setSecs] = useState(0);
-
+// Timer writes directly to a DOM ref instead of going through React state.
+// Previously: setInterval → setSecs() → React re-renders entire card every second.
+// Now:        setInterval → ref.current.textContent = ...  → zero React involvement.
+// With 5 live timers, this eliminates 5 React re-renders per second.
+function useMatchTimerDOM(ref, live, timerMod) {
   useEffect(() => {
+    if (!timerMod) return;
+
     const isStopwatch = timerMod?.config?.mode === "stopwatch";
 
     const calc = () => {
@@ -87,14 +104,16 @@ function useMatchTimer(live, timerMod) {
       return isStopwatch ? snap + elapsed : Math.max(0, snap - elapsed);
     };
 
-    setSecs(calc());
+    // Paint the initial value right away so there's no flash of stale text
+    if (ref.current) ref.current.textContent = fmtSecs(calc());
     if (!live?.timerRunning) return;
 
-    const id = setInterval(() => setSecs(calc()), 1000);
+    const id = setInterval(() => {
+      if (ref.current) ref.current.textContent = fmtSecs(calc());
+    }, 1000);
+
     return () => clearInterval(id);
   }, [live?.timerRunning, live?.timerLastStarted, live?.timerSecs, timerMod?.config?.mode]);
-
-  return secs;
 }
 
 function InstitutionLogo({ inst, size = 32 }) {
@@ -206,8 +225,6 @@ function ManualPick({ live }) {
   return <div style={{ ...JK, fontSize: 12, fontWeight: 600, opacity: 0.5, textAlign: "center" }}>Waiting...</div>;
 }
 
-// peserta open match: dari junction rows match_participants
-// tiap item: { id, position, participant_id: { id, name, institution } }
 function OpenParticipants({ match }) {
   const entries = [...(match?.participants ?? [])]
     .sort((a, b) => a.position - b.position)
@@ -248,19 +265,27 @@ function ScoreSection({ fmt, live, match }) {
 export function MatchCard({ match }) {
   const { format: fmt, live_state: live, event, competition_category: cat } = match;
 
-  const timerMod = getTimerMod(fmt);
-  const secs     = useMatchTimer(live, timerMod);
+  const timerMod    = getTimerMod(fmt);
+  const timerRef    = useRef(null);         // DOM ref — timer writes here directly, no setState
+  useMatchTimerDOM(timerRef, live, timerMod);
+
   const isH2H    = fmt?.match_type === "head_to_head";
   const isSolo   = fmt?.match_type === "solo";
   const isOpen   = fmt?.match_type === "open";
 
-  // match_name override, fallback ke "Kategori - Ronde"
   const label = match.match_name || [cat?.name, match.round].filter(Boolean).join(" - ");
 
+  const hasBg = !!event?.card_image_url;
+
   return (
-    <div style={{ ...S.card, background: event?.card_image_url ? undefined : "rgba(255,255,255,0.08)" }}>
-      {event?.card_image_url && (
-        <div style={{ ...S.cardBg, backgroundImage: `url(${event.card_image_url})` }} />
+    <div style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
+      {hasBg && (
+        <>
+          {/* Static base image — no filter, no blur */}
+          <div style={{ ...S.cardBg, backgroundImage: `url(${event.card_image_url})` }} />
+          {/* Blurred layer on its own GPU-promoted layer (willChange: transform) */}
+          <div style={{ ...S.cardBgBlur, backgroundImage: `url(${event.card_image_url})` }} />
+        </>
       )}
       <div style={S.cardOverlay} />
       <div style={S.cardInner}>
@@ -271,8 +296,7 @@ export function MatchCard({ match }) {
             <div style={S.meta}>{label}</div>
           </div>
           <div style={S.liveBadge}>
-            {/* <span style={S.liveDot} /> */}
-            {timerMod ? fmtSecs(secs) : "LIVE"}
+            {timerMod ? <span ref={timerRef}>00:00</span> : "LIVE"}
           </div>
         </div>
 
