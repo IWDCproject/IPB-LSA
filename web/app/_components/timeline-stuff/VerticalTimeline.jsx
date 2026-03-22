@@ -86,7 +86,7 @@ export default function VerticalTimeline({ events }) {
             delay: delay + 0.8,
           });
           gsap.to(card, {
-            rotate: isLeft ? -0.3 : 0.3,
+            rotate: isLeft ? -0.15 : 0.15,
             duration: (3 + i * 0.4) * 1.7,
             repeat: -1, yoyo: true, ease: 'sine.inOut',
             delay: delay + 1.0,
@@ -306,7 +306,7 @@ export default function VerticalTimeline({ events }) {
                         e.currentTarget.style.transform = `rotate(${isLeft ? -3 : 3}deg)`;
                       }}
                     >
-                      <EventCard event={ev} className="w-full h-full" size="lg" />
+                      <EventCard event={ev} className="w-full h-full" size="sm" />
                     </div>
                   </div>
                 </div>
@@ -319,10 +319,13 @@ export default function VerticalTimeline({ events }) {
                     style={{
                       width:        dotSize,
                       height:       dotSize,
+                      color: dotColor,
                       borderRadius: '50%',
                       background:   dotColor,
                       boxShadow:    `0 0 12px ${dotGlow}, 0 0 4px ${dotColor}`,
                       opacity:      0,
+                      willChange:   'transform',
+                      position:     'relative', 
                     }}
                   />
                 </div>
