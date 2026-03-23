@@ -27,7 +27,30 @@ export default function VerticalTimeline({ events }) {
 
   const activeIdx = events.findLastIndex(e => e.isActive);
 
+  // FIX 1: Collect all repeat:-1 float tweens into an array so the IO and
+  // visibilitychange callbacks can pause/resume them as a group.
+  //
+  // Why an array instead of a gsap.timeline()? The existing float tweens use
+  // standalone `delay` values relative to component mount time. Putting them in
+  // a timeline would require converting those delays to timeline positions, which
+  // risks changing visual behavior. An array of tween refs achieves the same
+  // pause/resume result with zero behavioral change.
+  //
+  // Note: gsap.context() + ctx.revert() already handles unmount — every tween,
+  // including the repeat:-1 ones, is killed when the component unmounts. The
+  // array is only needed for the scroll-out/tab-hidden pause/resume.
+  const floatTweensRef = useRef([]);
+
+  // FIX 2: Tab visibility ref. Mirrors document.hidden into a ref so the
+  // visibilitychange handler can sync the float tween pause state without
+  // causing React re-renders.
+  const tabVisRef = useRef(true);
+
   useEffect(() => {
+    // FIX 3: Reset the array on each effect run so React Strict Mode's
+    // double-invoke doesn't accumulate stale tween refs from the first run.
+    floatTweensRef.current = [];
+
     const ctx = gsap.context(() => {
 
       // Line fill
@@ -73,31 +96,42 @@ export default function VerticalTimeline({ events }) {
             }
           );
 
-          gsap.to(card, {
-            y: isLeft ? 3 : -3,
-            duration: 3 + i * 0.4,
-            repeat: -1, yoyo: true, ease: 'sine.inOut',
-            delay: delay + 0.5,
-          });
-          gsap.to(card, {
-            // x: isLeft ? -0.5 : 0.5,
-            duration: (3 + i * 0.4) * 1.3,
-            repeat: -1, yoyo: true, ease: 'sine.inOut',
-            delay: delay + 0.8,
-          });
-          gsap.to(card, {
-            rotate: isLeft ? -0.15 : 0.15,
-            duration: (3 + i * 0.4) * 1.7,
-            repeat: -1, yoyo: true, ease: 'sine.inOut',
-            delay: delay + 1.0,
-          });
+          // FIX 4: Push each repeat:-1 tween into floatTweensRef so they can
+          // be paused/resumed by the IO and visibilitychange callbacks below.
+          // The tween creation itself is unchanged — only the return value is captured.
+          floatTweensRef.current.push(
+            gsap.to(card, {
+              y: isLeft ? 3 : -3,
+              duration: 3 + i * 0.4,
+              repeat: -1, yoyo: true, ease: 'sine.inOut',
+              delay: delay + 0.5,
+            })
+          );
+          floatTweensRef.current.push(
+            gsap.to(card, {
+              // x: isLeft ? -0.5 : 0.5,
+              duration: (3 + i * 0.4) * 1.3,
+              repeat: -1, yoyo: true, ease: 'sine.inOut',
+              delay: delay + 0.8,
+            })
+          );
+          floatTweensRef.current.push(
+            gsap.to(card, {
+              rotate: isLeft ? -0.15 : 0.15,
+              duration: (3 + i * 0.4) * 1.7,
+              repeat: -1, yoyo: true, ease: 'sine.inOut',
+              delay: delay + 1.0,
+            })
+          );
           const xEl = xFloatRefs.current[i];
-          if (xEl) gsap.to(xEl, {
-            x: isLeft ? -2 : 2,
-            duration: (3 + i * 0.4) * 1.3,
-            repeat: -1, yoyo: true, ease: 'sine.inOut',
-            delay: delay + 0.8,
-          });
+          if (xEl) floatTweensRef.current.push(
+            gsap.to(xEl, {
+              x: isLeft ? -2 : 2,
+              duration: (3 + i * 0.4) * 1.3,
+              repeat: -1, yoyo: true, ease: 'sine.inOut',
+              delay: delay + 0.8,
+            })
+          );
         }
 
         if (label) {
@@ -131,6 +165,54 @@ export default function VerticalTimeline({ events }) {
 
     return () => ctx.revert();
   }, [events.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // FIX 5: IntersectionObserver on wrapRef pauses float tweens when the section
+  // scrolls out of view and resumes them when it scrolls back in.
+  //
+  // VerticalTimeline lives inside `position: sticky` in CurtainWrapper (unlike
+  // HeroSection which is `position: fixed`), so IO fires correctly here.
+  //
+  // Separate from the gsap.context useEffect so the IO lifecycle is independent
+  // — it doesn't need to re-run when events.length changes.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const pause  = () => floatTweensRef.current.forEach(t => t.pause());
+    const resume = () => floatTweensRef.current.forEach(t => t.resume());
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !document.hidden) resume();
+        else pause();
+      },
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // FIX 6: Page Visibility API. Handles tab switch, window minimize, and mobile
+  // app switch — none of which IntersectionObserver detects.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      tabVisRef.current = !document.hidden;
+      // Only resume if the section is also visible in the viewport.
+      // Avoids resuming tweens for a section that's already scrolled away.
+      const inView = wrapRef.current
+        ? wrapRef.current.getBoundingClientRect().bottom > 0 &&
+          wrapRef.current.getBoundingClientRect().top < window.innerHeight
+        : false;
+
+      if (!document.hidden && inView) {
+        floatTweensRef.current.forEach(t => t.resume());
+      } else {
+        floatTweensRef.current.forEach(t => t.pause());
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
   return (
     <div
@@ -248,12 +330,10 @@ export default function VerticalTimeline({ events }) {
               : 'rgba(255,255,255,0.3)';
             const dotSize  = isActive ? 16 : 11;
 
-            const label = ev.status === 'active'
-              ? 'ONGOING'
-              : !ev.start_date ? 'TBA'
-              : new Date(ev.start_date)
-                  .toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
-                  .toUpperCase();
+            // FIX 7: ev.label is already computed by buildEvents() in EventTimeline
+            // before being passed down as a prop. The inline new Date() +
+            // toLocaleDateString() here was redundant work on every render.
+            const label = ev.label;
 
             const cardBorder = isActive || isPast ? LINE_COLOR_ACTIVE : 'rgba(255,255,255,0.35)';
             const cardShadow = isActive

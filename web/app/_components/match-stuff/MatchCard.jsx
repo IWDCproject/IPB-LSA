@@ -9,28 +9,18 @@ const S = {
     borderRadius: 10, overflow: "hidden", color: "#fff",
     display: "flex", flexDirection: "column",
     width: "100%", height: "100%", position: "relative",
-    // Fix 6: contain tells the browser this card is an isolated paint region.
-    // It prevents style recalc and layout from propagating outside, and lets
-    // the browser cache the composited result without re-checking neighbours.
     contain: "layout paint",
   },
   cardBg: {
     position: "absolute", inset: 0,
     backgroundSize: "cover", backgroundPosition: "center",
-    // Fix 6: no filter here — the blur is on its own dedicated layer (cardBgBlur).
-    // Keeping blur and the base image on the same element forces them to share
-    // a rasterization surface; splitting them lets the GPU cache each independently.
   },
   cardBgBlur: {
     position: "absolute",
-    // negative inset counteracts the scale(1.1) edge bleed
     inset: "-5%",
     backgroundSize: "cover", backgroundPosition: "center",
     filter: "blur(6px)",
     transform: "scale(1.1)",
-    // Fix 6: willChange: "transform" promotes this element to its own GPU layer.
-    // The browser rasterizes it once and composites it without re-running the
-    // blur kernel every frame, even while the page is scrolling.
     willChange: "transform",
     zIndex: 0,
   },
@@ -87,10 +77,6 @@ function calcJudgeScore(scores = [], method = "avg") {
   return method === "sum" ? sum : sum / scores.length;
 }
 
-// Timer writes directly to a DOM ref instead of going through React state.
-// Previously: setInterval → setSecs() → React re-renders entire card every second.
-// Now:        setInterval → ref.current.textContent = ...  → zero React involvement.
-// With 5 live timers, this eliminates 5 React re-renders per second.
 function useMatchTimerDOM(ref, live, timerMod) {
   useEffect(() => {
     if (!timerMod) return;
@@ -104,7 +90,6 @@ function useMatchTimerDOM(ref, live, timerMod) {
       return isStopwatch ? snap + elapsed : Math.max(0, snap - elapsed);
     };
 
-    // Paint the initial value right away so there's no flash of stale text
     if (ref.current) ref.current.textContent = fmtSecs(calc());
     if (!live?.timerRunning) return;
 
@@ -262,16 +247,62 @@ function ScoreSection({ fmt, live, match }) {
   }
 }
 
-export function MatchCard({ match }) {
+// canvas blur path — draw bitmap ke canvas, scale ikutin ukuran container
+// ResizeObserver mastiin canvas dimensions selalu sync sama display size
+function BitmapBlurLayer({ bitmap }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!bitmap || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+
+    function draw() {
+      const dpr = window.devicePixelRatio || 1;
+      const w   = canvas.offsetWidth  || 1;
+      const h   = canvas.offsetHeight || 1;
+      canvas.width        = Math.round(w * dpr);
+      canvas.height       = Math.round(h * dpr);
+      canvas.style.width  = w + "px";
+      canvas.style.height = h + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.drawImage(bitmap, 0, 0, w, h);
+    }
+
+    const ro = new ResizeObserver(draw);
+    ro.observe(canvas);
+
+    return () => ro.disconnect();
+  }, [bitmap]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position:      "absolute",
+        inset:         0,
+        width:         "100%",
+        height:        "100%",
+        pointerEvents: "none",
+        zIndex:        0,
+      }}
+    />
+  );
+}
+
+// bitmap prop opsional — kalau null, fallback ke CSS backdrop-filter (jalan seperti biasa)
+// scale(1.1) pada CSS path untuk nutup edge bleed blur
+// pada canvas path tidak diperlukan karena PAD_FACTOR sudah handle itu
+export function MatchCard({ match, bitmap = null }) {
   const { format: fmt, live_state: live, event, competition_category: cat } = match;
 
-  const timerMod    = getTimerMod(fmt);
-  const timerRef    = useRef(null);         // DOM ref — timer writes here directly, no setState
+  const timerMod = getTimerMod(fmt);
+  const timerRef = useRef(null);
   useMatchTimerDOM(timerRef, live, timerMod);
 
-  const isH2H    = fmt?.match_type === "head_to_head";
-  const isSolo   = fmt?.match_type === "solo";
-  const isOpen   = fmt?.match_type === "open";
+  const isH2H  = fmt?.match_type === "head_to_head";
+  const isSolo = fmt?.match_type === "solo";
+  const isOpen = fmt?.match_type === "open";
 
   const label = match.match_name || [cat?.name, match.round].filter(Boolean).join(" - ");
 
@@ -281,12 +312,18 @@ export function MatchCard({ match }) {
     <div style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
       {hasBg && (
         <>
-          {/* Static base image — no filter, no blur */}
+          {/* static base image — no filter */}
           <div style={{ ...S.cardBg, backgroundImage: `url(${event.card_image_url})` }} />
-          {/* Blurred layer on its own GPU-promoted layer (willChange: transform) */}
-          <div style={{ ...S.cardBgBlur, backgroundImage: `url(${event.card_image_url})` }} />
+
+          {/* blur layer — path A: pre-rendered bitmap, path B: CSS filter */}
+          {bitmap ? (
+            <BitmapBlurLayer bitmap={bitmap} />
+          ) : (
+            <div style={{ ...S.cardBgBlur, backgroundImage: `url(${event.card_image_url})` }} />
+          )}
         </>
       )}
+
       <div style={S.cardOverlay} />
       <div style={S.cardInner}>
 
