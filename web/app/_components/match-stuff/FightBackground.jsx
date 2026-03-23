@@ -10,7 +10,7 @@ export default function FightBackground({ visible = false }) {
     // Jalankan video dari awal saat props visible jadi true
     if (visible && videoRef.current) {
       videoRef.current.currentTime = 0;
-	  videoRef.current.playbackRate = 2.8;
+	    videoRef.current.playbackRate = 1.5;
       videoRef.current.play();
     }
   }, [visible]);
@@ -54,13 +54,12 @@ export default function FightBackground({ visible = false }) {
     >
       <video
         ref={videoRef}
-        // Ganti dengan lokasi file mp4 kamu di folder public
-        src="/videos/Smooth_Handwriting_Animation_Request.mp4" 
+        src="/videos/0323(1).mp4" 
         // opacity-20 tetap dipakai sesuai desain awalmu
         className="w-full h-auto opacity-15" 
         style={{
           transform: "scale(1.5)", // Atur scale-nya di sini seperti biasa
-          mixBlendMode: "screen",  // INI MAGIC-NYA: Hilangin background hitam!
+          mixBlendMode: "screen",  
         }}
         muted
         playsInline
