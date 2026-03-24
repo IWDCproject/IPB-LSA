@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import { gsap }              from "gsap";
-import ArrowIcon             from "@/app/icons/arrow-up-right.svg";
+import { useState, useEffect, useRef } from "react";
+import { gsap }    from "gsap";
+import ArrowIcon   from "@/app/icons/arrow-up-right.svg";
 
 // Props map 1:1 ke kolom DB
 // thumbnail_url  <- news.thumbnail_url
@@ -19,7 +19,9 @@ const BLUR_LAYERS = [
   { blur: "10px", mask: "linear-gradient(rgba(0,0,0,0) 68%, rgba(0,0,0,1) 82%, rgba(0,0,0,1) 100%)" },
 ];
 
-const SIZE = {
+// Base sizes — designed for the reference width of each variant.
+// getSizes multiplies these by the card's observed scale factor.
+const BASE = {
   mainTitle:    35,
   mainTag:      18,
   mainArrow:    28,
@@ -45,90 +47,63 @@ const SIZE = {
   smallCompactStroke: 2,
 };
 
-function getSizes(isMain, compact) {
-  if (isMain && !compact) return {
-    title:  SIZE.mainTitle,
-    tag:    SIZE.mainTag,
-    arrow:  SIZE.mainArrow,
-    pad:    SIZE.mainPad,
-    stroke: SIZE.mainStroke,
-  };
-  if (isMain && compact) return {
-    title:  SIZE.mainCompactTitle,
-    tag:    SIZE.mainCompactTag,
-    arrow:  SIZE.mainCompactArrow,
-    pad:    SIZE.mainCompactPad,
-    stroke: SIZE.mainCompactStroke,
-  };
-  if (!isMain && !compact) return {
-    title:  SIZE.smallTitle,
-    tag:    SIZE.smallTag,
-    arrow:  SIZE.smallArrow,
-    pad:    SIZE.smallPad,
-    stroke: SIZE.smallStroke,
-  };
-  return {
-    title:  SIZE.smallCompactTitle,
-    tag:    SIZE.smallCompactTag,
-    arrow:  SIZE.smallCompactArrow,
-    pad:    SIZE.smallCompactPad,
-    stroke: SIZE.smallCompactStroke,
-  };
+// Reference widths: the card width each variant was designed for.
+// The card observes its own rendered width and scales relative to this.
+const REF_W = {
+  main:         800,
+  mainCompact:  350,
+  small:        400,
+  smallCompact: 175,
+};
+
+function getVariant(isMain, compact) {
+  if (isMain && !compact) return "main";
+  if (isMain &&  compact) return "mainCompact";
+  if (!isMain && !compact) return "small";
+  return "smallCompact";
 }
 
-// canvas yang nge-scale bitmap ke ukuran container via ResizeObserver
-// dipasang di dalam blurContainer — menggantikan 4× backdropFilter div
-// kalau bitmap null, komponen ini nggak di-render (fallback ke CSS)
-function BitmapBlurCanvas() {
-  const canvasRef = useRef(null);
+function getSizes(isMain, compact, scale) {
+  const v = getVariant(isMain, compact);
+  const pfx = v === "main"         ? "main"
+             : v === "mainCompact" ? "mainCompact"
+             : v === "small"       ? "small"
+             :                       "smallCompact";
 
-  // bitmap disimpan di ref biar ResizeObserver bisa akses tanpa closure masalah
-  const bitmapRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-
-    function draw() {
-      if (!bitmapRef.current) return;
-      const dpr = window.devicePixelRatio || 1;
-      const w   = canvas.offsetWidth  || 1;
-      const h   = canvas.offsetHeight || 1;
-      canvas.width        = Math.round(w * dpr);
-      canvas.height       = Math.round(h * dpr);
-      canvas.style.width  = w + "px";
-      canvas.style.height = h + "px";
-      const ctx = canvas.getContext("2d");
-      ctx.scale(dpr, dpr);
-      ctx.drawImage(bitmapRef.current, 0, 0, w, h);
-    }
-
-
-
-
-
-
-    const ro = new ResizeObserver(draw);
-    ro.observe(canvas);
-
-    return () => ro.disconnect();
-  }, []);
-
-  // expose ref setter buat parent
-  return { canvasRef, bitmapRef };
+  // Scale everything proportionally; keep stroke at a sensible minimum.
+  return {
+    title:  BASE[`${pfx}Title`]  * scale,
+    tag:    BASE[`${pfx}Tag`]    * scale,
+    arrow:  BASE[`${pfx}Arrow`]  * scale,
+    pad:    BASE[`${pfx}Pad`]    * scale,
+    stroke: Math.max(1.5, BASE[`${pfx}Stroke`] * scale),
+  };
 }
 
 export default function NewsCard({ thumbnail_url, tag, title, isMain = false, compact = false, bitmap = null }) {
-  const sz = getSizes(isMain, compact);
-
   const wrapRef  = useRef(null);
   const arrowRef = useRef(null);
-  // canvas untuk blur bitmap — dipakai hanya kalau bitmap ada
   const canvasRef  = useRef(null);
   const bitmapRef  = useRef(null);
 
-  // setup ResizeObserver untuk canvas bitmap
+  // ── Self-sizing: observe this card's rendered width ──────────────────────
+  const variant = getVariant(isMain, compact);
+  const [cardW, setCardW] = useState(REF_W[variant]);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setCardW(entry.contentRect.width));
+    ro.observe(el);
+    setCardW(el.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
+
+  // Scale is capped at 1 so sizes never exceed the designed base.
+  const scale = Math.min(1, cardW / (REF_W[variant] ?? 400));
+  const sz    = getSizes(isMain, compact, scale);
+
+  // ── Bitmap blur canvas ────────────────────────────────────────────────────
   useEffect(() => {
     if (!bitmap || !canvasRef.current) return;
 
@@ -155,6 +130,7 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
     return () => ro.disconnect();
   }, [bitmap]);
 
+  // ── Arrow animation setup ─────────────────────────────────────────────────
   useEffect(() => {
     const paths = arrowRef.current?.querySelectorAll("path, line, polyline");
     if (!paths?.length) return;
@@ -206,7 +182,7 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
     >
       <div style={styles.card(thumbnail_url, compact)}>
 
-        <div ref={arrowRef} style={styles.arrowWrap}>
+        <div ref={arrowRef} style={styles.arrowWrap(sz.arrow)}>
           <ArrowIcon
             style={{ display: "block", width: sz.arrow, height: sz.arrow, color: "currentColor" }}
             color="currentColor"
@@ -217,7 +193,6 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
 
         <div style={styles.blurContainer}>
           {bitmap ? (
-            // path A: canvas pre-rendered dari worker — nggak ada CSS filter
             <canvas
               ref={canvasRef}
               style={{
@@ -229,12 +204,10 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
               }}
             />
           ) : (
-            // path B: CSS backdrop-filter fallback — dipakai kalau bitmap belum siap
             BLUR_LAYERS.map(({ blur, mask }) => (
               <div key={blur} style={styles.blurLayer(blur, mask)} />
             ))
           )}
-          {/* colorOverlay tetap di sini di kedua path — ini bukan backdrop-filter */}
           <div style={styles.colorOverlay} />
         </div>
 
@@ -269,7 +242,8 @@ const styles = {
     overflow:           "hidden",
   }),
 
-  arrowWrap: {
+  // Arrow wrapper size is now driven by sz.arrow (already scaled).
+  arrowWrap: (arrowSize) => ({
     position:      "absolute",
     top:           14,
     right:         14,
@@ -277,7 +251,9 @@ const styles = {
     pointerEvents: "none",
     color:         "#F5C400",
     filter:        "drop-shadow(0 0 5px rgba(245, 196, 0, 0.9))",
-  },
+    width:         arrowSize,
+    height:        arrowSize,
+  }),
 
   blurContainer: {
     position:      "absolute",

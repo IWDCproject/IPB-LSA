@@ -29,7 +29,9 @@ const S3_TEXT_H = 128;
 const S3_BTN_H  = 52;
 const S3_NAT_H  = CARD_H + S3_GAP + S3_TEXT_H + 24 + S3_BTN_H;
 
-const STAGE3_THRESHOLD = 0.65;
+// ini biar konsisten sama match section,
+// tapi hardcoded sih wkwkkw
+const STAGE3_THRESHOLD = 0.547;
 
 const STATS = [
   { src: universitiesImg.src, mainStat: "4.000+", label: "Participants",    width: CARD_WIDTHS[0] },

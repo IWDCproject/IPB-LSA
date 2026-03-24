@@ -255,13 +255,7 @@ export default function EventTimeline() {
   const inactiveIdx = INACTIVE_IDX;
 
   const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const [scaleF, setScaleF]     = useState(1);
 
   const containerRef = useRef(null);
   const canvasRef    = useRef(null);
@@ -321,7 +315,11 @@ export default function EventTimeline() {
     if (!el) return;
 
     const { width: W, height: H } = el.getBoundingClientRect();
-    sizeRef.current = { W, H };
+    const sf = Math.min(1, W / 1920);
+    sizeRef.current = { W, H, scaleF: sf };
+    setScaleF(sf);
+    // mobile basednya container width, bukan window — lebih akurat kalau ada sidebar
+    setIsMobile(W < 900);
 
     const canvas = canvasRef.current;
     if (canvas) {
@@ -621,9 +619,10 @@ export default function EventTimeline() {
         if (!node) return;
         const { floatY, floatX, floatDur, floatDelay } = events[i].slot;
         const rot = rotateRefs.current[i];
+        const sf  = sizeRef.current.scaleF ?? 1;
 
-        tl.to(node, { y: floatY, duration: floatDur, repeat: -1, yoyo: true, ease: 'sine.inOut' }, floatDelay);
-        tl.to(node, { x: floatX, duration: floatDur * 1.3, repeat: -1, yoyo: true, ease: 'sine.inOut' }, floatDelay + 0.5);
+        tl.to(node, { y: floatY * sf, duration: floatDur, repeat: -1, yoyo: true, ease: 'sine.inOut' }, floatDelay);
+        tl.to(node, { x: floatX * sf, duration: floatDur * 1.3, repeat: -1, yoyo: true, ease: 'sine.inOut' }, floatDelay + 0.5);
         if (rot) {
           tl.to(rot, {
             rotation: i % 2 === 0 ? 2.5 : -2.5,
@@ -725,7 +724,7 @@ export default function EventTimeline() {
             position: 'absolute',
             left: '57%',
             bottom: '2%',
-            width: 420,
+            width: Math.round(420 * scaleF),
             transform: 'translateX(-50%)',
             pointerEvents: 'none',
             zIndex: 50,
@@ -737,17 +736,17 @@ export default function EventTimeline() {
           ref={ctaRef}
           style={{
             position: 'absolute',
-            left: H_MARGIN,
+            left: Math.round(H_MARGIN * scaleF),
             top: '55%',
             transform: 'translateY(-50%)',
             zIndex: 5,
-            maxWidth: 300,
+            maxWidth: Math.round(300 * scaleF),
           }}
         >
-          <h2 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: '3.8rem', color: '#fff', lineHeight: 1, margin: 0, textShadow: '0 0 40px rgba(255,255,255,0.15)' }}>
+          <h2 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: `${3.8 * scaleF}rem`, color: '#fff', lineHeight: 1, margin: 0, textShadow: '0 0 40px rgba(255,255,255,0.15)' }}>
             WHY WAIT?
           </h2>
-          <p style={{ fontFamily: 'Plus Jakarta Sans', color: '#fff', fontSize: '22px', marginTop: 5, lineHeight: 1.2, fontWeight: 500 }}>
+          <p style={{ fontFamily: 'Plus Jakarta Sans', color: '#fff', fontSize: `${Math.round(22 * scaleF)}px`, marginTop: 5, lineHeight: 1.2, fontWeight: 500 }}>
             Make sure to not miss your registration period!
           </p>
           <div style={{ marginTop: 18 }}>
@@ -776,11 +775,11 @@ export default function EventTimeline() {
             >
               <div ref={el => (nodeRefs.current[i] = el)} style={{ willChange: 'transform', opacity: 0 }}>
 
-                <div style={{ position: 'absolute', left: slot.labelOffset.x, top: slot.labelOffset.y, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-                  <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: '36px', lineHeight: 1, color: slot.palette.labelColor, textShadow: `0 0 20px ${slot.palette.labelGlow}` }}>
+                <div style={{ position: 'absolute', left: slot.labelOffset.x * scaleF, top: slot.labelOffset.y * scaleF, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                  <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: `${Math.round(36 * scaleF)}px`, lineHeight: 1, color: slot.palette.labelColor, textShadow: `0 0 20px ${slot.palette.labelGlow}` }}>
                     {ev.label}
                   </div>
-                  <div style={{ fontSize: '18px', color: '#fff', lineHeight: 1.45, marginTop: 3, letterSpacing: '0.3px', marginLeft: 40 }}>
+                  <div style={{ fontSize: `${Math.round(18 * scaleF)}px`, color: '#fff', lineHeight: 1.45, marginTop: 3, letterSpacing: '0.3px', marginLeft: Math.round(40 * scaleF) }}>
                     {ev.subLabel.split('\n').map((ln, j) => <div key={j}>{ln}</div>)}
                   </div>
                 </div>
@@ -790,7 +789,7 @@ export default function EventTimeline() {
                     className={ev.isActive ? 'et-pulse' : undefined}
                     style={{
                       position: 'absolute',
-                      width: slot.dotSize, height: slot.dotSize,
+                      width: Math.round(slot.dotSize * scaleF), height: Math.round(slot.dotSize * scaleF),
                       borderRadius: '50%',
                       background: slot.palette.dotColor,
                       boxShadow: `0 0 14px ${slot.palette.dotGlow}, 0 0 4px ${slot.palette.dotColor}`,
@@ -803,8 +802,8 @@ export default function EventTimeline() {
                   <div
                     style={{
                       position: 'absolute',
-                      left: slot.cardOffset.x, top: slot.cardOffset.y,
-                      width: 210, height: 300,
+                      left: Math.round(slot.cardOffset.x * scaleF), top: Math.round(slot.cardOffset.y * scaleF),
+                      width: Math.round(210 * scaleF), height: Math.round(300 * scaleF),
                       borderRadius: 10, overflow: 'hidden',
                       border: `2px solid ${slot.palette.border}`,
                       boxShadow: shadowBase,

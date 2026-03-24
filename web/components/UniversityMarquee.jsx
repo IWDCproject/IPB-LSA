@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
+const NAT_W = 1920; // sama dengan semua section lain
+
 const CONFIG = {
   speed: 35,
   itemGap: 15,
@@ -25,7 +27,7 @@ const ITEMS = Array.from({ length: CONFIG.copies }, () => UNIVERSITIES).flat();
 
 export default function UniversityMarquee() {
   const wrapRef = useRef(null);
-  const [cw, setCw] = useState(1440);
+  const [cw, setCw] = useState(NAT_W);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -35,14 +37,14 @@ export default function UniversityMarquee() {
     return () => ro.disconnect();
   }, []);
 
-  const isMobile   = cw < 768;
-  const scale      = Math.min(1, cw / 1440);
+  const isMobile = cw < 1024;
 
-  const fadeStart  = isMobile ? 24  : Math.round(CONFIG.fade.start * scale);
-  const fadeEnd    = isMobile ? 48  : Math.round(CONFIG.fade.end   * scale);
-  const logoHeight = isMobile ? CONFIG.logoHeight : Math.round(CONFIG.logoHeight * scale);
-  const fontSize   = isMobile ? 10.4 : Math.max(8, Math.round(10.4 * scale));
-  const itemGap    = isMobile ? CONFIG.itemGap    : Math.round(CONFIG.itemGap    * scale);
+  // fade edges match section margins: clamp(40px, 8.33vw, 160px)
+  const fadeStart  = isMobile ? 24  : Math.round(Math.min(160, Math.max(40, cw * 0.0833)));
+  const fadeEnd    = isMobile ? 48  : Math.round(Math.min(200, Math.max(60, cw * 0.1042)));
+  const logoHeight = CONFIG.logoHeight;
+  const fontSize   = 10.4;
+  const itemGap    = CONFIG.itemGap;
 
   const mask = `linear-gradient(to right,
     transparent ${fadeStart}px,

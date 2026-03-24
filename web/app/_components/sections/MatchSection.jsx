@@ -19,8 +19,16 @@ const CARD_GAP    = 10;
 const CTA_W       = 240;
 const H_MARGIN    = 160;
 const SHOW_MAX    = 5;
-const NAT_W       = 1440;
+const MIN_CARD_W  = 240; // minimum rendered px per card — controls count, not scale
+const NAT_W       = 1920;
+// Scale ramp — matches HeroSection so every section feels consistent.
+// Starts shrinking at SCALE_START (not NAT_W), floors at SCALE_FLOOR.
+// At 1440px: sf = max(0.875, min(1, 1440/1600)) = max(0.875, 0.9) = 0.9  ✓
+// At 1280px: sf = max(0.875, min(1, 1280/1600)) = max(0.875, 0.8) = 0.875 ✓
+const SCALE_START = 1600;
+const SCALE_FLOOR = 0.875;
 const STAGGER_MS  = 80;
+const TOTAL_SLOTS = SHOW_MAX + 5;
 
 const IPB = { name: "IPB University",        logo_url: ipbLogo.src, color: "#1D4ED8" };
 const UPN = { name: "UPNVYK",                logo_url: upnLogo.src, color: "#DC2626" };
@@ -206,15 +214,26 @@ const UPCOMING_MATCHES = [
   },
 ];
 
+// Compute --s the same way HeroSection does:
+// - No scaling above SCALE_START (1600px) — full size at 1600–1920
+// - Linear ramp from SCALE_START down, floored at SCALE_FLOOR (0.875)
+// - Below 1024px we switch to mobile layout entirely, so --s isn't used there
+function computeScale(w) {
+  return Math.max(SCALE_FLOOR, Math.min(1, w / SCALE_START));
+}
+
 function useContainerWidth(ref) {
   const [width, setWidth] = useState(0);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // set langsung pakai ukuran awal biar ga nunggu resize
-    setWidth(el.getBoundingClientRect().width);
-    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    const apply = (w) => {
+      el.style.setProperty("--s", computeScale(w));
+      setWidth(w);
+    };
+    const ro = new ResizeObserver(([e]) => apply(e.contentRect.width));
     ro.observe(el);
+    apply(el.getBoundingClientRect().width);
     return () => ro.disconnect();
   }, [ref]);
   return width;
@@ -236,11 +255,9 @@ export default function MatchSection() {
     return () => io.disconnect();
   }, []);
 
-  const isMobile = cw > 0 && cw < 768;
-  const scale    = Math.min(1, (cw || NAT_W) / NAT_W);
-  const margin   = Math.round(H_MARGIN * scale);
+  const isMobile = cw > 0 && cw < 1024;
+  const mobilePad = 20;
 
-  const TOTAL_SLOTS = SHOW_MAX + 5;
   const animStyles = useMemo(() => {
     return Array.from({ length: TOTAL_SLOTS }, (_, slot) =>
       visible
@@ -251,10 +268,20 @@ export default function MatchSection() {
 
   const anim = useCallback((slot) => animStyles[slot] ?? animStyles[animStyles.length - 1], [animStyles]);
 
-  const cardMatches = LIVE_MATCHES.slice(0, SHOW_MAX);
+  // Card fitting uses the same scale formula so available space is calculated correctly.
+  // Previously this used Math.min(1, cw/NAT_W) which diverged from --s at screens < SCALE_START.
+  const scale        = computeScale(cw || NAT_W);
+  const availableW   = (cw || NAT_W) - 2 * H_MARGIN * scale - (CTA_W * scale + CARD_GAP);
+  const fittingCount = Math.max(1, Math.floor(availableW / (MIN_CARD_W + CARD_GAP)));
+  const visibleCount = Math.min(fittingCount, SHOW_MAX);
+  const cardMatches  = LIVE_MATCHES.slice(0, visibleCount);
 
-  const mobileCardW = Math.round(cw * 0.62);
-  const mobilePad   = 20;
+  // Mobile card scale — cards are 38vw wide; content was designed for ~240px
+  const MOBILE_CARD_VW  = 0.38;
+  const MOBILE_CARD_REF = 140;
+  const mobileCardPx    = cw * MOBILE_CARD_VW;
+  const mobileCardScale = Math.min(1, mobileCardPx / MOBILE_CARD_REF);
+  const mobileCardH     = Math.round(260 * mobileCardScale);
 
   return (
     <section ref={sectionRef} style={{
@@ -264,10 +291,10 @@ export default function MatchSection() {
       background: "#0D26C2",
       display: "flex",
       flexDirection: "column",
-      justifyContent: "center",
+      justifyContent: "flex-start",
       color: "white",
       overflow: "hidden",
-      padding: isMobile ? "80px 0 60px" : "0px 0 0 0",
+      padding: "80px 0 60px",
     }}>
       {/* .match-scroll scrollbar rules live in globals.css */}
 
@@ -282,10 +309,10 @@ export default function MatchSection() {
       }}>
 
         {/* Heading */}
-        <div style={{ ...anim(0), paddingLeft: isMobile ? mobilePad : margin, paddingRight: isMobile ? mobilePad : margin }}>
+        <div style={{ ...anim(0), paddingLeft: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)", paddingRight: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)" }}>
           <div style={{
             ...BB,
-            fontSize: isMobile ? "2.2rem" : "4rem",
+            fontSize: isMobile ? "2.2rem" : "calc(64px * var(--s))",
             lineHeight: 1,
             color: "#fff",
             filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
@@ -300,6 +327,7 @@ export default function MatchSection() {
             className="match-scroll"
             style={{
               ...anim(1),
+              "--s": mobileCardScale,
               display: "flex",
               flexDirection: "row",
               gap: CARD_GAP,
@@ -312,13 +340,13 @@ export default function MatchSection() {
               paddingRight: 0,
             }}
           >
-            {cardMatches.map((match) => (
+            {LIVE_MATCHES.map((match) => (
               <div
                 key={match.id}
                 style={{
-                  flex: "0 0 62vw",
-                  width: "62vw",
-                  height: CARD_H,
+                  flex: "0 0 38vw",
+                  width: "38vw",
+                  height: mobileCardH,
                   scrollSnapAlign: "start",
                   borderRadius: 10,
                   overflow: "hidden",
@@ -330,22 +358,22 @@ export default function MatchSection() {
             ))}
 
             <div style={{
-              flex: "0 0 40vw",
-              width: "40vw",
-              height: CARD_H,
+              flex: "0 0 38vw",
+              width: "38vw",
+              height: mobileCardH,
               scrollSnapAlign: "start",
               border: "2px dashed rgba(255,255,255,0.4)",
-              borderRadius: 16,
+              borderRadius: 10,
               boxSizing: "border-box",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "flex-start",
               gap: 14,
               padding: 20,
               flexShrink: 0,
             }}>
-              <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#fff", textAlign: "center", lineHeight: 1.4 }}>
+              <div style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 700, color: "#fff", textAlign: "center", lineHeight: 1.4 }}>
                 See real time update scores
               </div>
               <Button href="/matches" variant="primary" size="md">See All</Button>
@@ -354,20 +382,20 @@ export default function MatchSection() {
             <div style={{ flexShrink: 0, width: 8 }} />
           </div>
         ) : (
-          <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP, paddingLeft: margin, paddingRight: margin }}>
+          <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP, paddingLeft: "clamp(40px, 8.33vw, 160px)", paddingRight: "clamp(40px, 8.33vw, 160px)" }}>
             {cardMatches.map((match, i) => (
-              <div key={match.id} style={{ ...anim(i + 2), flex: 1, minWidth: 0 }}>
-                <div style={{ width: "100%", height: CARD_H, overflow: "hidden", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
+              <div key={match.id} style={{ ...anim(i + 2), "--s": 1, flex: 1, minWidth: 0 }}>
+                <div style={{ width: "100%", height: "calc(280px * var(--s))", overflow: "hidden", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
                   <MatchCard match={match} />
                 </div>
               </div>
             ))}
 
-            <div style={anim(cardMatches.length + 2)}>
+            <div style={{ ...anim(cardMatches.length + 2), "--s": 1, flexShrink: 0 }}>
               <div style={{
-                width: CTA_W, height: CARD_H, flexShrink: 0,
+                width: 240, height: 280,
                 border: "2px dashed rgba(255,255,255,0.4)",
-                borderRadius: 16, boxSizing: "border-box",
+                borderRadius: 10, boxSizing: "border-box",
                 display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center",
                 gap: 16, padding: 24,
@@ -384,8 +412,8 @@ export default function MatchSection() {
         {/* Upcoming Table */}
         <div style={{
           ...anim(cardMatches.length + 3),
-          paddingLeft:  isMobile ? mobilePad : margin,
-          paddingRight: isMobile ? mobilePad : margin,
+          paddingLeft:  isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)",
+          paddingRight: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)",
         }}>
           <MatchTable
             matches={UPCOMING_MATCHES.slice(0, 5)}
@@ -395,13 +423,13 @@ export default function MatchSection() {
           />
         </div>
 
-        {/* See More — selalu di kanan, baik mobile maupun desktop */}
+        {/* See More */}
         <div style={{
           ...anim(cardMatches.length + 4),
           display: "flex",
           justifyContent: "flex-end",
-          paddingLeft:  isMobile ? mobilePad : margin,
-          paddingRight: isMobile ? mobilePad : margin,
+          paddingLeft:  isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)",
+          paddingRight: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)",
         }}>
           <Button href="/schedule" variant="primary" size="md">See More</Button>
         </div>

@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link  from "next/link";
 
-// plateau masks — sama persis kayak stops di blurWorker processEventcard
-// biar canvas path dan CSS fallback path identik visualnya
 const BLUR_LAYERS = [
   { blur: "2px",  mask: "linear-gradient(to top, black 0%, black 20%, transparent 55%)" },
   { blur: "4px",  mask: "linear-gradient(to top, black 0%, black 12%, transparent 42%)" },
@@ -13,8 +11,6 @@ const BLUR_LAYERS = [
   { blur: "16px", mask: "linear-gradient(to top, black 0%, black 5%,  transparent 20%)" },
 ];
 
-// canvas path — DPR-aware biar tajam di retina/hidpi
-// ResizeObserver udah garansi fire pertama kali pas mount, ga perlu draw manual
 function BitmapBlurLayer({ bitmap }) {
   const canvasRef = useRef(null);
 
@@ -28,11 +24,9 @@ function BitmapBlurLayer({ bitmap }) {
 
       const dpr = window.devicePixelRatio || 1;
 
-      // backing store di physical pixels
       canvas.width  = Math.round(width  * dpr);
       canvas.height = Math.round(height * dpr);
 
-      // CSS size tetap di logical pixels
       canvas.style.width  = width  + "px";
       canvas.style.height = height + "px";
 
@@ -59,15 +53,47 @@ function BitmapBlurLayer({ bitmap }) {
   );
 }
 
+// Reference widths: the pixel width each size variant was designed for.
+// The card observes its own rendered width and scales fonts relative to this.
+const REF_W = { lg: 280, md: 200, sm: 150 };
+
+// Base font sizes at the reference width.
+const BASE_ORG   = { lg: 15, md: 13, sm: 14 };
+const BASE_TITLE = { lg: 32, md: 26, sm: 24 };
+
 export default function EventCard({ event, className = "", size = "md", bitmap = null }) {
   const { slug, name, card_image_url, user_created } = event;
   const orgName = user_created?.organisation_name ?? null;
 
-  const orgSize   = size === "lg" ? "text-[15px]" : size === "sm" ? "text-[10px]"  : "text-[12px]";
-  const titleSize = size === "lg" ? "text-[32px]" : size === "sm" ? "text-[18px]" : "text-[24px]";
+  // ── Self-sizing: observe this card's rendered width ──────────────────────
+  const linkRef = useRef(null);
+  const [cardW, setCardW] = useState(REF_W[size] ?? 200);
+
+  useEffect(() => {
+    const el = linkRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setCardW(entry.contentRect.width));
+    ro.observe(el);
+    setCardW(el.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
+
+  // ── Derived font metrics ──────────────────────────────────────────────────
+  // s is capped at 1 so fonts never exceed the designed base size.
+  const s = Math.min(1, cardW / (REF_W[size] ?? 200));
+
+  const orgFontSize   = Math.max(7,  BASE_ORG[size]   * s);
+  const titleFontSize = Math.max(10, BASE_TITLE[size]  * s);
+
+  // Bottom-panel padding shrinks with the card so text always fits.
+  const pad = `${Math.max(6, Math.round(16 * s))}px`;
+
+  // Org attribution clutters very narrow cards — hide it below 80px.
+  const showOrg = orgName && cardW >= 80;
 
   return (
     <Link
+      ref={linkRef}
       href={`/events/${slug}`}
       className={`relative block overflow-hidden rounded-[0.2rem] h-full group ${className}`}
     >
@@ -85,7 +111,7 @@ export default function EventCard({ event, className = "", size = "md", bitmap =
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
-      {/* blur path — canvas kalau bitmap ada, CSS fallback kalau belum */}
+      {/* Blur path — canvas if bitmap available, CSS fallback otherwise */}
       <div className="absolute inset-0 pointer-events-none">
         {bitmap ? (
           <BitmapBlurLayer bitmap={bitmap} />
@@ -106,15 +132,19 @@ export default function EventCard({ event, className = "", size = "md", bitmap =
         )}
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-4">
-        {orgName && (
-          <p className={`text-white/85 ${orgSize} tracking-wider font-semibold mb-1 truncate`}>
+      {/* Text panel — padding and font sizes derived from observed card width */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: pad }}>
+        {showOrg && (
+          <p
+            className="text-white/85 tracking-wider font-semibold mb-1 truncate"
+            style={{ fontSize: orgFontSize }}
+          >
             by {orgName}
           </p>
         )}
         <p
-          className={`text-white font-display ${titleSize} leading-[100%] uppercase tracking-[0.2px] line-clamp-2`}
-          style={{ textWrap: "balance" }}
+          className="text-white font-display leading-[100%] uppercase tracking-[0.2px] line-clamp-2"
+          style={{ fontSize: titleFontSize, textWrap: "balance" }}
         >
           {name}
         </p>
