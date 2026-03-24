@@ -4,8 +4,12 @@
 import BlurProvider    from "@/components/BlurProvider";
 import CurtainWrapper from "./_components/CurtainWrapper";
 import SmoothScroller  from "./_components/SmoothScroller";
+import { getEvents }   from "@/lib/directus";
 
-export default function Page() {
+export default async function Page() {
+  const events = await getEvents();
+  console.log("Daftar Event dari Directus:", events);
+
   return (
     <SmoothScroller>
       <BlurProvider>
