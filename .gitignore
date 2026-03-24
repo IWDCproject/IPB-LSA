@@ -26,3 +26,6 @@ uploads/
 
 # Node modules 
 node_modules/
+
+#tmp photo
+tempphoto/
