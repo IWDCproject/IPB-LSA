@@ -9,6 +9,10 @@ const STAGGER = 18;
 const DUR     = "0.4s";
 const EASE    = "cubic-bezier(0.76, 0, 0.24, 1)";
 
+// breakpoint where the header starts getting tight and needs to compress
+const COMPRESS_W = 900;
+const MOBILE_W   = 1024;
+
 function SlotText({ children }) {
   const chars = String(children).split("");
   return (
@@ -26,10 +30,10 @@ function SlotText({ children }) {
           <span
             className="nav-slot-inner"
             style={{
-              display:        "flex",
-              flexDirection:  "column",
-              transform:      "translateY(0%)",
-              transition:     `transform ${DUR} ${EASE}`,
+              display:       "flex",
+              flexDirection: "column",
+              transform:     "translateY(0%)",
+              transition:    `transform ${DUR} ${EASE}`,
             }}
           >
             <span style={{ display: "block", lineHeight: 1 }}>{char}</span>
@@ -65,7 +69,6 @@ function useSlotHover() {
   return { ref, onMouseEnter, onMouseLeave };
 }
 
-// individual nav link with slot animation on hover
 function NavLink({ href, label, active, fontSize }) {
   const { ref, onMouseEnter, onMouseLeave } = useSlotHover();
 
@@ -84,23 +87,27 @@ function NavLink({ href, label, active, fontSize }) {
   );
 }
 
-
 export default function Header() {
   const pathname  = usePathname();
   const headerRef = useRef(null);
-  const [cw, setCw] = useState(1440);
+  const [cw, setCw] = useState(1920);
 
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setCw(e.contentRect.width));
+    const apply = (w) => setCw(w);
+    const ro = new ResizeObserver(([e]) => apply(e.contentRect.width));
     ro.observe(el);
+    apply(el.getBoundingClientRect().width);
     return () => ro.disconnect();
   }, []);
 
-  const isMobile = cw < 768;
-  const scale    = Math.min(1, cw / 1440);
-  const padding  = isMobile ? 24 : Math.round(160 * scale);
+  const isMobile   = cw < MOBILE_W;
+  const isCompress = cw < COMPRESS_W;
+
+  // nav items stay fixed size, only margins/gap shrink with viewport
+  const navGap  = isMobile ? 16 : isCompress ? 20 : 32;
+  const fontSize = isMobile ? 11 : isCompress ? 12 : 14;
 
   const links = [
     { href: "/",         label: "Beranda"  },
@@ -113,19 +120,25 @@ export default function Header() {
     <header ref={headerRef} className="sticky top-0 z-50 bg-white border-b border-gray-200">
       <div
         className="flex items-center justify-between py-2"
-        style={{ paddingLeft: padding, paddingRight: padding }}
+        style={{
+          paddingLeft:  isMobile ? 20 : "clamp(40px, 8.33vw, 160px)",
+          paddingRight: isMobile ? 20 : "clamp(40px, 8.33vw, 160px)",
+        }}
       >
         <Link href="/">
           <Image src="/ipb-logo.png" alt="IPB University" height={64} width={200} className="h-12 w-auto" />
         </Link>
-        <nav className="flex items-center" style={{ gap: Math.round(32 * scale) }}>
+        <nav
+          className="flex items-center"
+          style={{ gap: navGap }}
+        >
           {links.map(({ href, label }) => (
             <NavLink
               key={href}
               href={href}
               label={label}
               active={pathname === href}
-              fontSize={Math.max(11, Math.round(14 * scale))}
+              fontSize={fontSize}
             />
           ))}
         </nav>

@@ -8,148 +8,41 @@ import UniversityMarquee from "@/components/UniversityMarquee";
 import { useBlur } from "@/contexts/BlurContext";
 
 const EVENTS = [
-    {
-        id: 1,
-        slug: "ipb-futsal-competition-2026",
-        name: "IPB Futsal Competition",
-        description:
-            "Deskripsi singkat tentang acaranya tuh kayak gimana gitu. Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-        status: "upcoming",
-        card_image_url:
-            "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=1200",
-        user_created: { organisation_name: "UKM Futsal IPB" },
-    },
-    {
-        id: 2,
-        slug: "forki-x-ipb-cup-2026",
-        name: "Forki x IPB Cup 2026",
-        description:
-            "Kejuaraan karate terbuka antar universitas se-Indonesia. Diselenggarakan bersama FORKI dalam rangka memperingati hari olahraga nasional.",
-        status: "active",
-        card_image_url:
-            "https://images.unsplash.com/photo-1555597673-b21d5c935865?w=1200",
-        user_created: { organisation_name: "UKM Karate IPB" },
-    },
-    {
-        id: 3,
-        slug: "open-charity-golf-tournament",
-        name: "Open Charity Golf Tournament",
-        description:
-            "Turnabmen golf amal terbuka untuk sivitas akademika IPB. Hasil disumbangkan untuk easiswa mahasiswa.",
-        status: "upcoming",
-        card_image_url:
-            "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200",
-        user_created: { organisation_name: "IPB Golf Community" },
-    },
-    {
-        id: 4,
-        slug: "it-today-hacktoday",
-        name: "IT-Today Hacktoday",
-        description:
-            "Hackathon 48 jam bertemakan inovasi teknologi untuk pertanian dan lingkungan. Terbuka untuk mahasiswa seluruh Indonesia.",
-        status: "active",
-        card_image_url:
-            "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200",
-        user_created: { organisation_name: "Himalkom" },
-    },
-    {
-        id: 5,
-        slug: "gemastik-xvi-2026",
-        name: "Gemastik XVI 2026",
-        description:
-            "Gelaran Mahasiswa Teknologi dan Informasi tingkat nasional. IPB University menjadi tuan rumah.",
-        status: "upcoming",
-        card_image_url:
-            "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200",
-        user_created: { organisation_name: "BEM KM IPB" },
-    },
-    {
-        id: 6,
-        slug: "ipb-badminton-open",
-        name: "IPB Badminton Open",
-        description: "Turnamen bulu tangkis antar fakultas dan UKM se-IPB University.",
-        status: "upcoming",
-        card_image_url:
-            "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=1200",
-        user_created: { organisation_name: "UKM Badminton IPB" },
-    },
-    {
-        id: 7,
-        slug: "ipb-swimming-championship",
-        name: "IPB Swimming Championship",
-        description:
-            "Kejuaraan renang tahunan antar fakultas se-IPB University. Kategori gaya bebas, gaya punggung, dan gaya kupu-kupu.",
-        status: "upcoming",
-        card_image_url:
-            "https://images.unsplash.com/photo-1560090995-01632a28895b?w=1200",
-        user_created: { organisation_name: "UKM Renang IPB" },
-    },
-    {
-        id: 8,
-        slug: "ipb-esports-tournament",
-        name: "IPB Esports Tournament",
-        description:
-            "Turnamen esports terbesar di IPB University. Kategori Mobile Legends, VALORANT, dan FIFA.",
-        status: "active",
-        card_image_url:
-            "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200",
-        user_created: { organisation_name: "UKM Esports IPB" },
-    },
+    { id: 1, slug: "ipb-futsal-competition-2026", name: "IPB Futsal Competition", description: "Deskripsi singkat tentang acaranya tuh kayak gimana gitu. Lorem ipsum dolor sit amet, consectetur adipiscing elit.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=1200", user_created: { organisation_name: "UKM Futsal IPB" } },
+    { id: 2, slug: "forki-x-ipb-cup-2026", name: "Forki x IPB Cup 2026", description: "Kejuaraan karate terbuka antar universitas se-Indonesia. Diselenggarakan bersama FORKI dalam rangka memperingati hari olahraga nasional.", status: "active", card_image_url: "https://images.unsplash.com/photo-1555597673-b21d5c935865?w=1200", user_created: { organisation_name: "UKM Karate IPB" } },
+    { id: 3, slug: "open-charity-golf-tournament", name: "Open Charity Golf Tournament", description: "Turnabmen golf amal terbuka untuk sivitas akademika IPB. Hasil disumbangkan untuk beasiswa mahasiswa.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200", user_created: { organisation_name: "IPB Golf Community" } },
+    { id: 4, slug: "it-today-hacktoday", name: "IT-Today Hacktoday", description: "Hackathon 48 jam bertemakan inovasi teknologi untuk pertanian dan lingkungan. Terbuka untuk mahasiswa seluruh Indonesia.", status: "active", card_image_url: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200", user_created: { organisation_name: "Himalkom" } },
+    { id: 5, slug: "gemastik-xvi-2026", name: "Gemastik XVI 2026", description: "Gelaran Mahasiswa Teknologi dan Informasi tingkat nasional. IPB University menjadi tuan rumah.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200", user_created: { organisation_name: "BEM KM IPB" } },
+    { id: 6, slug: "ipb-badminton-open", name: "IPB Badminton Open", description: "Turnamen bulu tangkis antar fakultas dan UKM se-IPB University.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=1200", user_created: { organisation_name: "UKM Badminton IPB" } },
+    { id: 7, slug: "ipb-swimming-championship", name: "IPB Swimming Championship", description: "Kejuaraan renang tahunan antar fakultas se-IPB University. Kategori gaya bebas, gaya punggung, dan gaya kupu-kupu.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1560090995-01632a28895b?w=1200", user_created: { organisation_name: "UKM Renang IPB" } },
+    { id: 8, slug: "ipb-esports-tournament", name: "IPB Esports Tournament", description: "Turnamen esports terbesar di IPB University. Kategori Mobile Legends, VALORANT, dan FIFA.", status: "active", card_image_url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200", user_created: { organisation_name: "UKM Esports IPB" } },
 ];
 
-const INTERVAL_MS = 10000;
-const SHRINK_MS   = 600;
-
-const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
+const INTERVAL_MS        = 10000;
+const SHRINK_MS          = 600;
+const SCALE_START        = 1600;
+const SCALE_FLOOR        = 0.875;
+const DESKTOP_CARD_MIN_W = 180;
+const DESKTOP_SLOTS_MAX  = 8;
+const MOBILE_CARD_VW     = 0.26;
+const MOBILE_CARD_REF    = 80;
+const NOTCH_H            = 13;
+const NOTCH_PATH         = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
 
 function CardNotch({ color, textColor, label }) {
     return (
-        <div
-            style={{
-                position: "absolute",
-                bottom: -13,
-                left: "50%",
-                transform: "translateX(-50%)",
-                zIndex: 20,
-                width: 68,
-                height: 13,
-                animation: "notch-pop 0.2s ease forwards",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-            }}
-        >
-            <svg
-                width="68"
-                height="13"
-                viewBox="0 0 68 13"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{ position: "absolute", inset: 0 }}
-            >
+        <div style={{ position: "absolute", bottom: -NOTCH_H, left: "50%", transform: "translateX(-50%)", zIndex: 20, width: 68, height: NOTCH_H, animation: "notch-pop 0.2s ease forwards", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="68" height="13" viewBox="0 0 68 13" fill="none" style={{ position: "absolute", inset: 0 }}>
                 <path d={NOTCH_PATH} fill={color} />
             </svg>
-            <span
-                style={{
-                    position: "relative",
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: "0.42rem",
-                    fontWeight: 900,
-                    letterSpacing: "0.13em",
-                    color: textColor,
-                    textTransform: "uppercase",
-                    marginTop: -2,
-                }}
-            >
+            <span style={{ position: "relative", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.42rem", fontWeight: 900, letterSpacing: "0.13em", color: textColor, textTransform: "uppercase", marginTop: -2 }}>
                 {label}
             </span>
         </div>
     );
 }
 
-function introStyle(delayMs) {
-    return { animation: `hero-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${delayMs}ms both` };
-}
+const introStyle = (ms) => ({ animation: `hero-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${ms}ms both` });
 
 const EXIT_DELAYS  = [150, 100, 50, 0];
 const ENTER_DELAYS = [0, 70, 140, 210];
@@ -163,17 +56,15 @@ export default function HeroSection({ paused = false }) {
     const [displayIdx, setDisplayIdx]   = useState(0);
     const [transPhase, setTransPhase]   = useState("idle");
     const [introPlayed, setIntroPlayed] = useState(false);
+    const [cw, setCw]                   = useState(1920);
 
-    const barRef     = useRef(null);
-    const canvasRefs = useRef({});
-    const sectionRef = useRef(null);
-    const [cw, setCw] = useState(1440);
+    const barRef          = useRef(null);
+    const canvasRefs      = useRef({});
+    const sectionRef      = useRef(null);
+    const mobileScrollRef = useRef(null);
+    const pausedRef       = useRef(paused);
+    const tabVisRef       = useRef(true);
 
-    // pausedRef dan tabVisRef tetap dipakai untuk ticker
-    const pausedRef = useRef(paused);
-    const tabVisRef = useRef(true);
-
-    // ambil bitmaps dan isReady dari BlurProvider
     const { bitmaps, isReady } = useBlur();
 
     useEffect(() => { pausedRef.current = paused; }, [paused]);
@@ -181,54 +72,52 @@ export default function HeroSection({ paused = false }) {
     useEffect(() => {
         const el = sectionRef.current;
         if (!el) return;
-        const ro = new ResizeObserver(([e]) => setCw(e.contentRect.width));
+        const apply = (w) => {
+            el.style.setProperty("--s", Math.max(SCALE_FLOOR, Math.min(1, w / SCALE_START)));
+            setCw(w);
+        };
+        const ro = new ResizeObserver(([e]) => apply(e.contentRect.width));
         ro.observe(el);
+        apply(el.getBoundingClientRect().width);
         return () => ro.disconnect();
     }, []);
 
-    // gambar bitmaps hero ke canvas tiap kali bitmaps context update
-    // pakai drawImage (bukan bitmaprenderer) biar bisa digambar ulang kalau perlu
     useEffect(() => {
         EVENTS.forEach((ev) => {
             const pair = bitmaps[ev.card_image_url]?.hero;
             if (!pair?.sharp || !pair?.blurred) return;
-
-            const sharpCanvas = canvasRefs.current[`${ev.id}_sharp`];
-            if (sharpCanvas) {
-                sharpCanvas.width  = pair.sharp.width;
-                sharpCanvas.height = pair.sharp.height;
-                sharpCanvas.getContext("2d").drawImage(pair.sharp, 0, 0);
-            }
-
-            const blurCanvas = canvasRefs.current[`${ev.id}_blur`];
-            if (blurCanvas) {
-                blurCanvas.width  = pair.blurred.width;
-                blurCanvas.height = pair.blurred.height;
-                blurCanvas.getContext("2d").drawImage(pair.blurred, 0, 0);
-            }
+            const sc = canvasRefs.current[`${ev.id}_sharp`];
+            if (sc) { sc.width = pair.sharp.width; sc.height = pair.sharp.height; sc.getContext("2d").drawImage(pair.sharp, 0, 0); }
+            const bc = canvasRefs.current[`${ev.id}_blur`];
+            if (bc) { bc.width = pair.blurred.width; bc.height = pair.blurred.height; bc.getContext("2d").drawImage(pair.blurred, 0, 0); }
         });
     }, [bitmaps]);
 
-    // mulai animasi intro setelah overlay BlurProvider selesai fade
-    // isReady jadi true SETELAH fade out — jadi nggak perlu delay tambahan
-    useEffect(() => {
-        if (isReady) setMounted(true);
-    }, [isReady]);
+    useEffect(() => { if (isReady) setMounted(true); }, [isReady]);
 
-    const isMobile = cw < 768;
-    const scale    = isMobile ? 1 : Math.min(1, cw / 1440);
-    const margin   = Math.round(160 * scale);
-    const cardH    = Math.round(240 * scale);
+    const isMobile        = cw < 1024;
+    const mobileCardPx    = cw * MOBILE_CARD_VW;
+    const mobileCardScale = Math.min(1, mobileCardPx / MOBILE_CARD_REF);
+    const mobileCardH     = Math.min(180, Math.round(mobileCardPx * 1.5));
+
+    const scale        = Math.max(SCALE_FLOOR, Math.min(1, cw / SCALE_START));
+    const marginPx     = Math.min(160, Math.max(40, cw * 0.0833));
+    const scaledGap    = 4 * scale;
+    const fittingSlots = Math.max(4, Math.floor(((cw - 2 * marginPx) + scaledGap) / (DESKTOP_CARD_MIN_W * scale + scaledGap)));
+    const desktopSlots = isMobile ? 0 : Math.min(fittingSlots, DESKTOP_SLOTS_MAX);
+
+    useEffect(() => {
+        if (!isMobile || !mobileScrollRef.current) return;
+        mobileScrollRef.current.scrollTo({ left: activeIdx * (mobileCardPx + 8), behavior: "smooth" });
+    }, [activeIdx, isMobile, mobileCardPx]);
 
     const displayEvent = EVENTS[displayIdx];
 
     const infoAnimStyles = useMemo(() => {
         const make = (slot) => {
             if (!mounted) return { opacity: 0 };
-            if (transPhase === "exit")
-                return { animation: `info-exit 0.22s ease ${EXIT_DELAYS[slot]}ms both` };
-            if (transPhase === "enter")
-                return { animation: `info-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${ENTER_DELAYS[slot]}ms both` };
+            if (transPhase === "exit")  return { animation: `info-exit 0.22s ease ${EXIT_DELAYS[slot]}ms both` };
+            if (transPhase === "enter") return { animation: `info-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${ENTER_DELAYS[slot]}ms both` };
             if (!introPlayed) return introStyle(INTRO_DELAYS[slot]);
             return { opacity: 1 };
         };
@@ -241,13 +130,8 @@ export default function HeroSection({ paused = false }) {
         if (!mounted || activeIdx === displayIdx) return;
         setIntroPlayed(true);
         setTransPhase("exit");
-        const swapAt = 150 + 220 + 20;
-        const idleAt = swapAt + 210 + 350 + 20;
-        const t1 = setTimeout(() => {
-            setDisplayIdx(activeIdx);
-            setTransPhase("enter");
-        }, swapAt);
-        const t2 = setTimeout(() => setTransPhase("idle"), idleAt);
+        const t1 = setTimeout(() => { setDisplayIdx(activeIdx); setTransPhase("enter"); }, 390);
+        const t2 = setTimeout(() => setTransPhase("idle"), 970);
         return () => { clearTimeout(t1); clearTimeout(t2); };
     }, [activeIdx, mounted]);
 
@@ -260,27 +144,16 @@ export default function HeroSection({ paused = false }) {
 
     useEffect(() => {
         if (animating) return;
-
-        let startTime    = null;
-        let currentPhase = "fill";
-
+        let startTime = null;
+        let phase = "fill";
         const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-
         const tick = () => {
-            if (pausedRef.current || !tabVisRef.current) {
-                startTime = null;
-                return;
-            }
-
-            const timestamp = performance.now();
-            if (!startTime) startTime = timestamp;
-            const elapsed = timestamp - startTime;
-
-            const duration = currentPhase === "fill" ? INTERVAL_MS : SHRINK_MS;
-            const t = Math.min(elapsed / duration, 1);
-
+            if (pausedRef.current || !tabVisRef.current) { startTime = null; return; }
+            const now = performance.now();
+            if (!startTime) startTime = now;
+            const t = Math.min((now - startTime) / (phase === "fill" ? INTERVAL_MS : SHRINK_MS), 1);
             if (barRef.current) {
-                if (currentPhase === "fill") {
+                if (phase === "fill") {
                     barRef.current.style.left  = "0%";
                     barRef.current.style.width = `${t * 100}%`;
                 } else {
@@ -289,264 +162,166 @@ export default function HeroSection({ paused = false }) {
                     barRef.current.style.width = `${(1 - e) * 100}%`;
                 }
             }
-
             if (t >= 1) {
-                if (currentPhase === "fill") {
-                    currentPhase = "shrink";
-                    startTime    = null;
-                } else {
+                if (phase === "fill") { phase = "shrink"; startTime = null; }
+                else {
                     gsap.ticker.remove(tick);
-                    const next = (activeIdx + 1) % visibleCountRef.current;
+                    const next = (activeIdx + 1) % EVENTS.length;
                     setAnimating(true);
                     setActiveIdx(next);
                     setTimeout(() => setAnimating(false), 400);
                 }
             }
         };
-
         gsap.ticker.add(tick);
         return () => gsap.ticker.remove(tick);
     }, [activeIdx, animating]);
 
-    const mobileCards     = EVENTS.slice(0, 4);
-    const visibleCount    = isMobile ? mobileCards.length : EVENTS.length;
-    const visibleCountRef = useRef(visibleCount);
-    useEffect(() => { visibleCountRef.current = visibleCount; }, [visibleCount]);
-
     useEffect(() => {
-        if (isMobile && activeIdx >= mobileCards.length) {
-            setActiveIdx(0);
-            setDisplayIdx(0);
-        }
-    }, [isMobile]);
-
-    useEffect(() => {
-        const onVisibilityChange = () => { tabVisRef.current = !document.hidden; };
-        document.addEventListener("visibilitychange", onVisibilityChange);
-        return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+        const fn = () => { tabVisRef.current = !document.hidden; };
+        document.addEventListener("visibilitychange", fn);
+        return () => document.removeEventListener("visibilitychange", fn);
     }, []);
 
     return (
         <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
-            {/* overlay dihapus — BlurProvider yang handle overlay sekarang */}
 
+            {/* Backgrounds */}
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
-                    <div
-                        key={ev.id}
-                        className="absolute inset-0"
-                        style={{
-                            opacity:    idx === activeIdx ? 1 : 0,
-                            transition: paused ? "none" : "opacity 0.8s ease",
-                        }}
-                    >
-                        <canvas
-                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
-                            className="absolute inset-0 w-full h-full"
-                            style={{ objectFit: "cover" }}
-                        />
-                        <canvas
-                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
-                            className="absolute inset-0 w-full h-full"
-                            style={{
-                                objectFit: "cover",
-                                filter: "blur(24px)",
-                                maskImage: `
-                                    linear-gradient(to top,   black 0%, transparent 35%),
-                                    linear-gradient(to right, black 0%, transparent 40%),
-                                    linear-gradient(to left,  black 0%, transparent 35%)
-                                `,
-                                WebkitMaskImage: `
-                                    linear-gradient(to top,   black 0%, transparent 35%),
-                                    linear-gradient(to right, black 0%, transparent 40%),
-                                    linear-gradient(to left,  black 0%, transparent 35%)
-                                `,
-                                maskComposite:       "add",
-                                WebkitMaskComposite: "source-over",
-                            }}
-                        />
+                    <div key={ev.id} className="absolute inset-0" style={{ opacity: idx === activeIdx ? 1 : 0, transition: paused ? "none" : "opacity 0.8s ease" }}>
+                        <canvas ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }} className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />
+                        <canvas ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }} className="absolute inset-0 w-full h-full" style={{
+                            objectFit: "cover", filter: "blur(24px)",
+                            maskImage: "linear-gradient(to top, black 0%, transparent 35%), linear-gradient(to right, black 0%, transparent 40%), linear-gradient(to left, black 0%, transparent 35%)",
+                            WebkitMaskImage: "linear-gradient(to top, black 0%, transparent 35%), linear-gradient(to right, black 0%, transparent 40%), linear-gradient(to left, black 0%, transparent 35%)",
+                            maskComposite: "add", WebkitMaskComposite: "source-over",
+                        }} />
                     </div>
                 ))}
             </div>
 
+            {/* Overlays */}
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
 
-            <div
-                className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30"
-                style={mounted ? {
-                    animation: "hero-bar-intro 0.5s cubic-bezier(0.22, 1, 0.36, 1) 80ms both",
-                } : { opacity: 0 }}
-            >
+            {/* Progress bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30" style={mounted ? { animation: "hero-bar-intro 0.5s cubic-bezier(0.22, 1, 0.36, 1) 80ms both" } : { opacity: 0 }}>
                 <div ref={barRef} className="absolute top-0 h-full bg-yellow-400" />
             </div>
 
-            <div
-                className="absolute z-10"
-                style={{
-                    top:      isMobile ? 48 : Math.round(80 * scale),
-                    left:     isMobile ? 24 : margin,
-                    right:    isMobile ? 24 : undefined,
-                    maxWidth: isMobile ? undefined : Math.round(512 * scale),
-                }}
-            >
-                <p
-                    className="text-yellow-400 text-xs font-bold uppercase mb-3"
-                    style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        letterSpacing: "0.2em",
-                        ...infoAnimStyle(0),
-                    }}
-                >
+            {/* Info panel */}
+            <div className="absolute z-10" style={{ top: isMobile ? "48px" : "clamp(48px, 4.17vw, 80px)", left: isMobile ? "24px" : "clamp(40px, 8.33vw, 160px)", right: isMobile ? "24px" : undefined, maxWidth: isMobile ? "480px" : "calc(512px * var(--s))" }}>
+                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "11px" : "calc(12px * var(--s))", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#fbbf24", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", ...infoAnimStyle(0) }}>
                     {displayEvent.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
-
-                <h1
-                    className="text-white uppercase leading-none mb-3"
-                    style={{
-                        fontFamily: "'Bebas Neue', sans-serif",
-                        fontSize: "clamp(2.8rem, 5vw, 5rem)",
-                        textWrap: "balance",
-                        filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
-                        ...infoAnimStyle(1),
-                    }}
-                >
+                <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: isMobile ? "clamp(2rem, 10vw, 3.5rem)" : "calc(80px * var(--s))", lineHeight: 1, textWrap: "balance", color: "#fff", textTransform: "uppercase", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))", ...infoAnimStyle(1) }}>
                     {displayEvent.name}
                 </h1>
-
-                <p
-                    className="text-white text-base leading-relaxed mb-6 font-medium"
-                    style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textWrap: "balance",
-                        ...infoAnimStyle(2),
-                    }}
-                >
+                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "14px" : "calc(16px * var(--s))", lineHeight: 1.625, fontWeight: 500, color: "#fff", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textWrap: "balance", marginBottom: isMobile ? "20px" : "calc(24px * var(--s))", ...infoAnimStyle(2) }}>
                     {displayEvent.description}
                 </p>
-
                 <div style={infoAnimStyle(3)}>
-                    <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">
-                        More Details
-                    </Button>
+                    <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">More Details</Button>
                 </div>
             </div>
 
-            <div
-                className="absolute z-10"
-                style={{
-                    bottom:        isMobile ? 80 : Math.round(80 * scale),
-                    left:          isMobile ? 24 : margin,
-                    right:         isMobile ? 24 : margin,
-                    paddingBottom: isMobile ? 0 : Math.round(40 * scale),
-                }}
-            >
-                <p
-                    className="text-white text-sm font-bold uppercase mb-5"
-                    style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        letterSpacing: "0.15em",
-                        ...(mounted ? introStyle(480) : { opacity: 0 }),
-                    }}
-                >
-                    {">>>"} Featured Events
-                </p>
-
-                <div
-                    className="flex"
-                    style={{
-                        height: isMobile ? 160 : cardH,
-                        gap:    Math.round(4 * scale),
-                        ...(mounted ? {
-                            animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both",
-                        } : { opacity: 0 }),
-                    }}
-                >
-                    {(isMobile ? mobileCards : [...EVENTS, ...Array(Math.max(0, 8 - EVENTS.length)).fill(null)]).map((ev, idx) => {
-                        const isActive  = ev && idx === activeIdx;
-                        const isHovered = ev && !isActive && hoveredIdx === idx;
-                        return (
-                            <div
-                                key={ev ? ev.id : `placeholder-${idx}`}
-                                onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
-                                onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
-                                onMouseLeave={() => setHoveredIdx(null)}
-                                className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
-                                style={{
-                                    height:       isMobile ? 160 : cardH,
-                                    borderRadius: "8px",
-                                    overflow:     "visible",
-                                    outline: isActive
-                                        ? "2px solid rgba(234,179,8,0.9)"
-                                        : isHovered
-                                        ? "2px solid rgba(255,255,255,0.5)"
-                                        : "2px solid transparent",
-                                    transition: "outline 0.2s ease",
-                                }}
-                            >
-                                <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 4px rgba(0,0,0,0.25)" }}>
-                                    {ev ? (
+            {/* Card strip — mobile */}
+            {isMobile ? (
+                <div className="absolute z-10" style={{ bottom: "88px", left: 0, right: 0 }}>
+                    <p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
+                        {">>>"} Featured Events
+                    </p>
+                    <div ref={mobileScrollRef} className="match-scroll" style={{
+                        "--s": mobileCardScale,
+                        display: "flex", gap: "8px",
+                        overflowX: "auto", scrollSnapType: "x mandatory",
+                        scrollPaddingLeft: "24px", WebkitOverflowScrolling: "touch",
+                        paddingLeft: "24px",
+                        ...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }),
+                    }}>
+                        {EVENTS.map((ev, idx) => {
+                            const isActive  = idx === activeIdx;
+                            const isHovered = !isActive && hoveredIdx === idx;
+                            const ringColor = isActive ? "rgba(234,179,8,0.9)" : isHovered ? "rgba(255,255,255,0.5)" : "transparent";
+                            return (
+                                <div key={ev.id}
+                                    onClick={(e) => { e.preventDefault(); select(idx); }}
+                                    onMouseEnter={() => !isActive && setHoveredIdx(idx)}
+                                    onMouseLeave={() => setHoveredIdx(null)}
+                                    style={{
+                                        // Outer div = card image height + notch space.
+                                        // Notch sits at bottom:0 — fully within bounds, never clipped.
+                                        position: "relative", flexShrink: 0,
+                                        flex: `0 0 ${mobileCardPx}px`, width: `${mobileCardPx}px`,
+                                        height: mobileCardH + NOTCH_H,
+                                        scrollSnapAlign: "start", cursor: "pointer",
+                                    }}
+                                >
+                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.35)" }}>
                                         <EventCard event={ev} size="sm" />
-                                    ) : (
-                                        <div
-                                            className="w-full h-full flex flex-col items-center justify-center gap-2"
-                                            style={{ background: "#111827" }}
-                                        >
-                                            <div className="absolute inset-0" style={{
-                                                backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)",
-                                            }} />
-                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                                    </div>
+                                    {/* border renders inside the box — never clipped by scroll container's overflow context */}
+                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", border: `2px solid ${ringColor}`, pointerEvents: "none", zIndex: 10, transition: "border-color 0.2s ease" }} />
+                                    {(isActive || isHovered) && (
+                                        <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", zIndex: 20, width: 68, height: NOTCH_H, display: "flex", alignItems: "center", justifyContent: "center", animation: "notch-pop 0.2s ease forwards" }}>
+                                            <svg width="68" height="13" viewBox="0 0 68 13" fill="none" style={{ position: "absolute", inset: 0 }}>
+                                                <path d={NOTCH_PATH} fill={isActive ? "rgb(234,179,8)" : "rgba(255,255,255,0.92)"} />
                                             </svg>
-                                            <span style={{
-                                                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                                                fontSize: "0.55rem",
-                                                fontWeight: 700,
-                                                letterSpacing: "0.2em",
-                                                color: "rgba(255,255,255,0.2)",
-                                                textTransform: "uppercase",
-                                            }}>
-                                                Coming Soon
+                                            <span style={{ position: "relative", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.42rem", fontWeight: 900, letterSpacing: "0.13em", color: isActive ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.6)", textTransform: "uppercase", marginTop: -2 }}>
+                                                {isActive ? "this" : "see more"}
                                             </span>
                                         </div>
                                     )}
                                 </div>
-
-                                {isActive && (
-                                    <CardNotch
-                                        color="rgb(234,179,8)"
-                                        textColor="rgba(0,0,0,0.75)"
-                                        label="this"
-                                    />
-                                )}
-
-                                {isHovered && (
-                                    <CardNotch
-                                        color="rgba(255,255,255,0.92)"
-                                        textColor="rgba(0,0,0,0.6)"
-                                        label="see more"
-                                    />
-                                )}
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                        <div style={{ flexShrink: 0, width: 8 }} />
+                    </div>
                 </div>
-            </div>
+            ) : (
+                /* Card strip — desktop */
+                <div className="absolute z-10" style={{ bottom: "clamp(48px, 4.17vw, 80px)", left: "clamp(40px, 8.33vw, 160px)", right: "clamp(40px, 8.33vw, 160px)", paddingBottom: "clamp(32px, 3.125vw, 60px)" }}>
+                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "calc(14px * var(--s))", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "calc(20px * var(--s))", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
+                        {">>>"} Featured Events
+                    </p>
+                    <div className="flex" style={{ height: "calc(240px * var(--s))", gap: "calc(4px * var(--s))", ...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }) }}>
+                        {Array.from({ length: desktopSlots }, (_, idx) => {
+                            const ev        = EVENTS[idx] ?? null;
+                            const isActive  = ev && idx === activeIdx;
+                            const isHovered = ev && !isActive && hoveredIdx === idx;
+                            return (
+                                <div key={ev ? ev.id : `placeholder-${idx}`}
+                                    onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
+                                    onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
+                                    onMouseLeave={() => setHoveredIdx(null)}
+                                    className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
+                                    style={{ height: "calc(240px * var(--s))", borderRadius: "8px", overflow: "visible", outline: isActive ? "2px solid rgba(234,179,8,0.9)" : isHovered ? "2px solid rgba(255,255,255,0.5)" : "2px solid transparent", transition: "outline 0.2s ease" }}
+                                >
+                                    {/* "--s":"1" resets scale for EventCard content; outer height still inherits section --s */}
+                                    <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 4px rgba(0,0,0,0.25)", "--s": "1" }}>
+                                        {ev ? <EventCard event={ev} size="sm" /> : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: "#111827" }}>
+                                                <div className="absolute inset-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)" }} />
+                                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                                                </svg>
+                                                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>Coming Soon</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {isActive  && <CardNotch color="rgb(234,179,8)"         textColor="rgba(0,0,0,0.75)" label="this"     />}
+                                    {isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)"  label="see more" />}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
-            <div
-                className="absolute z-10 left-0 right-0"
-                style={{
-                    bottom: isMobile ? 6 : Math.round(24 * scale),
-                    ...(mounted ? {
-                        animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both",
-                    } : { opacity: 0 }),
-                }}
-            >
+            {/* Marquee */}
+            <div className="absolute z-10 left-0 right-0" style={{ bottom: isMobile ? "6px" : "calc(24px * var(--s))", ...(mounted ? { animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both" } : { opacity: 0 }) }}>
                 <UniversityMarquee />
             </div>
         </section>

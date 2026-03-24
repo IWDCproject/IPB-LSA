@@ -1,16 +1,26 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import NewsCard  from "../news-stuff/NewsCard";
-import Button    from "@/components/Button";
-import { useBlur } from "@/contexts/BlurContext";
+import NewsCard from "../news-stuff/NewsCard";
+import Button   from "@/components/Button";
 
-// sama kayak StatSection biar konsisten
-const H_MARGIN   = 160;
 const MOBILE_PAD = 20;
 
-// di bawah lebar ini switch ke layout mobile
-const MOBILE_THRESHOLD = 720;
+// ── Aligned to HeroSection ────────────────────────────────────────────────────
+// HeroSection: isMobile = cw < 1024
+const MOBILE_THRESHOLD = 1024;
+
+// HeroSection: --s = Math.max(0.875, Math.min(1, w / 1600))
+const SCALE_START = 1600;
+const SCALE_FLOOR = 0.875;
+
+// HeroSection: marginPx = Math.min(160, Math.max(40, cw * 0.0833))
+// Proportional clamp so margins shrink properly on mid-range widths instead of
+// staying pinned near 160px * 0.875 = 140px at every desktop size.
+function desktopPad(cw) {
+  return Math.min(160, Math.max(40, cw * 0.0833));
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // =============================================================================
 // DB SCHEMA (dari tabel `news` + join ke `events`)
@@ -90,15 +100,20 @@ const DUMMY_NEWS = [
   },
 ];
 
-// copy paste dari StatSection, biar hook-nya konsisten di semua section
 function useContainerWidth(ref) {
   const [width, setWidth] = useState(1200);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    const update = (w) => {
+      setWidth(w);
+      // Aligned to HeroSection: same reference width and scale floor
+      el.style.setProperty("--s", Math.max(SCALE_FLOOR, Math.min(1, w / SCALE_START)));
+    };
+    const ro = new ResizeObserver(([entry]) => update(entry.contentRect.width));
     ro.observe(el);
+    update(el.getBoundingClientRect().width);
     return () => ro.disconnect();
   }, [ref]);
 
@@ -110,25 +125,19 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
   const sectionRef = useRef(null);
   const cw         = useContainerWidth(sectionRef);
 
-  // ambil bitmaps dari BlurProvider — keyed by thumbnail_url → { newscard: { bitmap } }
-  const { bitmaps } = useBlur();
-
+  // Aligned to HeroSection: 1024px breakpoint
   const isMobile = cw < MOBILE_THRESHOLD;
-  const pad      = isMobile ? MOBILE_PAD : H_MARGIN;
+  // JS-computed so padding tracks actual container width, not a CSS-only calc.
+  // Same clamp as HeroSection: proportional at mid-range, capped at 160px.
+  const pad      = isMobile ? MOBILE_PAD : desktopPad(cw);
 
   const [main, ...rest] = news;
-
-  // helper buat ambil bitmap per item — null kalau belum siap (fallback ke CSS)
-  function getBitmap(url) {
-    return bitmaps[url]?.newscard?.bitmap ?? null;
-  }
 
   return (
     <section
       ref={sectionRef}
       style={{
         ...styles.section,
-        // mobile gak perlu minHeight 100vh, konten yang nentuin
         minHeight: isMobile ? "auto" : "100vh",
         padding:   isMobile ? "60px 0" : "0",
       }}
@@ -138,13 +147,13 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
           ...styles.inner,
           paddingLeft:   pad,
           paddingRight:  pad,
-          paddingBottom: isMobile ? 60 : 100,
+          paddingBottom: isMobile ? 60 : Math.min(100, Math.max(40, cw * 0.052)),
         }}
       >
         <h2
           style={{
             ...styles.heading,
-            fontSize:     "clamp(1.8rem, 7vw, 4rem)",
+            fontSize:     isMobile ? "clamp(1.8rem, 7vw, 2.5rem)" : "calc(64px * var(--s))",
             marginBottom: isMobile ? 12 : 17,
           }}
         >
@@ -161,7 +170,6 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
                 title={main.title}
                 isMain
                 compact
-                bitmap={getBitmap(main.thumbnail_url)}
               />
             </div>
             <div style={styles.mobileSmallGrid}>
@@ -172,7 +180,6 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
                     tag={item.event_id?.name ?? null}
                     title={item.title}
                     compact
-                    bitmap={getBitmap(item.thumbnail_url)}
                   />
                 </div>
               ))}
@@ -180,14 +187,13 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
           </div>
         ) : (
           // desktop: besar kiri span 2 baris, 2x2 di kanan
-          <div style={styles.grid}>
+          <div style={styles.grid(cw)}>
             <div style={styles.mainCell}>
               <NewsCard
                 thumbnail_url={main.thumbnail_url}
                 tag={main.event_id?.name ?? null}
                 title={main.title}
                 isMain
-                bitmap={getBitmap(main.thumbnail_url)}
               />
             </div>
             {rest.map((item) => (
@@ -196,14 +202,12 @@ export default function NewsSection({ news = DUMMY_NEWS }) {
                   thumbnail_url={item.thumbnail_url}
                   tag={item.event_id?.name ?? null}
                   title={item.title}
-                  bitmap={getBitmap(item.thumbnail_url)}
                 />
               </div>
             ))}
           </div>
         )}
 
-        {/* button rata kanan, konsisten desktop maupun mobile */}
         <div style={styles.buttonWrap}>
           <Button href="/news" variant="primary" size="md">
             More News
@@ -241,12 +245,14 @@ const styles = {
   },
 
   // -- desktop grid --
-  grid: {
+  // Row height scales with container width so cards don't become excessively
+  // tall relative to their width on mid-range viewports.
+  grid: (cw) => ({
     display:             "grid",
     gridTemplateColumns: "2fr 1fr 1fr",
-    gridTemplateRows:    "260px 260px",
+    gridTemplateRows:    `${Math.min(260, Math.max(160, cw * 0.135))}px ${Math.min(260, Math.max(160, cw * 0.135))}px`,
     gap:                 "12px",
-  },
+  }),
 
   mainCell: {
     gridRow: "1 / 3",

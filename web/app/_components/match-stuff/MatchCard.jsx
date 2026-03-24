@@ -36,27 +36,6 @@ const S = {
     height: "100%",
     borderRadius: 10,
   },
-  header: {
-    display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-    padding: "18px 18px 0", gap: 8,
-  },
-  label:    { ...JK, fontWeight: 700, fontSize: 15, lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  meta:     { ...JK, fontSize: 11, fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  liveBadge: {
-    ...BB,
-    display: "flex", alignItems: "center", gap: 5,
-    background: "#ef4444", borderRadius: 4, padding: "0px 7px",
-    fontSize: 14, letterSpacing: 1, flexShrink: 0,
-  },
-  participant:     { display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
-  participantName: { ...JK, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  participantInst: { ...JK, fontSize: 12, fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" },
-  vs:          { ...BB, fontSize: 15, opacity: 0.35, flexShrink: 0, letterSpacing: 2 },
-  scoreWrapper: { padding: "10px 18px 8px" },
-  scoreRow:    { display: "flex", alignItems: "center", justifyContent: "center", gap: 8 },
-  scoreNum:    { ...BB, fontSize: 48, lineHeight: 1, letterSpacing: 2 },
-  scoreSep:    { ...BB, fontSize: 24, opacity: 0.35, letterSpacing: 2 },
-  pill:        { ...JK, background: "rgba(255,255,255,0.15)", borderRadius: 4, padding: "2px 7px", fontSize: 12 },
 };
 
 function fmtSecs(s) {
@@ -101,7 +80,7 @@ function useMatchTimerDOM(ref, live, timerMod) {
   }, [live?.timerRunning, live?.timerLastStarted, live?.timerSecs, timerMod?.config?.mode]);
 }
 
-function InstitutionLogo({ inst, size = 32 }) {
+function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }) {
   if (!inst?.logo_url) {
     return <div style={{ width: size, height: size, borderRadius: "50%", background: inst?.color ?? "#334155", flexShrink: 0 }} />;
   }
@@ -110,10 +89,10 @@ function InstitutionLogo({ inst, size = 32 }) {
 
 function ScoreTimed({ live }) {
   return (
-    <div style={S.scoreRow}>
-      <span style={S.scoreNum}>{live?.homeScore ?? 0}</span>
-      <span style={S.scoreSep}>-</span>
-      <span style={S.scoreNum}>{live?.awayScore ?? 0}</span>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(8px * var(--s))" }}>
+      <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{live?.homeScore ?? 0}</span>
+      <span style={{ ...BB, fontSize: "calc(24px * var(--s))", opacity: 0.35, letterSpacing: 2 }}>-</span>
+      <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{live?.awayScore ?? 0}</span>
     </div>
   );
 }
@@ -125,26 +104,28 @@ function ScoreSets({ live, engine }) {
   const setsToWin = engine?.config?.sets_to_win ?? 3;
 
   const Dots = ({ filled }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "calc(4px * var(--s))", justifyContent: "center" }}>
       {Array.from({ length: setsToWin }).map((_, i) => (
-        <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: i < filled ? "#fff" : "rgba(255,255,255,0.25)" }} />
+        <div key={i} style={{ width: "calc(7px * var(--s))", height: "calc(7px * var(--s))", borderRadius: "50%", background: i < filled ? "#fff" : "rgba(255,255,255,0.25)" }} />
       ))}
     </div>
   );
 
+  const pill = { ...JK, background: "rgba(255,255,255,0.15)", borderRadius: 4, padding: "calc(2px * var(--s)) calc(7px * var(--s))", fontSize: "calc(12px * var(--s))" };
+
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={S.scoreRow}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(8px * var(--s))" }}>
         {setsWon[0] > 0 && <Dots filled={setsWon[0]} />}
-        <span style={S.scoreNum}>{setScore[0]}</span>
-        <span style={S.scoreSep}>-</span>
-        <span style={S.scoreNum}>{setScore[1]}</span>
+        <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{setScore[0]}</span>
+        <span style={{ ...BB, fontSize: "calc(24px * var(--s))", opacity: 0.35, letterSpacing: 2 }}>-</span>
+        <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{setScore[1]}</span>
         {setsWon[1] > 0 && <Dots filled={setsWon[1]} />}
       </div>
       {setLog.length > 0 && (
-        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(8px * var(--s))", flexWrap: "wrap" }}>
           {setLog.map((s, i) => (
-            <span key={i} style={S.pill}>{s.label ?? `Set ${i + 1}`}: {s.home}-{s.away}</span>
+            <span key={i} style={pill}>{s.label ?? `Set ${i + 1}`}: {s.home}-{s.away}</span>
           ))}
         </div>
       )}
@@ -156,13 +137,14 @@ function JudgeScores({ live, engine }) {
   const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
   const result = calcJudgeScore(scores, method);
+  const pill = { ...JK, background: "rgba(255,255,255,0.15)", borderRadius: 4, padding: "calc(2px * var(--s)) calc(7px * var(--s))", fontSize: "calc(12px * var(--s))" };
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ ...S.scoreNum, fontSize: 40 }}>{result.toFixed(2)}</div>
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 4, flexWrap: "wrap" }}>
-        {scores.map((s, i) => <span key={i} style={S.pill}>{s.toFixed(1)}</span>)}
+      <div style={{ ...BB, fontSize: "calc(40px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{result.toFixed(2)}</div>
+      <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(4px * var(--s))", flexWrap: "wrap" }}>
+        {scores.map((s, i) => <span key={i} style={pill}>{s.toFixed(1)}</span>)}
       </div>
-      <div style={{ ...JK, fontSize: 11, fontWeight: 600, opacity: 0.5, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>
+      <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.5, marginTop: "calc(4px * var(--s))", textTransform: "uppercase", letterSpacing: 1 }}>
         {method === "drop_extremes" ? "Avg (drop extremes)" : method}
       </div>
     </div>
@@ -172,14 +154,14 @@ function JudgeScores({ live, engine }) {
 function FinishTime({ live }) {
   const log = live?.timeLog ?? [];
   if (!log.length) {
-    return <div style={{ ...JK, fontSize: 12, opacity: 0.4, textAlign: "center" }}>Waiting for results...</div>;
+    return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", opacity: 0.4, textAlign: "center" }}>Waiting for results...</div>;
   }
   return (
-    <ol style={{ margin: 0, padding: "0 0 0 18px" }}>
+    <ol style={{ margin: 0, padding: `0 0 0 calc(18px * var(--s))` }}>
       {log.map((e, i) => (
-        <li key={i} style={{ ...JK, fontSize: 13, marginBottom: 2 }}>
+        <li key={i} style={{ ...JK, fontSize: "calc(13px * var(--s))", marginBottom: "calc(2px * var(--s))" }}>
           <span style={{ fontWeight: 700 }}>{e.name}</span>
-          <span style={{ opacity: 0.6, marginLeft: 6 }}>{e.time}</span>
+          <span style={{ opacity: 0.6, marginLeft: "calc(6px * var(--s))" }}>{e.time}</span>
         </li>
       ))}
     </ol>
@@ -192,11 +174,11 @@ function ManualPick({ live }) {
 
   if (rankings.length > 0) {
     return (
-      <ol style={{ margin: 0, padding: "0 0 0 18px" }}>
+      <ol style={{ margin: 0, padding: `0 0 0 calc(18px * var(--s))` }}>
         {rankings.map((r) => (
-          <li key={r.rank} style={{ ...JK, fontSize: 13, marginBottom: 2 }}>
+          <li key={r.rank} style={{ ...JK, fontSize: "calc(13px * var(--s))", marginBottom: "calc(2px * var(--s))" }}>
             <span style={{ fontWeight: 700 }}>#{r.rank}</span>
-            <span style={{ marginLeft: 6 }}>{r.name}</span>
+            <span style={{ marginLeft: "calc(6px * var(--s))" }}>{r.name}</span>
           </li>
         ))}
       </ol>
@@ -204,10 +186,10 @@ function ManualPick({ live }) {
   }
 
   if (winner) {
-    return <div style={{ ...JK, textAlign: "center", fontWeight: 700, fontSize: 15 }}>🏆 {winner}</div>;
+    return <div style={{ ...JK, textAlign: "center", fontWeight: 700, fontSize: "calc(15px * var(--s))" }}>🏆 {winner}</div>;
   }
 
-  return <div style={{ ...JK, fontSize: 12, fontWeight: 600, opacity: 0.5, textAlign: "center" }}>Waiting...</div>;
+  return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.5, textAlign: "center" }}>Waiting...</div>;
 }
 
 function OpenParticipants({ match }) {
@@ -221,15 +203,15 @@ function OpenParticipants({ match }) {
   const rest  = entries.length - shown.length;
 
   return (
-    <div style={{ padding: "12px 18px 0", display: "flex", flexDirection: "column", gap: 3 }}>
+    <div style={{ padding: "calc(12px * var(--s)) calc(18px * var(--s)) 0", display: "flex", flexDirection: "column", gap: "calc(3px * var(--s))" }}>
       {shown.map((p, i) => (
-        <div key={p?.id ?? i} style={{ ...JK, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ opacity: 0.5, fontSize: 11, fontWeight: 700, minWidth: 16 }}>{i + 1}</span>
+        <div key={p?.id ?? i} style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, display: "flex", alignItems: "center", gap: "calc(6px * var(--s))" }}>
+          <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 700, minWidth: "calc(16px * var(--s))" }}>{i + 1}</span>
           <span style={{ opacity: 0.9 }}>{p?.name ?? "?"}</span>
         </div>
       ))}
       {rest > 0 && (
-        <div style={{ ...JK, fontSize: 12, fontWeight: 600, opacity: 0.5, marginTop: 2 }}>+{rest} more competing...</div>
+        <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.5, marginTop: "calc(2px * var(--s))" }}>+{rest} more competing...</div>
       )}
     </div>
   );
@@ -327,54 +309,83 @@ export function MatchCard({ match, bitmap = null }) {
       <div style={S.cardOverlay} />
       <div style={S.cardInner}>
 
-        <div style={S.header}>
+        {/* Header */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+          padding: "calc(18px * var(--s)) calc(18px * var(--s)) 0", gap: "calc(8px * var(--s))",
+        }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={S.label}>{event?.name ?? ""}</div>
-            <div style={S.meta}>{label}</div>
+            <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {event?.name ?? ""}
+            </div>
+            <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {label}
+            </div>
           </div>
-          <div style={S.liveBadge}>
+          <div style={{
+            ...BB,
+            display: "flex", alignItems: "center", gap: "calc(5px * var(--s))",
+            background: "#ef4444", borderRadius: 4, padding: "0 calc(7px * var(--s))",
+            fontSize: "calc(14px * var(--s))", letterSpacing: 1, flexShrink: 0,
+          }}>
             {timerMod ? <span ref={timerRef}>00:00</span> : "LIVE"}
           </div>
         </div>
 
+        {/* H2H participants */}
         {isH2H && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 18px 0" }}>
-            <div style={S.participant}>
+          <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))", padding: "calc(14px * var(--s)) calc(18px * var(--s)) 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))", flex: 1, minWidth: 0 }}>
               <InstitutionLogo inst={match.home_participant?.institution} />
               <div style={{ minWidth: 0 }}>
-                <div style={S.participantName}>{match.home_participant?.name ?? "?"}</div>
-                <div style={S.participantInst}>{match.home_participant?.institution?.name ?? ""}</div>
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {match.home_participant?.name ?? "?"}
+                </div>
+                <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" }}>
+                  {match.home_participant?.institution?.name ?? ""}
+                </div>
               </div>
             </div>
-            <span style={S.vs}>VS</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
+            <span style={{ ...BB, fontSize: "calc(15px * var(--s))", opacity: 0.35, flexShrink: 0, letterSpacing: 2 }}>VS</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))", flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
               <div style={{ minWidth: 0, textAlign: "right" }}>
-                <div style={S.participantName}>{match.away_participant?.name ?? "?"}</div>
-                <div style={S.participantInst}>{match.away_participant?.institution?.name ?? ""}</div>
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {match.away_participant?.name ?? "?"}
+                </div>
+                <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" }}>
+                  {match.away_participant?.institution?.name ?? ""}
+                </div>
               </div>
               <InstitutionLogo inst={match.away_participant?.institution} />
             </div>
           </div>
         )}
 
+        {/* Solo participant */}
         {isSolo && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "calc(10px * var(--s))", padding: "calc(14px * var(--s)) calc(18px * var(--s)) 0" }}>
             <InstitutionLogo inst={match.home_participant?.institution} />
             <div style={{ minWidth: 0 }}>
-              <div style={S.participantName}>{match.home_participant?.name ?? "?"}</div>
-              <div style={S.participantInst}>{match.home_participant?.institution?.name ?? ""}</div>
+              <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {match.home_participant?.name ?? "?"}
+              </div>
+              <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" }}>
+                {match.home_participant?.institution?.name ?? ""}
+              </div>
             </div>
           </div>
         )}
 
         {isOpen && <OpenParticipants match={match} />}
 
-        <div style={{ ...S.scoreWrapper, paddingTop: isOpen ? 4 : 10 }}>
+        <div style={{ padding: `${isOpen ? "calc(4px * var(--s))" : "calc(10px * var(--s))"} calc(18px * var(--s)) calc(8px * var(--s))` }}>
           {!isOpen && <ScoreSection fmt={fmt} live={live} match={match} />}
         </div>
 
-        <div style={{ marginTop: "auto", padding: "8px 18px 16px" }}>
-          <div style={S.meta}>{match.venue ?? ""}</div>
+        <div style={{ marginTop: "auto", padding: "calc(8px * var(--s)) calc(18px * var(--s)) calc(16px * var(--s))" }}>
+          <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {match.venue ?? ""}
+          </div>
         </div>
 
       </div>
