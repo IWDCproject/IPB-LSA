@@ -2,10 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-// FIX 1: useGSAP is GSAP's official React hook. It creates an internal gsap.context()
-// so that every GSAP object created inside a contextSafe() wrapper is automatically
-// tracked and reverted (killed) when the component unmounts. This replaces the need
-// to manually store and kill every tween/timeline ref.
 import { useGSAP } from '@gsap/react';
 import Button from '@/components/Button';
 import EventCard from '@/components/EventCard';
@@ -126,10 +122,6 @@ const MOCK_EVENTS = [
   },
 ];
 
-// FIX 2: buildEvents() was called inside the component body on every render,
-// which meant new Date(), toLocaleDateString(), and 4 object spreads ran on
-// every state update. MOCK_EVENTS is a module-level constant so EVENTS_DATA
-// can safely be computed once at module-load time and reused forever.
 function buildEvents() {
   return MOCK_EVENTS.map((ev, i) => {
     const label =
@@ -150,8 +142,6 @@ function buildEvents() {
 }
 
 const EVENTS_DATA  = buildEvents();
-// FIX 2 (cont): activeIdx and inactiveIdx are derived entirely from EVENTS_DATA
-// which never changes, so they can also live at module level.
 const ACTIVE_IDX   = EVENTS_DATA.findLastIndex(e => e.isActive);
 const INACTIVE_IDX = ACTIVE_IDX + 1;
 
@@ -249,7 +239,6 @@ const POST_MS  = 1000 / 30;
 const CTA_FRAC = 0.40;
 
 export default function EventTimeline() {
-  // FIX 2 (cont): replace per-render buildEvents() call with module-level constants.
   const events      = EVENTS_DATA;
   const activeIdx   = ACTIVE_IDX;
   const inactiveIdx = INACTIVE_IDX;
@@ -294,20 +283,14 @@ export default function EventTimeline() {
   const nodeRefs    = useRef([]);
   const rotateRefs  = useRef([]);
 
-  // FIX 3: Store the float timeline so it can be paused/resumed on visibility
-  // changes and so useGSAP's context can kill it on unmount. Without this ref the
-  // timeline is an orphaned local variable — impossible to stop or clean up.
   const floatTlRef = useRef(null);
+  const tabVisRef  = useRef(true);
 
-  // FIX 4: Tab visibility ref (same pattern as HeroSection). Written by the
-  // visibilitychange listener below; read inside the ticker.
-  const tabVisRef = useRef(true);
+  // Track whether we were in mobile layout on the previous resize tick.
+  // When this flips true → false the desktop DOM has just remounted,
+  // so we need to reset intro state and replay the animation.
+  const wasMobileRef = useRef(false);
 
-  // FIX 5: useGSAP gives us contextSafe(). Any GSAP object created inside a
-  // contextSafe()-wrapped function is tracked by the internal gsap.context() and
-  // automatically reverted (killed + properties reset) when the component unmounts.
-  // This is the GSAP-recommended solution for delayed/async GSAP calls in React.
-  // scope: containerRef limits selector text to this component's DOM subtree.
   const { contextSafe } = useGSAP({ scope: containerRef });
 
   const initCurve = () => {
@@ -315,11 +298,35 @@ export default function EventTimeline() {
     if (!el) return;
 
     const { width: W, height: H } = el.getBoundingClientRect();
-    const sf = Math.min(1, W / 1920);
+    const sf        = Math.min(1, W / 1920);
+    const nowMobile = W < 900;
+
     sizeRef.current = { W, H, scaleF: sf };
     setScaleF(sf);
-    // mobile basednya container width, bukan window — lebih akurat kalau ada sidebar
-    setIsMobile(W < 900);
+    setIsMobile(nowMobile);
+
+    // ── Mobile → desktop transition ───────────────────────────────────────
+    // The desktop canvas/SVG/node DOM was unmounted while mobile was active.
+    // On the first initCurve after switching back, those refs are freshly
+    // mounted but playIntro has already been marked as fired by the IO.
+    // Reset intro flags here so playIntro will run again once the IO sees
+    // the section is still visible (or we call it directly below).
+    if (wasMobileRef.current && !nowMobile) {
+      introStarted.current = false;
+      introProg.current    = 0;
+      travelRef.current    = { drawn: 0, total: 0, active: false };
+      segLen.current       = { w: 0, y: 0, g: 0 };
+      prevPtsValid.current = false;
+
+      // Kill the old float timeline — its targets (the old mobile-era nodes)
+      // are gone. A new one will be created by the fresh playIntro call.
+      if (floatTlRef.current) {
+        floatTlRef.current.kill();
+        floatTlRef.current = null;
+      }
+    }
+    wasMobileRef.current = nowMobile;
+    // ─────────────────────────────────────────────────────────────────────
 
     const canvas = canvasRef.current;
     if (canvas) {
@@ -354,6 +361,13 @@ export default function EventTimeline() {
       });
       draw(curveRef.current, introProg.current);
     }
+
+    // If we just switched back to desktop and the section is already on-screen,
+    // fire playIntro immediately — the IO threshold may not re-trigger because
+    // the element never left the viewport.
+    if (wasMobileRef.current === false && !introStarted.current && visibleRef.current) {
+      playIntro();
+    }
   };
 
   useEffect(() => {
@@ -366,17 +380,6 @@ export default function EventTimeline() {
     return () => ro.disconnect();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // FIX 6: The original code had two separate IntersectionObservers on the same
-  // containerRef element — one for the visibleRef scroll-gate, one for the intro
-  // trigger. Each IO costs a browser-side intersection calculation slot. One IO
-  // with two thresholds handles both roles:
-  //   - threshold 0    → any pixel on-screen → update visibleRef (canvas gate)
-  //   - threshold 0.15 → 15% on-screen      → fire playIntro once
-  //
-  // FIX 7: The combined IO callback is also where we pause/resume floatTlRef
-  // when the section scrolls in or out. This ensures the float animations are
-  // truly paused (not just render-skipped) when off-screen, saving GSAP
-  // internal scheduling work on every frame.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -388,8 +391,6 @@ export default function EventTimeline() {
         const inView = entry.isIntersecting;
         visibleRef.current = inView;
 
-        // Pause/resume float animations based on scroll visibility.
-        // tabVisRef is checked too so we don't resume if tab is also hidden.
         if (floatTlRef.current) {
           if (inView && !document.hidden) {
             floatTlRef.current.resume();
@@ -398,8 +399,9 @@ export default function EventTimeline() {
           }
         }
 
-        // Intro: fire once when 15% of the section is on-screen.
-        if (inView && entry.intersectionRatio >= 0.15 && !introFired) {
+        // Fire intro on first intersection — or re-fire after a mobile→desktop
+        // reset (introStarted will be false again in that case).
+        if (inView && entry.intersectionRatio >= 0.15 && (!introFired || !introStarted.current)) {
           introFired = true;
           playIntro();
         }
@@ -411,9 +413,6 @@ export default function EventTimeline() {
     return () => io.disconnect();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // FIX 8: Page Visibility API listener.
-  // Covers tab switch, window minimize, and mobile app switch — none of which
-  // IntersectionObserver can detect. Also syncs the float timeline pause state.
   useEffect(() => {
     const onVisibilityChange = () => {
       tabVisRef.current = !document.hidden;
@@ -431,10 +430,6 @@ export default function EventTimeline() {
 
   useEffect(() => {
     const tick = () => {
-      // FIX 9: Extend the existing visibleRef gate to also block on tab hidden.
-      // Without tabVisRef the ticker still fires (at ~1fps via throttled rAF) when
-      // the tab is backgrounded, still running gsap.getProperty() reads and dirty-
-      // checking all 4 node positions on every tick.
       if (!visibleRef.current || !tabVisRef.current || !introStarted.current) return;
 
       const progress = introProg.current;
@@ -559,20 +554,10 @@ export default function EventTimeline() {
     }
   }
 
-  // FIX 10: playIntro is wrapped in contextSafe() so that every GSAP object it
-  // creates — the float timeline, the proxy intro tween, the individual reveal
-  // tweens — is registered with useGSAP's internal gsap.context(). On component
-  // unmount, context.revert() kills all of them automatically.
-  //
-  // Previously playIntro was a plain function. The float timeline (tl) was a local
-  // variable, making it impossible to pause, resume, or kill after creation. The
-  // intro proxy tween and reveal tweens were also completely untracked. On unmount
-  // they would all keep running in GSAP's global timeline.
-  //
-  // Changes inside the function body are minimal — only the addition of
-  // `floatTlRef.current = tl` so we can pause/resume it from the IO + visibility
-  // callbacks. Everything else is identical to the original.
   const playIntro = contextSafe(function playIntro() {
+    // Guard: don't double-fire if already running
+    if (introStarted.current) return;
+
     requestAnimationFrame(() => requestAnimationFrame(() => {
       const white  = pathWRef.current;
       const yellow = pathYRef.current;
@@ -609,9 +594,6 @@ export default function EventTimeline() {
       if (ctaRef.current)    gsap.set(ctaRef.current,    { opacity: 0, y: 40 });
       if (mascotRef.current) gsap.set(mascotRef.current, { opacity: 0, y: 40 });
 
-      // FIX 10 (cont): Store the float timeline in floatTlRef so the IO and
-      // visibilitychange callbacks can pause/resume it. This is the only line
-      // added to the original tl creation block.
       const tl = gsap.timeline();
       floatTlRef.current = tl;
 
