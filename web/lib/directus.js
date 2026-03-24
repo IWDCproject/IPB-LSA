@@ -14,7 +14,7 @@ export const getEvents = async () => {
         filter: {
           is_published: { _eq: true }
         },
-        fields: ['id', 'name', 'slug', 'card_image_url', 'start_date', 'location'], // Ambil kolom yang butuh saja
+        fields: ['*'], // Ambil semua field yang ada
         sort: ['start_date'],
       })
     );

@@ -248,11 +248,42 @@ const H_MARGIN = 160;
 const POST_MS  = 1000 / 30;
 const CTA_FRAC = 0.40;
 
-export default function EventTimeline() {
-  // FIX 2 (cont): replace per-render buildEvents() call with module-level constants.
-  const events      = EVENTS_DATA;
-  const activeIdx   = ACTIVE_IDX;
-  const inactiveIdx = INACTIVE_IDX;
+export default function EventTimeline({ events: directusEvents }) {
+  // Gunakan data dari Directus jika ada, jika tidak gunakan MOCK_EVENTS
+  const rawEvents = directusEvents && directusEvents.length > 0 ? directusEvents : MOCK_EVENTS;
+
+  // Format data 
+  const formattedEvents = rawEvents.map((ev, i) => {
+    // Ambil slot (maksimal 4)
+    const slot = SLOTS[i % SLOTS.length];
+    
+    const label =
+      ev.is_published && new Date(ev.start_date) <= new Date() ? 'ONGOING'
+      : !ev.start_date ? 'TBA'
+      : new Date(ev.start_date)
+          .toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+          .toUpperCase();
+
+    // Gunakan URL gambar dari Directus jika ada
+    let finalImageUrl = ev.card_image_url || 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=300&q=80';
+    
+    if (ev.card_image_url && !ev.card_image_url.startsWith('http')) {
+      finalImageUrl = `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${ev.card_image_url}`;
+    }
+
+    return {
+      ...ev,
+      slot,
+      label,
+      isActive: ev.is_published && new Date(ev.start_date) <= new Date(),
+      subLabel: ev.location ? `Location\n${ev.location}` : 'IPB University',
+      card_image_url: finalImageUrl
+    };
+  });
+
+  const events      = formattedEvents;
+  const activeIdx   = events.findLastIndex(e => e.isActive);
+  const inactiveIdx = activeIdx + 1;
 
   const [isMobile, setIsMobile] = useState(false);
 

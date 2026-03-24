@@ -6,6 +6,8 @@ import CurtainWrapper from "./_components/CurtainWrapper";
 import SmoothScroller  from "./_components/SmoothScroller";
 import { getEvents }   from "@/lib/directus";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Page() {
   const events = await getEvents();
   console.log("Daftar Event dari Directus:", events);
@@ -13,7 +15,7 @@ export default async function Page() {
   return (
     <SmoothScroller>
       <BlurProvider>
-        <CurtainWrapper />
+        <CurtainWrapper events={events} />
       </BlurProvider>
     </SmoothScroller>
   );

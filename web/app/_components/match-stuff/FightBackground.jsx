@@ -7,10 +7,9 @@ export default function FightBackground({ visible = false }) {
   const [fadeStart, setFadeStart] = useState(20);
 
   useEffect(() => {
-    // Jalankan video dari awal saat props visible jadi true
     if (visible && videoRef.current) {
       videoRef.current.currentTime = 0;
-	    videoRef.current.playbackRate = 1.5;
+	    videoRef.current.playbackRate = 1.1;
       videoRef.current.play();
     }
   }, [visible]);
@@ -47,7 +46,6 @@ export default function FightBackground({ visible = false }) {
       style={{
         inset: 0,
         height: "100%",
-        // Gradient mask bawaanmu tetap dipakai biar bawahnya pudar natural
         maskImage: mask,
         WebkitMaskImage: mask,
       }}
@@ -55,7 +53,7 @@ export default function FightBackground({ visible = false }) {
       <video
         ref={videoRef}
         src="/videos/0323(1).mp4" 
-        // opacity-20 tetap dipakai sesuai desain awalmu
+
         className="w-full h-auto opacity-15" 
         style={{
           transform: "scale(1.5)", // Atur scale-nya di sini seperti biasa
