@@ -12,7 +12,7 @@ import TimelineSection from "./sections/TimelineSection";
 const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
 
-export default function CurtainWrapper() {
+export default function CurtainWrapper({ events }) {
   const heroSpacerRef  = useRef(null);
   const newsSectionRef = useRef(null);
   const [heroPaused, setHeroPaused] = useState(false);
@@ -102,7 +102,7 @@ export default function CurtainWrapper() {
             willChange: "transform",
           }}
         >
-          <TimelineSection />
+          <TimelineSection events={events} />
         </motion.div>
       </div>
 

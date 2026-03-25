@@ -13,7 +13,7 @@ export default async function Page() {
   return (
     <SmoothScroller>
       <BlurProvider>
-        <CurtainWrapper />
+        <CurtainWrapper events={events} />
       </BlurProvider>
     </SmoothScroller>
   );
