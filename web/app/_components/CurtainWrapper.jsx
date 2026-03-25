@@ -12,7 +12,7 @@ import TimelineSection from "./sections/TimelineSection";
 const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
 
-export default function CurtainWrapper({ events }) {
+export default function CurtainWrapper({ events, matches }) {
   const heroSpacerRef  = useRef(null);
   const newsSectionRef = useRef(null);
   const [heroPaused, setHeroPaused] = useState(false);
@@ -84,7 +84,7 @@ export default function CurtainWrapper({ events }) {
 
       <div style={{ position: "relative", zIndex: 2 }}>
         <StatSection />
-        <MatchSection />
+        <MatchSection matches={matches} />
       </div>
 
       <div
