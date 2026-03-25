@@ -9,6 +9,9 @@ import { getEvents, getMatches } from "@/lib/directus";
 // Menonaktifkan cache agar data selalu di-fetch ulang dari Directus
 export const dynamic = "force-dynamic";
 
+// Menonaktifkan cache agar data selalu di-fetch ulang dari Directus
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const [events, matches] = await Promise.all([
     getEvents(),
