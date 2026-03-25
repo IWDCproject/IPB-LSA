@@ -122,10 +122,11 @@ const MOCK_EVENTS = [
   },
 ];
 
-function buildEvents() {
-  return MOCK_EVENTS.map((ev, i) => {
+function buildEvents(rawEvents) {
+  const baseData = (rawEvents && rawEvents.length > 0) ? rawEvents : MOCK_EVENTS;
+  return baseData.slice(0, 4).map((ev, i) => {
     const label =
-      ev.status === 'active' ? 'ONGOING'
+      ev.status === 'active' || ev.status === 'live' ? 'ONGOING'
       : !ev.start_date      ? 'TBA'
       : new Date(ev.start_date)
           .toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
@@ -133,17 +134,13 @@ function buildEvents() {
 
     return {
       ...ev,
-      slot: SLOTS[i],
+      slot: SLOTS[i % SLOTS.length],
       label,
-      isActive: ev.status === 'active',
-      subLabel: `Regist Until\n${ev.registration_closes}`,
+      isActive: ev.status === 'active' || ev.status === 'live',
+      subLabel: ev.registration_closes ? `Regist Until\n${ev.registration_closes}` : `Date\n${ev.start_date || 'TBA'}`,
     };
   });
 }
-
-const EVENTS_DATA  = buildEvents();
-const ACTIVE_IDX   = EVENTS_DATA.findLastIndex(e => e.isActive);
-const INACTIVE_IDX = ACTIVE_IDX + 1;
 
 function svgPath(pts) {
   if (!pts || pts.length < 2) return '';
@@ -238,10 +235,10 @@ const H_MARGIN = 160;
 const POST_MS  = 1000 / 30;
 const CTA_FRAC = 0.40;
 
-export default function EventTimeline() {
-  const events      = EVENTS_DATA;
-  const activeIdx   = ACTIVE_IDX;
-  const inactiveIdx = INACTIVE_IDX;
+export default function EventTimeline({ events: rawEvents }) {
+  const events      = buildEvents(rawEvents);
+  const activeIdx   = events.findLastIndex(e => e.isActive);
+  const inactiveIdx = activeIdx + 1;
 
   const [isMobile, setIsMobile] = useState(false);
   const [scaleF, setScaleF]     = useState(1);
@@ -286,9 +283,6 @@ export default function EventTimeline() {
   const floatTlRef = useRef(null);
   const tabVisRef  = useRef(true);
 
-  // Track whether we were in mobile layout on the previous resize tick.
-  // When this flips true → false the desktop DOM has just remounted,
-  // so we need to reset intro state and replay the animation.
   const wasMobileRef = useRef(false);
 
   const { contextSafe } = useGSAP({ scope: containerRef });
@@ -305,12 +299,6 @@ export default function EventTimeline() {
     setScaleF(sf);
     setIsMobile(nowMobile);
 
-    // ── Mobile → desktop transition ───────────────────────────────────────
-    // The desktop canvas/SVG/node DOM was unmounted while mobile was active.
-    // On the first initCurve after switching back, those refs are freshly
-    // mounted but playIntro has already been marked as fired by the IO.
-    // Reset intro flags here so playIntro will run again once the IO sees
-    // the section is still visible (or we call it directly below).
     if (wasMobileRef.current && !nowMobile) {
       introStarted.current = false;
       introProg.current    = 0;
@@ -318,15 +306,12 @@ export default function EventTimeline() {
       segLen.current       = { w: 0, y: 0, g: 0 };
       prevPtsValid.current = false;
 
-      // Kill the old float timeline — its targets (the old mobile-era nodes)
-      // are gone. A new one will be created by the fresh playIntro call.
       if (floatTlRef.current) {
         floatTlRef.current.kill();
         floatTlRef.current = null;
       }
     }
     wasMobileRef.current = nowMobile;
-    // ─────────────────────────────────────────────────────────────────────
 
     const canvas = canvasRef.current;
     if (canvas) {
@@ -362,9 +347,6 @@ export default function EventTimeline() {
       draw(curveRef.current, introProg.current);
     }
 
-    // If we just switched back to desktop and the section is already on-screen,
-    // fire playIntro immediately — the IO threshold may not re-trigger because
-    // the element never left the viewport.
     if (wasMobileRef.current === false && !introStarted.current && visibleRef.current) {
       playIntro();
     }
@@ -378,7 +360,7 @@ export default function EventTimeline() {
     const ro = new ResizeObserver(() => initCurve());
     ro.observe(el);
     return () => ro.disconnect();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -399,8 +381,6 @@ export default function EventTimeline() {
           }
         }
 
-        // Fire intro on first intersection — or re-fire after a mobile→desktop
-        // reset (introStarted will be false again in that case).
         if (inView && entry.intersectionRatio >= 0.15 && (!introFired || !introStarted.current)) {
           introFired = true;
           playIntro();
@@ -411,7 +391,7 @@ export default function EventTimeline() {
 
     io.observe(el);
     return () => io.disconnect();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -476,7 +456,7 @@ export default function EventTimeline() {
 
     gsap.ticker.add(tick);
     return () => gsap.ticker.remove(tick);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   function draw(pts, progress) {
     const ctx = ctxRef.current;
@@ -555,7 +535,6 @@ export default function EventTimeline() {
   }
 
   const playIntro = contextSafe(function playIntro() {
-    // Guard: don't double-fire if already running
     if (introStarted.current) return;
 
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -747,7 +726,7 @@ export default function EventTimeline() {
 
           return (
             <div
-              key={ev.id}
+              key={ev.id || i}
               style={{
                 position: 'absolute',
                 left: `${CP[i + 1].pctX * 100}%`,
