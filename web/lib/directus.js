@@ -35,20 +35,32 @@ export const getEvents = async () => {
   }
 };
 
-// Fungsi untuk mengambil daftar Berita
-export const getNews = async () => {
+// Fungsi untuk mengambil daftar Pertandingan
+export const getMatches = async () => {
   try {
     return await directus.request(
-      readItems('news', {
+      readItems('matches', {
+        fields: [
+          '*',
+          'competition_category.*',
+          'event.*',
+          'home_participant.*',
+          'home_participant.institution.*',
+          'away_participant.*',
+          'away_participant.institution.*',
+          'participants.*',
+          'participants.participant_id.*',
+          'participants.participant_id.institution.*',
+        ],
+        // Ambil yang statusnya live atau upcoming
         filter: {
-          is_published: { _eq: true }
+          status: { _in: ['live', 'upcoming'] }
         },
-        fields: ['*', 'author_id.*'], // Mengambil data berita dan detail penulisnya
-        sort: ['-published_at'], // Berita terbaru di atas
+        sort: ['status', 'scheduled_at'], // Live biasanya di atas (berdasarkan abjad l < u)
       })
     );
   } catch (error) {
-    console.error('Error fetching news:', error);
+    console.error('Error fetching matches:', error);
     return [];
   }
 };

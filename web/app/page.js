@@ -4,19 +4,21 @@
 import BlurProvider    from "@/components/BlurProvider";
 import CurtainWrapper from "./_components/CurtainWrapper";
 import SmoothScroller  from "./_components/SmoothScroller";
-import { getEvents }   from "@/lib/directus";
+import { getEvents, getMatches } from "@/lib/directus";
 
 // Menonaktifkan cache agar data selalu di-fetch ulang dari Directus
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const events = await getEvents();
-  console.log("Daftar Event dari Directus:", events);
+  const [events, matches] = await Promise.all([
+    getEvents(),
+    getMatches(),
+  ]);
 
   return (
     <SmoothScroller>
       <BlurProvider>
-        <CurtainWrapper events={events} />
+        <CurtainWrapper events={events} matches={matches} />
       </BlurProvider>
     </SmoothScroller>
   );

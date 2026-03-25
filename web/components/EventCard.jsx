@@ -95,8 +95,9 @@ export default function EventCard({ event, className = "", size = "md", bitmap =
           alt={name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
+          style={{ willChange: "transform", backfaceVisibility: "hidden" }}
           sizes="(max-width: 768px) 50vw, 25vw"
-          unoptimized={imageUrl.startsWith('http://localhost')} // Jangan optimasi jika dari localhost untuk menghindari masalah cache/docker
+          unoptimized={imageUrl.startsWith('http://localhost')} 
         />
       ) : (
         <div className="absolute inset-0 bg-zinc-800" />
