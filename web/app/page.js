@@ -3,7 +3,7 @@
 
 import BlurProvider    from "@/components/BlurProvider";
 import CurtainWrapper from "./_components/CurtainWrapper";
-import SmoothScroller  from "./_components/SmoothScroller";
+// import SmoothScroller  from "./_components/SmoothScroller";
 import { getEvents, getMatches } from "@/lib/directus";
 
 // Menonaktifkan cache agar data selalu di-fetch ulang dari Directus
@@ -16,10 +16,10 @@ export default async function Page() {
   ]);
 
   return (
-    <SmoothScroller>
+    // <SmoothScroller>
       <BlurProvider>
         <CurtainWrapper events={events} matches={matches} />
       </BlurProvider>
-    </SmoothScroller>
+    // </SmoothScroller>
   );
 }
