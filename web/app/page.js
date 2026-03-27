@@ -16,10 +16,10 @@ export default async function Page() {
   ]);
 
   return (
-    <SmoothScroller>
+    // <SmoothScroller>
       <BlurProvider>
         <CurtainWrapper events={events} matches={matches} />
       </BlurProvider>
-    </SmoothScroller>
+    // </SmoothScroller>
   );
 }

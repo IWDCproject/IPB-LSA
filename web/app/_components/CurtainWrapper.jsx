@@ -8,6 +8,7 @@ import NewsSection     from "./sections/NewsSection";
 import StatSection     from "./sections/StatSection";
 import MatchSection    from "./sections/MatchSection";
 import TimelineSection from "./sections/TimelineSection";
+import Footer from "@/components/Footer";
 
 const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
@@ -108,9 +109,10 @@ export default function CurtainWrapper({ events, matches }) {
 
       <div
         ref={newsSectionRef}
-        style={{ position: "relative", zIndex: 3, height: sectionH }}
+        style={{ position: "relative", zIndex: 3, minHeight: sectionH }}  // ← min-height
       >
         <NewsSection />
+        <Footer />
       </div>
     </>
   );

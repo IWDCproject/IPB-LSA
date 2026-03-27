@@ -235,6 +235,14 @@ const H_MARGIN = 160;
 const POST_MS  = 1000 / 30;
 const CTA_FRAC = 0.40;
 
+<<<<<<< HEAD
+=======
+
+// Minimum card scale — prevents cards from becoming too small on narrow
+// desktop viewports (e.g. 900 px wide → raw ratio ≈ 0.47 without this floor).
+const MIN_CARD_SCALE = 0.8;
+
+>>>>>>> 8b78b9e6a281e6da94f34e89145e8f6c72e57c20
 export default function EventTimeline({ events: rawEvents }) {
   const events      = buildEvents(rawEvents);
   const activeIdx   = events.findLastIndex(e => e.isActive);
@@ -292,7 +300,11 @@ export default function EventTimeline({ events: rawEvents }) {
     if (!el) return;
 
     const { width: W, height: H } = el.getBoundingClientRect();
-    const sf        = Math.min(1, W / 1920);
+
+    // ── Scale factor ────────────────────────────────────────────────────────
+    // Raw ratio relative to the design width, clamped so cards never shrink
+    // below MIN_CARD_SCALE on the narrowest supported desktop viewport (~900 px).
+    const sf        = Math.min(1, Math.max(MIN_CARD_SCALE, W / 1920));
     const nowMobile = W < 900;
 
     sizeRef.current = { W, H, scaleF: sf };

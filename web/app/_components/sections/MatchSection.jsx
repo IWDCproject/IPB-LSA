@@ -90,7 +90,7 @@ export default function MatchSection({ matches: rawMatches }) {
 
   return (
     <section ref={sectionRef} style={{
-      minHeight: "100vh",
+      // minHeight: "100vh",
       position: "relative",
       zIndex: 2,
       background: "#0D26C2",

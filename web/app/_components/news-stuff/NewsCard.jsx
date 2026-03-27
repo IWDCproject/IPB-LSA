@@ -23,7 +23,7 @@ const BLUR_LAYERS = [
 // getSizes multiplies these by the card's observed scale factor.
 const BASE = {
   mainTitle:    35,
-  mainTag:      18,
+  mainTag:      20,
   mainArrow:    28,
   mainPad:      45,
   mainStroke:   3,
@@ -35,7 +35,7 @@ const BASE = {
   mainCompactStroke: 2,
 
   smallTitle:   25,
-  smallTag:     12,
+  smallTag:     16,
   smallArrow:   20,
   smallPad:     30,
   smallStroke:  2,

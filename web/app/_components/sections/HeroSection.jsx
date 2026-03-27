@@ -190,18 +190,24 @@ export default function HeroSection({ paused = false }) {
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
                     <div key={ev.id} className="absolute inset-0" style={{ opacity: idx === activeIdx ? 1 : 0, transition: paused ? "none" : "opacity 0.8s ease" }}>
-                        <canvas ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }} className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />
-                        <canvas ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }} className="absolute inset-0 w-full h-full" style={{
-                            objectFit: "cover", filter: "blur(24px)",
-                            maskImage: "linear-gradient(to top, black 0%, transparent 35%), linear-gradient(to right, black 0%, transparent 40%), linear-gradient(to left, black 0%, transparent 35%)",
-                            WebkitMaskImage: "linear-gradient(to top, black 0%, transparent 35%), linear-gradient(to right, black 0%, transparent 40%), linear-gradient(to left, black 0%, transparent 35%)",
-                            maskComposite: "add", WebkitMaskComposite: "source-over",
-                        }} />
+                        {/* Sharp background image */}
+                        <canvas
+                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
+                            className="absolute inset-0 w-full h-full"
+                            style={{ objectFit: "cover" }}
+                        />
+                        {/* Progressive blur — baked in the worker as multi-layer composited bitmap.
+                            No CSS filter or maskImage here; the blur shape is already in the pixels. */}
+                        <canvas
+                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
+                            className="absolute inset-0 w-full h-full"
+                            style={{ objectFit: "cover" }}
+                        />
                     </div>
                 ))}
             </div>
 
-            {/* Overlays */}
+            {/* Color overlays */}
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
@@ -251,8 +257,6 @@ export default function HeroSection({ paused = false }) {
                                     onMouseEnter={() => !isActive && setHoveredIdx(idx)}
                                     onMouseLeave={() => setHoveredIdx(null)}
                                     style={{
-                                        // Outer div = card image height + notch space.
-                                        // Notch sits at bottom:0 — fully within bounds, never clipped.
                                         position: "relative", flexShrink: 0,
                                         flex: `0 0 ${mobileCardPx}px`, width: `${mobileCardPx}px`,
                                         height: mobileCardH + NOTCH_H,
@@ -262,7 +266,6 @@ export default function HeroSection({ paused = false }) {
                                     <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.35)" }}>
                                         <EventCard event={ev} size="sm" />
                                     </div>
-                                    {/* border renders inside the box — never clipped by scroll container's overflow context */}
                                     <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", border: `2px solid ${ringColor}`, pointerEvents: "none", zIndex: 10, transition: "border-color 0.2s ease" }} />
                                     {(isActive || isHovered) && (
                                         <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", zIndex: 20, width: 68, height: NOTCH_H, display: "flex", alignItems: "center", justifyContent: "center", animation: "notch-pop 0.2s ease forwards" }}>
@@ -299,7 +302,6 @@ export default function HeroSection({ paused = false }) {
                                     className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
                                     style={{ height: "calc(240px * var(--s))", borderRadius: "8px", overflow: "visible", outline: isActive ? "2px solid rgba(234,179,8,0.9)" : isHovered ? "2px solid rgba(255,255,255,0.5)" : "2px solid transparent", transition: "outline 0.2s ease" }}
                                 >
-                                    {/* "--s":"1" resets scale for EventCard content; outer height still inherits section --s */}
                                     <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 4px rgba(0,0,0,0.25)", "--s": "1" }}>
                                         {ev ? <EventCard event={ev} size="sm" /> : (
                                             <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: "#111827" }}>
