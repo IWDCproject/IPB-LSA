@@ -6,17 +6,7 @@ import Button from "@/components/Button";
 import EventCard from "@/components/EventCard";
 import UniversityMarquee from "@/components/UniversityMarquee";
 import { useBlur } from "@/contexts/BlurContext";
-
-const EVENTS = [
-    { id: 1, slug: "ipb-futsal-competition-2026", name: "IPB Futsal Competition", description: "Deskripsi singkat tentang acaranya tuh kayak gimana gitu. Lorem ipsum dolor sit amet, consectetur adipiscing elit.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=1200", user_created: { organisation_name: "UKM Futsal IPB" } },
-    { id: 2, slug: "forki-x-ipb-cup-2026", name: "Forki x IPB Cup 2026", description: "Kejuaraan karate terbuka antar universitas se-Indonesia. Diselenggarakan bersama FORKI dalam rangka memperingati hari olahraga nasional.", status: "active", card_image_url: "https://images.unsplash.com/photo-1555597673-b21d5c935865?w=1200", user_created: { organisation_name: "UKM Karate IPB" } },
-    { id: 3, slug: "open-charity-golf-tournament", name: "Open Charity Golf Tournament", description: "Turnabmen golf amal terbuka untuk sivitas akademika IPB. Hasil disumbangkan untuk beasiswa mahasiswa.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200", user_created: { organisation_name: "IPB Golf Community" } },
-    { id: 4, slug: "it-today-hacktoday", name: "IT-Today Hacktoday", description: "Hackathon 48 jam bertemakan inovasi teknologi untuk pertanian dan lingkungan. Terbuka untuk mahasiswa seluruh Indonesia.", status: "active", card_image_url: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200", user_created: { organisation_name: "Himalkom" } },
-    { id: 5, slug: "gemastik-xvi-2026", name: "Gemastik XVI 2026", description: "Gelaran Mahasiswa Teknologi dan Informasi tingkat nasional. IPB University menjadi tuan rumah.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200", user_created: { organisation_name: "BEM KM IPB" } },
-    { id: 6, slug: "ipb-badminton-open", name: "IPB Badminton Open", description: "Turnamen bulu tangkis antar fakultas dan UKM se-IPB University.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=1200", user_created: { organisation_name: "UKM Badminton IPB" } },
-    { id: 7, slug: "ipb-swimming-championship", name: "IPB Swimming Championship", description: "Kejuaraan renang tahunan antar fakultas se-IPB University. Kategori gaya bebas, gaya punggung, dan gaya kupu-kupu.", status: "upcoming", card_image_url: "https://images.unsplash.com/photo-1560090995-01632a28895b?w=1200", user_created: { organisation_name: "UKM Renang IPB" } },
-    { id: 8, slug: "ipb-esports-tournament", name: "IPB Esports Tournament", description: "Turnamen esports terbesar di IPB University. Kategori Mobile Legends, VALORANT, dan FIFA.", status: "active", card_image_url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200", user_created: { organisation_name: "UKM Esports IPB" } },
-];
+import { getAssetUrl } from "@/lib/directus";
 
 const INTERVAL_MS        = 10000;
 const SHRINK_MS          = 600;
@@ -48,7 +38,19 @@ const EXIT_DELAYS  = [150, 100, 50, 0];
 const ENTER_DELAYS = [0, 70, 140, 210];
 const INTRO_DELAYS = [160, 240, 320, 400];
 
-export default function HeroSection({ paused = false }) {
+export default function HeroSection({ paused = false, events: rawEvents = [] }) {
+    // Filter hanya event yang sudah dipublish dan ambil maksimal 8 untuk hero
+    const EVENTS = useMemo(() => {
+        return (rawEvents || [])
+            .filter(ev => ev.is_published)
+            .map(ev => ({
+                ...ev,
+                // Pastikan URL gambar divalidasi lewat getAssetUrl
+                image_url: getAssetUrl(ev.card_image_url)
+            }))
+            .slice(0, 8);
+    }, [rawEvents]);
+
     const [activeIdx, setActiveIdx]     = useState(0);
     const [hoveredIdx, setHoveredIdx]   = useState(null);
     const [animating, setAnimating]     = useState(false);
@@ -84,14 +86,14 @@ export default function HeroSection({ paused = false }) {
 
     useEffect(() => {
         EVENTS.forEach((ev) => {
-            const pair = bitmaps[ev.card_image_url]?.hero;
+            const pair = bitmaps[ev.image_url]?.hero;
             if (!pair?.sharp || !pair?.blurred) return;
             const sc = canvasRefs.current[`${ev.id}_sharp`];
             if (sc) { sc.width = pair.sharp.width; sc.height = pair.sharp.height; sc.getContext("2d").drawImage(pair.sharp, 0, 0); }
             const bc = canvasRefs.current[`${ev.id}_blur`];
             if (bc) { bc.width = pair.blurred.width; bc.height = pair.blurred.height; bc.getContext("2d").drawImage(pair.blurred, 0, 0); }
         });
-    }, [bitmaps]);
+    }, [bitmaps, EVENTS]);
 
     useEffect(() => { if (isReady) setMounted(true); }, [isReady]);
 
@@ -175,7 +177,7 @@ export default function HeroSection({ paused = false }) {
         };
         gsap.ticker.add(tick);
         return () => gsap.ticker.remove(tick);
-    }, [activeIdx, animating]);
+    }, [activeIdx, animating, EVENTS.length]);
 
     useEffect(() => {
         const fn = () => { tabVisRef.current = !document.hidden; };
@@ -190,6 +192,14 @@ export default function HeroSection({ paused = false }) {
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
                     <div key={ev.id} className="absolute inset-0" style={{ opacity: idx === activeIdx ? 1 : 0, transition: paused ? "none" : "opacity 0.8s ease" }}>
+                        {/* Fallback Image Layer — ensures background is never black */}
+                        <img 
+                            src={ev.image_url} 
+                            alt="" 
+                            className="absolute inset-0 w-full h-full object-cover"
+                            aria-hidden="true"
+                        />
+                        
                         {/* Sharp background image */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
@@ -220,16 +230,18 @@ export default function HeroSection({ paused = false }) {
             {/* Info panel */}
             <div className="absolute z-10" style={{ top: isMobile ? "48px" : "clamp(48px, 4.17vw, 80px)", left: isMobile ? "24px" : "clamp(40px, 8.33vw, 160px)", right: isMobile ? "24px" : undefined, maxWidth: isMobile ? "480px" : "calc(512px * var(--s))" }}>
                 <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "11px" : "calc(12px * var(--s))", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#fbbf24", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", ...infoAnimStyle(0) }}>
-                    {displayEvent.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
+                    {displayEvent?.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
                 <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: isMobile ? "clamp(2rem, 10vw, 3.5rem)" : "calc(80px * var(--s))", lineHeight: 1, textWrap: "balance", color: "#fff", textTransform: "uppercase", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))", ...infoAnimStyle(1) }}>
-                    {displayEvent.name}
+                    {displayEvent?.name}
                 </h1>
                 <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "14px" : "calc(16px * var(--s))", lineHeight: 1.625, fontWeight: 500, color: "#fff", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textWrap: "balance", marginBottom: isMobile ? "20px" : "calc(24px * var(--s))", ...infoAnimStyle(2) }}>
-                    {displayEvent.description}
+                    {displayEvent?.description}
                 </p>
                 <div style={infoAnimStyle(3)}>
-                    <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">More Details</Button>
+                    {displayEvent && (
+                        <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">More Details</Button>
+                    )}
                 </div>
             </div>
 

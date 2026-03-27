@@ -116,6 +116,7 @@ export default function MatchSection({ matches: rawMatches }) {
             lineHeight: 1,
             color: "#fff",
             filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
+            textTransform: "uppercase",
           }}>
             {liveMatches.length > 0 ? "Live Matches" : "No Live Matches"}
           </div>
@@ -178,7 +179,7 @@ export default function MatchSection({ matches: rawMatches }) {
                   <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: "#fff", textAlign: "center", lineHeight: 1.4 }}>
                     See real time update scores
                   </div>
-                  <Button href="/matches" variant="primary" size="md">See All Matches</Button>
+                  <Button href="/schedule" variant="primary" size="md">See Schedules</Button>
                 </div>
               </div>
             </div>
