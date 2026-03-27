@@ -1,52 +1,68 @@
--- File ini hanya sebagai referensi/dokumentasi bagaimana data awal dimasukkan.
--- Data di bawah ini sudah otomatis ter-include di dalam init_db.sql.
 DO $$
 DECLARE
     v_user_id uuid;
-    
-    e1 uuid := 'a1b2c3d4-0001-4000-8000-000000000001'; e2 uuid := 'a1b2c3d4-0002-4000-8000-000000000002'; e3 uuid := 'a1b2c3d4-0003-4000-8000-000000000003';
-    
-    c1 uuid := 'c1c1c1c1-0001-4000-8000-000000000001'; c2 uuid := 'c1c1c1c1-0002-4000-8000-000000000002'; c3 uuid := 'c1c1c1c1-0003-4000-8000-000000000003';
-    
-    p1a uuid := 'd1d1d1d1-0001-4000-8000-000000000001'; p1b uuid := 'd1d1d1d1-0002-4000-8000-000000000002'; p1c uuid := 'd1d1d1d1-0003-4000-8000-000000000003'; p1d uuid := 'd1d1d1d1-0004-4000-8000-000000000004';
-    p2a uuid := 'd2d2d2d2-0001-4000-8000-000000000001'; p2b uuid := 'd2d2d2d2-0002-4000-8000-000000000002'; p2c uuid := 'd2d2d2d2-0003-4000-8000-000000000003'; p2d uuid := 'd2d2d2d2-0004-4000-8000-000000000004';
-    p3a uuid := 'd3d3d3d3-0001-4000-8000-000000000001'; p3b uuid := 'd3d3d3d3-0002-4000-8000-000000000002'; p3c uuid := 'd3d3d3d3-0003-4000-8000-000000000003'; p3d uuid := 'd3d3d3d3-0004-4000-8000-000000000004';
-    
-    m1a uuid := 'e1e1e1e1-0001-4000-8000-000000000001'; m1b uuid := 'e1e1e1e1-0002-4000-8000-000000000002'; m1c uuid := 'e1e1e1e1-0003-4000-8000-000000000003';
-    m2a uuid := 'e2e2e2e2-0001-4000-8000-000000000001'; m2b uuid := 'e2e2e2e2-0002-4000-8000-000000000002'; m2c uuid := 'e2e2e2e2-0003-4000-8000-000000000003';
-    m3a uuid := 'e3e3e3e3-0001-4000-8000-000000000001'; m3b uuid := 'e3e3e3e3-0002-4000-8000-000000000002'; m3c uuid := 'e3e3e3e3-0003-4000-8000-000000000003';
+    -- Event IDs
+    e1 uuid := 'e1e1e1e1-e1e1-4000-a111-000000000001';
+    e2 uuid := 'e1e1e1e1-e1e1-4000-a111-000000000002';
+    e3 uuid := 'e1e1e1e1-e1e1-4000-a111-000000000003';
+
+    -- Institution IDs
+    i_ipb uuid := 'b1b1b1b1-b1b1-4000-9999-000000000001';
+    i_upn uuid := 'b1b1b1b1-b1b1-4000-9999-000000000002';
+    i_ui  uuid := 'b1b1b1b1-b1b1-4000-9999-000000000003';
+
+    -- Category IDs
+    c1 uuid := 'c2c2c2c2-c2c2-4000-b222-000000000001';
+    c2 uuid := 'c2c2c2c2-c2c2-4000-b222-000000000002';
+    c3 uuid := 'c2c2c2c2-c2c2-4000-b222-000000000003';
+
+    -- Participant IDs
+    p1 uuid := 'd3d3d3d3-d3d3-4000-c333-000000000001';
+    p2 uuid := 'd3d3d3d3-d3d3-4000-c333-000000000002';
+    p3 uuid := 'd3d3d3d3-d3d3-4000-c333-000000000003';
+    p4 uuid := 'd3d3d3d3-d3d3-4000-c333-000000000004';
+    p5 uuid := 'd3d3d3d3-d3d3-4000-c333-000000000005';
+    p6 uuid := 'd3d3d3d3-d3d3-4000-c333-000000000006';
 BEGIN
     SELECT id INTO v_user_id FROM directus_users LIMIT 1;
 
-    INSERT INTO events (id, user_created, name, slug, type, status, is_published, start_date, location, description) VALUES
-    (e1, v_user_id, 'IPB Art 2026', 'ipb-art-2026', 'arts', 'upcoming', true, '2026-06-01', 'Gedung Graha Widya Wisuda', 'Festival seni terbesar yang menampilkan karya luar biasa dari mahasiswa IPB.'),
-    (e2, v_user_id, 'IPB Karate Championship', 'ipb-karate-2026', 'sport', 'upcoming', true, '2026-07-15', 'Gymnasium IPB', 'Kejuaraan Karate bergengsi antar fakultas dan UKM di lingkungan IPB.'),
-    (e3, v_user_id, 'IPB E-Sports League', 'ipb-esports-2026', 'sport', 'upcoming', true, '2026-08-20', 'Auditorium FMIPA', 'Liga E-Sports tahunan terbesar mempertandingkan game populer.');
+    -- 0. HAPUS DATA LAMA (Urutan dari yang paling banyak foreign key ke yang paling sedikit)
+    -- TRUNCATE dengan CASCADE akan menghapus semua data di tabel yang saling berhubungan
+    TRUNCATE TABLE matches, match_participants, participants, institutions, competition_categories, events CASCADE;
 
+    -- 1. INSERT EVENTS (Harus paling awal)
+    INSERT INTO events (id, user_created, created_at, name, slug, type, status, is_published, start_date, location, card_image_url) VALUES
+    (e1, v_user_id, now(), 'FORKI X IPB CUP 2026', 'forki-ipb-2026', 'sport', 'active', true, '2026-03-25', 'Gymnasium IPB', 'https://images.unsplash.com/photo-1552072092-7f9b8d63efcb?q=80&w=1000'),
+    (e2, v_user_id, now(), 'IT-TODAY HACKTODAY', 'hacktoday-2026', 'sport', 'active', true, '2026-03-26', 'Auditorium AHN', 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1000'),
+    (e3, v_user_id, now(), 'IPB BERLARI 2026', 'ipb-berlari-2026', 'sport', 'active', true, '2026-03-27', 'Lingkar IPB', 'https://www.sunlife.co.id/content/dam/sunlife/legacy/assets/id/Life%20Moments/Building%20a%20Family/Berlari%20Menyehatkan%20Tubuh%20dan%20Pikiran-1200x600.jpg');
+
+    -- 2. INSERT INSTITUTIONS
+    INSERT INTO institutions (id, event_id, name, logo_url) VALUES
+    (i_ipb, e1, 'IPB University', '/universities/ipb.png'),
+    (i_upn, e1, 'UPNVYK', '/universities/ui.png'),
+    (i_ui, e1, 'UI', '/universities/ui.png');
+
+    -- 3. INSERT CATEGORIES
     INSERT INTO competition_categories (id, event_id, name, participant_type) VALUES
-    (c1, e1, 'Live Painting Competition', 'individual'),
-    (c2, e2, 'Kumite Putra -60kg', 'individual'),
-    (c3, e3, 'Mobile Legends Team', 'team');
+    (c1, e1, 'Kata Perorang', 'individual'),
+    (c2, e2, 'Hackathon', 'team'),
+    (c3, e3, 'Open Marathon', 'individual');
 
-    INSERT INTO participants (id, competition_category_id, name) VALUES
-    (p1a, c1, 'Karya Rupa Faperta'), (p1b, c1, 'Kuas Fakultas Kehutanan'), (p1c, c1, 'Palet FMIPA'), (p1d, c1, 'Garis SV'),
-    (p2a, c2, 'Dojo Fakultas Teknik'), (p2b, c2, 'Dojo FPIK'), (p2c, c2, 'Dojo FEM'), (p2d, c2, 'Dojo FKH'),
-    (p3a, c3, 'Fasilkom Esports'), (p3b, c3, 'Fateta Gaming'), (p3c, c3, 'SB IPB Legends'), (p3d, c3, 'Vokasi Team');
+    -- 4. INSERT PARTICIPANTS
+    INSERT INTO participants (id, competition_category_id, institution_id, name) VALUES
+    (p1, c1, i_ipb, 'Gilang Muhamad'),
+    (p2, c1, i_upn, 'Agus Maragus'),
+    (p3, c2, i_ipb, 'Team IPB 1'),
+    (p4, c2, i_ui,  'Team UI 2'),
+    (p5, c3, i_ipb, 'Reza Rahardian'),
+    (p6, c3, i_ipb, 'Gilang Muhamad');
 
-    INSERT INTO matches (id, competition_category_id, match_name, status, scheduled_at, home_participant_id, away_participant_id) VALUES
-    (m1a, c1, 'Penyisihan 1: Faperta vs Fahutan', 'finished', '2026-06-01 09:00:00', NULL, NULL),
-    (m1b, c1, 'Penyisihan 2: FMIPA vs SV', 'finished', '2026-06-01 13:00:00', NULL, NULL),
-    (m1c, c1, 'Grand Final Live Painting', 'upcoming', '2026-06-02 10:00:00', NULL, NULL),
-    (m2a, c2, 'Semifinal 1: Teknik vs FPIK', 'finished', '2026-07-15 08:00:00', p2a, p2b),
-    (m2b, c2, 'Semifinal 2: FEM vs FKH', 'finished', '2026-07-15 09:00:00', p2c, p2d),
-    (m2c, c2, 'Final Kumite Putra', 'upcoming', '2026-07-15 15:00:00', p2a, p2d),
-    (m3a, c3, 'Upper Bracket: Fasilkom vs Fateta', 'finished', '2026-08-20 10:00:00', p3a, p3b),
-    (m3b, c3, 'Lower Bracket: SB vs Vokasi', 'finished', '2026-08-20 13:00:00', p3c, p3d),
-    (m3c, c3, 'Grand Final E-Sports', 'upcoming', '2026-08-21 19:00:00', p3a, p3c);
+    -- 5. INSERT MATCHES
+    INSERT INTO matches (id, competition_category_id, match_name, status, scheduled_at, venue, round, home_participant_id, away_participant_id, live_state) VALUES
+    ('f4f4f4f4-f4f4-4000-d444-000000000001', c1, 'Kata Perorang', 'live', now(), 'Lapangan B Gor Utama', 'Final', p1, p2, '{"homeScore": 3, "awayScore": 4, "timerSecs": 272, "timerRunning": true}'),
+    ('f4f4f4f4-f4f4-4000-d444-000000000002', c2, 'HackToday', 'live', now(), 'Auditorium AHN', 'Main Event', p3, p4, '{"timerSecs": 1800, "timerRunning": true}'),
+    ('f4f4f4f4-f4f4-4000-d444-000000000003', c1, 'Kata Perorang', 'upcoming', now() + interval '1 hour', 'Lapangan B', 'Semifinal', p1, p2, '{}'),
+    ('f4f4f4f4-f4f4-4000-d444-000000000004', c3, 'Open Marathon', 'live', now(), 'Lingkar IPB', 'Final', p5, NULL, '{"timerSecs": 3600, "timerRunning": true}');
 
-    INSERT INTO match_participants (match_id, participant_id, position) VALUES
-    (m1a, p1a, 1), (m1a, p1b, 2),
-    (m1b, p1c, 1), (m1b, p1d, 2),
-    (m1c, p1a, 1), (m1c, p1c, 2);
-
+    RAISE NOTICE 'Data dummy berhasil diperbarui dengan urutan yang benar!';
 END $$;

@@ -33,7 +33,7 @@ function calcAvg(scores = [], method = "avg") {
 
 function groupByEvent(matches) {
   return matches.reduce((map, m) => {
-    const key = m.event?.name ?? "Unknown Event";
+    const key = m.competition_category?.event_id?.name ?? "Unknown Event";
     return map.set(key, [...(map.get(key) ?? []), m]);
   }, new Map());
 }
@@ -138,11 +138,11 @@ function Logo({ inst, size = 44 }) {
 function ParticipantInfo({ inst, name, align = "left" }) {
   const truncate = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
   return (
-    <div style={{ minWidth: 0, textAlign: align }}>
-      <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 500, color: "#676767", lineHeight: 1.2 }}>
+    <div style={{ minWidth: 0, textAlign: align, flex: 1 }}>
+      <div style={{ ...JK, ...truncate, fontSize: 12, fontWeight: 500, color: "#676767", lineHeight: 1.2 }}>
         {inst?.name ?? ""}
       </div>
-      <div style={{ ...JK, ...truncate, fontSize: 15, fontWeight: 700, color: "#000" }}>
+      <div style={{ ...JK, ...truncate, fontSize: 16, fontWeight: 700, color: "#000" }}>
         {name}
       </div>
     </div>
@@ -201,11 +201,11 @@ function OpenParticipants({ match }) {
         )}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ ...JK, ...truncate, fontSize: 14, fontWeight: 500, color: "#000" }}>
+        <div style={{ ...JK, ...truncate, fontSize: 15, fontWeight: 700, color: "#000" }}>
           {line1}{line2.length > 0 ? "," : ""}
         </div>
         {line2.length > 0 && (
-          <div style={{ ...JK, ...truncate, fontSize: 14, fontWeight: 500, color: "#000", marginTop: 1 }}>
+          <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 500, color: "#676767", marginTop: 1 }}>
             {line2.slice(0, 3).join(", ")}{line2.length > 3 ? ", ..." : ""}
           </div>
         )}
@@ -218,7 +218,7 @@ function HomeCell({ participant, isOpen, match }) {
   if (isOpen) return <OpenParticipants match={match} />;
   if (!participant) return <div />;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
       <Logo inst={participant.institution} />
       <ParticipantInfo inst={participant.institution} name={participant.name} />
     </div>
@@ -228,7 +228,7 @@ function HomeCell({ participant, isOpen, match }) {
 function AwayCell({ participant }) {
   if (!participant) return <div />;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, justifyContent: "flex-end" }}>
       <ParticipantInfo inst={participant.institution} name={participant.name} align="right" />
       <Logo inst={participant.institution} />
     </div>
@@ -256,10 +256,11 @@ function PodiumRow({ live }) {
   );
 }
 
-function MiddleBadge({ matchType }) {
+function MiddleBadge({ match }) {
+  const isH2H = match.format?.match_type === "head_to_head";
   return (
-    <div style={{ ...JK, fontSize: 14, fontWeight: 700, color: "#676767", background: "#eeeeee", borderRadius: 7, padding: "6px 20px", whiteSpace: "nowrap" }}>
-      {matchType === "head_to_head" ? "vs" : "--"}
+    <div style={{ ...JK, fontSize: 14, fontWeight: 700, color: "#676767", background: "#f3f4f6", borderRadius: 7, padding: "8px 24px", whiteSpace: "nowrap", minWidth: 80, textAlign: "center" }}>
+      {isH2H ? "vs" : "--"}
     </div>
   );
 }
@@ -270,17 +271,17 @@ function ScoreCell({ match }) {
   const isLive     = match.status === "live";
   const isUpcoming = match.status === "upcoming";
 
-  if (isUpcoming) return <MiddleBadge matchType={match.format?.match_type} />;
+  if (isUpcoming) return <MiddleBadge match={match} />;
 
   switch (engine?.type) {
     case "score_timed": {
       const h = live.homeScore ?? 0;
       const a = live.awayScore ?? 0;
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ ...JK, fontSize: 26, fontWeight: 900, color: "#111" }}>{String(h).padStart(2, "0")}</span>
-          <span style={{ ...JK, fontSize: 26, fontWeight: 900, color: "#111" }}>-</span>
-          <span style={{ ...JK, fontSize: 26, fontWeight: 900, color: "#111" }}>{String(a).padStart(2, "0")}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f3f4f6", borderRadius: 7, padding: "8px 24px" }}>
+          <span style={{ ...JK, fontSize: 24, fontWeight: 900, color: "#111" }}>{String(h).padStart(2, "0")}</span>
+          <span style={{ ...JK, fontSize: 20, fontWeight: 900, color: "#aaa" }}>-</span>
+          <span style={{ ...JK, fontSize: 24, fontWeight: 900, color: "#111" }}>{String(a).padStart(2, "0")}</span>
         </div>
       );
     }
@@ -297,13 +298,13 @@ function ScoreCell({ match }) {
   }
 }
 
-// ─── Desktop row (original, untouched) ────────────────────────────────────────
+// ─── Desktop row (Match with Design) ──────────────────────────────────────────
 
 const ROW_GRID = {
   display: "grid",
-  gridTemplateColumns: "210px 1fr auto 1fr 210px",
+  gridTemplateColumns: "180px 1fr auto 1fr 180px",
   alignItems: "center",
-  padding: "11px 0",
+  padding: "16px 0",
 };
 
 function DesktopMatchRow({ match }) {
@@ -314,22 +315,22 @@ function DesktopMatchRow({ match }) {
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
 
-  const statusLabel = isLive ? "Ongoing" : isFinished ? "Finished" : "Upcoming";
+  const statusLabel = isLive ? "Ongoing" : isFinished ? (match.winner ? `${match.winner} Win` : "Finished") : "Upcoming";
   const timeLabel   = isLive ? "Live Match" : fmtTime(match.scheduled_at);
 
   if (engine?.type === "finish_time" && isFinished) {
     return (
       <div style={ROW_GRID}>
         <div style={{ paddingRight: 16, minWidth: 0 }}>
-          <div suppressHydrationWarning style={{ ...JK, fontSize: 15, fontWeight: 800, color: "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{timeLabel}</div>
-          <div style={{ ...JK, fontSize: 13, color: "#676767", marginTop: 2 }}>{match.venue ?? ""}</div>
+          <div suppressHydrationWarning style={{ ...JK, fontSize: 16, fontWeight: 800, color: "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{timeLabel}</div>
+          <div style={{ ...JK, fontSize: 13, color: "#999", marginTop: 2 }}>{match.venue ?? ""}</div>
         </div>
         <div style={{ gridColumn: "2 / 5", paddingLeft: 24 }}>
           <PodiumRow live={live} />
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ ...JK, fontSize: 15, fontWeight: 700, color: "#676767" }}>{match.competition_category?.name ?? "?"}</div>
-          <div style={{ ...JK, fontSize: 13, color: "#676767", marginTop: 2 }}>{statusLabel}</div>
+          <div style={{ ...JK, fontSize: 16, fontWeight: 800, color: "#444" }}>{match.competition_category?.name ?? "?"}</div>
+          <div style={{ ...JK, fontSize: 13, color: "#999", marginTop: 2 }}>{statusLabel}</div>
         </div>
       </div>
     );
@@ -337,32 +338,37 @@ function DesktopMatchRow({ match }) {
 
   return (
     <div style={ROW_GRID}>
+      {/* Label/Time */}
       <div style={{ paddingRight: 16, minWidth: 0 }}>
-        <div suppressHydrationWarning style={{ ...JK, fontSize: 15, fontWeight: 800, color: isLive ? "#CA8A04" : "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div suppressHydrationWarning style={{ ...JK, fontSize: 16, fontWeight: 800, color: isLive ? "#000" : "#676767" }}>
           {timeLabel}
         </div>
-        <div style={{ ...JK, fontSize: 13, color: "#676767", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ ...JK, fontSize: 13, color: "#999", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {match.venue ?? ""}
         </div>
       </div>
 
-      <div style={{ paddingLeft: 24, paddingRight: 24, minWidth: 0, overflow: "hidden" }}>
+      {/* Home Participant */}
+      <div style={{ paddingLeft: 12, paddingRight: 12, minWidth: 0, overflow: "hidden" }}>
         <HomeCell participant={match.home_participant} isOpen={isOpen} match={match} />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", padding: "0 16px" }}>
+      {/* Score Box */}
+      <div style={{ display: "flex", justifyContent: "center", padding: "0 20px" }}>
         <ScoreCell match={match} />
       </div>
 
-      <div style={{ paddingLeft: 24, paddingRight: 24, minWidth: 0, overflow: "hidden" }}>
+      {/* Away Participant */}
+      <div style={{ paddingLeft: 12, paddingRight: 12, minWidth: 0, overflow: "hidden" }}>
         {isH2H ? <AwayCell participant={match.away_participant} /> : <div />}
       </div>
 
+      {/* Category & Status */}
       <div style={{ paddingLeft: 16, textAlign: "right", minWidth: 0, overflow: "hidden" }}>
-        <div style={{ ...JK, fontSize: 15, fontWeight: 700, color: "#676767", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ ...JK, fontSize: 16, fontWeight: 800, color: "#444", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {match.competition_category?.name ?? "?"}
         </div>
-        <div style={{ ...JK, fontSize: 13, color: "#676767", marginTop: 2 }}>{statusLabel}</div>
+        <div style={{ ...JK, fontSize: 13, color: "#999", marginTop: 2 }}>{statusLabel}</div>
       </div>
     </div>
   );

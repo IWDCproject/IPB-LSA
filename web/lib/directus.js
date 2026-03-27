@@ -42,13 +42,19 @@ export const getMatches = async () => {
       readItems('matches', {
         fields: [
           '*',
-          'competition_category.*',
-          'event.*',
+          'competition_category.id',
+          'competition_category.name',
+          'competition_category.participant_type',
+          'competition_category.event_id.id',
+          'competition_category.event_id.name',
+          'competition_category.event_id.card_image_url',
+          'competition_category.format_id.*', // Ambil format dari kategori
           'home_participant.*',
           'home_participant.institution.*',
           'away_participant.*',
           'away_participant.institution.*',
-          'participants.*',
+          'participants.id',
+          'participants.position',
           'participants.participant_id.*',
           'participants.participant_id.institution.*',
         ],
@@ -56,11 +62,35 @@ export const getMatches = async () => {
         filter: {
           status: { _in: ['live', 'upcoming'] }
         },
-        sort: ['status', 'scheduled_at'], // Live biasanya di atas (berdasarkan abjad l < u)
+        sort: ['status', 'scheduled_at'],
       })
     );
   } catch (error) {
     console.error('Error fetching matches:', error);
     return [];
+  }
+};
+
+// Fungsi untuk mengambil statistik (Count)
+export const getStats = async () => {
+  try {
+    // Karena Directus SDK rest() tidak memiliki helper count langsung yang simpel untuk multiple tables dalam satu request,
+    // kita lakukan fetch minimal dengan limit 1 dan baca metadata total_count.
+    // Namun cara paling pasti adalah menggunakan aggregate atau fetch biasa jika datanya belum ribuan.
+    
+    const [events, institutions, participants] = await Promise.all([
+      directus.request(readItems('events', { fields: ['id'], limit: -1 })),
+      directus.request(readItems('institutions', { fields: ['id'], limit: -1 })),
+      directus.request(readItems('participants', { fields: ['id'], limit: -1 })),
+    ]);
+
+    return {
+      eventsCount: events.length,
+      institutionsCount: institutions.length,
+      participantsCount: participants.length,
+    };
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    return { eventsCount: 0, institutionsCount: 0, participantsCount: 0 };
   }
 };

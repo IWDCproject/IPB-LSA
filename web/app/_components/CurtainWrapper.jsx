@@ -13,7 +13,7 @@ import Footer from "@/components/Footer";
 const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
 
-export default function CurtainWrapper({ events, matches }) {
+export default function CurtainWrapper({ events, matches, stats }) {
   const heroSpacerRef  = useRef(null);
   const newsSectionRef = useRef(null);
   const [heroPaused, setHeroPaused] = useState(false);
@@ -77,14 +77,14 @@ export default function CurtainWrapper({ events, matches }) {
         }}
       >
         <div style={{ height: sectionH, overflow: "hidden" }}>
-          <HeroSection paused={heroPaused} />
+          <HeroSection paused={heroPaused} events={events} />
         </div>
       </motion.div>
 
       <div ref={heroSpacerRef} style={{ height: sectionH }} aria-hidden="true" />
 
       <div style={{ position: "relative", zIndex: 2 }}>
-        <StatSection />
+        <StatSection stats={stats} />
         <MatchSection matches={matches} />
       </div>
 

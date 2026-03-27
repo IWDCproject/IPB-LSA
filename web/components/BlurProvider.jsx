@@ -123,7 +123,7 @@ export default function BlurProvider({ children, imageManifest }) {
       worker.terminate();
       clearTimeout(cap);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [manifest]); // React to manifest changes
 
   return (
     <BlurContext.Provider value={{ bitmaps, isReady }}>

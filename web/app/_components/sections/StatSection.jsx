@@ -89,10 +89,16 @@ function useContainerWidth(ref) {
   return width;
 }
 
-function StatCards({ anim }) {
+function StatCards({ stats, anim }) {
+  const dynamicStats = useMemo(() => [
+    { src: universitiesImg.src, mainStat: `${stats?.participantsCount ?? 0}+`, label: "Participants",    width: CARD_WIDTHS[0] },
+    { src: athletesImg.src,     mainStat: `${stats?.institutionsCount ?? 0}+`, label: "Universities",    width: CARD_WIDTHS[1] },
+    { src: eventsImg.src,       mainStat: `${stats?.eventsCount ?? 0}+`,       label: "Official Events", width: CARD_WIDTHS[2] },
+  ], [stats]);
+
   return (
     <div style={S.cardRow}>
-      {STATS.map((stat, i) => (
+      {dynamicStats.map((stat, i) => (
         <div key={stat.label} style={anim(i)}>
           <StatCard
             image_url={stat.src}
@@ -134,16 +140,16 @@ function CTA({ centered = false, fontSize = "4rem", anim }) {
   );
 }
 
-function Stage1Layout({ anim }) {
+function Stage1Layout({ stats, anim }) {
   return (
     <div style={S.stage1Row}>
-      <StatCards anim={anim} />
+      <StatCards stats={stats} anim={anim} />
       <CTA anim={anim} />
     </div>
   );
 }
 
-function Stage2Layout({ scale, anim }) {
+function Stage2Layout({ stats, scale, anim }) {
   const outerStyle = useMemo(() => ({
     position: "relative",
     width: "100%",
@@ -163,14 +169,14 @@ function Stage2Layout({ scale, anim }) {
   return (
     <div style={outerStyle}>
       <div style={innerStyle}>
-        <StatCards anim={anim} />
+        <StatCards stats={stats} anim={anim} />
         <CTA anim={anim} />
       </div>
     </div>
   );
 }
 
-function Stage3Layout({ cw, scale, anim }) {
+function Stage3Layout({ stats, cw, scale, anim }) {
   const cardsOuterStyle = useMemo(() => ({
     position: "relative",
     width: "100%",
@@ -204,7 +210,7 @@ function Stage3Layout({ cw, scale, anim }) {
     }}>
       <div style={cardsOuterStyle}>
         <div style={cardsInnerStyle}>
-          <StatCards anim={anim} />
+          <StatCards stats={stats} anim={anim} />
         </div>
       </div>
 
@@ -218,7 +224,7 @@ function Stage3Layout({ cw, scale, anim }) {
   );
 }
 
-export default function StatSection() {
+export default function StatSection({ stats }) {
   const sectionRef = useRef(null);
   const cw = useContainerWidth(sectionRef);
 
@@ -287,11 +293,11 @@ export default function StatSection() {
 
       <div style={innerStyle}>
         {stage === 3 ? (
-          <Stage3Layout cw={cw} scale={s3Scale} anim={anim} />
+          <Stage3Layout stats={stats} cw={cw} scale={s3Scale} anim={anim} />
         ) : stage === 2 ? (
-          <Stage2Layout scale={scale} anim={anim} />
+          <Stage2Layout stats={stats} scale={scale} anim={anim} />
         ) : (
-          <Stage1Layout anim={anim} />
+          <Stage1Layout stats={stats} anim={anim} />
         )}
         <div style={anim(5)}>
           <UniversityMarquee />

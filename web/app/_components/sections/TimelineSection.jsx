@@ -235,14 +235,11 @@ const H_MARGIN = 160;
 const POST_MS  = 1000 / 30;
 const CTA_FRAC = 0.40;
 
-<<<<<<< HEAD
-=======
 
 // Minimum card scale — prevents cards from becoming too small on narrow
 // desktop viewports (e.g. 900 px wide → raw ratio ≈ 0.47 without this floor).
 const MIN_CARD_SCALE = 0.8;
 
->>>>>>> 8b78b9e6a281e6da94f34e89145e8f6c72e57c20
 export default function EventTimeline({ events: rawEvents }) {
   const events      = buildEvents(rawEvents);
   const activeIdx   = events.findLastIndex(e => e.isActive);

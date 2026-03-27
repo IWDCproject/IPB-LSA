@@ -276,7 +276,9 @@ function BitmapBlurLayer({ bitmap }) {
 // scale(1.1) pada CSS path untuk nutup edge bleed blur
 // pada canvas path tidak diperlukan karena PAD_FACTOR sudah handle itu
 export function MatchCard({ match, bitmap = null }) {
-  const { format: fmt, live_state: live, event, competition_category: cat } = match;
+  const { live_state: live, competition_category: cat } = match;
+  const event = cat?.event_id;
+  const fmt = cat?.format_id; // Menggunakan format dari kategori kompetisi
 
   const timerMod = getTimerMod(fmt);
   const timerRef = useRef(null);
@@ -294,10 +296,7 @@ export function MatchCard({ match, bitmap = null }) {
     <div style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
       {hasBg && (
         <>
-          {/* static base image — no filter */}
           <div style={{ ...S.cardBg, backgroundImage: `url(${event.card_image_url})` }} />
-
-          {/* blur layer — path A: pre-rendered bitmap, path B: CSS filter */}
           {bitmap ? (
             <BitmapBlurLayer bitmap={bitmap} />
           ) : (
@@ -315,75 +314,90 @@ export function MatchCard({ match, bitmap = null }) {
           padding: "calc(18px * var(--s)) calc(18px * var(--s)) 0", gap: "calc(8px * var(--s))",
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {event?.name ?? ""}
-            </div>
-            <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {label}
-            </div>
+            {/* Kosong di design bagian kiri atas, tapi kita tetap simpan data jika perlu */}
           </div>
           <div style={{
             ...BB,
             display: "flex", alignItems: "center", gap: "calc(5px * var(--s))",
-            background: "#ef4444", borderRadius: 4, padding: "0 calc(7px * var(--s))",
+            background: "#FFC936", color: "#000", borderRadius: 4, padding: "calc(2px * var(--s)) calc(10px * var(--s))",
             fontSize: "calc(14px * var(--s))", letterSpacing: 1, flexShrink: 0,
+            fontWeight: 800
           }}>
-            {timerMod ? <span ref={timerRef}>00:00</span> : "LIVE"}
+            <div style={{ width: 8, height: 8, background: "#000", borderRadius: "50%" }} />
+            ONGOING
           </div>
         </div>
 
-        {/* H2H participants */}
-        {isH2H && (
-          <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))", padding: "calc(14px * var(--s)) calc(18px * var(--s)) 0" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))", flex: 1, minWidth: 0 }}>
-              <InstitutionLogo inst={match.home_participant?.institution} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {/* Participants & Scores (Center) */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 calc(18px * var(--s))" }}>
+          
+          {isH2H && (
+            <div style={{ display: "flex", alignItems: "center", gap: "calc(12px * var(--s))" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+                <InstitutionLogo inst={match.home_participant?.institution} size="calc(48px * var(--s))" />
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(12px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 4, textAlign: "center", width: "100%" }}>
+                  {match.home_participant?.name?.split(" ")[0] ?? "?"}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))" }}>
+                <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1 }}>{live?.homeScore ?? 0}</span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <span style={{ ...BB, fontSize: "calc(16px * var(--s))", opacity: 0.5 }}>VS</span>
+                  <div style={{ ...BB, fontSize: "calc(11px * var(--s))", background: "rgba(0,0,0,0.4)", padding: "2px 6px", borderRadius: 2 }}>
+                    {timerMod ? <span ref={timerRef}>00:00</span> : "LIVE"}
+                  </div>
+                </div>
+                <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1 }}>{live?.awayScore ?? 0}</span>
+              </div>
+
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+                <InstitutionLogo inst={match.away_participant?.institution} size="calc(48px * var(--s))" />
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(12px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 4, textAlign: "center", width: "100%" }}>
+                  {match.away_participant?.name?.split(" ")[0] ?? "?"}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isSolo && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
+               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+                <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 8 }}>
                   {match.home_participant?.name ?? "?"}
                 </div>
-                <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" }}>
-                  {match.home_participant?.institution?.name ?? ""}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <ScoreSection fmt={fmt} live={live} match={match} />
+                <div style={{ ...BB, fontSize: "calc(14px * var(--s))", background: "rgba(0,0,0,0.4)", padding: "2px 8px", borderRadius: 2, marginTop: 4 }}>
+                    {timerMod ? <span ref={timerRef}>00:00</span> : "LIVE"}
                 </div>
               </div>
             </div>
-            <span style={{ ...BB, fontSize: "calc(15px * var(--s))", opacity: 0.35, flexShrink: 0, letterSpacing: 2 }}>VS</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))", flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
-              <div style={{ minWidth: 0, textAlign: "right" }}>
-                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {match.away_participant?.name ?? "?"}
-                </div>
-                <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" }}>
-                  {match.away_participant?.institution?.name ?? ""}
-                </div>
-              </div>
-              <InstitutionLogo inst={match.away_participant?.institution} />
+          )}
+
+          {isOpen && (
+            <div style={{ textAlign: "center" }}>
+              <OpenParticipants match={match} />
+              <div style={{ ...BB, fontSize: "calc(18px * var(--s))", marginTop: 12 }}>30 MINUTES LEFT</div>
             </div>
-          </div>
-        )}
-
-        {/* Solo participant */}
-        {isSolo && (
-          <div style={{ display: "flex", alignItems: "center", gap: "calc(10px * var(--s))", padding: "calc(14px * var(--s)) calc(18px * var(--s)) 0" }}>
-            <InstitutionLogo inst={match.home_participant?.institution} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ ...JK, fontWeight: 700, fontSize: "calc(15px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {match.home_participant?.name ?? "?"}
-              </div>
-              <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden" }}>
-                {match.home_participant?.institution?.name ?? ""}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isOpen && <OpenParticipants match={match} />}
-
-        <div style={{ padding: `${isOpen ? "calc(4px * var(--s))" : "calc(10px * var(--s))"} calc(18px * var(--s)) calc(8px * var(--s))` }}>
-          {!isOpen && <ScoreSection fmt={fmt} live={live} match={match} />}
+          )}
         </div>
 
-        <div style={{ marginTop: "auto", padding: "calc(8px * var(--s)) calc(18px * var(--s)) calc(16px * var(--s))" }}>
-          <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {/* Footer */}
+        <div style={{ 
+          marginTop: "auto", 
+          padding: "calc(12px * var(--s)) calc(18px * var(--s))",
+          borderTop: "1px solid rgba(255,255,255,0.1)",
+          display: "flex", justifyContent: "space-between", alignItems: "center"
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...JK, fontWeight: 800, fontSize: "calc(12px * var(--s))", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {event?.name ?? ""}
+            </div>
+          </div>
+          <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.6 }}>
             {match.venue ?? ""}
           </div>
         </div>
