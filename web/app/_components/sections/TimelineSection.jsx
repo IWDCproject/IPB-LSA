@@ -10,6 +10,20 @@ const BG  = "linear-gradient(to top, #06125C 5%, #0D26C2 100%)";
 const YEL = "#FFC936";
 const WHT = "#ffffff";
 
+
+// Modular Notch Config for future-proofing
+const NOTCH_CONFIG = {
+  height: 16,
+  width: 80,
+  path: "M 2 0 L 78 0 L 70 12 Q 68.5 16 66 16 L 14 16 Q 11.5 16 10 12 L 2 0 Z",
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  fontSize: "0.44rem",
+  fontWeight: 900,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  marginTop: -1,
+};
+
 const CP_DEF = [
   [-0.06, 0.29,  -0.1,   0.0,   0.1,  0.18 ],
   [ 0.29, 0.098, -0.089,-0.123, 0.092, 0.158],
@@ -19,12 +33,37 @@ const CP_DEF = [
   [ 1.06, 0.32,  -0.208,-0.01,  0.1,   0.0  ],
 ];
 
-const SLOTS = [
-  { co:{x:-255,y:-10},  lo:{x:22, y:-45}, tilt: 9,  ds:25, fy:20, fx:12,  fd:5,   fDl:0,   border:YEL, shadow:"rgba(240,165,0,0.4)", dot:YEL, glow:YEL,                    lc:YEL, lg:"rgba(240,165,0,0.6)"   },
-  { co:{x:0,  y:-330},  lo:{x:-80,y:22},  tilt:-7,  ds:20, fy:25, fx:-16, fd:4,   fDl:0.8, border:WHT, shadow:null,                  dot:WHT, glow:"rgba(255,255,255,0.4)", lc:WHT, lg:"rgba(255,255,255,0.3)" },
-  { co:{x:-240,y:0},    lo:{x:22, y:-46}, tilt: 5,  ds:20, fy:17, fx:18,  fd:6,   fDl:1.4, border:WHT, shadow:null,                  dot:WHT, glow:"rgba(255,255,255,0.4)", lc:WHT, lg:"rgba(255,255,255,0.3)" },
-  { co:{x:0,  y:-335},  lo:{x:-80,y:20},  tilt:-9,  ds:20, fy:13, fx:-12, fd:3.5, fDl:0.3, border:WHT, shadow:null,                  dot:WHT, glow:"rgba(255,255,255,0.4)", lc:WHT, lg:"rgba(255,255,255,0.3)" },
+
+// Slot layout templates (for up to 4 events, can be extended)
+const SLOT_LAYOUTS = [
+  { co: { x: -255, y: -10 }, lo: { x: 22, y: -45 }, tilt: 9,  fy: 20, fx: 12,  fd: 5,   fDl: 0,   subLabelOffset: { x: 40, y: -10 } },
+  { co: { x: 0,    y: -330 }, lo: { x: -80, y: 22 }, tilt: -7, fy: 25, fx: -16, fd: 4,   fDl: 0.8, subLabelOffset: { x: 40, y: -10 } },
+  { co: { x: -240, y: 0 },   lo: { x: 22, y: -60 }, tilt: 5,  fy: 17, fx: 18,  fd: 6,   fDl: 1.4, subLabelOffset: { x: 40, y: -10 } },
+  { co: { x: 0,    y: -335 }, lo: { x: -80, y: 20 }, tilt: -9, fy: 13, fx: -12, fd: 3.5, fDl: 0.3, subLabelOffset: { x: 40, y: -10 } },
 ];
+
+// Helper to get color settings based on activation
+function getSlotColors(isActive) {
+  return isActive
+    ? {
+        border: YEL,
+        shadow: "rgba(240,165,0,0.4)",
+        dot: YEL,
+        glow: YEL,
+        lc: YEL,
+        lg: "rgba(240,165,0,0.6)",
+        ds: 25,
+      }
+    : {
+        border: WHT,
+        shadow: null,
+        dot: WHT,
+        glow: "rgba(255,255,255,0.4)",
+        lc: WHT,
+        lg: "rgba(255,255,255,0.3)",
+        ds: 20,
+      };
+}
 
 const MOCK = [
   { id:"e1", name:"Open Charity Golf Tournament", slug:"golf-tournament-2026",   status:"active",   start_date:"2026-03-01", card_image_url:"https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=300&q=80", user_created:{organisation_name:"IPB Golf Community"}, registration_closes:"15 of March" },
@@ -91,8 +130,6 @@ const drawCanvas = (ctx, pts, cache, progress, activeIdx, W, H) => {
   const totalLen = cache.totalLen || 1;
   const drawnLen = Math.max(0, Math.min(progress, 1)) * totalLen;
 
-  // clearRect must use logical (transformed) coordinates, not raw canvas pixel size.
-  // With a 0.5 scale transform, clearing ctx.canvas.width/height only wipes a quarter of the canvas.
   ctx.clearRect(0, 0, W, H);
   ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round";
 
@@ -136,18 +173,71 @@ const drawCanvas = (ctx, pts, cache, progress, activeIdx, W, H) => {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
+function CardNotch({ color, textColor, label, config = NOTCH_CONFIG }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: -config.height,
+        left: "25%",
+        zIndex: 20,
+        width: config.width,
+        height: config.height,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        animation: "notch-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards",
+        transformOrigin: "50% 0%",
+        transform: "scaleY(0)",
+      }}
+    >
+      <svg
+        width={config.width}
+        height={config.height}
+        viewBox={`0 0 ${config.width} ${config.height}`}
+        fill="none"
+        style={{ position: "absolute", inset: 0 }}
+      >
+        <path d={config.path} fill={color} />
+      </svg>
+      <span
+        style={{
+          position: "relative",
+          fontFamily: config.fontFamily,
+          fontSize: config.fontSize,
+          fontWeight: config.fontWeight,
+          letterSpacing: config.letterSpacing,
+          color: textColor,
+          textTransform: config.textTransform,
+          marginTop: config.marginTop,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export default function EventTimeline({ events: rawEvents }) {
   const events = useMemo(() => {
-    const base = (rawEvents?.length ? rawEvents : MOCK).slice(0, 4);
+    const base = (rawEvents?.length ? rawEvents : MOCK).slice(0, SLOT_LAYOUTS.length);
+    // Find the last active event index
+    let lastActiveIdx = -1;
+    base.forEach((ev, i) => {
+      if (ev.status === "active" || ev.status === "live") lastActiveIdx = i;
+    });
     return base.map((ev, i) => {
-      const isActive = ev.status === "active" || ev.status === "live";
+      const isActive = i <= lastActiveIdx && lastActiveIdx !== -1;
+      const slotLayout = SLOT_LAYOUTS[i] || SLOT_LAYOUTS[SLOT_LAYOUTS.length - 1];
       return {
         ...ev,
-        slot:     SLOTS[i],
+        slot: { ...slotLayout, ...getSlotColors(isActive) },
         isActive,
-        label:    isActive ? "ONGOING" : ev.start_date
-          ? new Date(ev.start_date).toLocaleDateString("en-US", { month:"short", day:"2-digit" }).toUpperCase()
-          : "TBA",
+        label: isActive
+          ? "ONGOING"
+          : ev.start_date
+            ? new Date(ev.start_date).toLocaleDateString("en-US", { month: "short", day: "2-digit" }).toUpperCase()
+            : "TBA",
         subLabel: ev.registration_closes
           ? `Regist Until\n${ev.registration_closes}`
           : `Date\n${ev.start_date ?? "TBA"}`,
@@ -163,6 +253,7 @@ export default function EventTimeline({ events: rawEvents }) {
 
   const [isMobile, setIsMobile] = useState(false);
   const [scaleF,   setScaleF]   = useState(1);
+  const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const containerRef  = useRef(null);
   const canvasRef     = useRef(null);
@@ -175,8 +266,6 @@ export default function EventTimeline({ events: rawEvents }) {
   const rafRef        = useRef(0);
   const loopRunning   = useRef(false);
   const progressRef   = useRef({ v: 0 });
-  // Plain objects that GSAP tweens for float animation.
-  // Reliable and zero ambiguity — no gsap.getProperty race conditions.
   const motionRefs    = useRef([]);
   const sizeRef       = useRef({ W: 0, H: 0 });
   const basePtsRef    = useRef([]);
@@ -192,7 +281,6 @@ export default function EventTimeline({ events: rawEvents }) {
     const motions   = motionRefs.current;
     const nodes     = nodeRefs.current;
 
-    // Sync motion objects → canvas control points + node DOM transforms in one pass
     for (let i = 0; i < events.length; i++) {
       const m    = motions[i];
       const base = basePts[i + 1];
@@ -210,8 +298,6 @@ export default function EventTimeline({ events: rawEvents }) {
     if (loopRunning.current) return;
     loopRunning.current = true;
 
-    // Canvas redraws throttled to ~30fps (line moves slowly, imperceptible at half rate).
-    // Node transforms still update every frame via renderFrame → node.style.transform.
     let lastCanvas = 0;
     const tick = () => {
       const { W, H }  = sizeRef.current;
@@ -231,7 +317,6 @@ export default function EventTimeline({ events: rawEvents }) {
         if (m && node)        node.style.transform = `translate3d(${m.x}px,${m.y}px,0)`;
       }
 
-      // Only repaint canvas at 30fps
       if (now - lastCanvas >= 33) {
         drawCanvas(ctxRef.current, curPts, cacheRef.current, progressRef.current.v, activeIdxRef.current, W, H);
         lastCanvas = now;
@@ -255,17 +340,16 @@ export default function EventTimeline({ events: rawEvents }) {
 
     if (!motionRefs.current.length) motionRefs.current = events.map(() => ({ x:0, y:0 }));
 
-    // Render canvas at 2/3 resolution — CSS stretches it to fill.
-    // Still 44% fewer pixels than native, imperceptibly soft on a thick bezier line.
-    const CW = Math.max(1, Math.round(W / 1.5));
-    const CH = Math.max(1, Math.round(H / 1.5));
-    canvas.width  = CW;
-    canvas.height = CH;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
 
     const ctx = canvas.getContext("2d", { alpha: true });
     if (ctx) {
-      // Scale down so we can still draw in W×H coordinate space
-      ctx.setTransform(CW / W, 0, 0, CH / H, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
       ctxRef.current = ctx;
     }
 
@@ -290,7 +374,6 @@ export default function EventTimeline({ events: rawEvents }) {
       const node   = nodeRefs.current[i];
       const { fy, fx, fd, fDl } = ev.slot;
 
-      // Tween plain objects — no DOM involvement, RAF reads them for both canvas + transforms
       if (motion) {
         gsap.to(motion, { y:fy, duration:fd,     repeat:-1, yoyo:true, ease:"sine.inOut", delay:fDl       });
         gsap.to(motion, { x:fx, duration:fd*1.3, repeat:-1, yoyo:true, ease:"sine.inOut", delay:fDl + 0.5 });
@@ -355,7 +438,6 @@ export default function EventTimeline({ events: rawEvents }) {
       <div style={{ position:"absolute", inset:0, backgroundImage:"url(/Batik_Pattern_dark.svg)",
                     backgroundSize:"cover", opacity:0.4, pointerEvents:"none" }} />
 
-      {/* CSS stretches half-res canvas to fill — saves 75% of pixels painted per frame */}
       <canvas ref={canvasRef} style={{ position:"absolute", inset:0, display:"block",
                                        width:"100%", height:"100%", pointerEvents:"none", zIndex:1 }} />
 
@@ -364,7 +446,7 @@ export default function EventTimeline({ events: rawEvents }) {
                  transform:"translateX(-50%)", pointerEvents:"none", zIndex:50,
                  filter:"drop-shadow(0 8px 24px rgba(0,0,0,0.5))" }} />
 
-      <div ref={ctaRef} style={{ position:"absolute", left:Math.round(160*scaleF), top:"55%",
+      <div ref={ctaRef} style={{ position:"absolute", left:Math.round(160*scaleF), top:"65%",
                                  transform:"translateY(-50%)", zIndex:5, maxWidth:Math.round(300*scaleF) }}>
         <h2 style={{ fontFamily:"'Bebas Neue', cursive", fontSize:`${3.8*scaleF}rem`,
                      color:"#fff", lineHeight:1, margin:0 }}>
@@ -380,9 +462,19 @@ export default function EventTimeline({ events: rawEvents }) {
 
       {events.map((ev, i) => {
         const s = ev.slot;
+
+        const isHovered = hoveredIdx === i;
+
         const shadow = s.shadow
           ? `0 4px 16px rgba(0,0,0,0.7), 0 0 2px ${s.shadow}`
-          : "0 4px 16px rgba(0,0,0,0.7)";
+          : `0 4px 16px rgba(0,0,0,0.7)`;
+
+        // Ring is always visible — active cards get gold, others dim white → full white on hover.
+        const ringColor = ev.isActive
+          ? "rgba(234,179,8,0.9)"
+          : isHovered
+            ? "rgba(255,255,255,1)"
+            : "rgba(255,255,255,0.45)";
 
         return (
           <div key={ev.id ?? i}
@@ -396,24 +488,45 @@ export default function EventTimeline({ events: rawEvents }) {
                               color:s.lc, textShadow:`0 0 20px ${s.lg}` }}>
                   {ev.label}
                 </div>
-                <div style={{ fontSize:`${Math.round(18*scaleF)}px`, color:"#fff",
-                              marginTop:3, marginLeft:Math.round(40*scaleF) }}>
+                <div
+                  style={{
+                    fontSize: `${Math.round(18 * scaleF)}px`,
+                    color: "#fff",
+                    marginTop: Math.round((s.subLabelOffset?.y ?? 3) * scaleF),
+                    marginLeft: Math.round((s.subLabelOffset?.x ?? 40) * scaleF),
+                  }}
+                >
                   {ev.subLabel.split("\n").map((ln, j) => <div key={j}>{ln}</div>)}
                 </div>
               </div>
 
-              <div style={{ position:"absolute", left:Math.round(s.co.x*scaleF), top:Math.round(s.co.y*scaleF),
-                            width:Math.round(210*scaleF), height:Math.round(300*scaleF), borderRadius:10,
-                            overflow:"hidden", border:`2px solid ${s.border}`, boxShadow:shadow,
-                            transform:`rotate(${s.tilt}deg)`, cursor:"pointer" }}>
-                <EventCard event={ev} className="w-full h-full" size="lg" />
+              {/* Outer wrapper: rotated, overflow visible so notch can peek out below */}
+              <div
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                style={{ position:"absolute", left:Math.round(s.co.x*scaleF), top:Math.round(s.co.y*scaleF),
+                         width:Math.round(210*scaleF), height:Math.round(300*scaleF),
+                         transform:`rotate(${s.tilt}deg)`, cursor:"pointer",
+                         outline:"none" /* ← prevents browser focus ring */ }}>
+                {/* Card with always-visible border ring */}
+                <div style={{ position:"absolute", inset:0, borderRadius:10, overflow:"hidden",
+                              boxShadow:shadow }}>
+                  <EventCard event={ev} className="w-full h-full" size="lg" />
+                </div>
+                {/* Ring overlay: always visible, sits above card content, transitions on hover */}
+                <div style={{ position:"absolute", inset:0, borderRadius:10, pointerEvents:"none",
+                              zIndex:5, boxShadow:`0 0 0 2px ${ringColor}`,
+                              transition:"box-shadow 0.18s ease" }} />
+                {/* Notch sits below the card, outside overflow:hidden */}
+                {isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)" label="see more" />}
+                {ev.isActive && !isHovered && <CardNotch color="rgb(234,179,8)" textColor="rgba(0,0,0,0.75)" label="ongoing" />}
               </div>
 
               <div
-                className={ev.isActive ? "et-pulse" : ""}
+                className={ev.isActive ? "etl-dot-pulse" : ""}
                 style={{ position:"absolute", width:Math.round(s.ds*scaleF), height:Math.round(s.ds*scaleF),
                          borderRadius:"50%", background:s.dot,
-                         boxShadow: ev.isActive ? undefined : `0 0 14px ${s.glow}`,
+                         boxShadow: ev.isActive ? "none" : `0 0 14px ${s.glow}`,
                          transform:"translate(-50%,-50%)", zIndex:2 }}
               />
             </div>
@@ -422,11 +535,18 @@ export default function EventTimeline({ events: rawEvents }) {
       })}
 
       <style jsx>{`
-        .et-pulse { animation: et-pulse 2s infinite; }
-        @keyframes et-pulse {
-          0%   { box-shadow: 0 0 14px rgba(255,201,54,1), 0 0 0 0    rgba(255,201,54,0.7); }
-          70%  { box-shadow: 0 0 14px rgba(255,201,54,1), 0 0 0 15px rgba(255,201,54,0);   }
-          100% { box-shadow: 0 0 14px rgba(255,201,54,1), 0 0 0 0    rgba(255,201,54,0);   }
+        /* Static glow + ripple ring, unique name avoids styled-jsx global collision */
+        .etl-dot-pulse { animation: etl-dot-pulse 2s ease-out infinite; }
+        @keyframes etl-dot-pulse {
+          0%   { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 0    rgba(255,201,54,0.7); }
+          70%  { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 10px rgba(255,201,54,0);   }
+          100% { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 0    rgba(255,201,54,0);   }
+        }
+
+        @keyframes notch-pop {
+          0%   { transform: translateX(-50%) scaleY(0);    opacity: 0; }
+          60%  { transform: translateX(-50%) scaleY(1.15); opacity: 1; }
+          100% { transform: translateX(-50%) scaleY(1);    opacity: 1; }
         }
       `}</style>
     </div>

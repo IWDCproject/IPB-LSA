@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Button from '@/components/Button';
@@ -10,50 +10,74 @@ gsap.registerPlugin(ScrollTrigger);
 
 const LINE_COLOR_ACTIVE = '#FFC936';
 const LINE_COLOR_BASE   = 'rgba(255,255,255,0.25)';
-const HEADER_HEIGHT     = 65; // must match CurtainWrapper
+const HEADER_HEIGHT     = 65;
 
-// sectionH = 100vh - 65px
-// Header block ≈ 18vh, leaving ≈ 82vh for 4 rows + mascot row
-// Each of 4 event rows = ~17vh, mascot row = ~10vh → 78vh total ✓
+const NOTCH_H    = 13;
+const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
+
+function CardNotch({ isActive, isLeft }) {
+  const color     = isActive ? 'rgb(234,179,8)'   : 'rgba(255,255,255,0.92)';
+  const textColor = isActive ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)';
+  const label     = isActive ? 'ongoing'           : 'see more';
+
+  return (
+    <div style={{
+      position:       'absolute',
+      bottom:         -(NOTCH_H - 1),    // 1px overlap into card border, closes subpixel gap
+      // Offset to the side like a folder tab, mirrored per card side
+      ...(isLeft ? { left: 8 } : { right: 8 }),
+      transform:      'scaleY(0)',
+      transformOrigin:'50% 0%',
+      animation:      'notch-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards',
+      width:          68,
+      height:         NOTCH_H,
+      display:        'flex',
+      alignItems:     'center',
+      justifyContent: 'center',
+      pointerEvents:  'none',
+    }}>
+      <svg width="68" height="13" viewBox="0 0 68 13" fill="none"
+        style={{ position: 'absolute', inset: 0 }}>
+        <path d={NOTCH_PATH} fill={color} />
+      </svg>
+      <span style={{
+        position:      'relative',
+        fontFamily:    "'Plus Jakarta Sans', sans-serif",
+        fontSize:      '0.42rem',
+        fontWeight:    900,
+        letterSpacing: '0.13em',
+        color:         textColor,
+        textTransform: 'uppercase',
+        marginTop:     -2,
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
 
 export default function VerticalTimeline({ events }) {
-  const wrapRef   = useRef(null);
-  const fillRef   = useRef(null);
-  const nodeRefs  = useRef([]);
-  const cardRefs  = useRef([]);
-  const xFloatRefs = useRef([]);
-  const labelRefs = useRef([]);
-  const mascotRef = useRef(null);
+  const wrapRef       = useRef(null);
+  const fillRef       = useRef(null);
+  const nodeRefs      = useRef([]);
+  const cardRefs      = useRef([]);
+  const floatWrapRefs = useRef([]);
+  const xFloatRefs    = useRef([]);
+  const labelRefs     = useRef([]);
+  const mascotRef     = useRef(null);
+
+  const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const activeIdx = events.findLastIndex(e => e.isActive);
 
-  // FIX 1: Collect all repeat:-1 float tweens into an array so the IO and
-  // visibilitychange callbacks can pause/resume them as a group.
-  //
-  // Why an array instead of a gsap.timeline()? The existing float tweens use
-  // standalone `delay` values relative to component mount time. Putting them in
-  // a timeline would require converting those delays to timeline positions, which
-  // risks changing visual behavior. An array of tween refs achieves the same
-  // pause/resume result with zero behavioral change.
-  //
-  // Note: gsap.context() + ctx.revert() already handles unmount — every tween,
-  // including the repeat:-1 ones, is killed when the component unmounts. The
-  // array is only needed for the scroll-out/tab-hidden pause/resume.
   const floatTweensRef = useRef([]);
-
-  // FIX 2: Tab visibility ref. Mirrors document.hidden into a ref so the
-  // visibilitychange handler can sync the float tween pause state without
-  // causing React re-renders.
-  const tabVisRef = useRef(true);
+  const tabVisRef      = useRef(true);
 
   useEffect(() => {
-    // FIX 3: Reset the array on each effect run so React Strict Mode's
-    // double-invoke doesn't accumulate stale tween refs from the first run.
     floatTweensRef.current = [];
 
     const ctx = gsap.context(() => {
 
-      // Line fill
       gsap.fromTo(fillRef.current,
         { scaleY: 0 },
         {
@@ -65,7 +89,6 @@ export default function VerticalTimeline({ events }) {
         }
       );
 
-      // Per-node entrance + float loops
       nodeRefs.current.forEach((node, i) => {
         if (!node) return;
         const card  = cardRefs.current[i];
@@ -86,9 +109,9 @@ export default function VerticalTimeline({ events }) {
 
         if (card) {
           gsap.fromTo(card,
-            { opacity: 0, x: isLeft ? -40 : 40, rotate: isLeft ? -6 : 6 },
+            { opacity: 0, x: isLeft ? -40 : 40 },
             {
-              opacity: 1, x: 0, rotate: isLeft ? -3 : 3,
+              opacity: 1, x: 0,
               duration: 0.6,
               ease: 'power3.out',
               delay: delay + 0.1,
@@ -96,33 +119,34 @@ export default function VerticalTimeline({ events }) {
             }
           );
 
-          // FIX 4: Push each repeat:-1 tween into floatTweensRef so they can
-          // be paused/resumed by the IO and visibilitychange callbacks below.
-          // The tween creation itself is unchanged — only the return value is captured.
+          const floatWrap = floatWrapRefs.current[i];
+          if (floatWrap) {
+            floatTweensRef.current.push(
+              gsap.to(floatWrap, {
+                y: isLeft ? 3 : -3,
+                duration: 3 + i * 0.4,
+                repeat: -1, yoyo: true, ease: 'sine.inOut',
+                delay: delay + 0.5,
+              })
+            );
+            floatTweensRef.current.push(
+              gsap.to(floatWrap, {
+                rotate: isLeft ? -0.15 : 0.15,
+                duration: (3 + i * 0.4) * 1.7,
+                repeat: -1, yoyo: true, ease: 'sine.inOut',
+                delay: delay + 1.0,
+              })
+            );
+          }
+
           floatTweensRef.current.push(
             gsap.to(card, {
-              y: isLeft ? 3 : -3,
-              duration: 3 + i * 0.4,
-              repeat: -1, yoyo: true, ease: 'sine.inOut',
-              delay: delay + 0.5,
-            })
-          );
-          floatTweensRef.current.push(
-            gsap.to(card, {
-              // x: isLeft ? -0.5 : 0.5,
               duration: (3 + i * 0.4) * 1.3,
               repeat: -1, yoyo: true, ease: 'sine.inOut',
               delay: delay + 0.8,
             })
           );
-          floatTweensRef.current.push(
-            gsap.to(card, {
-              rotate: isLeft ? -0.15 : 0.15,
-              duration: (3 + i * 0.4) * 1.7,
-              repeat: -1, yoyo: true, ease: 'sine.inOut',
-              delay: delay + 1.0,
-            })
-          );
+
           const xEl = xFloatRefs.current[i];
           if (xEl) floatTweensRef.current.push(
             gsap.to(xEl, {
@@ -166,49 +190,28 @@ export default function VerticalTimeline({ events }) {
     return () => ctx.revert();
   }, [events.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // FIX 5: IntersectionObserver on wrapRef pauses float tweens when the section
-  // scrolls out of view and resumes them when it scrolls back in.
-  //
-  // VerticalTimeline lives inside `position: sticky` in CurtainWrapper (unlike
-  // HeroSection which is `position: fixed`), so IO fires correctly here.
-  //
-  // Separate from the gsap.context useEffect so the IO lifecycle is independent
-  // — it doesn't need to re-run when events.length changes.
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-
     const pause  = () => floatTweensRef.current.forEach(t => t.pause());
     const resume = () => floatTweensRef.current.forEach(t => t.resume());
-
     const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !document.hidden) resume();
-        else pause();
-      },
+      ([entry]) => { if (entry.isIntersecting && !document.hidden) resume(); else pause(); },
       { threshold: 0 },
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
-  // FIX 6: Page Visibility API. Handles tab switch, window minimize, and mobile
-  // app switch — none of which IntersectionObserver detects.
   useEffect(() => {
     const onVisibilityChange = () => {
       tabVisRef.current = !document.hidden;
-      // Only resume if the section is also visible in the viewport.
-      // Avoids resuming tweens for a section that's already scrolled away.
       const inView = wrapRef.current
         ? wrapRef.current.getBoundingClientRect().bottom > 0 &&
           wrapRef.current.getBoundingClientRect().top < window.innerHeight
         : false;
-
-      if (!document.hidden && inView) {
-        floatTweensRef.current.forEach(t => t.resume());
-      } else {
-        floatTweensRef.current.forEach(t => t.pause());
-      }
+      if (!document.hidden && inView) floatTweensRef.current.forEach(t => t.resume());
+      else floatTweensRef.current.forEach(t => t.pause());
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -218,7 +221,6 @@ export default function VerticalTimeline({ events }) {
     <div
       ref={wrapRef}
       style={{
-        // Exactly fills sectionH — no overflow, no scroll
         height:        `calc(100vh - ${HEADER_HEIGHT}px)`,
         width:         '100%',
         display:       'flex',
@@ -241,13 +243,13 @@ export default function VerticalTimeline({ events }) {
         }}
       />
 
-      {/* ── Header ~18vh ─────────────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{
-        padding:        '2.5vh 28px 0',
-        position:       'relative',
-        zIndex:         2,
-        textAlign:      'center',
-        flexShrink:     0,
+        padding:    '2.5vh 28px 0',
+        position:   'relative',
+        zIndex:     2,
+        textAlign:  'center',
+        flexShrink: 0,
       }}>
         <h2 style={{
           fontFamily: "'Bebas Neue', cursive",
@@ -273,22 +275,21 @@ export default function VerticalTimeline({ events }) {
         </div>
       </div>
 
-      {/* ── Timeline: centre line + 4 alternating rows ───────────────────── */}
+      {/* Timeline */}
       <div style={{
-        position:   'relative',
-        flex:       1,
-        minHeight:  0,
-        zIndex:     2,
-        // Centre line
+        position:  'relative',
+        flex:      1,
+        minHeight: 0,
+        zIndex:    2,
       }}>
         {/* Track */}
         <div style={{
-          position:  'absolute',
-          left:      '50%',
-          transform: 'translateX(-50%)',
-          top:       0, bottom: 0,
-          width:     2,
-          background: LINE_COLOR_BASE,
+          position:     'absolute',
+          left:         '50%',
+          transform:    'translateX(-50%)',
+          top: 0, bottom: 0,
+          width:        2,
+          background:   LINE_COLOR_BASE,
           borderRadius: 999,
         }} />
 
@@ -296,11 +297,11 @@ export default function VerticalTimeline({ events }) {
         <div
           ref={fillRef}
           style={{
-            position:  'absolute',
-            left:      '50%',
-            transform: 'translateX(-50%)',
-            top:       0, bottom: 0,
-            width:     2,
+            position:     'absolute',
+            left:         '50%',
+            transform:    'translateX(-50%)',
+            top: 0, bottom: 0,
+            width:        2,
             borderRadius: 999,
             background: `linear-gradient(to bottom,
               ${LINE_COLOR_ACTIVE} 0%,
@@ -311,34 +312,32 @@ export default function VerticalTimeline({ events }) {
           }}
         />
 
-        {/* Rows — each takes 1/4 of the flex area using CSS grid rows */}
         <div style={{
-          display:             'grid',
-          gridTemplateRows:    `repeat(${events.length}, 1fr)`,
-          height:              '100%',
-          // paddingTop:          '1vh',
-          // paddingBottom:       '1vh',
-          marginTop:           '-3vh',
+          display:          'grid',
+          gridTemplateRows: `repeat(${events.length}, 1fr)`,
+          height:           '100%',
+          marginTop:        '-3vh',
         }}>
           {events.map((ev, i) => {
-            const isLeft   = i % 2 === 0;
-            const isActive = ev.isActive;
-            const isPast   = i < activeIdx;
+            const isLeft    = i % 2 === 0;
+            const isActive  = ev.isActive;
+            const isPast    = i < activeIdx;
+            const isHovered = hoveredIdx === i;
+
             const dotColor = isActive || isPast ? LINE_COLOR_ACTIVE : '#fff';
             const dotGlow  = isActive || isPast
               ? 'rgba(255,201,54,0.55)'
               : 'rgba(255,255,255,0.3)';
             const dotSize  = isActive ? 16 : 11;
 
-            // FIX 7: ev.label is already computed by buildEvents() in EventTimeline
-            // before being passed down as a prop. The inline new Date() +
-            // toLocaleDateString() here was redundant work on every render.
-            const label = ev.label;
-
-            const cardBorder = isActive || isPast ? LINE_COLOR_ACTIVE : 'rgba(255,255,255,0.35)';
+            const cardBorder = isActive
+              ? LINE_COLOR_ACTIVE
+              : isHovered
+                ? 'rgba(255,255,255,0.6)'
+                : 'rgba(255,255,255,0.35)';
             const cardShadow = isActive
-              ? `0 4px 20px rgba(255,201,54,0.35), 0 6px 28px rgba(0,0,0,0.5)`
-              : `0 3px 14px rgba(0,0,0,0.55)`;
+              ? '0 4px 20px rgba(255,201,54,0.35), 0 6px 28px rgba(0,0,0,0.5)'
+              : '0 3px 14px rgba(0,0,0,0.55)';
 
             return (
               <div
@@ -355,38 +354,50 @@ export default function VerticalTimeline({ events }) {
                   flex:           1,
                   display:        'flex',
                   justifyContent: isLeft ? 'flex-end' : 'flex-start',
-                  paddingLeft:    isLeft ? 0   : 12,
-                  paddingRight:   isLeft ? 12  : 0,
+                  paddingLeft:    isLeft ? 0  : 12,
+                  paddingRight:   isLeft ? 12 : 0,
                   overflow:       'visible',
                 }}>
                   <div ref={el => (xFloatRefs.current[i] = el)} style={{ willChange: 'transform' }}>
                     <div
-                      ref={el => (cardRefs.current[i] = el)}
+                      ref={el => {
+                        cardRefs.current[i] = el;
+                        floatWrapRefs.current[i] = el;
+                      }}
+                      onMouseEnter={() => setHoveredIdx(i)}
+                      onMouseLeave={() => setHoveredIdx(null)}
                       style={{
-                        opacity:      0,
-                        // Card sized relative to viewport height so 4 fit
-                        width:  'clamp(90px, 32vw, 160px)',
-                        height: 'clamp(150px, 22vh, 260px)',
+                        position:   'relative',  // anchor for absolute CardNotch
+                        opacity:    0,
+                        marginTop:  50,
+                        width:      'clamp(90px, 32vw, 160px)',
+                        transform:  `rotate(${isLeft ? -3 : 3}deg)`,
+                        willChange: 'transform',
+                        cursor:     'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {/* Card */}
+                      <div style={{
+                        width:        '100%',
+                        height:       'clamp(150px, 22vh, 260px)',
                         borderRadius: 10,
                         overflow:     'hidden',
                         border:       `2px solid ${cardBorder}`,
                         boxShadow:    cardShadow,
-                        cursor:       'pointer',
-                        position: 'relative',
-                        top: 50,
-                        transform: `rotate(${isLeft ? -3 : 3}deg)`,
-                        // transition:   'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
-                        willChange:   'transform',
-                        flexShrink:   0,
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'rotate(0deg) scale(1.06)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.transform = `rotate(${isLeft ? -3 : 3}deg)`;
-                      }}
-                    >
-                      <EventCard event={ev} className="w-full h-full" size="sm" />
+                        transition:   'border-color 0.2s ease',
+                      }}>
+                        <EventCard event={ev} className="w-full h-full" size="sm" />
+                      </div>
+
+                      {/*
+                        Folder tab: bottom of card, offset to the inner side
+                        (toward the timeline center) like a real folder tab.
+                        Absolute so it takes zero flow space.
+                      */}
+                      {(isHovered || isActive) && (
+                        <CardNotch isActive={isActive} isLeft={isLeft} />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -395,17 +406,16 @@ export default function VerticalTimeline({ events }) {
                 <div style={{ position: 'relative', zIndex: 3, flexShrink: 0 }}>
                   <div
                     ref={el => (nodeRefs.current[i] = el)}
-                    className={isActive ? 'et-pulse' : undefined}
+                    className={isActive ? 'vt-pulse' : undefined}
                     style={{
                       width:        dotSize,
                       height:       dotSize,
-                      color: dotColor,
                       borderRadius: '50%',
                       background:   dotColor,
-                      boxShadow:    `0 0 12px ${dotGlow}, 0 0 4px ${dotColor}`,
+                      boxShadow:    isActive ? 'none' : `0 0 12px ${dotGlow}, 0 0 4px ${dotColor}`,
                       opacity:      0,
                       willChange:   'transform',
-                      position:     'relative', 
+                      position:     'relative',
                     }}
                   />
                 </div>
@@ -431,25 +441,25 @@ export default function VerticalTimeline({ events }) {
                       lineHeight: 1,
                       display:    'block',
                     }}>
-                      {label}
+                      {ev.label}
                     </span>
                     <span style={{
-                      fontSize:  'clamp(9px, 2.2vw, 11px)',
-                      color:     'rgba(255,255,255,0.65)',
+                      fontSize:   'clamp(9px, 2.2vw, 11px)',
+                      color:      'rgba(255,255,255,0.65)',
                       lineHeight: 1.35,
-                      display:   'block',
-                      marginTop: 2,
+                      display:    'block',
+                      marginTop:  2,
                     }}>
                       {ev.subLabel.split('\n').map((ln, j) => (
                         <span key={j} style={{ display: 'block' }}>{ln}</span>
                       ))}
                     </span>
                     <span style={{
-                      fontSize:   'clamp(8px, 2vw, 10px)',
-                      color:      'rgba(255,255,255,0.38)',
-                      display:    'block',
-                      marginTop:  3,
-                      fontStyle:  'italic',
+                      fontSize:  'clamp(8px, 2vw, 10px)',
+                      color:     'rgba(255,255,255,0.38)',
+                      display:   'block',
+                      marginTop: 3,
+                      fontStyle: 'italic',
                     }}>
                       {ev.user_created?.organisation_name}
                     </span>
@@ -461,35 +471,19 @@ export default function VerticalTimeline({ events }) {
         </div>
       </div>
 
-      {/* ── Mascot ~10vh ─────────────────────────────────────────────────── */}
-      {/* <div style={{
-        flexShrink:  0,
-        textAlign:   'center',
-        height:      '10vh',
-        display:     'flex',
-        alignItems:  'flex-end',
-        justifyContent: 'center',
-        position:    'relative',
-        zIndex:      2,
-        overflow:    'visible',
-      }}>
-        <img
-          ref={mascotRef}
-          src="/maskot/maskot1.png"
-          alt=""
-          aria-hidden="true"
-          suppressHydrationWarning
-          style={{
-            height:   '18vh', // taller than its row so it peeks up
-            width:    'auto',
-            opacity:  0,
-            filter:   'drop-shadow(0 6px 18px rgba(0,0,0,0.5))',
-            position: 'relative',
-            bottom:   0,
-          }}
-        />
-      </div> */}
-
+      <style jsx>{`
+        .vt-pulse { animation: vt-pulse 2s ease-out infinite; }
+        @keyframes vt-pulse {
+          0%   { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 0    rgba(255,201,54,0.7); }
+          70%  { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 10px rgba(255,201,54,0);   }
+          100% { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 0    rgba(255,201,54,0);   }
+        }
+        @keyframes notch-pop {
+          0%   { transform: scaleY(0);    opacity: 0; }
+          60%  { transform: scaleY(1.15); opacity: 1; }
+          100% { transform: scaleY(1);    opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
