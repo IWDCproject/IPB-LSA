@@ -16,16 +16,32 @@ const DESKTOP_CARD_MIN_W = 180;
 const DESKTOP_SLOTS_MAX  = 8;
 const MOBILE_CARD_VW     = 0.26;
 const MOBILE_CARD_REF    = 80;
-const NOTCH_H            = 13;
-const NOTCH_PATH         = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
+
+// Shared notch spec — kept in sync with EventTimeline's NOTCH_CONFIG
+const NOTCH_W    = 68;
+const NOTCH_H    = 13;
+const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
 
 function CardNotch({ color, textColor, label }) {
     return (
-        <div style={{ position: "absolute", bottom: -NOTCH_H, left: "50%", transform: "translateX(-50%)", zIndex: 20, width: 68, height: NOTCH_H, animation: "notch-pop 0.2s ease forwards", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="68" height="13" viewBox="0 0 68 13" fill="none" style={{ position: "absolute", inset: 0 }}>
+        <div style={{
+            position: "absolute", bottom: -NOTCH_H, left: "25%", zIndex: 20,
+            width: NOTCH_W, height: NOTCH_H,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            animation: "notch-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards",
+            transformOrigin: "50% 0%",
+        }}>
+            <svg width={NOTCH_W} height={NOTCH_H} viewBox={`0 0 ${NOTCH_W} ${NOTCH_H}`}
+                fill="none" style={{ position: "absolute", inset: 0 }}>
                 <path d={NOTCH_PATH} fill={color} />
             </svg>
-            <span style={{ position: "relative", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.42rem", fontWeight: 900, letterSpacing: "0.13em", color: textColor, textTransform: "uppercase", marginTop: -2 }}>
+            <span style={{
+                position: "relative",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: "0.42rem", fontWeight: 900,
+                letterSpacing: "0.06em", textTransform: "uppercase",
+                color: textColor, marginTop: -2,
+            }}>
                 {label}
             </span>
         </div>
@@ -39,26 +55,21 @@ const ENTER_DELAYS = [0, 70, 140, 210];
 const INTRO_DELAYS = [160, 240, 320, 400];
 
 export default function HeroSection({ paused = false, events: rawEvents = [] }) {
-    // Filter hanya event yang sudah dipublish dan ambil maksimal 8 untuk hero
     const EVENTS = useMemo(() => {
         return (rawEvents || [])
             .filter(ev => ev.is_published)
-            .map(ev => ({
-                ...ev,
-                // Pastikan URL gambar divalidasi lewat getAssetUrl
-                image_url: getAssetUrl(ev.card_image_url)
-            }))
+            .map(ev => ({ ...ev, image_url: getAssetUrl(ev.card_image_url) }))
             .slice(0, 8);
     }, [rawEvents]);
 
-    const [activeIdx, setActiveIdx]     = useState(0);
-    const [hoveredIdx, setHoveredIdx]   = useState(null);
-    const [animating, setAnimating]     = useState(false);
-    const [mounted, setMounted]         = useState(false);
-    const [displayIdx, setDisplayIdx]   = useState(0);
-    const [transPhase, setTransPhase]   = useState("idle");
+    const [activeIdx,   setActiveIdx]   = useState(0);
+    const [hoveredIdx,  setHoveredIdx]  = useState(null);
+    const [animating,   setAnimating]   = useState(false);
+    const [mounted,     setMounted]     = useState(false);
+    const [displayIdx,  setDisplayIdx]  = useState(0);
+    const [transPhase,  setTransPhase]  = useState("idle");
     const [introPlayed, setIntroPlayed] = useState(false);
-    const [cw, setCw]                   = useState(1920);
+    const [cw,          setCw]          = useState(1920);
 
     const barRef          = useRef(null);
     const canvasRefs      = useRef({});
@@ -188,26 +199,16 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
     return (
         <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
 
-            {/* Backgrounds */}
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
                     <div key={ev.id} className="absolute inset-0" style={{ opacity: idx === activeIdx ? 1 : 0, transition: paused ? "none" : "opacity 0.8s ease" }}>
-                        {/* Fallback Image Layer — ensures background is never black */}
-                        <img 
-                            src={ev.image_url} 
-                            alt="" 
-                            className="absolute inset-0 w-full h-full object-cover"
-                            aria-hidden="true"
-                        />
-                        
-                        {/* Sharp background image */}
+                        <img src={ev.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden="true" />
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
                             className="absolute inset-0 w-full h-full"
                             style={{ objectFit: "cover" }}
                         />
-                        {/* Progressive blur — baked in the worker as multi-layer composited bitmap.
-                            No CSS filter or maskImage here; the blur shape is already in the pixels. */}
+                        {/* Progressive blur baked in the worker — no CSS filter here */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
                             className="absolute inset-0 w-full h-full"
@@ -217,19 +218,16 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                 ))}
             </div>
 
-            {/* Color overlays */}
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
             <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
 
-            {/* Progress bar */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30" style={mounted ? { animation: "hero-bar-intro 0.5s cubic-bezier(0.22, 1, 0.36, 1) 80ms both" } : { opacity: 0 }}>
-                <div ref={barRef} className="absolute top-0 h-full bg-yellow-400" />
+                <div ref={barRef} className="absolute top-0 h-full" style={{ background: "#FFC936" }} />
             </div>
 
-            {/* Info panel */}
             <div className="absolute z-10" style={{ top: isMobile ? "48px" : "clamp(48px, 4.17vw, 80px)", left: isMobile ? "24px" : "clamp(40px, 8.33vw, 160px)", right: isMobile ? "24px" : undefined, maxWidth: isMobile ? "480px" : "calc(512px * var(--s))" }}>
-                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "11px" : "calc(12px * var(--s))", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#fbbf24", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", ...infoAnimStyle(0) }}>
+                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "11px" : "calc(12px * var(--s))", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#FFC936", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", ...infoAnimStyle(0) }}>
                     {displayEvent?.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
                 <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: isMobile ? "clamp(2rem, 10vw, 3.5rem)" : "calc(80px * var(--s))", lineHeight: 1, textWrap: "balance", color: "#fff", textTransform: "uppercase", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))", ...infoAnimStyle(1) }}>
@@ -245,7 +243,6 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                 </div>
             </div>
 
-            {/* Card strip — mobile */}
             {isMobile ? (
                 <div className="absolute z-10" style={{ bottom: "88px", left: 0, right: 0 }}>
                     <p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
@@ -262,7 +259,7 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                         {EVENTS.map((ev, idx) => {
                             const isActive  = idx === activeIdx;
                             const isHovered = !isActive && hoveredIdx === idx;
-                            const ringColor = isActive ? "rgba(234,179,8,0.9)" : isHovered ? "rgba(255,255,255,0.5)" : "transparent";
+                            const ringColor = isActive ? "#FFC936" : isHovered ? "rgba(255,255,255,0.5)" : "transparent";
                             return (
                                 <div key={ev.id}
                                     onClick={(e) => { e.preventDefault(); select(idx); }}
@@ -280,14 +277,11 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                                     </div>
                                     <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", border: `2px solid ${ringColor}`, pointerEvents: "none", zIndex: 10, transition: "border-color 0.2s ease" }} />
                                     {(isActive || isHovered) && (
-                                        <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", zIndex: 20, width: 68, height: NOTCH_H, display: "flex", alignItems: "center", justifyContent: "center", animation: "notch-pop 0.2s ease forwards" }}>
-                                            <svg width="68" height="13" viewBox="0 0 68 13" fill="none" style={{ position: "absolute", inset: 0 }}>
-                                                <path d={NOTCH_PATH} fill={isActive ? "rgb(234,179,8)" : "rgba(255,255,255,0.92)"} />
-                                            </svg>
-                                            <span style={{ position: "relative", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.42rem", fontWeight: 900, letterSpacing: "0.13em", color: isActive ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.6)", textTransform: "uppercase", marginTop: -2 }}>
-                                                {isActive ? "this" : "see more"}
-                                            </span>
-                                        </div>
+                                        <CardNotch
+                                            color={isActive ? "#FFC936" : "rgba(255,255,255,0.92)"}
+                                            textColor={isActive ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.6)"}
+                                            label={isActive ? "this" : "see more"}
+                                        />
                                     )}
                                 </div>
                             );
@@ -296,15 +290,14 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                     </div>
                 </div>
             ) : (
-                /* Card strip — desktop */
                 <div className="absolute z-10" style={{ bottom: "clamp(48px, 4.17vw, 80px)", left: "clamp(40px, 8.33vw, 160px)", right: "clamp(40px, 8.33vw, 160px)", paddingBottom: "clamp(32px, 3.125vw, 60px)" }}>
                     <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "calc(14px * var(--s))", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "calc(20px * var(--s))", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
                         {">>>"} Featured Events
                     </p>
                     <div className="flex" style={{ height: "calc(240px * var(--s))", gap: "calc(4px * var(--s))", ...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }) }}>
                         {Array.from({ length: desktopSlots }, (_, idx) => {
-                            const ev        = EVENTS[idx] ?? null;
-                            const isActive  = ev && idx === activeIdx;
+                            const ev       = EVENTS[idx] ?? null;
+                            const isActive = ev && idx === activeIdx;
                             const isHovered = ev && !isActive && hoveredIdx === idx;
                             return (
                                 <div key={ev ? ev.id : `placeholder-${idx}`}
@@ -312,9 +305,9 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                                     onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
                                     onMouseLeave={() => setHoveredIdx(null)}
                                     className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
-                                    style={{ height: "calc(240px * var(--s))", borderRadius: "8px", overflow: "visible", outline: isActive ? "2px solid rgba(234,179,8,0.9)" : isHovered ? "2px solid rgba(255,255,255,0.5)" : "2px solid transparent", transition: "outline 0.2s ease" }}
+                                    style={{ height: "calc(240px * var(--s))", borderRadius: "8px", overflow: "visible", outline: isActive ? `2px solid #FFC936` : isHovered ? "2px solid rgba(255,255,255,0.5)" : "2px solid transparent", transition: "outline 0.2s ease" }}
                                 >
-                                    <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 4px rgba(0,0,0,0.25)", "--s": "1" }}>
+                                    <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", "--s": "1" }}>
                                         {ev ? <EventCard event={ev} size="sm" /> : (
                                             <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: "#111827" }}>
                                                 <div className="absolute inset-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)" }} />
@@ -325,7 +318,7 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                                             </div>
                                         )}
                                     </div>
-                                    {isActive  && <CardNotch color="rgb(234,179,8)"         textColor="rgba(0,0,0,0.75)" label="this"     />}
+                                    {isActive  && <CardNotch color="#FFC936"              textColor="rgba(0,0,0,0.75)" label="this"     />}
                                     {isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)"  label="see more" />}
                                 </div>
                             );
@@ -334,7 +327,6 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                 </div>
             )}
 
-            {/* Marquee */}
             <div className="absolute z-10 left-0 right-0" style={{ bottom: isMobile ? "6px" : "calc(24px * var(--s))", ...(mounted ? { animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both" } : { opacity: 0 }) }}>
                 <UniversityMarquee />
             </div>

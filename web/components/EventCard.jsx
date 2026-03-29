@@ -94,7 +94,7 @@ export default function EventCard({ event, className = "", size = "md", bitmap =
           src={imageUrl}
           alt={name}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-500 "
           style={{ willChange: "transform", backfaceVisibility: "hidden" }}
           sizes="(max-width: 768px) 50vw, 25vw"
           unoptimized={imageUrl.startsWith('http://localhost')} 
