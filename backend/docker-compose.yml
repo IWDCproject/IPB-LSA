@@ -4,13 +4,13 @@ services:
   database:
     image: postgis/postgis:15-3.4 
     ports:
-      - "5432:5432"
+      - "6767:5432"
     environment:
       POSTGRES_USER: directus
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: directus
     volumes:
-      - ./data/database:/var/lib/postgresql/data
+      - ./data/database:/var/lib/postgresql/data:z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U directus"]
       interval: 10s
