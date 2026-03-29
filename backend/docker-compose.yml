@@ -4,7 +4,7 @@ services:
   database:
     image: postgis/postgis:15-3.4 
     ports:
-      - "6767:5432"
+      - "5432:5432"
     environment:
       POSTGRES_USER: directus
       POSTGRES_PASSWORD: postgres
@@ -20,7 +20,7 @@ services:
   directus:
     image: directus/directus:latest
     ports:
-      - "8055:8055"
+      - "6767:8055"
     depends_on:
       database:
         condition: service_healthy

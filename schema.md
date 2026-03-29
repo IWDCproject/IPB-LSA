@@ -56,7 +56,7 @@ Kamu familiar dengan Supabase. Directus konsepnya mirip tapi berbeda implementas
 ┌─────────────────────┐     REST PATCH      ┌──────────────────────┐
 │   Admin Dashboard   │ ──────────────────► │                      │
 │   (custom React)    │                     │   Directus (Node.js) │
-└─────────────────────┘                     │   port 8055          │
+└─────────────────────┘                     │   port 6767          │
                                             │                      │
 ┌─────────────────────┐   WS subscribe      │                      │
 │   Public Website    │ ◄────────────────── │                      │
