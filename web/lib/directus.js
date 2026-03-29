@@ -13,7 +13,7 @@ export const getAssetUrl = (asset) => {
     return asset;
   }
   // Jika berupa ID (dari Directus), buat URL lengkapnya
-  const baseUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:8055';
+  const baseUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767';
   return `${baseUrl}/assets/${asset}`;
 };
 
