@@ -435,5 +435,16 @@ BEGIN
     WHERE name = '$t:public_label'
     ON CONFLICT DO NOTHING;
 
+    -- ADD THESE:
+    INSERT INTO directus_permissions (policy, collection, action, fields, permissions)
+    SELECT id, 'competition_categories', 'read', ARRAY['id','name','participant_type','event_id','format_id'], '{}'
+    FROM directus_policies WHERE name = '$t:public_label'
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO directus_permissions (policy, collection, action, fields, permissions)
+    SELECT id, 'match_formats', 'read', ARRAY['id','name','match_type','modules'], '{}'
+    FROM directus_policies WHERE name = '$t:public_label'
+    ON CONFLICT DO NOTHING;
+
     RAISE NOTICE '✓ Seeding selesai: 5 events, 8 kategori, 27 peserta, 12 matches, 6 berita';
 END $$;
