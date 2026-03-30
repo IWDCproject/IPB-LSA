@@ -19,23 +19,32 @@ function BitmapBlurLayer({ bitmap }) {
     const canvas = canvasRef.current;
     if (!canvas || !bitmap) return;
 
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      if (!width || !height) return;
-
+    const draw = (w, h) => {
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width  = Math.round(width  * dpr);
-      canvas.height = Math.round(height * dpr);
-
-      canvas.style.width  = width  + "px";
-      canvas.style.height = height + "px";
+      // Only control the pixel buffer — never touch canvas.style.width/height.
+      // CSS `width: 100%; height: 100%` keeps the display size correct.
+      canvas.width  = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
 
       const ctx = canvas.getContext("2d");
-      ctx.scale(dpr, dpr);
-      ctx.drawImage(bitmap, 0, 0, width, height);
-    });
+      // setTransform resets any previous scale accumulation
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+      // Cover-crop: bitmap was baked at fixed dimensions by the worker,
+      // so we must scale it to fill the canvas without squishing.
+      const bw    = bitmap.width;
+      const bh    = bitmap.height;
+      const scale = Math.max(w / bw, h / bh);
+      const dw    = bw * scale;
+      const dh    = bh * scale;
+      ctx.drawImage(bitmap, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    };
+
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width && height) draw(width, height);
+    });
     ro.observe(canvas);
     return () => ro.disconnect();
   }, [bitmap]);
