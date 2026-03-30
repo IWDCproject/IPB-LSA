@@ -1063,12 +1063,13 @@ CREATE TABLE public.events (
     guidebook_url text,
     instagram_url text,
     website_url text,
-    card_image_url text,
-    banner_image_url text,
     is_published boolean DEFAULT false NOT NULL,
     is_registration_open boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
+    registration_end_date timestamp with time zone,
+    card_image uuid,
+    banner_image uuid,
     CONSTRAINT events_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'upcoming'::text, 'active'::text, 'finished'::text, 'cancelled'::text]))),
     CONSTRAINT events_type_check CHECK ((type = ANY (ARRAY['sport'::text, 'arts'::text])))
 );
@@ -1084,9 +1085,9 @@ CREATE TABLE public.institutions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     event_id uuid NOT NULL,
     name text NOT NULL,
-    logo_url text,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    logo uuid
 );
 
 
@@ -1148,6 +1149,7 @@ CREATE TABLE public.matches (
     status text DEFAULT 'upcoming'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
+    thumbnail_matches uuid,
     CONSTRAINT matches_home_away_check CHECK ((home_participant_id <> away_participant_id)),
     CONSTRAINT matches_status_check CHECK ((status = ANY (ARRAY['upcoming'::text, 'live'::text, 'finished'::text, 'cancelled'::text])))
 );
@@ -1167,12 +1169,12 @@ CREATE TABLE public.news (
     title text NOT NULL,
     slug text NOT NULL,
     excerpt text,
-    thumbnail_url text,
     content text,
     is_published boolean DEFAULT false NOT NULL,
     published_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
+    thumbnail uuid,
     CONSTRAINT news_category_check CHECK ((category = ANY (ARRAY['announcement'::text, 'result'::text, 'news'::text, 'update'::text])))
 );
 
@@ -1191,9 +1193,9 @@ CREATE TABLE public.participants (
     members jsonb,
     seed integer,
     notes text DEFAULT ''::text,
-    custom_logo_url text,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    custom_logo uuid
 );
 
 
@@ -1539,6 +1541,115 @@ COPY public.directus_activity (id, action, "user", "timestamp", ip, user_agent, 
 220	login	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-25 13:27:39.412+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.112.0 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36	directus_users	f1ae03a9-c7a2-480b-a2af-cdba203a5636	http://localhost:8055
 221	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-25 13:28:32.097+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.112.0 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36	directus_settings	1	http://localhost:8055
 222	login	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-27 13:15:57.96+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.112.0 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36	directus_users	f1ae03a9-c7a2-480b-a2af-cdba203a5636	http://localhost:8055
+223	login	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 16:49:49.425+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_users	f1ae03a9-c7a2-480b-a2af-cdba203a5636	http://localhost:8055
+224	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:40:52.95+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	34	http://localhost:6767
+225	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:42:28.179+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	35	http://localhost:6767
+226	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:42:30.31+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	36	http://localhost:6767
+227	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:42:55.131+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	37	http://localhost:6767
+228	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:42:56.789+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	38	http://localhost:6767
+229	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:42:59.225+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	39	http://localhost:6767
+230	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:00.484+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	40	http://localhost:6767
+231	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:01.754+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	41	http://localhost:6767
+232	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:02.961+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	42	http://localhost:6767
+233	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:11.039+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	43	http://localhost:6767
+234	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:12.54+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	44	http://localhost:6767
+235	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:13.779+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	45	http://localhost:6767
+236	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:16.509+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	46	http://localhost:6767
+237	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:19.617+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	47	http://localhost:6767
+238	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:21.102+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	48	http://localhost:6767
+239	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:22.92+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	49	http://localhost:6767
+240	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:24.327+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	50	http://localhost:6767
+241	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:25.88+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	51	http://localhost:6767
+242	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:27.354+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	52	http://localhost:6767
+243	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:33.515+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	53	http://localhost:6767
+244	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:34.884+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	54	http://localhost:6767
+245	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:36.157+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	55	http://localhost:6767
+246	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:38.223+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	56	http://localhost:6767
+247	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:39.585+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	57	http://localhost:6767
+248	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:41.074+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	58	http://localhost:6767
+249	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:42.62+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	59	http://localhost:6767
+250	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:44.007+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	60	http://localhost:6767
+251	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:47.008+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	61	http://localhost:6767
+252	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:48.617+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	62	http://localhost:6767
+253	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:50.148+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	63	http://localhost:6767
+254	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:51.365+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	64	http://localhost:6767
+255	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:52.491+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	65	http://localhost:6767
+256	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:43:59.655+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	66	http://localhost:6767
+257	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:01.71+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	67	http://localhost:6767
+258	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:02.914+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	68	http://localhost:6767
+259	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:04.288+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	69	http://localhost:6767
+260	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:06.16+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	70	http://localhost:6767
+261	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:14.29+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	71	http://localhost:6767
+262	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:15.675+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	72	http://localhost:6767
+263	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:16.886+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	73	http://localhost:6767
+264	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:18.054+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	74	http://localhost:6767
+265	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:19.258+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	75	http://localhost:6767
+266	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:21.601+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	76	http://localhost:6767
+267	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:22.884+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	77	http://localhost:6767
+268	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:44:24.234+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	78	http://localhost:6767
+269	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:46:48.215+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	34	http://localhost:6767
+270	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:46:52.108+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	34	http://localhost:6767
+271	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:46:54.402+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	34	http://localhost:6767
+272	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:47:04.305+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	34	http://localhost:6767
+273	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:48:14.632+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	79	http://localhost:6767
+274	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:49:35.885+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	79	http://localhost:6767
+275	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:49:53.394+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	35	http://localhost:6767
+276	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:50:23.802+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	80	http://localhost:6767
+277	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:51:00.303+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	79	http://localhost:6767
+278	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:58:03.466+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	80	http://localhost:6767
+279	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 17:59:56.016+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	42	http://localhost:6767
+280	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 18:00:03.188+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	52	http://localhost:6767
+281	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 18:00:13.745+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	56	http://localhost:6767
+282	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 18:01:10.866+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	81	http://localhost:6767
+283	delete	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-29 18:01:20.292+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	81	http://localhost:6767
+284	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:24:56.592+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	2deefae3-8888-4151-b809-3c07be0b1a02	http://localhost:6767
+285	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:26:18.86+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	2deefae3-8888-4151-b809-3c07be0b1a02	http://localhost:6767
+286	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:26:37.642+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	d61594d7-9642-4a31-85e2-633aa3c498ea	http://localhost:6767
+287	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:27:56.266+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	30df6a9c-3dcf-4ea6-91fb-f1f23921799e	http://localhost:6767
+288	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:28:03.491+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	30df6a9c-3dcf-4ea6-91fb-f1f23921799e	http://localhost:6767
+289	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:28:34.837+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	0718757d-cdef-404e-9e4d-107d56d4f857	http://localhost:6767
+290	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:28:43.631+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	0718757d-cdef-404e-9e4d-107d56d4f857	http://localhost:6767
+291	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:28:52.32+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	0718757d-cdef-404e-9e4d-107d56d4f857	http://localhost:6767
+292	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:29:07.068+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	25028267-fc98-4fe1-9c14-75452ab931bc	http://localhost:6767
+293	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:35:55.747+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	82	http://localhost:6767
+294	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:36:49.847+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	83	http://localhost:6767
+295	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:39:58.996+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	84	http://localhost:6767
+296	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:42:43.778+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	85	http://localhost:6767
+297	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:05.312+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	86	http://localhost:6767
+298	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:32.353+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	87	http://localhost:6767
+299	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:34.274+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	88	http://localhost:6767
+300	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:38.79+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	89	http://localhost:6767
+301	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:40.325+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	90	http://localhost:6767
+302	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:41.78+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	91	http://localhost:6767
+303	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:43.08+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	92	http://localhost:6767
+304	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:44.786+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	93	http://localhost:6767
+305	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:46.298+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	94	http://localhost:6767
+306	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:48.053+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	95	http://localhost:6767
+307	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:49.292+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	96	http://localhost:6767
+308	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:51.081+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	97	http://localhost:6767
+309	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:52.513+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	98	http://localhost:6767
+310	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:53.779+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	99	http://localhost:6767
+311	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:54.978+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	100	http://localhost:6767
+312	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:57.618+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	101	http://localhost:6767
+313	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:44:59.302+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	102	http://localhost:6767
+314	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:45:00.991+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	103	http://localhost:6767
+315	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:45:48.344+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_folders	25028267-fc98-4fe1-9c14-75452ab931bc	http://localhost:6767
+316	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:46:42.998+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	104	http://localhost:6767
+317	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:50:37.256+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_permissions	140	http://localhost:6767
+318	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:50:37.265+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_policies	abf8a154-5b1c-4a46-ac9c-7300570f4f17	http://localhost:6767
+319	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:51:51.904+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_policies	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906	http://localhost:6767
+320	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:55:13.97+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	http://localhost:6767
+321	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:55:55.528+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	http://localhost:6767
+322	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:55:55.566+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	http://localhost:6767
+323	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:57:36.417+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	http://localhost:6767
+324	update	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:57:36.453+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	http://localhost:6767
+325	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:58:03.925+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	76e65c4f-974b-45ed-80c6-fa8974a1e9d8	http://localhost:6767
+326	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:59:16.213+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	ca2c5357-d3bf-4df7-9557-0d18627634b0	http://localhost:6767
+327	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:59:58.387+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	857f0cf4-d2e9-4b0b-bc76-aca5e679b48e	http://localhost:6767
+328	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 01:14:45.178+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	4ab0c50a-b491-448f-8897-8bf29013a138	http://localhost:6767
+329	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 01:15:33.994+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_files	b133ee67-492f-4f81-a753-34caef662a3e	http://localhost:6767
+330	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 01:26:12.684+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	105	http://localhost:6767
+331	create	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 01:26:16.437+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	directus_fields	106	http://localhost:6767
 \.
 
 
@@ -1615,8 +1726,11 @@ COPY public.directus_extensions (enabled, id, folder, source, bundle) FROM stdin
 --
 
 COPY public.directus_fields (id, collection, field, special, interface, options, display, display_options, readonly, hidden, sort, width, translations, note, conditions, required, "group", validation, validation_message, searchable) FROM stdin;
+83	events	banner_image	file	file-image	{"folder":"30df6a9c-3dcf-4ea6-91fb-f1f23921799e","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]}	\N	\N	f	f	2	full	\N	\N	\N	f	\N	\N	\N	t
 2	events	user_created	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 3	competition_categories	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+84	institutions	logo	file	file-image	{"folder":"2deefae3-8888-4151-b809-3c07be0b1a02","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]}	\N	\N	f	f	1	full	\N	\N	\N	f	\N	\N	\N	t
+85	participants	custom_logo	file	file-image	{"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"],"folder":"2deefae3-8888-4151-b809-3c07be0b1a02","enableSelect":false,"letterbox":true}	\N	\N	f	f	1	full	\N	\N	\N	f	\N	\N	\N	t
 1	competition_categories	event_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 4	events	name	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 5	events	updated_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
@@ -1648,6 +1762,68 @@ COPY public.directus_fields (id, collection, field, special, interface, options,
 31	match_participants	participant_id	uuid	select-dropdown-m2o	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 32	match_participants	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 33	match_participants	position	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+36	events	registration_end_date	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+37	institutions	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+38	institutions	event_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+39	institutions	name	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+40	institutions	created_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+41	institutions	updated_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+43	participants	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+44	participants	competition_category_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+45	participants	institution_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+46	participants	name	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+47	participants	seed	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+48	participants	members	cast-json	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+49	participants	notes	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+50	participants	created_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+51	participants	updated_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+53	news	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+54	news	author_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+55	news	event_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+57	news	created_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+58	news	is_published	cast-boolean	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+59	news	content	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+60	news	published_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+61	news	updated_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+62	news	slug	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+63	news	category	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+64	news	title	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+65	news	excerpt	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+66	app_settings	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+67	app_settings	setting_key	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+68	app_settings	setting_value	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+69	app_settings	description	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+70	app_settings	updated_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+71	activity_logs	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+72	activity_logs	event_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+73	activity_logs	user_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+74	activity_logs	action	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+75	activity_logs	entity	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+76	activity_logs	entity_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+77	activity_logs	description	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+78	activity_logs	created_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+86	news	thumbnail	file	file-image	{"folder":"0718757d-cdef-404e-9e4d-107d56d4f857","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]}	\N	\N	f	f	1	full	\N	\N	\N	f	\N	\N	\N	t
+87	matches	updated_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+88	matches	created_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+89	matches	status	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+82	events	card_image	file	file-image	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","enableSelect":false,"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]}	\N	\N	f	f	1	full	\N	\N	\N	f	\N	\N	\N	t
+90	matches	live_state	cast-json	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+91	matches	timer_secs	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+92	matches	away_score	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+93	matches	home_score	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+94	matches	winner	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+95	matches	rankings	cast-json	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+96	matches	home_participant_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+97	matches	away_participant_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+98	matches	venue	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+99	matches	scheduled_at	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+100	matches	match_name	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+101	matches	round	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+102	matches	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+103	matches	competition_category_id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+104	matches	thumbnail_matches	file	file-image	{"folder":"25028267-fc98-4fe1-9c14-75452ab931bc","enableSelect":false,"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]}	\N	\N	f	f	1	full	\N	\N	\N	f	\N	\N	\N	t
+105	event_phases	date_end	\N	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
+106	event_phases	id	uuid	\N	\N	\N	\N	f	f	\N	full	\N	\N	\N	f	\N	\N	\N	t
 \.
 
 
@@ -1656,6 +1832,12 @@ COPY public.directus_fields (id, collection, field, special, interface, options,
 --
 
 COPY public.directus_files (id, storage, filename_disk, filename_download, title, type, folder, uploaded_by, created_on, modified_by, modified_on, charset, filesize, width, height, duration, embed, description, location, tags, metadata, focal_point_x, focal_point_y, tus_id, tus_data, uploaded_on) FROM stdin;
+73c9f7b0-d3dc-4663-b4fc-23fbc343706c	local	73c9f7b0-d3dc-4663-b4fc-23fbc343706c.jpeg	pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg	Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi	image/jpeg	d61594d7-9642-4a31-85e2-633aa3c498ea	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:55:13.962+00	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:57:36.452+00	\N	59935	367	442	\N	\N	\N	\N	\N	{}	\N	\N	\N	\N	2026-03-30 00:57:36.446+00
+76e65c4f-974b-45ed-80c6-fa8974a1e9d8	local	76e65c4f-974b-45ed-80c6-fa8974a1e9d8.jpeg	pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg	Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi	image/jpeg	d61594d7-9642-4a31-85e2-633aa3c498ea	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:58:03.918+00	\N	2026-03-30 00:58:03.954+00	\N	425242	1200	900	\N	\N	\N	\N	\N	{}	\N	\N	\N	\N	2026-03-30 00:58:03.953+00
+ca2c5357-d3bf-4df7-9557-0d18627634b0	local	ca2c5357-d3bf-4df7-9557-0d18627634b0.png	img01.png	Img01	image/png	d61594d7-9642-4a31-85e2-633aa3c498ea	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:59:16.204+00	\N	2026-03-30 00:59:16.31+00	\N	2952560	2255	880	\N	\N	\N	\N	\N	{}	\N	\N	\N	\N	2026-03-30 00:59:16.309+00
+857f0cf4-d2e9-4b0b-bc76-aca5e679b48e	local	857f0cf4-d2e9-4b0b-bc76-aca5e679b48e.jpg	hq720.jpg	Hq720	image/jpeg	d61594d7-9642-4a31-85e2-633aa3c498ea	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:59:58.386+00	\N	2026-03-30 00:59:58.428+00	\N	49940	686	386	\N	\N	\N	\N	\N	{}	\N	\N	\N	\N	2026-03-30 00:59:58.428+00
+4ab0c50a-b491-448f-8897-8bf29013a138	local	4ab0c50a-b491-448f-8897-8bf29013a138.jpg	images (1).jpg	Images (1)	image/jpeg	d61594d7-9642-4a31-85e2-633aa3c498ea	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 01:14:45.171+00	\N	2026-03-30 01:14:45.206+00	\N	14743	306	165	\N	\N	\N	\N	\N	{}	\N	\N	\N	\N	2026-03-30 01:14:45.205+00
+b133ee67-492f-4f81-a753-34caef662a3e	local	b133ee67-492f-4f81-a753-34caef662a3e.jpg	BSK_CSOB_MARATON046_(33791445325).jpg	Bsk Csob Marato N046 (33791445325)	image/jpeg	d61594d7-9642-4a31-85e2-633aa3c498ea	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 01:15:33.986+00	\N	2026-03-30 01:15:34.14+00	\N	5198916	5472	3648	\N	\N	\N	\N	\N	{}	\N	\N	\N	\N	2026-03-30 01:15:34.14+00
 \.
 
 
@@ -1672,6 +1854,11 @@ COPY public.directus_flows (id, name, icon, color, description, status, trigger,
 --
 
 COPY public.directus_folders (id, name, parent) FROM stdin;
+2deefae3-8888-4151-b809-3c07be0b1a02	Folder_Logo	\N
+d61594d7-9642-4a31-85e2-633aa3c498ea	Folder_Card	\N
+30df6a9c-3dcf-4ea6-91fb-f1f23921799e	Folder_Banner	\N
+0718757d-cdef-404e-9e4d-107d56d4f857	Folder_Thumbnail_News	\N
+25028267-fc98-4fe1-9c14-75452ab931bc	Folder_Thumbnail_Matches	\N
 \.
 
 
@@ -1834,10 +2021,8 @@ COPY public.directus_permissions (id, collection, action, permissions, validatio
 85	directus_shares	read	{"user_created":{"_eq":"$CURRENT_USER"}}	\N	\N	*	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 86	directus_users	read	{"id":{"_eq":"$CURRENT_USER"}}	\N	\N	id,first_name,last_name,last_page,email,password,location,title,description,tags,provider,preferences_divider,avatar,language,appearance,theme_light,theme_dark,tfa_secret,status,role	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 87	events	create	\N	\N	\N	*	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
-92	events	update	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	id,user_created,name,slug,type,status,start_date,end_date,location,description,contact_person,registration_url,guidebook_url,instagram_url,website_url,card_image_url,banner_image_url,is_published,is_registration_open,created_at,updated_at	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 93	events	delete	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 120	match_participants	create	{}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
-91	events	read	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	user_created,name,slug,type,status,end_date,location,start_date,description,contact_person,registration_url,guidebook_url,instagram_url,website_url,card_image_url,banner_image_url,is_published,is_registration_open,created_at,updated_at,id	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 121	match_participants	read	{"match_id":{"competition_category_id":{"event_id":{"user_created":{"_eq":"$CURRENT_USER"}}}}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 100	competition_categories	create	{}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
 101	competition_categories	read	{"event_id":{"user_created":{"_eq":"$CURRENT_USER"}}}	\N	\N	\N	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
@@ -1873,6 +2058,9 @@ COPY public.directus_permissions (id, collection, action, permissions, validatio
 138	sponsors	read	\N	\N	\N	*	abf8a154-5b1c-4a46-ac9c-7300570f4f17
 139	directus_collections	read	\N	\N	\N	*	abf8a154-5b1c-4a46-ac9c-7300570f4f17
 131	events	read	\N	\N	\N	*	abf8a154-5b1c-4a46-ac9c-7300570f4f17
+92	events	update	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	id,user_created,name,slug,type,status,start_date,end_date,location,description,contact_person,registration_url,guidebook_url,instagram_url,website_url,card_image_url,banner_image_url,is_published,is_registration_open,created_at,updated_at	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
+91	events	read	{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]}	\N	\N	user_created,name,slug,type,status,end_date,location,start_date,description,contact_person,registration_url,guidebook_url,instagram_url,website_url,card_image_url,banner_image_url,is_published,is_registration_open,created_at,updated_at,id	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906
+140	directus_files	read	\N	\N	\N	*	abf8a154-5b1c-4a46-ac9c-7300570f4f17
 \.
 
 
@@ -1893,6 +2081,7 @@ abf8a154-5b1c-4a46-ac9c-7300570f4f17	$t:public_label	public	$t:public_descriptio
 --
 
 COPY public.directus_presets (id, bookmark, "user", role, collection, search, layout, layout_query, layout_options, refresh_interval, filter, icon, color) FROM stdin;
+2	\N	f1ae03a9-c7a2-480b-a2af-cdba203a5636	\N	directus_files	\N	cards	{"cards":{"sort":["-uploaded_on"],"page":1}}	{"cards":{"icon":"insert_drive_file","title":"{{ title }}","subtitle":"{{ type }} • {{ filesize }}","size":4,"imageFit":"crop"}}	\N	\N	bookmark	\N
 1	\N	f1ae03a9-c7a2-480b-a2af-cdba203a5636	\N	directus_users	\N	cards	{"cards":{"sort":["email"],"page":1}}	{"cards":{"icon":"account_circle","title":"{{ first_name }} {{ last_name }}","subtitle":"{{ email }}","size":4}}	\N	\N	bookmark	\N
 \.
 
@@ -1902,6 +2091,12 @@ COPY public.directus_presets (id, bookmark, "user", role, collection, search, la
 --
 
 COPY public.directus_relations (id, many_collection, many_field, one_collection, one_field, one_collection_field, one_allowed_collections, junction_field, sort_field, one_deselect_action) FROM stdin;
+3	events	card_image	directus_files	\N	\N	\N	\N	\N	nullify
+4	events	banner_image	directus_files	\N	\N	\N	\N	\N	nullify
+5	institutions	logo	directus_files	\N	\N	\N	\N	\N	nullify
+6	participants	custom_logo	directus_files	\N	\N	\N	\N	\N	nullify
+7	news	thumbnail	directus_files	\N	\N	\N	\N	\N	nullify
+8	matches	thumbnail_matches	directus_files	\N	\N	\N	\N	\N	nullify
 \.
 
 
@@ -1949,6 +2144,7 @@ COPY public.directus_revisions (id, activity, collection, item, data, delta, par
 37	38	directus_permissions	22	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]},"validation":null,"fields":["*"],"presets":null,"collection":"events","action":"delete"}	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]},"validation":null,"fields":["*"],"presets":null,"collection":"events","action":"delete"}	\N	\N
 38	39	directus_permissions	23	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]},"validation":null,"fields":["id","user_created","name","slug","type","status","start_date","end_date","location","description","contact_person","registration_url","guidebook_url","instagram_url","website_url","card_image_url","banner_image_url","is_published","is_registration_open","created_at","updated_at"],"presets":null,"collection":"events","action":"read"}	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]},"validation":null,"fields":["id","user_created","name","slug","type","status","start_date","end_date","location","description","contact_person","registration_url","guidebook_url","instagram_url","website_url","card_image_url","banner_image_url","is_published","is_registration_open","created_at","updated_at"],"presets":null,"collection":"events","action":"read"}	\N	\N
 56	60	directus_permissions	36	{"policy":"cadd0733-b4f4-4418-9734-d2890a90281c","permissions":{"_or":[{"user":{"_eq":"$CURRENT_USER"}},{"_and":[{"user":{"_null":true}},{"role":{"_eq":"$CURRENT_ROLE"}}]},{"_and":[{"user":{"_null":true}},{"role":{"_null":true}}]}]},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_presets","action":"read"}	{"policy":"cadd0733-b4f4-4418-9734-d2890a90281c","permissions":{"_or":[{"user":{"_eq":"$CURRENT_USER"}},{"_and":[{"user":{"_null":true}},{"role":{"_eq":"$CURRENT_ROLE"}}]},{"_and":[{"user":{"_null":true}},{"role":{"_null":true}}]}]},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_presets","action":"read"}	\N	\N
+210	242	directus_fields	52	{"special":["uuid"],"collection":"participants","field":"custom_logo"}	{"special":["uuid"],"collection":"participants","field":"custom_logo"}	\N	\N
 39	40	directus_permissions	24	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]},"validation":null,"fields":["id","user_created","name","slug","type","status","start_date","end_date","location","description","contact_person","registration_url","guidebook_url","instagram_url","website_url","card_image_url","banner_image_url","is_published","is_registration_open","created_at","updated_at"],"presets":null,"collection":"events","action":"update"}	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":{"_and":[{"user_created":{"_eq":"$CURRENT_USER"}}]},"validation":null,"fields":["id","user_created","name","slug","type","status","start_date","end_date","location","description","contact_person","registration_url","guidebook_url","instagram_url","website_url","card_image_url","banner_image_url","is_published","is_registration_open","created_at","updated_at"],"presets":null,"collection":"events","action":"update"}	\N	\N
 40	41	directus_permissions	25	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"competition_categories","action":"create"}	{"policy":"159545f9-8540-4539-894f-9059b7706266","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"competition_categories","action":"create"}	\N	\N
 41	43	directus_fields	1	{"special":["uuid"],"collection":"competition_categories","field":"event_id"}	{"special":["uuid"],"collection":"competition_categories","field":"event_id"}	\N	\N
@@ -2000,6 +2196,7 @@ COPY public.directus_revisions (id, activity, collection, item, data, delta, par
 87	92	directus_permissions	66	{"policy":"4a4c5001-37b7-41ce-8420-4886b1f09d01","permissions":{"id":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["id","first_name","last_name","last_page","email","password","location","title","description","tags","provider","preferences_divider","avatar","language","appearance","theme_light","theme_dark","tfa_secret","status","role"],"system":true,"collection":"directus_users","action":"read"}	{"policy":"4a4c5001-37b7-41ce-8420-4886b1f09d01","permissions":{"id":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["id","first_name","last_name","last_page","email","password","location","title","description","tags","provider","preferences_divider","avatar","language","appearance","theme_light","theme_dark","tfa_secret","status","role"],"system":true,"collection":"directus_users","action":"read"}	\N	\N
 88	93	directus_roles	dc42a2f7-80d7-4515-9719-8e2f77646540	{"name":"Superadmin"}	{"name":"Superadmin"}	\N	\N
 89	95	directus_policies	1990d9a8-6e77-4fd7-9d79-d6d2b25e9906	{"name":"Akses PJ Ormawa","admin_access":false,"app_access":true}	{"name":"Akses PJ Ormawa","admin_access":false,"app_access":true}	\N	\N
+211	243	directus_fields	53	{"special":["uuid"],"collection":"news","field":"id"}	{"special":["uuid"],"collection":"news","field":"id"}	\N	\N
 90	96	directus_permissions	67	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_collections","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_collections","action":"read"}	\N	\N
 91	97	directus_permissions	68	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_fields","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_fields","action":"read"}	\N	\N
 92	98	directus_permissions	69	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_relations","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_relations","action":"read"}	\N	\N
@@ -2016,6 +2213,8 @@ COPY public.directus_revisions (id, activity, collection, item, data, delta, par
 103	109	directus_permissions	80	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"id":{"_in":"$CURRENT_ROLES"}},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_roles","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"id":{"_in":"$CURRENT_ROLES"}},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_roles","action":"read"}	\N	\N
 104	110	directus_permissions	81	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_settings","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_settings","action":"read"}	\N	\N
 105	111	directus_permissions	82	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_translations","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_translations","action":"read"}	\N	\N
+212	244	directus_fields	54	{"special":["uuid"],"collection":"news","field":"author_id"}	{"special":["uuid"],"collection":"news","field":"author_id"}	\N	\N
+213	245	directus_fields	55	{"special":["uuid"],"collection":"news","field":"event_id"}	{"special":["uuid"],"collection":"news","field":"event_id"}	\N	\N
 106	112	directus_permissions	83	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"recipient":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_notifications","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"recipient":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_notifications","action":"read"}	\N	\N
 107	113	directus_permissions	84	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"recipient":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["status"],"system":true,"collection":"directus_notifications","action":"update"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"recipient":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["status"],"system":true,"collection":"directus_notifications","action":"update"}	\N	\N
 108	114	directus_permissions	85	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"user_created":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_shares","action":"read"}	{"policy":"1990d9a8-6e77-4fd7-9d79-d6d2b25e9906","permissions":{"user_created":{"_eq":"$CURRENT_USER"}},"validation":null,"presets":null,"fields":["*"],"system":true,"collection":"directus_shares","action":"read"}	\N	\N
@@ -2077,6 +2276,7 @@ COPY public.directus_revisions (id, activity, collection, item, data, delta, par
 162	181	directus_access	37a30545-9f59-4431-8f99-deb46a73184d	{"policy":"9c8d904e-e152-40ec-aca6-dc56b490a417","role":{"id":"dc42a2f7-80d7-4515-9719-8e2f77646540"}}	{"policy":"9c8d904e-e152-40ec-aca6-dc56b490a417","role":{"id":"dc42a2f7-80d7-4515-9719-8e2f77646540"}}	\N	\N
 163	183	directus_settings	1	{"id":1,"project_name":"Directus","project_url":null,"project_color":"#4258FF","project_logo":null,"public_foreground":null,"public_background":null,"public_note":null,"auth_login_attempts":25,"auth_password_policy":null,"storage_asset_transform":"all","storage_asset_presets":null,"custom_css":null,"storage_default_folder":null,"basemaps":null,"mapbox_key":null,"module_bar":null,"project_descriptor":null,"default_language":"en-US","custom_aspect_ratios":null,"public_favicon":null,"default_appearance":"auto","default_theme_light":null,"theme_light_overrides":null,"default_theme_dark":null,"theme_dark_overrides":null,"report_error_url":null,"report_bug_url":null,"report_feature_url":null,"public_registration":false,"public_registration_verify_email":true,"public_registration_role":null,"public_registration_email_filter":null,"visual_editor_urls":null,"project_id":"019cfcc1-2243-74dc-bcd4-af4497e0ddfc","mcp_enabled":false,"mcp_allow_deletes":false,"mcp_prompts_collection":null,"mcp_system_prompt_enabled":true,"mcp_system_prompt":null,"project_owner":null,"project_usage":null,"org_name":null,"product_updates":null,"project_status":null,"ai_openai_api_key":null,"ai_anthropic_api_key":null,"ai_system_prompt":null,"ai_google_api_key":null,"ai_openai_compatible_api_key":null,"ai_openai_compatible_base_url":null,"ai_openai_compatible_name":null,"ai_openai_compatible_models":null,"ai_openai_compatible_headers":null,"ai_openai_allowed_models":["gpt-5-nano","gpt-5-mini","gpt-5"],"ai_anthropic_allowed_models":["claude-haiku-4-5","claude-sonnet-4-5"],"ai_google_allowed_models":["gemini-3-pro-preview","gemini-3-flash-preview","gemini-2.5-pro","gemini-2.5-flash"],"collaborative_editing_enabled":false}	{"project_color":"#4258FF"}	\N	\N
 183	210	directus_permissions	133	{"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"match_formats","action":"read"}	{"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"match_formats","action":"read"}	\N	\N
+214	246	directus_fields	56	{"special":["uuid"],"collection":"news","field":"thumbnail"}	{"special":["uuid"],"collection":"news","field":"thumbnail"}	\N	\N
 164	184	directus_settings	1	{"id":1,"project_name":"Directus","project_url":null,"project_color":"#4258FF","project_logo":null,"public_foreground":null,"public_background":null,"public_note":null,"auth_login_attempts":25,"auth_password_policy":null,"storage_asset_transform":"all","storage_asset_presets":null,"custom_css":null,"storage_default_folder":null,"basemaps":null,"mapbox_key":null,"module_bar":null,"project_descriptor":null,"default_language":"en-US","custom_aspect_ratios":null,"public_favicon":null,"default_appearance":"auto","default_theme_light":"Directus Color Match","theme_light_overrides":null,"default_theme_dark":null,"theme_dark_overrides":null,"report_error_url":null,"report_bug_url":null,"report_feature_url":null,"public_registration":false,"public_registration_verify_email":true,"public_registration_role":null,"public_registration_email_filter":null,"visual_editor_urls":null,"project_id":"019cfcc1-2243-74dc-bcd4-af4497e0ddfc","mcp_enabled":false,"mcp_allow_deletes":false,"mcp_prompts_collection":null,"mcp_system_prompt_enabled":true,"mcp_system_prompt":null,"project_owner":null,"project_usage":null,"org_name":null,"product_updates":null,"project_status":null,"ai_openai_api_key":null,"ai_anthropic_api_key":null,"ai_system_prompt":null,"ai_google_api_key":null,"ai_openai_compatible_api_key":null,"ai_openai_compatible_base_url":null,"ai_openai_compatible_name":null,"ai_openai_compatible_models":null,"ai_openai_compatible_headers":null,"ai_openai_allowed_models":["gpt-5-nano","gpt-5-mini","gpt-5"],"ai_anthropic_allowed_models":["claude-haiku-4-5","claude-sonnet-4-5"],"ai_google_allowed_models":["gemini-3-pro-preview","gemini-3-flash-preview","gemini-2.5-pro","gemini-2.5-flash"],"collaborative_editing_enabled":false}	{"default_theme_light":"Directus Color Match"}	\N	\N
 165	185	directus_settings	1	{"id":1,"project_name":"Directus","project_url":null,"project_color":"#4258FF","project_logo":null,"public_foreground":null,"public_background":null,"public_note":null,"auth_login_attempts":25,"auth_password_policy":null,"storage_asset_transform":"all","storage_asset_presets":null,"custom_css":null,"storage_default_folder":null,"basemaps":null,"mapbox_key":null,"module_bar":null,"project_descriptor":null,"default_language":"en-US","custom_aspect_ratios":null,"public_favicon":null,"default_appearance":"auto","default_theme_light":"Directus Default","theme_light_overrides":null,"default_theme_dark":null,"theme_dark_overrides":null,"report_error_url":null,"report_bug_url":null,"report_feature_url":null,"public_registration":false,"public_registration_verify_email":true,"public_registration_role":null,"public_registration_email_filter":null,"visual_editor_urls":null,"project_id":"019cfcc1-2243-74dc-bcd4-af4497e0ddfc","mcp_enabled":false,"mcp_allow_deletes":false,"mcp_prompts_collection":null,"mcp_system_prompt_enabled":true,"mcp_system_prompt":null,"project_owner":null,"project_usage":null,"org_name":null,"product_updates":null,"project_status":null,"ai_openai_api_key":null,"ai_anthropic_api_key":null,"ai_system_prompt":null,"ai_google_api_key":null,"ai_openai_compatible_api_key":null,"ai_openai_compatible_base_url":null,"ai_openai_compatible_name":null,"ai_openai_compatible_models":null,"ai_openai_compatible_headers":null,"ai_openai_allowed_models":["gpt-5-nano","gpt-5-mini","gpt-5"],"ai_anthropic_allowed_models":["claude-haiku-4-5","claude-sonnet-4-5"],"ai_google_allowed_models":["gemini-3-pro-preview","gemini-3-flash-preview","gemini-2.5-pro","gemini-2.5-flash"],"collaborative_editing_enabled":false}	{"default_theme_light":"Directus Default"}	\N	\N
 166	186	directus_roles	7883c172-0f51-45d1-8abc-5eab66ef4a65	{"id":"7883c172-0f51-45d1-8abc-5eab66ef4a65","name":"PJ Ormawa","icon":"supervised_user_circle","description":"Izin Akses untuk PJ Ormawa","parent":null,"children":[],"policies":["a29489ba-80b3-4eef-9ea3-5eb68ec60b25"],"users":[]}	{"description":"Izin Akses untuk PJ Ormawa"}	\N	\N
@@ -2101,6 +2301,99 @@ COPY public.directus_revisions (id, activity, collection, item, data, delta, par
 189	216	directus_permissions	139	{"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"directus_collections","action":"read"}	{"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"directus_collections","action":"read"}	\N	\N
 190	218	directus_permissions	131	{"id":131,"collection":"events","action":"read","permissions":null,"validation":null,"presets":null,"fields":["*"],"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17"}	{"collection":"events","action":"read","permissions":null,"validation":null,"presets":null,"fields":["*"],"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17"}	\N	\N
 191	221	directus_settings	1	{"id":1,"project_name":"Directus","project_url":null,"project_color":"#4258FF","project_logo":null,"public_foreground":null,"public_background":null,"public_note":null,"auth_login_attempts":25,"auth_password_policy":null,"storage_asset_transform":"all","storage_asset_presets":null,"custom_css":null,"storage_default_folder":null,"basemaps":null,"mapbox_key":null,"module_bar":null,"project_descriptor":null,"default_language":"en-US","custom_aspect_ratios":null,"public_favicon":null,"default_appearance":"auto","default_theme_light":"Directus Default","theme_light_overrides":null,"default_theme_dark":null,"theme_dark_overrides":null,"report_error_url":null,"report_bug_url":null,"report_feature_url":null,"public_registration":false,"public_registration_verify_email":true,"public_registration_role":null,"public_registration_email_filter":null,"visual_editor_urls":null,"project_id":"019cfcc1-2243-74dc-bcd4-af4497e0ddfc","mcp_enabled":false,"mcp_allow_deletes":false,"mcp_prompts_collection":null,"mcp_system_prompt_enabled":true,"mcp_system_prompt":null,"project_owner":"aryafaiz1810@gmail.com","project_usage":"personal","org_name":null,"product_updates":true,"project_status":null,"ai_openai_api_key":null,"ai_anthropic_api_key":null,"ai_system_prompt":null,"ai_google_api_key":null,"ai_openai_compatible_api_key":null,"ai_openai_compatible_base_url":null,"ai_openai_compatible_name":null,"ai_openai_compatible_models":null,"ai_openai_compatible_headers":null,"ai_openai_allowed_models":["gpt-5-nano","gpt-5-mini","gpt-5"],"ai_anthropic_allowed_models":["claude-haiku-4-5","claude-sonnet-4-5"],"ai_google_allowed_models":["gemini-3-pro-preview","gemini-3-flash-preview","gemini-2.5-pro","gemini-2.5-flash"],"collaborative_editing_enabled":false}	{"project_owner":"aryafaiz1810@gmail.com","project_usage":"personal","org_name":null,"product_updates":true,"project_status":null}	\N	\N
+192	224	directus_fields	34	{"special":["uuid"],"collection":"events","field":"card_image"}	{"special":["uuid"],"collection":"events","field":"card_image"}	\N	\N
+193	225	directus_fields	35	{"special":["uuid"],"collection":"events","field":"banner_image"}	{"special":["uuid"],"collection":"events","field":"banner_image"}	\N	\N
+194	226	directus_fields	36	{"special":null,"collection":"events","field":"registration_end_date"}	{"special":null,"collection":"events","field":"registration_end_date"}	\N	\N
+195	227	directus_fields	37	{"special":["uuid"],"collection":"institutions","field":"id"}	{"special":["uuid"],"collection":"institutions","field":"id"}	\N	\N
+196	228	directus_fields	38	{"special":["uuid"],"collection":"institutions","field":"event_id"}	{"special":["uuid"],"collection":"institutions","field":"event_id"}	\N	\N
+197	229	directus_fields	39	{"special":null,"collection":"institutions","field":"name"}	{"special":null,"collection":"institutions","field":"name"}	\N	\N
+198	230	directus_fields	40	{"special":null,"collection":"institutions","field":"created_at"}	{"special":null,"collection":"institutions","field":"created_at"}	\N	\N
+199	231	directus_fields	41	{"special":null,"collection":"institutions","field":"updated_at"}	{"special":null,"collection":"institutions","field":"updated_at"}	\N	\N
+200	232	directus_fields	42	{"special":["uuid"],"collection":"institutions","field":"logo"}	{"special":["uuid"],"collection":"institutions","field":"logo"}	\N	\N
+201	233	directus_fields	43	{"special":["uuid"],"collection":"participants","field":"id"}	{"special":["uuid"],"collection":"participants","field":"id"}	\N	\N
+202	234	directus_fields	44	{"special":["uuid"],"collection":"participants","field":"competition_category_id"}	{"special":["uuid"],"collection":"participants","field":"competition_category_id"}	\N	\N
+203	235	directus_fields	45	{"special":["uuid"],"collection":"participants","field":"institution_id"}	{"special":["uuid"],"collection":"participants","field":"institution_id"}	\N	\N
+204	236	directus_fields	46	{"special":null,"collection":"participants","field":"name"}	{"special":null,"collection":"participants","field":"name"}	\N	\N
+205	237	directus_fields	47	{"special":null,"collection":"participants","field":"seed"}	{"special":null,"collection":"participants","field":"seed"}	\N	\N
+206	238	directus_fields	48	{"special":["cast-json"],"collection":"participants","field":"members"}	{"special":["cast-json"],"collection":"participants","field":"members"}	\N	\N
+207	239	directus_fields	49	{"special":null,"collection":"participants","field":"notes"}	{"special":null,"collection":"participants","field":"notes"}	\N	\N
+208	240	directus_fields	50	{"special":null,"collection":"participants","field":"created_at"}	{"special":null,"collection":"participants","field":"created_at"}	\N	\N
+209	241	directus_fields	51	{"special":null,"collection":"participants","field":"updated_at"}	{"special":null,"collection":"participants","field":"updated_at"}	\N	\N
+215	247	directus_fields	57	{"special":null,"collection":"news","field":"created_at"}	{"special":null,"collection":"news","field":"created_at"}	\N	\N
+216	248	directus_fields	58	{"special":["cast-boolean"],"collection":"news","field":"is_published"}	{"special":["cast-boolean"],"collection":"news","field":"is_published"}	\N	\N
+217	249	directus_fields	59	{"special":null,"collection":"news","field":"content"}	{"special":null,"collection":"news","field":"content"}	\N	\N
+218	250	directus_fields	60	{"special":null,"collection":"news","field":"published_at"}	{"special":null,"collection":"news","field":"published_at"}	\N	\N
+219	251	directus_fields	61	{"special":null,"collection":"news","field":"updated_at"}	{"special":null,"collection":"news","field":"updated_at"}	\N	\N
+220	252	directus_fields	62	{"special":null,"collection":"news","field":"slug"}	{"special":null,"collection":"news","field":"slug"}	\N	\N
+221	253	directus_fields	63	{"special":null,"collection":"news","field":"category"}	{"special":null,"collection":"news","field":"category"}	\N	\N
+222	254	directus_fields	64	{"special":null,"collection":"news","field":"title"}	{"special":null,"collection":"news","field":"title"}	\N	\N
+223	255	directus_fields	65	{"special":null,"collection":"news","field":"excerpt"}	{"special":null,"collection":"news","field":"excerpt"}	\N	\N
+224	256	directus_fields	66	{"special":["uuid"],"collection":"app_settings","field":"id"}	{"special":["uuid"],"collection":"app_settings","field":"id"}	\N	\N
+225	257	directus_fields	67	{"special":null,"collection":"app_settings","field":"setting_key"}	{"special":null,"collection":"app_settings","field":"setting_key"}	\N	\N
+226	258	directus_fields	68	{"special":null,"collection":"app_settings","field":"setting_value"}	{"special":null,"collection":"app_settings","field":"setting_value"}	\N	\N
+227	259	directus_fields	69	{"special":null,"collection":"app_settings","field":"description"}	{"special":null,"collection":"app_settings","field":"description"}	\N	\N
+228	260	directus_fields	70	{"special":null,"collection":"app_settings","field":"updated_at"}	{"special":null,"collection":"app_settings","field":"updated_at"}	\N	\N
+229	261	directus_fields	71	{"special":["uuid"],"collection":"activity_logs","field":"id"}	{"special":["uuid"],"collection":"activity_logs","field":"id"}	\N	\N
+230	262	directus_fields	72	{"special":["uuid"],"collection":"activity_logs","field":"event_id"}	{"special":["uuid"],"collection":"activity_logs","field":"event_id"}	\N	\N
+231	263	directus_fields	73	{"special":["uuid"],"collection":"activity_logs","field":"user_id"}	{"special":["uuid"],"collection":"activity_logs","field":"user_id"}	\N	\N
+232	264	directus_fields	74	{"special":null,"collection":"activity_logs","field":"action"}	{"special":null,"collection":"activity_logs","field":"action"}	\N	\N
+233	265	directus_fields	75	{"special":null,"collection":"activity_logs","field":"entity"}	{"special":null,"collection":"activity_logs","field":"entity"}	\N	\N
+234	266	directus_fields	76	{"special":["uuid"],"collection":"activity_logs","field":"entity_id"}	{"special":["uuid"],"collection":"activity_logs","field":"entity_id"}	\N	\N
+235	267	directus_fields	77	{"special":null,"collection":"activity_logs","field":"description"}	{"special":null,"collection":"activity_logs","field":"description"}	\N	\N
+236	268	directus_fields	78	{"special":null,"collection":"activity_logs","field":"created_at"}	{"special":null,"collection":"activity_logs","field":"created_at"}	\N	\N
+237	269	directus_fields	34	{"id":34,"collection":"events","field":"card_image","special":["uuid"],"interface":null,"options":null,"display":null,"display_options":null,"readonly":false,"hidden":false,"sort":null,"width":"fill","translations":null,"note":null,"conditions":null,"required":false,"group":null,"validation":null,"validation_message":null,"searchable":true}	{"collection":"events","field":"card_image","width":"fill"}	\N	\N
+238	270	directus_fields	34	{"id":34,"collection":"events","field":"card_image","special":["uuid"],"interface":null,"options":null,"display":null,"display_options":null,"readonly":false,"hidden":false,"sort":null,"width":"half","translations":null,"note":null,"conditions":null,"required":false,"group":null,"validation":null,"validation_message":null,"searchable":true}	{"collection":"events","field":"card_image","width":"half"}	\N	\N
+239	271	directus_fields	34	{"id":34,"collection":"events","field":"card_image","special":["uuid"],"interface":null,"options":null,"display":null,"display_options":null,"readonly":false,"hidden":false,"sort":null,"width":"full","translations":null,"note":null,"conditions":null,"required":false,"group":null,"validation":null,"validation_message":null,"searchable":true}	{"collection":"events","field":"card_image","width":"full"}	\N	\N
+240	273	directus_fields	79	{"sort":1,"interface":"file-image","special":["file"],"required":true,"options":{"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp"]},"collection":"events","field":"cards_image"}	{"sort":1,"interface":"file-image","special":["file"],"required":true,"options":{"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp"]},"collection":"events","field":"cards_image"}	\N	\N
+241	274	directus_fields	79	{"id":79,"collection":"events","field":"cards_image","special":["file"],"interface":"file-image","options":{"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp"]},"display":"image","display_options":null,"readonly":false,"hidden":false,"sort":1,"width":"full","translations":null,"note":null,"conditions":null,"required":true,"group":null,"validation":null,"validation_message":null,"searchable":true}	{"collection":"events","field":"cards_image","display":"image"}	\N	\N
+242	276	directus_fields	80	{"sort":2,"interface":"file-image","special":["file"],"required":false,"options":{"letterbox":true},"collection":"events","field":"banner_image"}	{"sort":2,"interface":"file-image","special":["file"],"required":false,"options":{"letterbox":true},"collection":"events","field":"banner_image"}	\N	\N
+243	282	directus_fields	81	{"special":["uuid"],"collection":"events","field":"card_image"}	{"special":["uuid"],"collection":"events","field":"card_image"}	\N	\N
+244	284	directus_folders	2deefae3-8888-4151-b809-3c07be0b1a02	{"name":"Folder_Image_Event"}	{"name":"Folder_Image_Event"}	\N	\N
+245	285	directus_folders	2deefae3-8888-4151-b809-3c07be0b1a02	{"id":"2deefae3-8888-4151-b809-3c07be0b1a02","name":"Folder_Logo","parent":null}	{"name":"Folder_Logo"}	\N	\N
+246	286	directus_folders	d61594d7-9642-4a31-85e2-633aa3c498ea	{"name":"Folder_Card"}	{"name":"Folder_Card"}	\N	\N
+247	287	directus_folders	30df6a9c-3dcf-4ea6-91fb-f1f23921799e	{"name":"Folder_Banner","parent":"d61594d7-9642-4a31-85e2-633aa3c498ea"}	{"name":"Folder_Banner","parent":"d61594d7-9642-4a31-85e2-633aa3c498ea"}	\N	\N
+248	288	directus_folders	30df6a9c-3dcf-4ea6-91fb-f1f23921799e	{"id":"30df6a9c-3dcf-4ea6-91fb-f1f23921799e","name":"Folder_Banner","parent":null}	{"parent":null}	\N	\N
+249	289	directus_folders	0718757d-cdef-404e-9e4d-107d56d4f857	{"name":"Folder_Thumbnail_News","parent":"30df6a9c-3dcf-4ea6-91fb-f1f23921799e"}	{"name":"Folder_Thumbnail_News","parent":"30df6a9c-3dcf-4ea6-91fb-f1f23921799e"}	\N	\N
+250	290	directus_folders	0718757d-cdef-404e-9e4d-107d56d4f857	{"id":"0718757d-cdef-404e-9e4d-107d56d4f857","name":"Folder_Thumbnail_News","parent":"d61594d7-9642-4a31-85e2-633aa3c498ea"}	{"parent":"d61594d7-9642-4a31-85e2-633aa3c498ea"}	\N	\N
+251	291	directus_folders	0718757d-cdef-404e-9e4d-107d56d4f857	{"id":"0718757d-cdef-404e-9e4d-107d56d4f857","name":"Folder_Thumbnail_News","parent":null}	{"parent":null}	\N	\N
+252	292	directus_folders	25028267-fc98-4fe1-9c14-75452ab931bc	{"name":"Folder_Thumbnail_Events"}	{"name":"Folder_Thumbnail_Events"}	\N	\N
+253	293	directus_fields	82	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","enableSelect":false,"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"events","field":"card_image"}	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","enableSelect":false,"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"events","field":"card_image"}	\N	\N
+254	294	directus_fields	83	{"sort":2,"interface":"file-image","special":["file"],"options":{"folder":"30df6a9c-3dcf-4ea6-91fb-f1f23921799e","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"events","field":"banner_image"}	{"sort":2,"interface":"file-image","special":["file"],"options":{"folder":"30df6a9c-3dcf-4ea6-91fb-f1f23921799e","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"events","field":"banner_image"}	\N	\N
+255	295	directus_fields	84	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"2deefae3-8888-4151-b809-3c07be0b1a02","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"institutions","field":"logo"}	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"2deefae3-8888-4151-b809-3c07be0b1a02","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"institutions","field":"logo"}	\N	\N
+256	296	directus_fields	85	{"sort":1,"interface":"file-image","special":["file"],"options":{"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"],"folder":"2deefae3-8888-4151-b809-3c07be0b1a02","enableSelect":false,"letterbox":true},"collection":"participants","field":"custom_logo"}	{"sort":1,"interface":"file-image","special":["file"],"options":{"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"],"folder":"2deefae3-8888-4151-b809-3c07be0b1a02","enableSelect":false,"letterbox":true},"collection":"participants","field":"custom_logo"}	\N	\N
+257	297	directus_fields	86	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"0718757d-cdef-404e-9e4d-107d56d4f857","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"news","field":"thumbnail"}	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"0718757d-cdef-404e-9e4d-107d56d4f857","letterbox":true,"enableSelect":false,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"news","field":"thumbnail"}	\N	\N
+258	298	directus_fields	87	{"special":null,"collection":"matches","field":"updated_at"}	{"special":null,"collection":"matches","field":"updated_at"}	\N	\N
+259	299	directus_fields	88	{"special":null,"collection":"matches","field":"created_at"}	{"special":null,"collection":"matches","field":"created_at"}	\N	\N
+260	300	directus_fields	89	{"special":null,"collection":"matches","field":"status"}	{"special":null,"collection":"matches","field":"status"}	\N	\N
+261	301	directus_fields	90	{"special":["cast-json"],"collection":"matches","field":"live_state"}	{"special":["cast-json"],"collection":"matches","field":"live_state"}	\N	\N
+262	302	directus_fields	91	{"special":null,"collection":"matches","field":"timer_secs"}	{"special":null,"collection":"matches","field":"timer_secs"}	\N	\N
+263	303	directus_fields	92	{"special":null,"collection":"matches","field":"away_score"}	{"special":null,"collection":"matches","field":"away_score"}	\N	\N
+264	304	directus_fields	93	{"special":null,"collection":"matches","field":"home_score"}	{"special":null,"collection":"matches","field":"home_score"}	\N	\N
+265	305	directus_fields	94	{"special":null,"collection":"matches","field":"winner"}	{"special":null,"collection":"matches","field":"winner"}	\N	\N
+266	306	directus_fields	95	{"special":["cast-json"],"collection":"matches","field":"rankings"}	{"special":["cast-json"],"collection":"matches","field":"rankings"}	\N	\N
+267	307	directus_fields	96	{"special":["uuid"],"collection":"matches","field":"home_participant_id"}	{"special":["uuid"],"collection":"matches","field":"home_participant_id"}	\N	\N
+268	308	directus_fields	97	{"special":["uuid"],"collection":"matches","field":"away_participant_id"}	{"special":["uuid"],"collection":"matches","field":"away_participant_id"}	\N	\N
+269	309	directus_fields	98	{"special":null,"collection":"matches","field":"venue"}	{"special":null,"collection":"matches","field":"venue"}	\N	\N
+270	310	directus_fields	99	{"special":null,"collection":"matches","field":"scheduled_at"}	{"special":null,"collection":"matches","field":"scheduled_at"}	\N	\N
+271	311	directus_fields	100	{"special":null,"collection":"matches","field":"match_name"}	{"special":null,"collection":"matches","field":"match_name"}	\N	\N
+272	312	directus_fields	101	{"special":null,"collection":"matches","field":"round"}	{"special":null,"collection":"matches","field":"round"}	\N	\N
+273	313	directus_fields	102	{"special":["uuid"],"collection":"matches","field":"id"}	{"special":["uuid"],"collection":"matches","field":"id"}	\N	\N
+274	314	directus_fields	103	{"special":["uuid"],"collection":"matches","field":"competition_category_id"}	{"special":["uuid"],"collection":"matches","field":"competition_category_id"}	\N	\N
+275	315	directus_folders	25028267-fc98-4fe1-9c14-75452ab931bc	{"id":"25028267-fc98-4fe1-9c14-75452ab931bc","name":"Folder_Thumbnail_Matches","parent":null}	{"name":"Folder_Thumbnail_Matches"}	\N	\N
+276	316	directus_fields	104	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"25028267-fc98-4fe1-9c14-75452ab931bc","enableSelect":false,"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"matches","field":"thumbnail_matches"}	{"sort":1,"interface":"file-image","special":["file"],"options":{"folder":"25028267-fc98-4fe1-9c14-75452ab931bc","enableSelect":false,"letterbox":true,"allowedMimeTypes":["image/jpeg","image/png","image/webp","image/avif"]},"collection":"matches","field":"thumbnail_matches"}	\N	\N
+277	317	directus_permissions	140	{"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"directus_files","action":"read"}	{"policy":"abf8a154-5b1c-4a46-ac9c-7300570f4f17","permissions":null,"validation":null,"fields":["*"],"presets":null,"collection":"directus_files","action":"read"}	\N	\N
+278	320	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","type":"image/jpeg","storage":"local"}	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","type":"image/jpeg","storage":"local"}	\N	\N
+279	321	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	{"id":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c","storage":"local","filename_disk":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c.jpeg","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","type":"image/jpeg","folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","uploaded_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","created_on":"2026-03-30T00:55:13.962Z","modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:55:55.527Z","charset":null,"filesize":"425242","width":1200,"height":900,"duration":null,"embed":null,"description":null,"location":null,"tags":null,"metadata":{},"focal_point_x":null,"focal_point_y":null,"tus_id":null,"tus_data":null,"uploaded_on":"2026-03-30T00:55:14.007Z"}	{"storage":"local","filename_disk":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c.jpeg","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","type":"image/jpeg","folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","description":null,"metadata":{},"modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:55:55.527Z"}	\N	\N
+280	322	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	{"id":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c","storage":"local","filename_disk":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c.jpeg","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","type":"image/jpeg","folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","uploaded_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","created_on":"2026-03-30T00:55:13.962Z","modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:55:55.565Z","charset":null,"filesize":"387497","width":1197,"height":879,"duration":null,"embed":null,"description":null,"location":null,"tags":null,"metadata":{},"focal_point_x":null,"focal_point_y":null,"tus_id":null,"tus_data":null,"uploaded_on":"2026-03-30T00:55:55.558Z"}	{"modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:55:55.565Z"}	\N	\N
+281	323	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	{"id":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c","storage":"local","filename_disk":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c.jpeg","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","type":"image/jpeg","folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","uploaded_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","created_on":"2026-03-30T00:55:13.962Z","modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:57:36.416Z","charset":null,"filesize":"387497","width":1197,"height":879,"duration":null,"embed":null,"description":null,"location":null,"tags":null,"metadata":{},"focal_point_x":null,"focal_point_y":null,"tus_id":null,"tus_data":null,"uploaded_on":"2026-03-30T00:55:55.558Z"}	{"storage":"local","filename_disk":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c.jpeg","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","type":"image/jpeg","folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","description":null,"metadata":{},"modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:57:36.416Z"}	\N	\N
+282	324	directus_files	73c9f7b0-d3dc-4663-b4fc-23fbc343706c	{"id":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c","storage":"local","filename_disk":"73c9f7b0-d3dc-4663-b4fc-23fbc343706c.jpeg","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","type":"image/jpeg","folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","uploaded_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","created_on":"2026-03-30T00:55:13.962Z","modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:57:36.452Z","charset":null,"filesize":"59935","width":367,"height":442,"duration":null,"embed":null,"description":null,"location":null,"tags":null,"metadata":{},"focal_point_x":null,"focal_point_y":null,"tus_id":null,"tus_data":null,"uploaded_on":"2026-03-30T00:57:36.446Z"}	{"modified_by":"f1ae03a9-c7a2-480b-a2af-cdba203a5636","modified_on":"2026-03-30T00:57:36.452Z"}	\N	\N
+283	325	directus_files	76e65c4f-974b-45ed-80c6-fa8974a1e9d8	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","type":"image/jpeg","storage":"local"}	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Pb Forki Ajukan Protes Setelah Tim Karate Indonesia Dicurangi Di Sea Games 2023 R9 W0 Mrzx Pi","filename_download":"pb-forki-ajukan-protes-setelah-tim-karate-indonesia-dicurangi-di-sea-games-2023-r9W0MRZXPi.jpeg","type":"image/jpeg","storage":"local"}	\N	\N
+284	326	directus_files	ca2c5357-d3bf-4df7-9557-0d18627634b0	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Img01","filename_download":"img01.png","type":"image/png","storage":"local"}	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Img01","filename_download":"img01.png","type":"image/png","storage":"local"}	\N	\N
+285	327	directus_files	857f0cf4-d2e9-4b0b-bc76-aca5e679b48e	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Hq720","filename_download":"hq720.jpg","type":"image/jpeg","storage":"local"}	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Hq720","filename_download":"hq720.jpg","type":"image/jpeg","storage":"local"}	\N	\N
+286	328	directus_files	4ab0c50a-b491-448f-8897-8bf29013a138	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Images (1)","filename_download":"images (1).jpg","type":"image/jpeg","storage":"local"}	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Images (1)","filename_download":"images (1).jpg","type":"image/jpeg","storage":"local"}	\N	\N
+287	329	directus_files	b133ee67-492f-4f81-a753-34caef662a3e	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Bsk Csob Marato N046 (33791445325)","filename_download":"BSK_CSOB_MARATON046_(33791445325).jpg","type":"image/jpeg","storage":"local"}	{"folder":"d61594d7-9642-4a31-85e2-633aa3c498ea","title":"Bsk Csob Marato N046 (33791445325)","filename_download":"BSK_CSOB_MARATON046_(33791445325).jpg","type":"image/jpeg","storage":"local"}	\N	\N
+288	330	directus_fields	105	{"special":null,"collection":"event_phases","field":"date_end"}	{"special":null,"collection":"event_phases","field":"date_end"}	\N	\N
+289	331	directus_fields	106	{"special":["uuid"],"collection":"event_phases","field":"id"}	{"special":["uuid"],"collection":"event_phases","field":"id"}	\N	\N
 \.
 
 
@@ -2120,9 +2413,8 @@ dc42a2f7-80d7-4515-9719-8e2f77646540	SuperAdmin	supervised_user_circle	Izin Akse
 --
 
 COPY public.directus_sessions (token, "user", expires, ip, user_agent, share, origin, next_token) FROM stdin;
-gsKN1VZzoV4Ag7FSwPKRAAlN-QXflCZRPuBljLY5PYvFy1Z4e8aOP9PWRjzQNfaK	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-27 14:06:21.556+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.112.0 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36	\N	http://localhost:8055	izbFCimhB1YanbXDgbcnc9avb5TpYGESzVzAi2J-Y_C9OAm1_v8eQqHL63uKOyXZ
-izbFCimhB1YanbXDgbcnc9avb5TpYGESzVzAi2J-Y_C9OAm1_v8eQqHL63uKOyXZ	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-27 14:06:25.087+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	\N	http://localhost:8055	y1kwomDGMxBA2Lb72pBb0MaQM4ltU2717xUDC5fO736TgJSCNKKW4SJdpY9uyXjH
-y1kwomDGMxBA2Lb72pBb0MaQM4ltU2717xUDC5fO736TgJSCNKKW4SJdpY9uyXjH	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-28 14:06:15.087+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	\N	http://localhost:8055	\N
+bh7TnoAC7-XZ9JrZtonx64G7im2hftTvZTnP3GPQfACI4jvrWgJAbNRjKtbc_Def	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-30 00:21:15.882+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	\N	http://localhost:6767	K6ERFO22gvaZOHGkYcCM44SpgMJAsjFQ5u8Fuk3qmCFEtCCJ621Xh-3r4td8KNmK
+K6ERFO22gvaZOHGkYcCM44SpgMJAsjFQ5u8Fuk3qmCFEtCCJ621Xh-3r4td8KNmK	f1ae03a9-c7a2-480b-a2af-cdba203a5636	2026-03-31 00:21:05.882+00	172.18.0.1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.113.0 Chrome/142.0.7444.265 Electron/39.8.3 Safari/537.36	\N	http://localhost:6767	\N
 \.
 
 
@@ -2156,7 +2448,7 @@ COPY public.directus_translations (id, language, key, value) FROM stdin;
 --
 
 COPY public.directus_users (id, first_name, last_name, email, password, location, title, description, tags, avatar, language, tfa_secret, status, role, token, last_access, last_page, provider, external_identifier, auth_data, email_notifications, appearance, theme_dark, theme_light, theme_light_overrides, theme_dark_overrides, text_direction) FROM stdin;
-f1ae03a9-c7a2-480b-a2af-cdba203a5636	Admin	User	admin@event.com	$argon2id$v=19$m=65536,t=3,p=4$9i8ztPWUTbwY5vdcA0Ie6w$6O8qtC6D9+58Aun6VFCxBoqPsfLVjqC2OR/TIVyfnX4	\N	\N	\N	\N	\N	\N	\N	active	b18d3bfd-2c54-46d4-99a5-13fdee6a2b21	\N	2026-03-27 14:06:15.095+00	/content/events	default	\N	\N	t	\N	\N	\N	\N	\N	auto
+f1ae03a9-c7a2-480b-a2af-cdba203a5636	Admin	User	admin@event.com	$argon2id$v=19$m=65536,t=3,p=4$9i8ztPWUTbwY5vdcA0Ie6w$6O8qtC6D9+58Aun6VFCxBoqPsfLVjqC2OR/TIVyfnX4	\N	\N	\N	\N	\N	\N	\N	active	b18d3bfd-2c54-46d4-99a5-13fdee6a2b21	\N	2026-03-30 00:21:05.897+00	/content/activity_logs	default	\N	\N	t	\N	\N	\N	\N	\N	auto
 \.
 
 
@@ -2180,10 +2472,10 @@ COPY public.event_phases (id, event_id, label, description, date_start, date_end
 -- Data for Name: events; Type: TABLE DATA; Schema: public; Owner: directus
 --
 
-COPY public.events (id, user_created, name, slug, type, status, start_date, end_date, location, description, contact_person, registration_url, guidebook_url, instagram_url, website_url, card_image_url, banner_image_url, is_published, is_registration_open, created_at, updated_at) FROM stdin;
-e1e1e1e1-e1e1-4000-a111-000000000001	f1ae03a9-c7a2-480b-a2af-cdba203a5636	FORKI X IPB CUP 2026	forki-ipb-2026	sport	active	2026-03-25	\N	Gymnasium IPB	\N	\N	\N	\N	\N	\N	https://images.unsplash.com/photo-1552072092-7f9b8d63efcb?q=80&w=1000	\N	t	f	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-e1e1e1e1-e1e1-4000-a111-000000000002	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IT-TODAY HACKTODAY	hacktoday-2026	sport	active	2026-03-26	\N	Auditorium AHN	\N	\N	\N	\N	\N	\N	https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1000	\N	t	f	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-e1e1e1e1-e1e1-4000-a111-000000000003	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IPB BERLARI 2026	ipb-berlari-2026	sport	active	2026-03-27	\N	Lingkar IPB	\N	\N	\N	\N	\N	\N	https://www.sunlife.co.id/content/dam/sunlife/legacy/assets/id/Life%20Moments/Building%20a%20Family/Berlari%20Menyehatkan%20Tubuh%20dan%20Pikiran-1200x600.jpg	\N	t	f	2026-03-27 15:22:17.981961+00	2026-03-27 15:25:30.797094+00
+COPY public.events (id, user_created, name, slug, type, status, start_date, end_date, location, description, contact_person, registration_url, guidebook_url, instagram_url, website_url, is_published, is_registration_open, created_at, updated_at, registration_end_date, card_image, banner_image) FROM stdin;
+e1e1e1e1-e1e1-4000-a111-000000000001	f1ae03a9-c7a2-480b-a2af-cdba203a5636	FORKI X IPB CUP 2026	forki-ipb-2026	sport	active	2026-03-25	\N	Gymnasium IPB	Event Terbesar di asia tenggara	\N	\N	\N	\N	\N	t	f	2026-03-27 15:22:17.981961+00	2026-03-30 01:22:20.654699+00	\N	76e65c4f-974b-45ed-80c6-fa8974a1e9d8	\N
+e1e1e1e1-e1e1-4000-a111-000000000002	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IT-TODAY HACKTODAY	hacktoday-2026	sport	active	2026-03-26	\N	Auditorium AHN	Acara pertama hackaton ai di dunia	\N	\N	\N	\N	\N	t	f	2026-03-27 15:22:17.981961+00	2026-03-30 01:22:37.717656+00	\N	857f0cf4-d2e9-4b0b-bc76-aca5e679b48e	\N
+e1e1e1e1-e1e1-4000-a111-000000000003	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IPB BERLARI 2026	ipb-berlari-2026	sport	active	2026-05-03	\N	Lingkar IPB	Marathon event 21 km terpanjang di IPB	\N	\N	\N	\N	\N	t	t	2026-03-27 15:22:17.981961+00	2026-03-30 01:57:25.744797+00	2026-05-19 05:00:00+00	b133ee67-492f-4f81-a753-34caef662a3e	\N
 \.
 
 
@@ -2191,10 +2483,10 @@ e1e1e1e1-e1e1-4000-a111-000000000003	f1ae03a9-c7a2-480b-a2af-cdba203a5636	IPB BE
 -- Data for Name: institutions; Type: TABLE DATA; Schema: public; Owner: directus
 --
 
-COPY public.institutions (id, event_id, name, logo_url, created_at, updated_at) FROM stdin;
-b1b1b1b1-b1b1-4000-9999-000000000001	e1e1e1e1-e1e1-4000-a111-000000000001	IPB University	/universities/ipb.png	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-b1b1b1b1-b1b1-4000-9999-000000000002	e1e1e1e1-e1e1-4000-a111-000000000001	UPNVYK	/universities/ui.png	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-b1b1b1b1-b1b1-4000-9999-000000000003	e1e1e1e1-e1e1-4000-a111-000000000001	UI	/universities/ui.png	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
+COPY public.institutions (id, event_id, name, created_at, updated_at, logo) FROM stdin;
+b1b1b1b1-b1b1-4000-9999-000000000001	e1e1e1e1-e1e1-4000-a111-000000000001	IPB University	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+b1b1b1b1-b1b1-4000-9999-000000000002	e1e1e1e1-e1e1-4000-a111-000000000001	UPNVYK	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+b1b1b1b1-b1b1-4000-9999-000000000003	e1e1e1e1-e1e1-4000-a111-000000000001	UI	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
 \.
 
 
@@ -2218,11 +2510,11 @@ COPY public.match_participants (id, match_id, participant_id, "position") FROM s
 -- Data for Name: matches; Type: TABLE DATA; Schema: public; Owner: directus
 --
 
-COPY public.matches (id, competition_category_id, round, match_name, venue, scheduled_at, home_participant_id, away_participant_id, winner, rankings, home_score, away_score, timer_secs, live_state, status, created_at, updated_at) FROM stdin;
-f4f4f4f4-f4f4-4000-d444-000000000001	c2c2c2c2-c2c2-4000-b222-000000000001	Final	Kata Perorang	Lapangan B Gor Utama	2026-03-27 15:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000001	d3d3d3d3-d3d3-4000-c333-000000000002	\N	\N	0	0	0	{"awayScore": 4, "homeScore": 3, "timerSecs": 272, "timerRunning": true}	live	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-f4f4f4f4-f4f4-4000-d444-000000000002	c2c2c2c2-c2c2-4000-b222-000000000002	Main Event	HackToday	Auditorium AHN	2026-03-27 15:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000003	d3d3d3d3-d3d3-4000-c333-000000000004	\N	\N	0	0	0	{"timerSecs": 1800, "timerRunning": true}	live	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-f4f4f4f4-f4f4-4000-d444-000000000003	c2c2c2c2-c2c2-4000-b222-000000000001	Semifinal	Kata Perorang	Lapangan B	2026-03-27 16:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000001	d3d3d3d3-d3d3-4000-c333-000000000002	\N	\N	0	0	0	{}	upcoming	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-f4f4f4f4-f4f4-4000-d444-000000000004	c2c2c2c2-c2c2-4000-b222-000000000003	Final	Open Marathon	Lingkar IPB	2026-03-27 15:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000005	\N	\N	\N	0	0	0	{"timerSecs": 3600, "timerRunning": true}	live	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
+COPY public.matches (id, competition_category_id, round, match_name, venue, scheduled_at, home_participant_id, away_participant_id, winner, rankings, home_score, away_score, timer_secs, live_state, status, created_at, updated_at, thumbnail_matches) FROM stdin;
+f4f4f4f4-f4f4-4000-d444-000000000001	c2c2c2c2-c2c2-4000-b222-000000000001	Final	Kata Perorang	Lapangan B Gor Utama	2026-03-27 15:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000001	d3d3d3d3-d3d3-4000-c333-000000000002	\N	\N	0	0	0	{"awayScore": 4, "homeScore": 3, "timerSecs": 272, "timerRunning": true}	live	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+f4f4f4f4-f4f4-4000-d444-000000000002	c2c2c2c2-c2c2-4000-b222-000000000002	Main Event	HackToday	Auditorium AHN	2026-03-27 15:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000003	d3d3d3d3-d3d3-4000-c333-000000000004	\N	\N	0	0	0	{"timerSecs": 1800, "timerRunning": true}	live	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+f4f4f4f4-f4f4-4000-d444-000000000003	c2c2c2c2-c2c2-4000-b222-000000000001	Semifinal	Kata Perorang	Lapangan B	2026-03-27 16:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000001	d3d3d3d3-d3d3-4000-c333-000000000002	\N	\N	0	0	0	{}	upcoming	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+f4f4f4f4-f4f4-4000-d444-000000000004	c2c2c2c2-c2c2-4000-b222-000000000003	Final	Open Marathon	Lingkar IPB	2026-03-27 15:22:17.981961+00	d3d3d3d3-d3d3-4000-c333-000000000005	\N	\N	\N	0	0	0	{"timerSecs": 3600, "timerRunning": true}	live	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
 \.
 
 
@@ -2230,7 +2522,7 @@ f4f4f4f4-f4f4-4000-d444-000000000004	c2c2c2c2-c2c2-4000-b222-000000000003	Final	
 -- Data for Name: news; Type: TABLE DATA; Schema: public; Owner: directus
 --
 
-COPY public.news (id, author_id, event_id, category, title, slug, excerpt, thumbnail_url, content, is_published, published_at, created_at, updated_at) FROM stdin;
+COPY public.news (id, author_id, event_id, category, title, slug, excerpt, content, is_published, published_at, created_at, updated_at, thumbnail) FROM stdin;
 \.
 
 
@@ -2238,13 +2530,13 @@ COPY public.news (id, author_id, event_id, category, title, slug, excerpt, thumb
 -- Data for Name: participants; Type: TABLE DATA; Schema: public; Owner: directus
 --
 
-COPY public.participants (id, competition_category_id, institution_id, name, members, seed, notes, custom_logo_url, created_at, updated_at) FROM stdin;
-d3d3d3d3-d3d3-4000-c333-000000000001	c2c2c2c2-c2c2-4000-b222-000000000001	b1b1b1b1-b1b1-4000-9999-000000000001	Gilang Muhamad	\N	\N		\N	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-d3d3d3d3-d3d3-4000-c333-000000000002	c2c2c2c2-c2c2-4000-b222-000000000001	b1b1b1b1-b1b1-4000-9999-000000000002	Agus Maragus	\N	\N		\N	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-d3d3d3d3-d3d3-4000-c333-000000000003	c2c2c2c2-c2c2-4000-b222-000000000002	b1b1b1b1-b1b1-4000-9999-000000000001	Team IPB 1	\N	\N		\N	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-d3d3d3d3-d3d3-4000-c333-000000000004	c2c2c2c2-c2c2-4000-b222-000000000002	b1b1b1b1-b1b1-4000-9999-000000000003	Team UI 2	\N	\N		\N	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-d3d3d3d3-d3d3-4000-c333-000000000005	c2c2c2c2-c2c2-4000-b222-000000000003	b1b1b1b1-b1b1-4000-9999-000000000001	Reza Rahardian	\N	\N		\N	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
-d3d3d3d3-d3d3-4000-c333-000000000006	c2c2c2c2-c2c2-4000-b222-000000000003	b1b1b1b1-b1b1-4000-9999-000000000001	Gilang Muhamad	\N	\N		\N	2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00
+COPY public.participants (id, competition_category_id, institution_id, name, members, seed, notes, created_at, updated_at, custom_logo) FROM stdin;
+d3d3d3d3-d3d3-4000-c333-000000000001	c2c2c2c2-c2c2-4000-b222-000000000001	b1b1b1b1-b1b1-4000-9999-000000000001	Gilang Muhamad	\N	\N		2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+d3d3d3d3-d3d3-4000-c333-000000000002	c2c2c2c2-c2c2-4000-b222-000000000001	b1b1b1b1-b1b1-4000-9999-000000000002	Agus Maragus	\N	\N		2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+d3d3d3d3-d3d3-4000-c333-000000000003	c2c2c2c2-c2c2-4000-b222-000000000002	b1b1b1b1-b1b1-4000-9999-000000000001	Team IPB 1	\N	\N		2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+d3d3d3d3-d3d3-4000-c333-000000000004	c2c2c2c2-c2c2-4000-b222-000000000002	b1b1b1b1-b1b1-4000-9999-000000000003	Team UI 2	\N	\N		2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+d3d3d3d3-d3d3-4000-c333-000000000005	c2c2c2c2-c2c2-4000-b222-000000000003	b1b1b1b1-b1b1-4000-9999-000000000001	Reza Rahardian	\N	\N		2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
+d3d3d3d3-d3d3-4000-c333-000000000006	c2c2c2c2-c2c2-4000-b222-000000000003	b1b1b1b1-b1b1-4000-9999-000000000001	Gilang Muhamad	\N	\N		2026-03-27 15:22:17.981961+00	2026-03-27 15:22:17.981961+00	\N
 \.
 
 
@@ -2316,14 +2608,14 @@ COPY topology.layer (topology_id, layer_id, schema_name, table_name, feature_col
 -- Name: directus_activity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_activity_id_seq', 222, true);
+SELECT pg_catalog.setval('public.directus_activity_id_seq', 331, true);
 
 
 --
 -- Name: directus_fields_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_fields_id_seq', 33, true);
+SELECT pg_catalog.setval('public.directus_fields_id_seq', 106, true);
 
 
 --
@@ -2337,28 +2629,28 @@ SELECT pg_catalog.setval('public.directus_notifications_id_seq', 1, false);
 -- Name: directus_permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_permissions_id_seq', 139, true);
+SELECT pg_catalog.setval('public.directus_permissions_id_seq', 140, true);
 
 
 --
 -- Name: directus_presets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_presets_id_seq', 1, true);
+SELECT pg_catalog.setval('public.directus_presets_id_seq', 2, true);
 
 
 --
 -- Name: directus_relations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_relations_id_seq', 1, false);
+SELECT pg_catalog.setval('public.directus_relations_id_seq', 8, true);
 
 
 --
 -- Name: directus_revisions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: directus
 --
 
-SELECT pg_catalog.setval('public.directus_revisions_id_seq', 191, true);
+SELECT pg_catalog.setval('public.directus_revisions_id_seq', 289, true);
 
 
 --
@@ -3468,6 +3760,22 @@ ALTER TABLE ONLY public.event_phases
 
 
 --
+-- Name: events events_banner_image_foreign; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_banner_image_foreign FOREIGN KEY (banner_image) REFERENCES public.directus_files(id) ON DELETE SET NULL;
+
+
+--
+-- Name: events events_card_image_foreign; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_card_image_foreign FOREIGN KEY (card_image) REFERENCES public.directus_files(id) ON DELETE SET NULL;
+
+
+--
 -- Name: events events_user_created_fkey; Type: FK CONSTRAINT; Schema: public; Owner: directus
 --
 
@@ -3481,6 +3789,14 @@ ALTER TABLE ONLY public.events
 
 ALTER TABLE ONLY public.institutions
     ADD CONSTRAINT institutions_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: institutions institutions_logo_foreign; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.institutions
+    ADD CONSTRAINT institutions_logo_foreign FOREIGN KEY (logo) REFERENCES public.directus_files(id) ON DELETE SET NULL;
 
 
 --
@@ -3540,6 +3856,14 @@ ALTER TABLE ONLY public.matches
 
 
 --
+-- Name: matches matches_thumbnail_matches_foreign; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.matches
+    ADD CONSTRAINT matches_thumbnail_matches_foreign FOREIGN KEY (thumbnail_matches) REFERENCES public.directus_files(id) ON DELETE SET NULL;
+
+
+--
 -- Name: news news_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: directus
 --
 
@@ -3556,11 +3880,27 @@ ALTER TABLE ONLY public.news
 
 
 --
+-- Name: news news_thumbnail_foreign; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.news
+    ADD CONSTRAINT news_thumbnail_foreign FOREIGN KEY (thumbnail) REFERENCES public.directus_files(id) ON DELETE SET NULL;
+
+
+--
 -- Name: participants participants_competition_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: directus
 --
 
 ALTER TABLE ONLY public.participants
     ADD CONSTRAINT participants_competition_category_id_fkey FOREIGN KEY (competition_category_id) REFERENCES public.competition_categories(id) ON DELETE CASCADE;
+
+
+--
+-- Name: participants participants_custom_logo_foreign; Type: FK CONSTRAINT; Schema: public; Owner: directus
+--
+
+ALTER TABLE ONLY public.participants
+    ADD CONSTRAINT participants_custom_logo_foreign FOREIGN KEY (custom_logo) REFERENCES public.directus_files(id) ON DELETE SET NULL;
 
 
 --
