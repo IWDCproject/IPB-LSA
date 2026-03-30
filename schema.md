@@ -1,10 +1,31 @@
 # IPB Lucky Sport & Art — Database & API Schema
-> Last updated: 2026-03-20
+> Last updated: 2026-03-30
 > For: Backend developer. Self-hosted on VPS. Directus as API layer over PostgreSQL.
 
 ---
 
 ## Updates
+
+### 2026-03-30
+
+**Beberapa koreksi dari review seed data dan konsistensi schema.**
+
+1. **`institutions` DDL — tambah kolom `color TEXT`**  
+   Kolom ini sudah direferensikan di contoh Directus query (`institution.color`) tapi belum ada di DDL. Ditambahkan sekarang di Bagian 6.
+
+2. **`directus_users` — dokumentasi custom field `organisation_name`**  
+   Field ini ditambahkan via Directus UI dan dipakai oleh seed (`UPDATE directus_users SET organisation_name = 'IWDC'`). Sekarang didokumentasikan di Bagian 5.
+
+3. **Trigger denormalisasi hanya jalan saat UPDATE, bukan INSERT**  
+   `trg_match_denorm` tidak akan mengisi kolom `winner`, `home_score`, `away_score` pada INSERT awal. Seed data perlu menjalankan UPDATE eksplisit setelah INSERT agar kolom denormalisasi terisi. Catatan ditambahkan di Bagian 8.
+
+4. **`live_state` timer untuk open match tanpa timer module**  
+   Format `manual_pick`-only (misal hackathon) tidak punya `timer` add-on. Field `timerSecs`, `timerRunning`, `timerLastStarted` di `live_state` match tersebut adalah dead data — frontend tidak merender timer, engine tidak membacanya. Best practice: jangan tulis field timer ke `live_state` untuk match yang formatnya tidak punya `timer` module.
+
+5. **Directus permissions API sekarang pakai `policy`, bukan `role`**  
+   Versi Directus terbaru mengganti sistem roles dengan policies. Endpoint `POST /permissions` sekarang membutuhkan field `policy` (UUID) — field `role` tidak lagi diterima. Bagian 4 diupdate untuk mencerminkan ini. Permission public untuk `organisation_name` kini otomatis diinsert oleh seed script.
+
+---
 
 ### 2026-03-20
 **Replaced `matches.participant_ids JSONB` with `match_participants` junction table.**
@@ -260,22 +281,29 @@ erDiagram
 
 Lakukan ini setelah pertama kali deploy Directus:
 
-**A. Buat roles via Directus API:**
+> ⚠️ **Directus versi terbaru pakai `policies`, bukan `roles`, untuk permission.**
+> Endpoint `/permissions` sekarang membutuhkan field `policy` (UUID), bukan `role`. Untuk mendapatkan UUID policy yang diinginkan:
+> ```bash
+> curl http://localhost:6767/policies -H "Authorization: Bearer <token>"
+> ```
+> Cari object dengan `name` yang sesuai — public policy punya `name: "$t:public_label"`.
+
+**A. Buat policies via Directus API:**
 ```http
-POST /roles
+POST /policies
 { "name": "ormawa", "app_access": true, "admin_access": false }
 
-POST /roles
+POST /policies
 { "name": "superadmin", "app_access": true, "admin_access": true }
 ```
 
-**B. Set permissions untuk role `ormawa`:**
+**B. Set permissions untuk policy `ormawa`:**
 
 Ormawa hanya bisa baca/tulis data miliknya sendiri. Untuk setiap collection (`events`, `competition_categories`, `matches`, `participants`, `match_participants`, dll.):
 ```http
 POST /permissions
 {
-  "role": "<ormawa-role-id>",
+  "policy": "<ormawa-policy-id>",
   "collection": "events",
   "action": "read",
   "permissions": { "user_created": { "_eq": "$CURRENT_USER" } }
@@ -287,7 +315,7 @@ Untuk `match_participants`: ormawa bisa baca/tulis junction rows milik match mer
 ```http
 POST /permissions
 {
-  "role": "<ormawa-role-id>",
+  "policy": "<ormawa-policy-id>",
   "collection": "match_participants",
   "action": "read",
   "permissions": { "match_id": { "competition_category_id": { "event_id": { "user_created": { "_eq": "$CURRENT_USER" } } } } }
@@ -298,7 +326,7 @@ Untuk `news`: ormawa bisa buat artikel untuk event mereka sendiri:
 ```http
 POST /permissions
 {
-  "role": "<ormawa-role-id>",
+  "policy": "<ormawa-policy-id>",
   "collection": "news",
   "action": "create",
   "permissions": {},
@@ -306,7 +334,9 @@ POST /permissions
 }
 ```
 
-Public role (tidak login): bisa READ `events`, `matches`, `match_participants`, `news`, `event_phases`, `participants` — tidak bisa write apapun.
+Public policy (tidak login): bisa READ `events`, `matches`, `match_participants`, `news`, `event_phases`, `participants` — tidak bisa write apapun.
+
+> ✅ **Permission `directus_users.organisation_name` untuk public sudah ditangani oleh seed script** — tidak perlu setup manual. Seed menginsert permission ini via `directus_policies WHERE name = '$t:public_label'` sehingga UUID-agnostic dan bekerja di semua environment.
 
 **C. ⚠️ KRITIS — Matikan revisions untuk `matches`:**
 ```http
@@ -344,7 +374,7 @@ WEBSOCKETS_HEARTBEAT_PERIOD=60       # detik, jaga koneksi WS tetap hidup
 
 | Tabel | Kegunaan |
 |---|---|
-| `directus_users` | Akun pengguna (ormawa + superadmin) |
+| `directus_users` | Akun pengguna (ormawa + superadmin). Custom field `organisation_name TEXT` ditambahkan via Directus UI — menyimpan nama organisasi/UKM penyelenggara (contoh: "IWDC", "Karate IPB"). Set via `UPDATE directus_users SET organisation_name = '...'` di seed, atau via Directus Data Studio. |
 | `directus_roles` | Definisi role |
 | `directus_permissions` | Rule read/write per role per collection |
 | `directus_activity` | Log audit otomatis Directus — kita punya `activity_logs` sendiri |
@@ -568,6 +598,10 @@ CREATE TABLE institutions (
   event_id     UUID    NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   name         TEXT    NOT NULL,
   logo_url     TEXT,
+  color        TEXT,
+  -- Warna brand institusi, format hex: "#1A3D6E"
+  -- Dipakai di scoreboard publik (background badge, ring warna tim)
+  -- null = fallback ke warna default tema
   created_at   TIMESTAMPTZ DEFAULT now(),
   updated_at   TIMESTAMPTZ DEFAULT now(),
 
@@ -883,6 +917,23 @@ CREATE TRIGGER trg_match_denorm
 
 > **Penting:** Trigger ini hanya sinkronisasi dari `live_state`. Kolom `status` di `matches` tetap harus di-PATCH eksplisit oleh aplikasi saat match selesai — trigger tidak mengubah `status`.
 
+> **⚠️ Trigger tidak jalan saat INSERT — hanya saat UPDATE.** Seed data yang melakukan INSERT langsung ke `matches` tidak akan memiliki kolom `winner`, `home_score`, `away_score` terisi secara otomatis. Tambahkan blok UPDATE eksplisit setelah semua INSERT selesai:
+> ```sql
+> UPDATE matches
+> SET
+>   winner     = live_state->>'winner',
+>   home_score = COALESCE((live_state->>'homeScore')::int, 0),
+>   away_score = COALESCE((live_state->>'awayScore')::int, 0),
+>   timer_secs = COALESCE((live_state->>'timerSecs')::int, 0),
+>   rankings   = CASE
+>     WHEN live_state ? 'rankings'
+>      AND jsonb_array_length(live_state->'rankings') > 0
+>     THEN live_state->'rankings'
+>     ELSE NULL
+>   END
+> WHERE status IN ('finished', 'live');
+> ```
+
 ### Trigger `updated_at`
 
 ```sql
@@ -983,6 +1034,8 @@ CREATE INDEX idx_logs_created             ON activity_logs(created_at DESC);
 | `seed` tersimpan tapi hidden | Bracket logic belum dibangun | Tampilkan dan aktifkan saat fitur bracket v2 |
 | Media = Google Drive URL | Bukan proper storage | S3-compatible storage atau Directus Files |
 | `finish_time` results ke `rankings` | Aplikasi harus manually populate `live_state.rankings` dari `timeLog` sebelum close match agar trigger bisa sync | Buat Directus Flow yang otomatis melakukan ini saat `status` di-set ke `finished` |
+| Timer fields di open match tanpa timer module | `live_state` match hackathon/marathon bisa mengandung `timerSecs`/`timerRunning`/`timerLastStarted` yang tidak dirender frontend (format tidak punya `timer` add-on) | Frontend jangan menulis field timer ke `live_state` jika format tidak punya module `timer`. Validasi saat operator submit patch. |
+| Directus `role` → `policy` di permission API | Dokumentasi lama pakai field `role` di `POST /permissions`, tapi Directus versi terbaru sudah tidak menerimanya | ✅ **Selesai** — Bagian 4 diupdate ke `policy`. Seed script pakai lookup by name (`$t:public_label`) agar UUID-agnostic. |
 
 ---
 

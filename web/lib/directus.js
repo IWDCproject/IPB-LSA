@@ -23,10 +23,8 @@ export const getEvents = async () => {
   try {
     return await directus.request(
       readItems('events', {
-        filter: {
-          is_published: { _eq: true }
-        },
-        fields: ['*'],
+        filter: { is_published: { _eq: true } },
+        fields: ['*', 'user_created.organisation_name'],
         sort: ['start_date'],
       })
     );
