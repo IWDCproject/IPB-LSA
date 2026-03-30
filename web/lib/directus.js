@@ -1,7 +1,8 @@
 import { createDirectus, rest, readItems, readItem } from '@directus/sdk';
 
 // Inisialisasi client Directus
-const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL).with(rest());
+const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL)
+  .with(rest({ onRequest: (options) => ({ ...options, cache: "no-store" }) }));
 
 export default directus;
 
