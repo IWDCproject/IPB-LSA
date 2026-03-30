@@ -59,11 +59,11 @@ const BASE_ORG   = { lg: 15, md: 13, sm: 14 };
 const BASE_TITLE = { lg: 32, md: 26, sm: 24 };
 
 export default function EventCard({ event, className = "", size = "md", bitmap = null }) {
-  const { slug, name, card_image_url, user_created } = event;
+  const { slug, name, card_image, user_created } = event;
   const orgName = user_created?.organisation_name ?? null;
 
   // Mendapatkan URL gambar yang valid (Directus ID atau URL Luar)
-  const imageUrl = getAssetUrl(card_image_url);
+  const imageUrl = getAssetUrl(card_image);
 
   const linkRef = useRef(null);
   const [cardW, setCardW] = useState(REF_W[size] ?? 200);

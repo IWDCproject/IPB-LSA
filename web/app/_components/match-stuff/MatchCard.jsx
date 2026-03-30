@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { getAssetUrl } from "@/lib/directus";
 
 const BB = { fontFamily: "'Bebas Neue', 'Arial Narrow', sans-serif" };
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
@@ -290,17 +291,18 @@ export function MatchCard({ match, bitmap = null }) {
 
   const label = match.match_name || [cat?.name, match.round].filter(Boolean).join(" - ");
 
-  const hasBg = !!event?.card_image_url;
+  const imageUrl = getAssetUrl(event?.card_image);
+  const hasBg = !!imageUrl;
 
   return (
     <div style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
       {hasBg && (
         <>
-          <div style={{ ...S.cardBg, backgroundImage: `url(${event.card_image_url})` }} />
+          <div style={{ ...S.cardBg, backgroundImage: `url(${imageUrl})` }} />
           {bitmap ? (
             <BitmapBlurLayer bitmap={bitmap} />
           ) : (
-            <div style={{ ...S.cardBgBlur, backgroundImage: `url(${event.card_image_url})` }} />
+            <div style={{ ...S.cardBgBlur, backgroundImage: `url(${imageUrl})` }} />
           )}
         </>
       )}

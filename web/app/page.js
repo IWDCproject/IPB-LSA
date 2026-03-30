@@ -19,17 +19,25 @@ export default async function Page() {
   // Bangun image manifest untuk BlurProvider agar worker memproses gambar yang benar
   const imageManifest = [
     // 1. Hero Images dari Events
-    ...events.filter(ev => ev.is_published).map(ev => ({
-      url: getAssetUrl(ev.card_image_url),
-      type: "hero",
-      width: 1200,
-      height: 800
-    })),
+    ...events.filter(ev => ev.is_published).flatMap(ev => [
+      {
+        url: getAssetUrl(ev.card_image),
+        type: "hero",
+        width: 1200,
+        height: 800
+      },
+      {
+        url: getAssetUrl(ev.card_image),
+        type: "eventcard",
+        width: 400,
+        height: 280
+      }
+    ]),
     // 2. Match Cards dari Matches (untuk blur background kartu match)
     ...matches.map(m => {
-      const imageUrl = m.competition_category?.event_id?.card_image_url;
-      return imageUrl ? {
-        url: getAssetUrl(imageUrl),
+      const image = m.competition_category?.event_id?.card_image;
+      return image ? {
+        url: getAssetUrl(image),
         type: "matchcard",
         width: 400,
         height: 280

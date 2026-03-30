@@ -58,7 +58,7 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
     const EVENTS = useMemo(() => {
         return (rawEvents || [])
             .filter(ev => ev.is_published)
-            .map(ev => ({ ...ev, image_url: getAssetUrl(ev.card_image_url) }))
+            .map(ev => ({ ...ev, image_url: getAssetUrl(ev.card_image) }))
             .slice(0, 8);
     }, [rawEvents]);
 
@@ -273,7 +273,11 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                                     }}
                                 >
                                     <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.35)" }}>
-                                        <EventCard event={ev} size="sm" />
+                                        <EventCard 
+                                            event={ev} 
+                                            size="sm" 
+                                            bitmap={bitmaps[ev.image_url]?.eventcard?.bitmap}
+                                        />
                                     </div>
                                     <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", border: `2px solid ${ringColor}`, pointerEvents: "none", zIndex: 10, transition: "border-color 0.2s ease" }} />
                                     {(isActive || isHovered) && (
@@ -308,7 +312,13 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                                     style={{ height: "calc(240px * var(--s))", borderRadius: "8px", overflow: "visible", outline: isActive ? `2px solid #FFC936` : isHovered ? "2px solid rgba(255,255,255,0.5)" : "2px solid transparent", transition: "outline 0.2s ease" }}
                                 >
                                     <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", "--s": "1" }}>
-                                        {ev ? <EventCard event={ev} size="sm" /> : (
+                                        {ev ? (
+                                            <EventCard 
+                                                event={ev} 
+                                                size="sm" 
+                                                bitmap={bitmaps[ev.image_url]?.eventcard?.bitmap}
+                                            />
+                                        ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: "#111827" }}>
                                                 <div className="absolute inset-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)" }} />
                                                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">

@@ -47,7 +47,7 @@ export const getMatches = async () => {
           'competition_category.participant_type',
           'competition_category.event_id.id',
           'competition_category.event_id.name',
-          'competition_category.event_id.card_image_url',
+          'competition_category.event_id.card_image',
           'competition_category.format_id.*', // Ambil format dari kategori
           'home_participant.*',
           'home_participant.institution.*',
