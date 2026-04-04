@@ -9,6 +9,7 @@ import universitiesImg from "../stats-stuff/2.jpg";
 import athletesImg from "../stats-stuff/1.jpg";
 import eventsImg from "../stats-stuff/3.jpg";
 
+
 // Types
 
 interface SectionStats {
@@ -25,6 +26,7 @@ interface Stage1LayoutProps  { stats: SectionStats | null; anim: AnimFn; }
 interface Stage2LayoutProps  { stats: SectionStats | null; scale: number; anim: AnimFn; }
 interface Stage3LayoutProps  { stats: SectionStats | null; cw: number; scale: number; anim: AnimFn; }
 interface StatSectionProps   { stats: SectionStats | null; }
+
 
 // Layout constants
 
@@ -43,8 +45,10 @@ const S3_PAD       = 24;
 const S3_NAT_W     = CARDS_W + S3_PAD * 2;
 const S3_GAP       = 40;
 
-// Kept consistent with MatchSection — hardcoded intentionally
+// Kept consistent with MatchSection 
+// hardcoded sengaja, aneh tapi.
 const STAGE3_THRESHOLD = 0.547;
+
 
 // Animation constants
 
