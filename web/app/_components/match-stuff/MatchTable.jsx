@@ -257,7 +257,7 @@ function PodiumRow({ live }) {
 }
 
 function MiddleBadge({ match }) {
-  const isH2H = match.format?.match_type === "head_to_head";
+  const isH2H = match.competition_category?.format_id?.match_type === "head_to_head";
   return (
     <div style={{ ...JK, fontSize: 14, fontWeight: 700, color: "#676767", background: "#f3f4f6", borderRadius: 7, padding: "8px 24px", whiteSpace: "nowrap", minWidth: 80, textAlign: "center" }}>
       {isH2H ? "vs" : "--"}
@@ -266,7 +266,7 @@ function MiddleBadge({ match }) {
 }
 
 function ScoreCell({ match }) {
-  const engine     = getEngine(match.format);
+  const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
   const isUpcoming = match.status === "upcoming";
@@ -308,10 +308,10 @@ const ROW_GRID = {
 };
 
 function DesktopMatchRow({ match }) {
-  const engine     = getEngine(match.format);
+  const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
-  const isH2H      = match.format?.match_type === "head_to_head";
-  const isOpen     = match.format?.match_type === "open";
+  const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
+  const isOpen     = match.competition_category?.format_id?.match_type === "open";
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
 
@@ -382,11 +382,11 @@ function DesktopMatchRow({ match }) {
 //   time · venue                    category · status
 
 function MobileScoreBadge({ match }) {
-  const engine     = getEngine(match.format);
+  const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
   const isUpcoming = match.status === "upcoming";
-  const matchType  = match.format?.match_type;
+  const matchType  = match.competition_category?.format_id?.match_type;
 
   // upcoming → grey "vs" or "--"
   if (isUpcoming) {
@@ -433,8 +433,8 @@ function MobileScoreBadge({ match }) {
 }
 
 function MobileMatchRow({ match }) {
-  const isH2H  = match.format?.match_type === "head_to_head";
-  const isOpen = match.format?.match_type === "open";
+  const isH2H  = match.competition_category?.format_id?.match_type === "head_to_head";
+  const isOpen = match.competition_category?.format_id?.match_type === "open";
   const isLive = match.status === "live";
 
   const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);

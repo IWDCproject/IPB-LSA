@@ -36,6 +36,8 @@ function useContainerWidth(ref) {
 }
 
 export default function MatchSection({ matches: rawMatches }) {
+  // console.log(JSON.stringify(rawMatches[0], null, 2));
+
   const sectionRef = useRef(null);
   const cw         = useContainerWidth(sectionRef);
 

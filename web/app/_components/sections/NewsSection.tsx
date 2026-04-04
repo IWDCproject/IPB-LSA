@@ -141,6 +141,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
   const pad      = isMobile ? MOBILE_PAD : desktopPad(cw);
 
   const [main, ...rest] = news;
+  // if (!main) return null;
 
   return (
     <section
@@ -199,9 +200,9 @@ export default function NewsSection({ news }: NewsSectionProps) {
           <div style={styles.grid(cw)}>
             <div style={styles.mainCell}>
               <NewsCard
-                thumbnail_url={main.thumbnail_url}
-                tag={main.event_id?.name ?? null}
-                title={main.title}
+                thumbnail_url={main?.thumbnail_url}
+                tag={main?.event_id?.name ?? null}
+                title={main?.title}
                 isMain
               />
             </div>
