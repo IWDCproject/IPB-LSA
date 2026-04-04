@@ -229,12 +229,12 @@ const styles = {
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
-  },
+  } as React.CSSProperties,
 
   inner: {
     boxSizing: "border-box",
     width:     "100%",
-  },
+  } as React.CSSProperties,
 
   heading: {
     margin:     0,
@@ -242,12 +242,12 @@ const styles = {
     lineHeight: 1,
     color:      "#111111",
     filter:     "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
-  },
+  } as React.CSSProperties,
 
   // -- desktop grid --
   // Row height scales with container width so cards don't become excessively
   // tall relative to their width on mid-range viewports.
-  grid: (cw) => ({
+  grid: (cw: number): React.CSSProperties => ({
     display:             "grid",
     gridTemplateColumns: "2fr 1fr 1fr",
     gridTemplateRows:    `${Math.min(260, Math.max(160, cw * 0.135))}px ${Math.min(260, Math.max(160, cw * 0.135))}px`,
@@ -256,18 +256,18 @@ const styles = {
 
   mainCell: {
     gridRow: "1 / 3",
-  },
+  } as React.CSSProperties,
 
   smallCell: {
     minHeight: 0,
-  },
+  } as React.CSSProperties,
 
   // -- mobile layout --
   mobileLayout: {
     display:       "flex",
     flexDirection: "column",
     gap:           12,
-  },
+  } as React.CSSProperties,
 
   mobileMainCell: {
     width:  "100%",
@@ -290,4 +290,4 @@ const styles = {
     justifyContent: "flex-end",
     marginTop:      20,
   },
-};
+} as const;

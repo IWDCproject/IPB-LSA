@@ -3,7 +3,7 @@ services:
   database:
     image: postgis/postgis:15-3.4
     ports:
-      - "5432:5432"
+      - "7676:5432"
     networks:
       - app-network
     environment:
