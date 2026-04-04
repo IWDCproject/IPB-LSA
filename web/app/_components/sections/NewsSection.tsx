@@ -18,6 +18,10 @@ interface NewsItem {
   event_id:      { name: string } | null;
 }
 
+interface NewsSectionProps {
+  news?: NewsItem[];
+}
+
 
 // Layout constants
 
@@ -104,62 +108,6 @@ const styles = {
 } as const;
 
 
-// Dummy data, nanti ganti ke directus
-
-const DUMMY_NEWS: NewsItem[] = [
-  {
-    id:            "1",
-    title:         "Kini pendaftaran dibuka untuk internasional",
-    slug:          "agrinton-cup-2026-pendaftaran-internasional",
-    excerpt:       null,
-    thumbnail_url: "https://picsum.photos/seed/badminton/800/600",
-    category:      "announcement",
-    published_at:  "2026-03-20T10:00:00Z",
-    event_id:      { name: "Agrinton Cup 2026" },
-  },
-  {
-    id:            "2",
-    title:         "Daftar semua karateka internasional",
-    slug:          "forki-ipb-cup-karateka-internasional",
-    excerpt:       null,
-    thumbnail_url: "https://picsum.photos/seed/karate/400/300",
-    category:      "news",
-    published_at:  "2026-03-19T08:00:00Z",
-    event_id:      { name: "Forki x IPB Cup 2026" },
-  },
-  {
-    id:            "3",
-    title:         "Rules dan Guidelines Hacktoday 2026",
-    slug:          "hacktoday-2026-rules-guidelines",
-    excerpt:       null,
-    thumbnail_url: "https://picsum.photos/seed/hackathon/400/300",
-    category:      "update",
-    published_at:  "2026-03-18T12:00:00Z",
-    event_id:      { name: "IT-Today HackToday 2026" },
-  },
-  {
-    id:            "4",
-    title:         "Team Brackets AgriValorant 2026",
-    slug:          "agrivalorant-2026-team-brackets",
-    excerpt:       null,
-    thumbnail_url: "https://picsum.photos/seed/gaming/400/300",
-    category:      "news",
-    published_at:  "2026-03-17T09:30:00Z",
-    event_id:      { name: "AgriValorant 2026" },
-  },
-  {
-    id:            "5",
-    title:         "Daftar tim yang tertanda melakukan kecurangan",
-    slug:          "ipb-futsal-2026-tim-kecurangan",
-    excerpt:       null,
-    thumbnail_url: "https://picsum.photos/seed/futsal/400/300",
-    category:      "result",
-    published_at:  "2026-03-16T15:00:00Z",
-    event_id:      { name: "IPB Futsal Competition 2026" },
-  },
-];
-
-
 // Hook
 
 function useContainerWidth(ref: React.RefObject<HTMLElement>): number {
@@ -186,7 +134,7 @@ function useContainerWidth(ref: React.RefObject<HTMLElement>): number {
 // Component
 
 // `news` prop = array dari Directus
-export default function NewsSection({ news = DUMMY_NEWS }: { news?: NewsItem[] }) {
+export default function NewsSection({ news }: NewsSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const cw         = useContainerWidth(sectionRef);
   const isMobile = cw < MOBILE_THRESHOLD;
