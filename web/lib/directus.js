@@ -118,3 +118,44 @@ export const getStats = async () => {
     return { eventsCount: 0, institutionsCount: 0, participantsCount: 0 };
   }
 };
+
+// Fungsi untuk mengambil berita terbaru dengan filter dan sorting
+export const getNews = async ({ limit = 5 } = {}) => {
+  try {
+    const items = await directus.request(
+      readItems('news', {
+        filter: { is_published: { _eq: true } },
+        fields: [
+          'id',
+          'title',
+          'slug',
+          'excerpt',
+          'thumbnail',        
+          'category',
+          'published_at',
+          'event_id.name',    
+        ],
+        sort:  ['-published_at'],
+        limit,
+      })
+    );
+
+    // Normalize data untuk frontend, 
+    // terutama untuk thumbnail yang bisa berupa null, string URL, atau object file.
+    return items.map((item) => ({
+      id:            item.id,
+      title:         item.title,
+      slug:          item.slug,
+      excerpt:       item.excerpt ?? null,
+      thumbnail_url: getAssetUrl(item.thumbnail),   // null safe btw
+      category:      item.category,
+      published_at:  item.published_at,
+      event_id:      item.event_id
+                       ? { name: item.event_id.name }
+                       : null,
+    }));
+  } catch (error) {
+    console.error('Error fetching news:', error);
+    return [];
+  }
+};

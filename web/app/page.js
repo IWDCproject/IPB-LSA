@@ -3,55 +3,38 @@
 
 import BlurProvider    from "@/components/BlurProvider";
 import CurtainWrapper from "./_components/CurtainWrapper";
-import SmoothScroller  from "./_components/SmoothScroller";
-import { getEvents, getMatches, getStats, getAssetUrl } from "@/lib/directus";
+import { getEvents, getMatches, getStats, getAssetUrl, getNews } from "@/lib/directus";
 
 // Menonaktifkan cache agar data selalu di-fetch ulang dari Directus
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [events, matches, stats] = await Promise.all([
+  const [events, matches, stats, news] = await Promise.all([
     getEvents(),
     getMatches(),
     getStats(),
+    getNews({ limit: 5 }),
   ]);
 
-  // Bangun image manifest untuk BlurProvider agar worker memproses gambar yang benar
   const imageManifest = [
-    // 1. Hero Images dari Events
     ...events.filter(ev => ev.is_published).flatMap(ev => [
-      {
-        url: getAssetUrl(ev.card_image),
-        type: "hero",
-        width: 1200,
-        height: 800
-      },
-      {
-        url: getAssetUrl(ev.card_image),
-        type: "eventcard",
-        width: 400,
-        height: 280
-      }
+      { url: getAssetUrl(ev.card_image), type: "hero",      width: 1200, height: 800 },
+      { url: getAssetUrl(ev.card_image), type: "eventcard", width: 400,  height: 280 },
     ]),
-    // 2. Match Cards dari Matches (untuk blur background kartu match)
     ...matches.map(m => {
       const image = m.competition_category?.event_id?.card_image;
-      return image ? {
-        url: getAssetUrl(image),
-        type: "matchcard",
-        width: 400,
-        height: 280
-      } : null;
+      return image ? { url: getAssetUrl(image), type: "matchcard", width: 400, height: 280 } : null;
     }).filter(Boolean),
-    // 3. News Images (Jika ada data news nanti, sementara placeholder atau dummy)
-    { url: "https://picsum.photos/seed/badminton/800/600", type: "newscard", width: 800, height: 600 },
+    // Replace placeholder with real news thumbnails
+    ...news.map(n => n.thumbnail_url
+      ? { url: n.thumbnail_url, type: "newscard", width: 800, height: 600 }
+      : null
+    ).filter(Boolean),
   ];
 
   return (
-    // <SmoothScroller>
-      <BlurProvider imageManifest={imageManifest}>
-        <CurtainWrapper events={events} matches={matches} stats={stats} />
-      </BlurProvider>
-    // </SmoothScroller>
+    <BlurProvider imageManifest={imageManifest}>
+      <CurtainWrapper events={events} matches={matches} stats={stats} news={news} />
+    </BlurProvider>
   );
 }

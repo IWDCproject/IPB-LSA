@@ -13,7 +13,7 @@ import Footer from "@/components/Footer";
 const HEADER_HEIGHT  = 65;
 const PARALLAX_SPEED = 0.4;
 
-export default function CurtainWrapper({ events, matches, stats }) {
+export default function CurtainWrapper({ events, matches, stats, news }) {
   const heroSpacerRef  = useRef(null);
   const newsSectionRef = useRef(null);
   const [heroPaused, setHeroPaused] = useState(false);
@@ -111,7 +111,7 @@ export default function CurtainWrapper({ events, matches, stats }) {
         ref={newsSectionRef}
         style={{ position: "relative", zIndex: 3, minHeight: sectionH }}  // ← min-height
       >
-        <NewsSection />
+        <NewsSection news={news} />
         <Footer />
       </div>
     </>
