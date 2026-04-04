@@ -1,15 +1,24 @@
 import React from "react";
 
+interface StatCardProps {
+    image_url: string | { src: string };
+    width?: number | string;
+    height?: number | string;
+    main_stat?: string;
+    label_stat?: string;
+}
+
 export default function StatCard({
-  image_url,
-  width = 320,
-  height = 250,
-  main_stat = "28+",
-  label_stat = "Universities",
-}) {
-  const cardWidth = typeof width === "number" ? `${width}px` : width;
-  const imgHeight = typeof height === "number" ? `${height}px` : height;
-  const imgSrc = typeof image_url === "string" ? image_url : image_url?.src;
+    image_url,
+    width = 320,
+    height = 250,
+    main_stat = "28+",
+    label_stat = "Universities",
+}: StatCardProps) {
+
+  const cardWidth: string = typeof width === "number" ? `${width}px` : width as string;
+  const imgHeight: string = typeof height === "number" ? `${height}px` : height as string;
+  const imgSrc: string | undefined = typeof image_url === "string" ? image_url : image_url?.src;
 
   return (
     <div

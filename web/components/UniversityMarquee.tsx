@@ -15,7 +15,13 @@ const CONFIG = {
   },
 };
 
-const UNIVERSITIES = [
+interface Unis {
+  abbr: string;
+  name: [string, string];
+  logo: string;
+}
+
+const UNIVERSITIES: Unis[] = [
   { abbr: "UI",    name: ["Universitas", "Indonesia"],               logo: "/universities/ui.png" },
   { abbr: "UGM",   name: ["Universitas", "Gadjah Mada"],             logo: "/universities/ugm.png" },
   { abbr: "ITS",   name: ["Institut Teknologi", "Sepuluh Nopember"], logo: "/universities/its.png" },
@@ -26,7 +32,7 @@ const UNIVERSITIES = [
 const ITEMS = Array.from({ length: CONFIG.copies }, () => UNIVERSITIES).flat();
 
 export default function UniversityMarquee() {
-  const wrapRef = useRef(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [cw, setCw] = useState(NAT_W);
 
   useEffect(() => {

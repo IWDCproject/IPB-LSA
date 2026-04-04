@@ -2,6 +2,19 @@ import { useRef } from "react";
 import Link from "next/link";
 import ArrowIcon from "@/app/icons/arrow-up-right.svg";
 
+interface ButtonProps {
+    variant?: "primary" | "outline" | "ghost";
+    size?: "sm" | "md" | "lg";
+    href?: string;
+    onClick?: () => void;
+    disabled?: boolean;
+    className?: string;
+    children: React.ReactNode;
+}
+
+interface SlotTextProps {
+    children: React.ReactNode;
+}
 
 const variants = {
   primary: "bg-yellow-400 text-zinc-900 border-transparent hover:bg-yellow-300 font-bold",
@@ -28,7 +41,7 @@ const STAGGER = 18;
 const DUR = "0.4s";
 const EASE = "cubic-bezier(0.76, 0, 0.24, 1)";
 
-function SlotText({ children }) {
+function SlotText({ children }: SlotTextProps) {
   const chars = String(children).split("");
   return (
     <span style={{ display: "inline-flex", lineHeight: 1 }}>
@@ -92,7 +105,7 @@ export default function Button({
   disabled = false,
   className = "",
   children,
-}) {
+}: ButtonProps) {
   const classes = `${base} ${variants[variant]} ${sizes[size]} ${className}`;
   const { ref, onMouseEnter, onMouseLeave } = useSlotHover();
 
