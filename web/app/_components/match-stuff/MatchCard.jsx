@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { getAssetUrl } from "@/lib/directus";
 
 const BB = { fontFamily: "'Bebas Neue', 'Arial Narrow', sans-serif" };
@@ -285,6 +285,22 @@ export function MatchCard({ match, bitmap = null }) {
   const timerRef = useRef(null);
   useMatchTimerDOM(timerRef, live, timerMod);
 
+  const cardRef = useRef(null);
+  const DESIGN_W = 350; // card's natural design width
+
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w) el.style.setProperty("--s", (w / DESIGN_W).toFixed(3));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const isH2H  = fmt?.match_type === "head_to_head";
   const isSolo = fmt?.match_type === "solo";
   const isOpen = fmt?.match_type === "open";
@@ -295,7 +311,7 @@ export function MatchCard({ match, bitmap = null }) {
   const hasBg = !!imageUrl;
 
   return (
-    <div style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
+    <div ref={cardRef} style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
       {hasBg && (
         <>
           <div style={{ ...S.cardBg, backgroundImage: `url(${imageUrl})` }} />

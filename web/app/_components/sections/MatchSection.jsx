@@ -162,7 +162,7 @@ export default function MatchSection({ matches: rawMatches }) {
           ) : (
             <div style={{ ...anim(1), display: "flex", flexDirection: "row", gap: CARD_GAP, paddingLeft: "clamp(40px, 8.33vw, 160px)", paddingRight: "clamp(40px, 8.33vw, 160px)" }}>
               {cardMatches.map((match, i) => (
-                <div key={match.id} style={{ ...anim(i + 2), "--s": 1, flex: 1, minWidth: 0 }}>
+                <div key={match.id} style={{ ...anim(i + 2), flex: 1, minWidth: 0 }}>
                   <div style={{ width: "100%", height: "calc(280px * var(--s))", overflow: "hidden", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
                     <MatchCard match={match} />
                   </div>
