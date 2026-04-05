@@ -8,6 +8,7 @@ DECLARE
     e3 uuid := 'e1e1e1e1-e1e1-4000-a111-000000000003';
     e4 uuid := 'e1e1e1e1-e1e1-4000-a111-000000000004';
     e5 uuid := 'e1e1e1e1-e1e1-4000-a111-000000000005';
+    e6 uuid := 'e1e1e1e1-e1e1-4000-a111-000000000006';
 
     -- Institution IDs (scoped per event)
     i1_ipb   uuid := 'b1000001-b100-4000-9999-000000000001';
@@ -41,6 +42,11 @@ DECLARE
     i5_unpad uuid := 'b5000005-b500-4000-9999-000000000005';
     i5_its   uuid := 'b5000005-b500-4000-9999-000000000006';
 
+    i6_ipb   uuid := 'b6000006-b600-4000-9999-000000000001';
+    i6_ui    uuid := 'b6000006-b600-4000-9999-000000000002';
+    i6_itb   uuid := 'b6000006-b600-4000-9999-000000000003';
+    i6_ugm   uuid := 'b6000006-b600-4000-9999-000000000004';
+
     -- Category IDs
     c1_kata_pa  uuid := 'c1000001-c100-4000-b222-000000000001';
     c1_kata_pi  uuid := 'c1000001-c100-4000-b222-000000000002';
@@ -60,6 +66,8 @@ DECLARE
     c5_futsal_pa uuid := 'c5000005-c500-4000-b222-000000000001';
     c5_futsal_pi uuid := 'c5000005-c500-4000-b222-000000000002';
 
+    c6_tunggal_pa uuid := 'c6000006-c600-4000-b222-000000000001';
+
     -- Match Format IDs
     f1_kata     uuid := 'f1000001-f100-4000-e555-000000000001';
     f1_kumite   uuid := 'f1000001-f100-4000-e555-000000000002';
@@ -67,6 +75,7 @@ DECLARE
     f3_marathon uuid := 'f3000003-f300-4000-e555-000000000001';
     f4_arts     uuid := 'f4000004-f400-4000-e555-000000000001';
     f5_futsal   uuid := 'f5000005-f500-4000-e555-000000000001';
+    f6_sets     uuid := 'f6000006-f600-4000-e555-000000000001';
 
     -- Participant IDs — Kata Perorang Putra
     p1_1 uuid := 'd1000001-d100-4000-c333-000000000001';
@@ -145,6 +154,12 @@ DECLARE
     p13_3 uuid := 'd1300013-d130-4000-c333-000000000003';
     p13_4 uuid := 'd1300013-d130-4000-c333-000000000004';
 
+    -- Badminton Tunggal Putra
+    pb1 uuid := 'e0000001-e000-4000-f666-000000000001'; -- Dimas  (IPB, seed 1)
+    pb2 uuid := 'e0000001-e000-4000-f666-000000000002'; -- Fadhil (UI,  seed 2)
+    pb3 uuid := 'e0000001-e000-4000-f666-000000000003'; -- Guntur (ITB, seed 3)
+    pb4 uuid := 'e0000001-e000-4000-f666-000000000004'; -- Handoko(UGM, seed 4)
+
     -- Match IDs
     m1  uuid := 'f4000001-f400-4000-d444-000000000001';
     m2  uuid := 'f4000001-f400-4000-d444-000000000002';
@@ -160,7 +175,6 @@ DECLARE
     m12 uuid := 'f4000001-f400-4000-d444-000000000012';
     m13 uuid := 'f4000001-f400-4000-d444-000000000013';
     m14 uuid := 'f4000001-f400-4000-d444-000000000014';
-    -- upcoming matches
     m15 uuid := 'f4000001-f400-4000-d444-000000000015';
     m16 uuid := 'f4000001-f400-4000-d444-000000000016';
     m17 uuid := 'f4000001-f400-4000-d444-000000000017';
@@ -170,6 +184,12 @@ DECLARE
     m21 uuid := 'f4000001-f400-4000-d444-000000000021';
     m22 uuid := 'f4000001-f400-4000-d444-000000000022';
     m23 uuid := 'f4000001-f400-4000-d444-000000000023';
+
+    -- Badminton matches
+    mb1 uuid := 'a0000001-a000-4000-e777-000000000001'; -- SF1    finished
+    mb2 uuid := 'a0000001-a000-4000-e777-000000000002'; -- SF2    finished
+    mb3 uuid := 'a0000001-a000-4000-e777-000000000003'; -- Final  live
+    mb4 uuid := 'a0000001-a000-4000-e777-000000000004'; -- 3rd    upcoming
 
 BEGIN
     SELECT id INTO v_user_id FROM directus_users LIMIT 1;
@@ -224,7 +244,15 @@ BEGIN
      'GOR Futsal IPB, Bogor',
      'Turnamen futsal antar fakultas dan UKM IPB University. Format grup dan knockout untuk putra dan putri.',
      '{"name":"Budi Santoso","phone":"085678901234","email":"futsal@ipb.ac.id"}',
-     '2026-07-01 23:59:00+07');
+     '2026-07-01 23:59:00+07'),
+
+    (e6, v_user_id,
+     'IPB BADMINTON CUP 2026', 'ipb-badminton-2026', 'sport', 'active', true, false,
+     '2026-04-05', '2026-04-06',
+     'GOR Badminton IPB, Bogor',
+     'Turnamen bulutangkis antar perguruan tinggi se-Jawa Barat. Format gugur untuk kategori tunggal putra dan putri.',
+     '{"name":"Adi Wijaya","phone":"086789012345","email":"badminton@ipb.ac.id"}',
+     null);
 
     -- ─── 2. EVENT PHASES ──────────────────────────────────────────────────────
     INSERT INTO event_phases (event_id, label, description, date_start, date_end, time_start, status, display_order) VALUES
@@ -246,7 +274,10 @@ BEGIN
     (e5, 'Pendaftaran',       'Pendaftaran tim futsal',                           '2026-06-15', '2026-07-01', '08:00', 'upcoming', 1),
     (e5, 'Technical Meeting', 'Pertemuan teknis dan pembagian grup',              '2026-07-14', null,         '14:00', 'upcoming', 2),
     (e5, 'Fase Grup',         'Pertandingan fase grup putra dan putri',           '2026-07-15', '2026-07-18', '08:00', 'upcoming', 3),
-    (e5, 'Semifinal & Final', 'Babak gugur dan final',                            '2026-07-19', '2026-07-20', '08:00', 'upcoming', 4);
+    (e5, 'Semifinal & Final', 'Babak gugur dan final',                            '2026-07-19', '2026-07-20', '08:00', 'upcoming', 4),
+    (e6, 'Babak Penyisihan',  'Fase grup semua kategori',                         '2026-04-05', null,         '08:00', 'done',     1),
+    (e6, 'Semifinal',         'Babak empat besar',                                '2026-04-05', null,         '13:00', 'done',     2),
+    (e6, 'Final & Posisi 3',  'Babak final dan perebutan posisi 3',               '2026-04-06', null,         '09:00', 'current',  3);
 
     -- ─── 3. MATCH FORMATS ─────────────────────────────────────────────────────
     INSERT INTO match_formats (id, event_id, name, match_type, modules, created_by) VALUES
@@ -267,25 +298,28 @@ BEGIN
      '[{"type":"finish_time","config":{"unit":"min","rank_order":"asc"}},{"type":"notes","config":{}}]',
      v_user_id),
 
-    -- FESTIVAL SENI: solo performance, 5 judges, drop extremes
     (f4_arts, e4, 'Seni Pertunjukan Format', 'solo',
      '[{"type":"judge_scores","config":{"num_judges":5,"score_min":0,"score_max":10,"step":0.1,"method":"drop_extremes"}},{"type":"notes","config":{}}]',
      v_user_id),
 
-    -- FUTSAL: head-to-head, score + 2x20 min halves
     (f5_futsal, e5, 'Futsal H2H Format', 'head_to_head',
      '[{"type":"score_timed","config":{"score_label":"Gol","has_periods":true,"period_label":"Babak","periods":2}},{"type":"timer","config":{"mode":"countdown","duration":1200}},{"type":"notes","config":{}}]',
+     v_user_id),
+
+    (f6_sets, e6, 'Badminton Sets Format', 'head_to_head',
+     '[{"type":"score_sets","config":{"score_label":"Poin","term":"Set","max_sets":3,"sets_to_win":2}},{"type":"notes","config":{}}]',
      v_user_id);
 
     -- ─── 4. COMPETITION CATEGORIES ────────────────────────────────────────────
     INSERT INTO competition_categories (id, event_id, format_id, name, participant_type, display_order) VALUES
-    (c1_kata_pa,  e1, f1_kata,    'Kata Perorang Putra',   'individual', 1),
-    (c1_kum60,    e1, f1_kumite,  'Kumite -60kg Putra',    'individual', 2),
-    (c2_hack_ai,  e2, f2_hack,    'Hackathon AI Track',    'team',       1),
-    (c3_21km,     e3, f3_marathon,'Open Marathon 21km',    'individual', 1),
-    (c4_tari_tra, e4, f4_arts,    'Tari Tradisional',      'team',       1),
-    (c4_teater,   e4, f2_hack,    'Teater',                'team',       2),  -- open/manual_pick so jury picks winner
-    (c5_futsal_pa,e5, f5_futsal,  'Futsal Putra',          'team',       1);
+    (c1_kata_pa,   e1, f1_kata,    'Kata Perorang Putra',   'individual', 1),
+    (c1_kum60,     e1, f1_kumite,  'Kumite -60kg Putra',    'individual', 2),
+    (c2_hack_ai,   e2, f2_hack,    'Hackathon AI Track',    'team',       1),
+    (c3_21km,      e3, f3_marathon,'Open Marathon 21km',    'individual', 1),
+    (c4_tari_tra,  e4, f4_arts,    'Tari Tradisional',      'team',       1),
+    (c4_teater,    e4, f2_hack,    'Teater',                'team',       2),
+    (c5_futsal_pa, e5, f5_futsal,  'Futsal Putra',          'team',       1),
+    (c6_tunggal_pa,e6, f6_sets,    'Tunggal Putra',         'individual', 1);
 
     -- ─── 5. INSTITUTIONS ──────────────────────────────────────────────────────
     INSERT INTO institutions (id, event_id, name) VALUES
@@ -318,7 +352,12 @@ BEGIN
     (i5_itb,   e5, 'Institut Teknologi Bandung'),
     (i5_ugm,   e5, 'Universitas Gadjah Mada'),
     (i5_unpad, e5, 'Universitas Padjadjaran'),
-    (i5_its,   e5, 'Institut Teknologi Sepuluh Nopember');
+    (i5_its,   e5, 'Institut Teknologi Sepuluh Nopember'),
+
+    (i6_ipb,   e6, 'IPB University'),
+    (i6_ui,    e6, 'Universitas Indonesia'),
+    (i6_itb,   e6, 'Institut Teknologi Bandung'),
+    (i6_ugm,   e6, 'Universitas Gadjah Mada');
 
     -- ─── 6. PARTICIPANTS ──────────────────────────────────────────────────────
 
@@ -329,8 +368,6 @@ BEGIN
     (p1_3, c1_kata_pa, i1_itb, 'Cahya Nugraha',  3),
     (p1_4, c1_kata_pa, i1_ugm, 'Dani Prasetyo',  4);
 
-
-
     -- Kumite -60kg Putra
     INSERT INTO participants (id, competition_category_id, institution_id, name, seed) VALUES
     (p3_1, c1_kum60, i1_ipb, 'Rizky Maulana',  1),
@@ -338,15 +375,11 @@ BEGIN
     (p3_3, c1_kum60, i1_itb, 'Fajar Hidayat',  3),
     (p3_4, c1_kum60, i1_ugm, 'Galih Prakoso',  4);
 
-
-
     -- Hackathon AI Track
     INSERT INTO participants (id, competition_category_id, institution_id, name, members) VALUES
     (p5_1, c2_hack_ai, i2_ipb, 'Team Agritech AI',  '["Hendra Gunawan","Ika Sari","Joko Widodo"]'),
     (p5_2, c2_hack_ai, i2_ui,  'Team DataSci UI',   '["Kevin Pratama","Lisa Amalia","Marco Huang"]'),
     (p5_3, c2_hack_ai, i2_itb, 'Team Bandung AI',   '["Nico Herlambang","Olivia Tan","Putra Aditya"]');
-
-
 
     -- Marathon 21km
     INSERT INTO participants (id, competition_category_id, institution_id, name) VALUES
@@ -356,16 +389,12 @@ BEGIN
     (p7_4, c3_21km, i3_unpad, 'Udin Setiawan'),
     (p7_5, c3_21km, i3_ugm,   'Vito Ramadhan');
 
-
-
     -- Festival Seni — Tari Tradisional
     INSERT INTO participants (id, competition_category_id, institution_id, name, members) VALUES
     (p9_1, c4_tari_tra, i4_ipb,   'Sanggar Parahyangan IPB',  '["Anisa Putri","Budi Laksono","Citra Dewi","Dian Pertiwi","Eka Nurul"]'),
     (p9_2, c4_tari_tra, i4_ui,    'UKM Tari UI',              '["Fahri Ramadan","Gita Sari","Hana Permata","Irfan Maulana","Jihan Aulia"]'),
     (p9_3, c4_tari_tra, i4_ugm,   'Sekar Jagad UGM',          '["Kiki Rahayu","Luthfi Hakim","Maya Indah","Noval Satria","Okta Wulan"]'),
     (p9_4, c4_tari_tra, i4_unpad, 'Galuh Pakuan Unpad',       '["Putri Ayu","Qori Nusa","Raka Putra","Sinta Lestari","Taufik Ahmad"]');
-
-
 
     -- Festival Seni — Teater
     INSERT INTO participants (id, competition_category_id, institution_id, name, members) VALUES
@@ -375,20 +404,25 @@ BEGIN
 
     -- Futsal Putra
     INSERT INTO participants (id, competition_category_id, institution_id, name, members) VALUES
-    (p12_1, c5_futsal_pa, i5_ipb,   'IPB FC',        '["Aldi Nugraha","Bintang Perkasa","Ciko Pratama","Danu Satria","Eko Wahyu","Faris Maulana"]'),
-    (p12_2, c5_futsal_pa, i5_ui,    'UI Garuda',     '["Gilang Prayoga","Hadi Kusuma","Ivan Setiawan","Jaya Putra","Kukuh Wibowo","Leo Santoso"]'),
-    (p12_3, c5_futsal_pa, i5_itb,   'Ganesha FC',   '["Maman Suryadi","Nanda Pratama","Oscar Hidayat","Pandu Wirakusuma","Qibla Fathoni","Rendi Saputra"]'),
-    (p12_4, c5_futsal_pa, i5_ugm,   'UGM Elang',    '["Sandi Setiawan","Tedi Kurniawan","Umar Suharto","Vino Ramadhan","Wahyu Prabowo","Xander Lie"]'),
-    (p12_5, c5_futsal_pa, i5_unpad, 'Padjadjaran FC','["Yusuf Anwar","Zaki Maulana","Asep Gunawan","Bayu Nugraha","Candra Putra","Dodi Firmansyah"]'),
-    (p12_6, c5_futsal_pa, i5_its,   'ITS Petir',    '["Endra Wijaya","Fajar Kurnia","Gilang Saputra","Hendra Budiman","Irwan Santoso","Jaka Susila"]');
+    (p12_1, c5_futsal_pa, i5_ipb,   'IPB FC',         '["Aldi Nugraha","Bintang Perkasa","Ciko Pratama","Danu Satria","Eko Wahyu","Faris Maulana"]'),
+    (p12_2, c5_futsal_pa, i5_ui,    'UI Garuda',      '["Gilang Prayoga","Hadi Kusuma","Ivan Setiawan","Jaya Putra","Kukuh Wibowo","Leo Santoso"]'),
+    (p12_3, c5_futsal_pa, i5_itb,   'Ganesha FC',     '["Maman Suryadi","Nanda Pratama","Oscar Hidayat","Pandu Wirakusuma","Qibla Fathoni","Rendi Saputra"]'),
+    (p12_4, c5_futsal_pa, i5_ugm,   'UGM Elang',      '["Sandi Setiawan","Tedi Kurniawan","Umar Suharto","Vino Ramadhan","Wahyu Prabowo","Xander Lie"]'),
+    (p12_5, c5_futsal_pa, i5_unpad, 'Padjadjaran FC', '["Yusuf Anwar","Zaki Maulana","Asep Gunawan","Bayu Nugraha","Candra Putra","Dodi Firmansyah"]'),
+    (p12_6, c5_futsal_pa, i5_its,   'ITS Petir',      '["Endra Wijaya","Fajar Kurnia","Gilang Saputra","Hendra Budiman","Irwan Santoso","Jaka Susila"]');
 
-
+    -- Badminton Tunggal Putra
+    INSERT INTO participants (id, competition_category_id, institution_id, name, seed) VALUES
+    (pb1, c6_tunggal_pa, i6_ipb, 'Dimas Prayoga',  1),
+    (pb2, c6_tunggal_pa, i6_ui,  'Fadhil Akbar',   2),
+    (pb3, c6_tunggal_pa, i6_itb, 'Guntur Wibowo',  3),
+    (pb4, c6_tunggal_pa, i6_ugm, 'Handoko Satria', 4);
 
     -- ─── 7. MATCHES ───────────────────────────────────────────────────────────
 
     INSERT INTO matches (id, competition_category_id, round, match_name, venue, scheduled_at, status, home_participant_id, away_participant_id, live_state) VALUES
 
-    -- ── Kata Putra Semifinal (finished — context for schedule) ────────────────
+    -- ── Kata Putra Semifinal (finished) ───────────────────────────────────────
     (m1, c1_kata_pa, 'Semifinal', 'Kata Putra — Semifinal 1', 'Lapangan A',
      now() - interval '4 hours', 'finished', p1_1, p1_3,
      '{"matchStatus":"finished","winner":"home","judgeScores":[8.0,7.9,8.1,7.8,8.2],"notes":"Penampilan Ahmad sangat bersih"}'::jsonb),
@@ -402,7 +436,7 @@ BEGIN
      now() - interval '20 minutes', 'live', p1_1, p1_2,
      '{"matchStatus":"live","judgeScores":[8.2,8.5,8.1,8.4,8.3],"notes":"Ahmad sudah tampil, menunggu giliran Bima"}'::jsonb),
 
-    -- ── Kumite -60kg Semifinal (finished — context for schedule) ─────────────
+    -- ── Kumite -60kg Semifinal (finished) ─────────────────────────────────────
     (m5, c1_kum60, 'Semifinal', 'Kumite -60kg — Semifinal 1', 'Lapangan B',
      now() - interval '4 hours', 'finished', p3_1, p3_3,
      '{"matchStatus":"finished","winner":"home","homeScore":7,"awayScore":2,"timerSecs":0,"timerRunning":false}'::jsonb),
@@ -442,7 +476,27 @@ BEGIN
     -- ── UPCOMING 3: head_to_head (Futsal Cup) ─────────────────────────────────
     (m20, c5_futsal_pa, 'Fase Grup', 'Futsal Putra — Grup A: IPB vs UI', 'GOR Futsal IPB',
      '2026-07-15 08:00:00+07', 'upcoming', p12_1, p12_2,
-     '{"matchStatus":"upcoming"}'::jsonb);
+     '{"matchStatus":"upcoming"}'::jsonb),
+
+    -- ── Badminton SF1: finished — Dimas def. Guntur 2-0 ──────────────────────
+    (mb1, c6_tunggal_pa, 'Semifinal', 'Tunggal Putra — Semifinal 1', 'Lapangan 1',
+     now() - interval '3 hours', 'finished', pb1, pb3,
+     '{"matchStatus":"finished","winner":"home","setIdx":1,"setPhase":"idle","setScore":[0,0],"setsWon":[2,0],"setLog":[{"label":"Set 1","home":21,"away":14,"winner":"home"},{"label":"Set 2","home":21,"away":17,"winner":"home"}],"pendingSetWinner":null,"notes":"Dimas mendominasi dengan smash akurat di kedua set"}'::jsonb),
+
+    -- ── Badminton SF2: finished — Handoko def. Fadhil 2-1 ────────────────────
+    (mb2, c6_tunggal_pa, 'Semifinal', 'Tunggal Putra — Semifinal 2', 'Lapangan 2',
+     now() - interval '2 hours', 'finished', pb2, pb4,
+     '{"matchStatus":"finished","winner":"away","setIdx":2,"setPhase":"idle","setScore":[0,0],"setsWon":[1,2],"setLog":[{"label":"Set 1","home":21,"away":16,"winner":"home"},{"label":"Set 2","home":18,"away":21,"winner":"away"},{"label":"Set 3","home":17,"away":21,"winner":"away"}],"pendingSetWinner":null,"notes":"Pertandingan sengit tiga set — Handoko balik dari defisit"}'::jsonb),
+
+    -- ── Badminton Final: LIVE — Dimas vs Handoko, mid set 2 ──────────────────
+    (mb3, c6_tunggal_pa, 'Final', 'Tunggal Putra — Final', 'Lapangan 1',
+     now() - interval '40 minutes', 'live', pb1, pb4,
+     '{"matchStatus":"live","setIdx":1,"setPhase":"active","setScore":[15,12],"setsWon":[1,0],"setLog":[{"label":"Set 1","home":21,"away":19,"winner":"home"}],"pendingSetWinner":null,"notes":"Dimas unggul 15-12 di Set 2, perlu 1 set lagi untuk juara"}'::jsonb),
+
+    -- ── Badminton 3rd place: upcoming ─────────────────────────────────────────
+    (mb4, c6_tunggal_pa, 'Perebutan Posisi 3', 'Tunggal Putra — Posisi 3', 'Lapangan 2',
+     now() + interval '30 minutes', 'upcoming', pb2, pb3,
+     '{"matchStatus":"upcoming","setIdx":0,"setPhase":"idle","setScore":[0,0],"setsWon":[0,0],"setLog":[],"pendingSetWinner":null}'::jsonb);
 
     -- ─── 8. MATCH PARTICIPANTS (open matches only) ────────────────────────────
     INSERT INTO match_participants (match_id, participant_id, position) VALUES
@@ -533,7 +587,14 @@ BEGIN
      'iwdc-pendaftaran-event-semester-genap',
      'Unit kegiatan mahasiswa dapat mengajukan proposal event olahraga dan seni untuk periode Juni–Agustus 2026.',
      'IWDC (IPB Web Development Community) membuka pendaftaran bagi unit kegiatan mahasiswa yang ingin menyelenggarakan event olahraga atau seni pada periode Juni–Agustus 2026.' || E'\n\n' || 'Proposal dapat diajukan melalui platform ini. Setiap event yang disetujui akan mendapatkan dukungan teknis untuk pengelolaan pertandingan dan publikasi secara digital.',
-     true, now() - interval '7 days');
+     true, now() - interval '7 days'),
+
+    (v_user_id, e6, 'announcement',
+     'IPB Badminton Cup 2026 Memasuki Babak Final',
+     'ipb-badminton-2026-final',
+     'Dimas Prayoga dari IPB akan menghadapi Handoko Satria dari UGM di babak final Tunggal Putra.',
+     'Babak semifinal IPB Badminton Cup 2026 telah selesai. Dimas Prayoga (IPB) melaju ke final setelah mengalahkan Guntur Wibowo (ITB) dua set langsung, 21-14 dan 21-17.' || E'\n\n' || 'Di semifinal lain, Handoko Satria (UGM) membalikkan situasi setelah kalah di set pertama, mengalahkan Fadhil Akbar (UI) tiga set dengan skor akhir 16-21, 21-18, 21-17.' || E'\n\n' || 'Final dimulai hari ini dan saat ini sedang berlangsung.',
+     true, now() - interval '20 minutes');
 
     -- ─── 11. DIRECTUS PERMISSIONS ─────────────────────────────────────────────
     DELETE FROM directus_permissions
@@ -559,5 +620,5 @@ BEGIN
     FROM directus_policies
     WHERE name = '$t:public_label';
 
-    RAISE NOTICE '✓ Seeding selesai: 5 events, 7 kategori, 4 live matches (solo/h2h/manual_pick/finish_time), 3 upcoming matches (solo/h2h/open), 7 berita';
+    RAISE NOTICE '✓ Seeding selesai: 6 events, 8 kategori, 5 live matches (solo/h2h/manual_pick/finish_time/score_sets), 4 upcoming matches, 9 berita';
 END $$;
