@@ -538,7 +538,7 @@ Array JSONB. Elemen pertama selalu scoring engine (tepat satu). Add-on opsional 
 { "allow_draw": false, "top_n": 1, "ranked_order": true }
 ```
 
-**`timer` (add-on)** — hanya untuk `score_timed` dan `score_sets`
+**`timer` (add-on)** — hanya untuk `score_timed`, `score_sets`, `finish_time`, dan `open`
 ```json
 { "mode": "countdown", "duration": 180 }
 ```
@@ -954,7 +954,7 @@ CREATE INDEX idx_logs_created             ON activity_logs(created_at DESC);
 | Timer tick di browser | Fixed — timer pakai snapshot + `timerLastStarted` | ✅ Selesai |
 | `institutions.logo_url` terdokumentasi salah | DDL lama tulis `logo_url TEXT`, padahal implementasi pakai Directus file asset UUID | ✅ **Selesai** — DDL dikoreksi ke `logo UUID REFERENCES directus_files` |
 | Field query `institution.*` | Query lama pakai `institution.*` pada participants, padahal FK column bernama `institution_id` | ✅ **Selesai** — semua query diupdate ke `institution_id.*` |
-| `winner TEXT` semantik ganda | String berbeda arti per match_type | Split: `winner_participant_id UUID` untuk h2h/solo; `rankings` JSONB untuk open |
+| `winner TEXT` semantik ganda | String berbeda arti per match_type | S`winner_participant_id UUID` untuk h2h/solo; `rankings` JSONB untuk open |
 | `seed` tersimpan tapi hidden | Bracket logic belum dibangun | Aktifkan saat fitur bracket v2 |
 | Media = Google Drive URL | Bukan proper storage | S3-compatible storage atau Directus Files |
 | `finish_time` results ke `rankings` | Aplikasi harus manually populate `live_state.rankings` dari `timeLog` sebelum close match | Buat Directus Flow otomatis saat `status` di-set ke `finished` |
