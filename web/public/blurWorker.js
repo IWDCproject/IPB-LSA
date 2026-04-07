@@ -6,6 +6,34 @@ const PAD_FACTOR = 3;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
+async function coverCrop(blob, W, H) {
+  const img   = await createImageBitmap(blob);
+  const imgAR = img.width / img.height;
+  const conAR = W / H;
+
+  let sx, sy, sw, sh;
+  if (imgAR > conAR) {
+    // image lebih lebar — crop kiri-kanan
+    sh = img.height;
+    sw = img.height * conAR;
+    sx = (img.width - sw) / 2;
+    sy = 0;
+  } else {
+    // image lebih tinggi — crop atas-bawah
+    sw = img.width;
+    sh = img.width / conAR;
+    sx = 0;
+    sy = (img.height - sh) / 2;
+  }
+
+  img.close();
+  return createImageBitmap(blob, sx, sy, sw, sh, {
+    resizeWidth:   W,
+    resizeHeight:  H,
+    resizeQuality: "medium",
+  });
+}
+
 async function blurBitmap(source, blurPx, W, H, srcX = 0, srcY = 0, srcW = W, srcH = H) {
   const pad = Math.ceil(blurPx * PAD_FACTOR);
   const pw  = W + pad * 2;
@@ -57,35 +85,26 @@ function applyLayer(destCtx, W, H, blurredCanvas, maskCanvas) {
 // ─── processors ──────────────────────────────────────────────────────────────
 
 async function processHero({ id, url, width: W, height: H }) {
-  const res   = await fetch(url);
-  const blob  = await res.blob();
-  const sharp = await createImageBitmap(blob, { resizeWidth: W, resizeHeight: H, resizeQuality: "medium" });
+  const res    = await fetch(url);
+  const blob   = await res.blob();
+  const sharp  = await coverCrop(blob, W, H);
+  const source = await coverCrop(blob, W, H);
 
-  // Re-use the same decoded bitmap as source for blur layers
-  const source = await createImageBitmap(blob, { resizeWidth: W, resizeHeight: H, resizeQuality: "medium" });
-
-  // ── Bottom progressive blur ───────────────────────────────────────────────
-  // dir "up": pos 0 = bottom edge (fully blurred), pos 1 = top (transparent)
+  // BOTTOM_LAYERS — pull the fade stops down so blur doesn't climb so high
   const BOTTOM_LAYERS = [
-    { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.28, alpha: 1 }, { pos: 0.52, alpha: 0 }] },
-    { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.18, alpha: 1 }, { pos: 0.40, alpha: 0 }] },
-    { blurPx: 18, stops: [{ pos: 0, alpha: 1 }, { pos: 0.10, alpha: 1 }, { pos: 0.28, alpha: 0 }] },
-    { blurPx: 32, stops: [{ pos: 0, alpha: 1 }, { pos: 0.05, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
+      { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.18, alpha: 1 }, { pos: 0.35, alpha: 0 }] },
+      { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.10, alpha: 1 }, { pos: 0.26, alpha: 0 }] },
+      { blurPx: 18, stops: [{ pos: 0, alpha: 1 }, { pos: 0.06, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
+      { blurPx: 32, stops: [{ pos: 0, alpha: 1 }, { pos: 0.03, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
   ];
 
-  // ── Left progressive blur ─────────────────────────────────────────────────
-  // dir "right": pos 0 = left edge (fully blurred), fades right
   const LEFT_LAYERS = [
-    { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.22, alpha: 1 }, { pos: 0.46, alpha: 0 }] },
-    { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.14, alpha: 1 }, { pos: 0.34, alpha: 0 }] },
-    { blurPx: 20, stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.24, alpha: 0 }] },
+      { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
+      { blurPx: 6,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
   ];
 
-  // ── Right progressive blur (lighter) ─────────────────────────────────────
-  // dir "left": pos 0 = right edge (fully blurred), fades left
   const RIGHT_LAYERS = [
-    { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.18, alpha: 1 }, { pos: 0.40, alpha: 0 }] },
-    { blurPx: 12, stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.24, alpha: 0 }] },
+      { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
   ];
 
   const result = new OffscreenCanvas(W, H);
@@ -117,7 +136,7 @@ async function processHero({ id, url, width: W, height: H }) {
 async function processEventcard({ id, url, width: W, height: H }) {
   const res    = await fetch(url);
   const blob   = await res.blob();
-  const source = await createImageBitmap(blob, { resizeWidth: W, resizeHeight: H, resizeQuality: "medium" });
+  const source = await coverCrop(blob, W, H);
 
   const LAYERS = [
     { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.20, alpha: 1 }, { pos: 0.55, alpha: 0 }] },
@@ -143,7 +162,7 @@ async function processEventcard({ id, url, width: W, height: H }) {
 async function processNewscard({ id, url, width: W, height: H }) {
   const res    = await fetch(url);
   const blob   = await res.blob();
-  const source = await createImageBitmap(blob, { resizeWidth: W, resizeHeight: H, resizeQuality: "medium" });
+  const source = await coverCrop(blob, W, H);
 
   const CONT_TOP = 0.45;
   const CONT_H   = 0.55;
@@ -175,7 +194,7 @@ async function processNewscard({ id, url, width: W, height: H }) {
 async function processMatchcard({ id, url, width: W, height: H }) {
   const res    = await fetch(url);
   const blob   = await res.blob();
-  const source = await createImageBitmap(blob, { resizeWidth: W, resizeHeight: H, resizeQuality: "medium" });
+  const source = await coverCrop(blob, W, H);
 
   const blurCanvas = await blurBitmap(source, 6, W, H);
   const bitmap     = await createImageBitmap(blurCanvas);

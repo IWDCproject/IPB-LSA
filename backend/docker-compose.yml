@@ -1,10 +1,11 @@
 version: '3.8'
-
 services:
   database:
-    image: postgis/postgis:15-3.4 
+    image: postgis/postgis:15-3.4
     ports:
-      - "5432:5432"
+      - "7676:5432"
+    networks:
+      - app-network
     environment:
       POSTGRES_USER: directus
       POSTGRES_PASSWORD: postgres
@@ -21,28 +22,31 @@ services:
     image: directus/directus:latest
     ports:
       - "6767:8055"
+    networks:
+      - app-network
     depends_on:
       database:
         condition: service_healthy
     environment:
-      # --- CREDENTIAL Admin ---
       ADMIN_EMAIL: "admin@event.com"
       ADMIN_PASSWORD: "password123"
-      
-      # --- SECURITY ---
       KEY: "akusukakamu123"
       SECRET: "kamusukaaku321"
-      
-      # --- CONNECTION ---
       DB_CLIENT: "pg"
       DB_HOST: "database"
       DB_PORT: "5432"
       DB_DATABASE: "directus"
       DB_USER: "directus"
       DB_PASSWORD: "postgres"
-      
-      # --- WEB SOCKET ---
       WEBSOCKETS_ENABLED: "true"
+      CORS_ENABLED: "true"
+      CORS_ORIGIN: "http://localhost:3000"
+      CORS_METHODS: "GET,POST,PATCH,DELETE"
+      CORS_ALLOWED_HEADERS: "Content-Type,Authorization"
     volumes:
       - ./uploads:/directus/uploads
       - ./extensions:/directus/extensions
+
+networks:
+  app-network:
+    driver: bridge

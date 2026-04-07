@@ -54,6 +54,28 @@ const EXIT_DELAYS  = [150, 100, 50, 0];
 const ENTER_DELAYS = [0, 70, 140, 210];
 const INTRO_DELAYS = [160, 240, 320, 400];
 
+// ─── helper: draw bitmap with object-fit: cover behaviour ────────────────────
+const drawCover = (ctx, bitmap, w, h) => {
+    const bw = bitmap.width;
+    const bh = bitmap.height;
+    const scale = Math.max(w / bw, h / bh);
+    const dw = bw * scale;
+    const dh = bh * scale;
+    const dx = (w - dw) / 2;
+    const dy = (h - dh) / 2;
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(bitmap, dx, dy, dw, dh);
+};
+
+const drawToCanvas = (canvas, bitmap) => {
+    if (!canvas || !bitmap) return;
+    const w = canvas.offsetWidth  || window.innerWidth;
+    const h = canvas.offsetHeight || window.innerHeight;
+    canvas.width  = w;
+    canvas.height = h;
+    drawCover(canvas.getContext("2d"), bitmap, w, h);
+};
+
 export default function HeroSection({ paused = false, events: rawEvents = [] }) {
     const EVENTS = useMemo(() => {
         return (rawEvents || [])
@@ -96,14 +118,30 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
     }, []);
 
     useEffect(() => {
+        const observers = [];
+
         EVENTS.forEach((ev) => {
             const pair = bitmaps[ev.image_url]?.hero;
             if (!pair?.sharp || !pair?.blurred) return;
-            const sc = canvasRefs.current[`${ev.id}_sharp`];
-            if (sc) { sc.width = pair.sharp.width; sc.height = pair.sharp.height; sc.getContext("2d").drawImage(pair.sharp, 0, 0); }
-            const bc = canvasRefs.current[`${ev.id}_blur`];
-            if (bc) { bc.width = pair.blurred.width; bc.height = pair.blurred.height; bc.getContext("2d").drawImage(pair.blurred, 0, 0); }
+
+            [
+                { key: `${ev.id}_sharp`,  bitmap: pair.sharp   },
+                { key: `${ev.id}_blur`,   bitmap: pair.blurred },
+            ].forEach(({ key, bitmap }) => {
+                const canvas = canvasRefs.current[key];
+                if (!canvas) return;
+
+                // Initial draw
+                drawToCanvas(canvas, bitmap);
+
+                // Redraw whenever the canvas resizes (window resize, layout shift, etc.)
+                const ro = new ResizeObserver(() => drawToCanvas(canvas, bitmap));
+                ro.observe(canvas);
+                observers.push(ro);
+            });
         });
+
+        return () => observers.forEach((ro) => ro.disconnect());
     }, [bitmaps, EVENTS]);
 
     useEffect(() => { if (isReady) setMounted(true); }, [isReady]);
@@ -206,13 +244,11 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
                             className="absolute inset-0 w-full h-full"
-                            style={{ objectFit: "cover" }}
                         />
                         {/* Progressive blur baked in the worker — no CSS filter here */}
                         <canvas
                             ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
                             className="absolute inset-0 w-full h-full"
-                            style={{ objectFit: "cover" }}
                         />
                     </div>
                 ))}
@@ -276,7 +312,6 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                                         <EventCard 
                                             event={ev} 
                                             size="sm" 
-                                            bitmap={bitmaps[ev.image_url]?.eventcard?.bitmap}
                                         />
                                     </div>
                                     <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", border: `2px solid ${ringColor}`, pointerEvents: "none", zIndex: 10, transition: "border-color 0.2s ease" }} />
@@ -316,7 +351,6 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                                             <EventCard 
                                                 event={ev} 
                                                 size="sm" 
-                                                bitmap={bitmaps[ev.image_url]?.eventcard?.bitmap}
                                             />
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: "#111827" }}>

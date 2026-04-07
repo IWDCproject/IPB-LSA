@@ -1,9 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-export default function FightBackground({ visible = false }) {
-  const videoRef     = useRef(null);
-  const containerRef = useRef(null);
+interface FightBackgroundProps {
+    visible: boolean;
+}
+
+export default function FightBackground({ visible = false }: FightBackgroundProps) {
+  const videoRef     = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [fadeStart, setFadeStart] = useState(20);
   const [isFullyVisible, setIsFullyVisible] = useState(false);
 

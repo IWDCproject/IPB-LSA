@@ -1,5 +1,9 @@
 "use client";
+<<<<<<< HEAD
 import { useEffect, useRef } from "react";
+=======
+import { useEffect, useLayoutEffect, useRef } from "react";
+>>>>>>> 39312ad2e9d2c24321a7a31f41d71ab1d01d9922
 import { getAssetUrl } from "@/lib/directus";
 
 const BB = { fontFamily: "'Bebas Neue', 'Arial Narrow', sans-serif" };
@@ -41,7 +45,11 @@ const S = {
 
 function fmtSecs(s) {
   const t = Math.max(0, Math.floor(s));
-  return `${Math.floor(t / 60).toString().padStart(2, "0")}:${(t % 60).toString().padStart(2, "0")}`;
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const sec = t % 60;
+  if (h > 0) return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
 }
 
 function getEngine(fmt)   { return fmt?.modules?.[0] ?? null; }
@@ -107,21 +115,29 @@ function ScoreSets({ live, engine }) {
   const Dots = ({ filled }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: "calc(4px * var(--s))", justifyContent: "center" }}>
       {Array.from({ length: setsToWin }).map((_, i) => (
-        <div key={i} style={{ width: "calc(7px * var(--s))", height: "calc(7px * var(--s))", borderRadius: "50%", background: i < filled ? "#fff" : "rgba(255,255,255,0.25)" }} />
+        <div key={i} style={{
+          width: "calc(7px * var(--s))", height: "calc(7px * var(--s))",
+          borderRadius: "50%", background: i < filled ? "#fff" : "rgba(255,255,255,0.25)",
+        }} />
       ))}
     </div>
   );
 
-  const pill = { ...JK, background: "rgba(255,255,255,0.15)", borderRadius: 4, padding: "calc(2px * var(--s)) calc(7px * var(--s))", fontSize: "calc(12px * var(--s))" };
+  const pill = {
+    ...JK,
+    background: "rgba(255,255,255,0.15)", borderRadius: 4,
+    padding: "calc(2px * var(--s)) calc(7px * var(--s))",
+    fontSize: "calc(12px * var(--s))",
+  };
 
   return (
     <div style={{ textAlign: "center" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(8px * var(--s))" }}>
-        {setsWon[0] > 0 && <Dots filled={setsWon[0]} />}
+        <Dots filled={setsWon[0]} />
         <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{setScore[0]}</span>
         <span style={{ ...BB, fontSize: "calc(24px * var(--s))", opacity: 0.35, letterSpacing: 2 }}>-</span>
         <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{setScore[1]}</span>
-        {setsWon[1] > 0 && <Dots filled={setsWon[1]} />}
+        <Dots filled={setsWon[1]} />
       </div>
       {setLog.length > 0 && (
         <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(8px * var(--s))", flexWrap: "wrap" }}>
@@ -138,7 +154,12 @@ function JudgeScores({ live, engine }) {
   const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
   const result = calcJudgeScore(scores, method);
-  const pill = { ...JK, background: "rgba(255,255,255,0.15)", borderRadius: 4, padding: "calc(2px * var(--s)) calc(7px * var(--s))", fontSize: "calc(12px * var(--s))" };
+  const pill = {
+    ...JK,
+    background: "rgba(255,255,255,0.15)", borderRadius: 4,
+    padding: "calc(2px * var(--s)) calc(7px * var(--s))",
+    fontSize: "calc(12px * var(--s))",
+  };
   return (
     <div style={{ textAlign: "center" }}>
       <div style={{ ...BB, fontSize: "calc(40px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{result.toFixed(2)}</div>
@@ -158,14 +179,19 @@ function FinishTime({ live }) {
     return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", opacity: 0.4, textAlign: "center" }}>Waiting for results...</div>;
   }
   return (
-    <ol style={{ margin: 0, padding: `0 0 0 calc(18px * var(--s))` }}>
-      {log.map((e, i) => (
-        <li key={i} style={{ ...JK, fontSize: "calc(13px * var(--s))", marginBottom: "calc(2px * var(--s))" }}>
-          <span style={{ fontWeight: 700 }}>{e.name}</span>
-          <span style={{ opacity: 0.6, marginLeft: "calc(6px * var(--s))" }}>{e.time}</span>
-        </li>
-      ))}
-    </ol>
+    <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      <div style={{ width: "calc(260px * var(--s))", display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
+        {log.map((e, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "calc(12px * var(--s))" }}>
+            <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 700, minWidth: 0 }}>
+              <span style={{ opacity: 0.4, fontSize: "calc(11px * var(--s))", fontWeight: 700, marginRight: "calc(5px * var(--s))" }}>{i + 1}</span>
+              {e.name}
+            </span>
+            <span style={{ ...JK, fontSize: "calc(13px * var(--s))", opacity: 0.6, flexShrink: 0 }}>{e.time}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -175,14 +201,18 @@ function ManualPick({ live }) {
 
   if (rankings.length > 0) {
     return (
-      <ol style={{ margin: 0, padding: `0 0 0 calc(18px * var(--s))` }}>
-        {rankings.map((r) => (
-          <li key={r.rank} style={{ ...JK, fontSize: "calc(13px * var(--s))", marginBottom: "calc(2px * var(--s))" }}>
-            <span style={{ fontWeight: 700 }}>#{r.rank}</span>
-            <span style={{ marginLeft: "calc(6px * var(--s))" }}>{r.name}</span>
-          </li>
-        ))}
-      </ol>
+      <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <div style={{ width: "calc(260px * var(--s))", display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
+          {rankings.map((r) => (
+            <div key={r.rank} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "calc(12px * var(--s))" }}>
+              <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, minWidth: 0 }}>
+                <span style={{ opacity: 0.4, fontSize: "calc(11px * var(--s))", fontWeight: 700, marginRight: "calc(5px * var(--s))" }}>#{r.rank}</span>
+                {r.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -204,10 +234,10 @@ function OpenParticipants({ match }) {
   const rest  = entries.length - shown.length;
 
   return (
-    <div style={{ padding: "calc(12px * var(--s)) calc(18px * var(--s)) 0", display: "flex", flexDirection: "column", gap: "calc(3px * var(--s))" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "calc(3px * var(--s))", alignItems: "center" }}>
       {shown.map((p, i) => (
         <div key={p?.id ?? i} style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, display: "flex", alignItems: "center", gap: "calc(6px * var(--s))" }}>
-          <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 700, minWidth: "calc(16px * var(--s))" }}>{i + 1}</span>
+          <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 700, width: "calc(14px * var(--s))", textAlign: "right" }}>{i + 1}</span>
           <span style={{ opacity: 0.9 }}>{p?.name ?? "?"}</span>
         </div>
       ))}
@@ -230,8 +260,6 @@ function ScoreSection({ fmt, live, match }) {
   }
 }
 
-// canvas blur path — draw bitmap ke canvas, scale ikutin ukuran container
-// ResizeObserver mastiin canvas dimensions selalu sync sama display size
 function BitmapBlurLayer({ bitmap }) {
   const canvasRef = useRef(null);
 
@@ -273,29 +301,47 @@ function BitmapBlurLayer({ bitmap }) {
   );
 }
 
-// bitmap prop opsional — kalau null, fallback ke CSS backdrop-filter (jalan seperti biasa)
-// scale(1.1) pada CSS path untuk nutup edge bleed blur
-// pada canvas path tidak diperlukan karena PAD_FACTOR sudah handle itu
 export function MatchCard({ match, bitmap = null }) {
   const { live_state: live, competition_category: cat } = match;
   const event = cat?.event_id;
-  const fmt = cat?.format_id; // Menggunakan format dari kategori kompetisi
-
-  const timerMod = getTimerMod(fmt);
-  const timerRef = useRef(null);
-  useMatchTimerDOM(timerRef, live, timerMod);
+  const fmt   = cat?.format_id;
 
   const isH2H  = fmt?.match_type === "head_to_head";
   const isSolo = fmt?.match_type === "solo";
   const isOpen = fmt?.match_type === "open";
 
-  const label = match.match_name || [cat?.name, match.round].filter(Boolean).join(" - ");
+  const timerMod = getTimerMod(fmt);
+  const badgeTimerRef = useRef(null);
+  const openTimerRef  = useRef(null);
+  useMatchTimerDOM(badgeTimerRef, live, (!isOpen && timerMod) ? timerMod : null);
+  useMatchTimerDOM(openTimerRef,  live,  (isOpen && timerMod) ? timerMod : null);
 
+<<<<<<< HEAD
   const imageUrl = getAssetUrl(event?.card_image);
   const hasBg = !!imageUrl;
+=======
+  const cardRef  = useRef(null);
+  const DESIGN_W = 350;
+
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w) el.style.setProperty("--s", (w / DESIGN_W).toFixed(3));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const imageUrl = getAssetUrl(event?.card_image);
+  const hasBg    = !!imageUrl;
+>>>>>>> 39312ad2e9d2c24321a7a31f41d71ab1d01d9922
 
   return (
-    <div style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
+    <div ref={cardRef} style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
       {hasBg && (
         <>
           <div style={{ ...S.cardBg, backgroundImage: `url(${imageUrl})` }} />
@@ -315,24 +361,24 @@ export function MatchCard({ match, bitmap = null }) {
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
           padding: "calc(18px * var(--s)) calc(18px * var(--s)) 0", gap: "calc(8px * var(--s))",
         }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            {/* Kosong di design bagian kiri atas, tapi kita tetap simpan data jika perlu */}
-          </div>
+          <div style={{ minWidth: 0, flex: 1 }} />
           <div style={{
             ...BB,
             display: "flex", alignItems: "center", gap: "calc(5px * var(--s))",
-            background: "#FFC936", color: "#000", borderRadius: 4, padding: "calc(2px * var(--s)) calc(10px * var(--s))",
+            background: "rgba(255,201,54,0.4)", color: "#fff",
+            border: "1px solid #FFC936",
+            borderRadius: 4,
+            padding: "calc(2px * var(--s)) calc(10px * var(--s))",
             fontSize: "calc(14px * var(--s))", letterSpacing: 1, flexShrink: 0,
-            fontWeight: 800
+            fontWeight: 800,
           }}>
-            <div style={{ width: 8, height: 8, background: "#000", borderRadius: "50%" }} />
-            ONGOING
+            {timerMod && !isOpen ? <span ref={badgeTimerRef}>00:00</span> : "LIVE"}
           </div>
         </div>
 
-        {/* Participants & Scores (Center) */}
+        {/* Participants & Scores */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 calc(18px * var(--s))" }}>
-          
+
           {isH2H && (
             <div style={{ display: "flex", alignItems: "center", gap: "calc(12px * var(--s))" }}>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
@@ -342,15 +388,9 @@ export function MatchCard({ match, bitmap = null }) {
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))" }}>
-                <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1 }}>{live?.homeScore ?? 0}</span>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                  <span style={{ ...BB, fontSize: "calc(16px * var(--s))", opacity: 0.5 }}>VS</span>
-                  <div style={{ ...BB, fontSize: "calc(11px * var(--s))", background: "rgba(0,0,0,0.4)", padding: "2px 6px", borderRadius: 2 }}>
-                    {timerMod ? <span ref={timerRef}>00:00</span> : "LIVE"}
-                  </div>
-                </div>
-                <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1 }}>{live?.awayScore ?? 0}</span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "calc(4px * var(--s))" }}>
+                <span style={{ ...BB, fontSize: "calc(16px * var(--s))", opacity: 0.5 }}>VS</span>
+                <ScoreSection fmt={fmt} live={live} match={match} />
               </div>
 
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
@@ -364,7 +404,7 @@ export function MatchCard({ match, bitmap = null }) {
 
           {isSolo && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
-               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
                 <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
                 <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 8 }}>
                   {match.home_participant?.name ?? "?"}
@@ -372,27 +412,31 @@ export function MatchCard({ match, bitmap = null }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <ScoreSection fmt={fmt} live={live} match={match} />
-                <div style={{ ...BB, fontSize: "calc(14px * var(--s))", background: "rgba(0,0,0,0.4)", padding: "2px 8px", borderRadius: 2, marginTop: 4 }}>
-                    {timerMod ? <span ref={timerRef}>00:00</span> : "LIVE"}
-                </div>
               </div>
             </div>
           )}
 
           {isOpen && (
             <div style={{ textAlign: "center" }}>
-              <OpenParticipants match={match} />
-              <div style={{ ...BB, fontSize: "calc(18px * var(--s))", marginTop: 12 }}>30 MINUTES LEFT</div>
+              {timerMod && (
+                <div style={{ ...BB, fontSize: "calc(36px * var(--s))", marginBottom: "calc(10px * var(--s))", letterSpacing: 2 }}>
+                  <span ref={openTimerRef}>00:00:00</span>
+                </div>
+              )}
+              <div style={{ marginTop: "calc(4px * var(--s))" }}>
+                <ScoreSection fmt={fmt} live={live} match={match} />
+              </div>
             </div>
           )}
+
         </div>
 
         {/* Footer */}
-        <div style={{ 
-          marginTop: "auto", 
+        <div style={{
+          marginTop: "auto",
           padding: "calc(12px * var(--s)) calc(18px * var(--s))",
           borderTop: "1px solid rgba(255,255,255,0.1)",
-          display: "flex", justifyContent: "space-between", alignItems: "center"
+          display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ ...JK, fontWeight: 800, fontSize: "calc(12px * var(--s))", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

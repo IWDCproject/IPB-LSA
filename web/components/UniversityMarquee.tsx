@@ -11,18 +11,33 @@ const CONFIG = {
   copies: 5,
 };
 
+<<<<<<< HEAD:web/components/UniversityMarquee.jsx
 const UNIVERSITIES = [
   { name: "Universitas Indonesia",               logo: "/universities/ui.png" },
   { name: "Universitas Gadjah Mada",             logo: "/universities/ugm.png" },
   { name: "Institut Teknologi Sepuluh Nopember", logo: "/universities/its.png" },
   { name: "Universitas Padjadjaran",             logo: "/universities/unpad.png" },
   { name: "IPB University",                     logo: "/universities/ipb.png" },
+=======
+interface Unis {
+  abbr: string;
+  name: [string, string];
+  logo: string;
+}
+
+const UNIVERSITIES: Unis[] = [
+  { abbr: "UI",    name: ["Universitas", "Indonesia"],               logo: "/universities/ui.png" },
+  { abbr: "UGM",   name: ["Universitas", "Gadjah Mada"],             logo: "/universities/ugm.png" },
+  { abbr: "ITS",   name: ["Institut Teknologi", "Sepuluh Nopember"], logo: "/universities/its.png" },
+  { abbr: "UNPAD", name: ["Universitas", "Padjadjaran"],             logo: "/universities/unpad.png" },
+  { abbr: "IPB",   name: ["Institut Pertanian", "Bogor"],            logo: "/universities/ipb.png" },
+>>>>>>> 39312ad2e9d2c24321a7a31f41d71ab1d01d9922:web/components/UniversityMarquee.tsx
 ];
 
 const ITEMS = Array.from({ length: CONFIG.copies }, () => UNIVERSITIES).flat();
 
 export default function UniversityMarquee() {
-  const wrapRef = useRef(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [cw, setCw] = useState(NAT_W);
 
   useEffect(() => {

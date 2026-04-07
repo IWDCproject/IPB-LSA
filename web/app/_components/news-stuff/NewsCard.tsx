@@ -4,14 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { gsap }    from "gsap";
 import ArrowIcon   from "@/app/icons/arrow-up-right.svg";
 
-// Props map 1:1 ke kolom DB
-// thumbnail_url  <- news.thumbnail_url
-// tag            <- events.name (via join)
-// title          <- news.title
-// isMain         <- frontend-only, nentuin layout besar/kecil
-// compact        <- frontend-only, nentuin ukuran konten (mobile mode)
-// bitmap         <- opsional, dari BlurProvider — pre-rendered blur overlay
-
 const BLUR_LAYERS = [
   { blur: "1px",  mask: "linear-gradient(rgba(0,0,0,0), rgba(0,0,0,1) 15%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 58%)" },
   { blur: "3px",  mask: "linear-gradient(rgba(0,0,0,0) 25%, rgba(0,0,0,1) 42%, rgba(0,0,0,1) 62%, rgba(0,0,0,0) 76%)" },
@@ -19,7 +11,7 @@ const BLUR_LAYERS = [
   { blur: "10px", mask: "linear-gradient(rgba(0,0,0,0) 68%, rgba(0,0,0,1) 82%, rgba(0,0,0,1) 100%)" },
 ];
 
-// Base sizes — designed for the reference width of each variant.
+// Base sizes: designed for the reference width of each variant.
 // getSizes multiplies these by the card's observed scale factor.
 const BASE = {
   mainTitle:    35,
@@ -222,7 +214,7 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
 }
 
 const styles = {
-  wrap: (compact) => ({
+  wrap: (compact: boolean): React.CSSProperties => ({
     position:     "relative",
     width:        "100%",
     height:       "100%",
@@ -231,7 +223,7 @@ const styles = {
     boxShadow:    "0 0 0 0px #F5C400, 0 4px 4px rgba(0,0,0,0.25)",
   }),
 
-  card: (thumbnail_url, compact) => ({
+  card: (thumbnail_url: string, compact: boolean): React.CSSProperties => ({
     position:           "relative",
     width:              "100%",
     height:             "100%",
@@ -243,7 +235,7 @@ const styles = {
   }),
 
   // Arrow wrapper size is now driven by sz.arrow (already scaled).
-  arrowWrap: (arrowSize) => ({
+  arrowWrap: (arrowSize: number): React.CSSProperties => ({
     position:      "absolute",
     top:           14,
     right:         14,
@@ -263,9 +255,9 @@ const styles = {
     width:         "100%",
     height:        "55%",
     pointerEvents: "none",
-  },
+  } as React.CSSProperties,
 
-  blurLayer: (blur, mask) => ({
+  blurLayer: (blur: string, mask: string): React.CSSProperties => ({
     position:             "absolute",
     top:                  0,
     left:                 0,
@@ -281,9 +273,9 @@ const styles = {
     position:   "absolute",
     inset:      0,
     background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 68%)",
-  },
+  } as React.CSSProperties,
 
-  content: (pad) => ({
+  content: (pad: number): React.CSSProperties => ({
     position: "absolute",
     bottom:   pad,
     left:     pad,
@@ -291,7 +283,7 @@ const styles = {
     zIndex:   1,
   }),
 
-  tag: (fontSize) => ({
+  tag: (fontSize: number): React.CSSProperties => ({
     display:       "block",
     fontSize:      fontSize,
     fontWeight:    "500",
@@ -300,7 +292,7 @@ const styles = {
     letterSpacing: "0.04em",
   }),
 
-  title: (fontSize) => ({
+  title: (fontSize: number): React.CSSProperties => ({
     margin:          0,
     fontFamily:      "'Plus Jakarta Sans', sans-serif",
     fontSize:        fontSize,

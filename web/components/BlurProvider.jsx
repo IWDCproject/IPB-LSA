@@ -56,6 +56,7 @@ export default function BlurProvider({ children, imageManifest }) {
 
     let readyCount = 0;
     let lifted     = false;
+    let cap;
 
     function liftOverlay() {
       if (lifted) return;
@@ -117,7 +118,8 @@ export default function BlurProvider({ children, imageManifest }) {
     });
 
     // hard cap — kalau dalam 6.5 detik belum selesai, angkat overlay paksa
-    const cap = setTimeout(liftOverlay, MAX_MS);
+    cap = setTimeout(liftOverlay, MAX_MS);
+    
 
     return () => {
       worker.terminate();
