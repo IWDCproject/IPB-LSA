@@ -4,13 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link  from "next/link";
 import { getAssetUrl } from "@/lib/directus";
-
-const BLUR_LAYERS = [
-  { blur: "2px",  mask: "linear-gradient(to top, black 0%, black 20%, transparent 55%)" },
-  { blur: "4px",  mask: "linear-gradient(to top, black 0%, black 12%, transparent 42%)" },
-  { blur: "8px",  mask: "linear-gradient(to top, black 0%, black 8%,  transparent 30%)" },
-  { blur: "16px", mask: "linear-gradient(to top, black 0%, black 5%,  transparent 20%)" },
-];
+import { useBlur } from "@/contexts/BlurContext";
 
 function BitmapBlurLayer({ bitmap }) {
   const canvasRef = useRef(null);
@@ -67,12 +61,15 @@ const REF_W = { lg: 280, md: 200, sm: 150 };
 const BASE_ORG   = { lg: 15, md: 13, sm: 14 };
 const BASE_TITLE = { lg: 32, md: 26, sm: 24 };
 
-export default function EventCard({ event, className = "", size = "md", bitmap = null }) {
+export default function EventCard({ event, className = "", size = "md", bitmap: bitmapProp = null }) {
   const { slug, name, card_image, user_created } = event;
   const orgName = user_created?.organisation_name ?? null;
 
-  // Mendapatkan URL gambar yang valid (Directus ID atau URL Luar)
   const imageUrl = getAssetUrl(card_image);
+
+  // Use passed-in bitmap prop if available, otherwise pull from BlurContext
+  const { bitmaps } = useBlur();
+  const bitmap = bitmapProp ?? bitmaps[imageUrl]?.eventcard?.bitmap ?? null;
 
   const linkRef = useRef(null);
   const [cardW, setCardW] = useState(REF_W[size] ?? 200);
@@ -112,27 +109,13 @@ export default function EventCard({ event, className = "", size = "md", bitmap =
         <div className="absolute inset-0 bg-zinc-800" />
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-
-      <div className="absolute inset-0 pointer-events-none">
-        {bitmap ? (
+      {bitmap && (
+        <div className="absolute inset-0 pointer-events-none">
           <BitmapBlurLayer bitmap={bitmap} />
-        ) : (
-          BLUR_LAYERS.map(({ blur, mask }) => (
-            <div
-              key={blur}
-              style={{
-                position:             "absolute",
-                inset:                0,
-                backdropFilter:       `blur(${blur})`,
-                WebkitBackdropFilter: `blur(${blur})`,
-                maskImage:            mask,
-                WebkitMaskImage:      mask,
-              }}
-            />
-          ))
-        )}
-      </div>
+        </div>
+      )}
+
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: pad }}>
         {showOrg && (
