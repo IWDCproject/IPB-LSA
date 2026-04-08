@@ -5,6 +5,8 @@ import { gsap } from "gsap";
 import Button from "@/components/Button";
 import EventCard from "@/components/EventCard";
 import VerticalTimeline from "../timeline-stuff/VerticalTimeline";
+import { useBlurImages } from "@/hooks/useBlurImages";
+import { getAssetUrl } from "@/lib/directus";
 
 const BG  = "linear-gradient(to top, #06125C 5%, #0D26C2 100%)";
 const YEL = "#FFC936";
@@ -42,12 +44,7 @@ const NOTCH_CONFIG = {
   letterSpacing: "0.06em",
 };
 
-const MOCK = [
-  { id:"e1", name:"Open Charity Golf Tournament", slug:"golf-tournament-2026",    status:"active",   start_date:"2026-03-01", card_image_url:"https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=300&q=80", user_created:{ organisation_name:"IPB Golf Community" }, registration_closes:"15 of March" },
-  { id:"e2", name:"FORKI X IPB CUP 2026",         slug:"forki-ipb-cup-2026",      status:"upcoming", start_date:"2026-02-28", card_image_url:"https://images.unsplash.com/photo-1555597673-b21d5c935865?w=300&q=80", user_created:{ organisation_name:"UKM Karate IPB"   }, registration_closes:"30 of March" },
-  { id:"e3", name:"IT-TODAY HACKTODAY",            slug:"it-today-hacktoday-2026", status:"upcoming", start_date:"2026-03-20", card_image_url:"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=300&q=80", user_created:{ organisation_name:"Himalkom"        }, registration_closes:"1 of April"  },
-  { id:"e4", name:"GEMASTIK 2026",                 slug:"gemastik-2026",           status:"upcoming", start_date:"2026-04-10", card_image_url:"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=300&q=80", user_created:{ organisation_name:"BEM KM IPB"      }, registration_closes:"31 of April" },
-];
+
 
 function getSlotColors(isActive) {
   return isActive
@@ -214,7 +211,7 @@ function PlaceholderCard() {
 
 // Active events first, then upcoming, then null-padded to MAX_SLOTS.
 function shapeEvents(rawEvents) {
-  const src = rawEvents?.length ? rawEvents : MOCK;
+  const src = rawEvents ?? [];
 
   const isActive   = (ev) => ev.status === "active" || ev.status === "live";
   const active     = src.filter(isActive);
@@ -255,6 +252,23 @@ function shapeEvents(rawEvents) {
 export default function EventTimeline({ events: rawEvents }) {
   const events    = useMemo(() => shapeEvents(rawEvents), [rawEvents]);
   const activeIdx = useMemo(() => events.reduce((acc, ev, i) => (ev.isActive ? i : acc), -1), [events]);
+
+  // Register eventcard images so EventCard children can read bitmaps from context.
+  // HeroSection registers the same images as "hero" type — this covers "eventcard".
+  const eventcardManifest = useMemo(() =>
+    (rawEvents ?? [])
+      .filter(ev => ev.card_image)
+      .map(ev => ({
+        url:           getAssetUrl(ev.card_image),
+        type:          "eventcard",
+        width:         400,
+        height:        280,
+        naturalWidth:  ev.card_image?.width,
+        naturalHeight: ev.card_image?.height,
+      })),
+  [rawEvents]);
+
+  useBlurImages(eventcardManifest);
 
   const [isMobile,   setIsMobile]   = useState(false);
   const [scaleF,     setScaleF]     = useState(1);

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Button from '@/components/Button';
 import EventCard from '@/components/EventCard';
+import { useBlurImages } from "@/hooks/useBlurImages";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -23,8 +24,7 @@ function CardNotch({ isActive, isLeft }) {
   return (
     <div style={{
       position:       'absolute',
-      bottom:         -(NOTCH_H - 1),    // 1px overlap into card border, closes subpixel gap
-      // Offset to the side like a folder tab, mirrored per card side
+      bottom:         -(NOTCH_H - 1),
       ...(isLeft ? { left: 8 } : { right: 8 }),
       transform:      'scaleY(0)',
       transformOrigin:'50% 0%',
@@ -72,6 +72,23 @@ export default function VerticalTimeline({ events }) {
 
   const floatTweensRef = useRef([]);
   const tabVisRef      = useRef(true);
+
+  // Register eventcard blur for all events in this timeline.
+  // url must match whatever key EventCard uses to look up bitmaps[url]?.eventcard
+  const eventcardManifest = useMemo(() =>
+    events
+      .filter(ev => ev.image_url)
+      .map(ev => ({
+        url:           ev.image_url,
+        type:          'eventcard',
+        width:         400,
+        height:        280,
+        naturalWidth:  ev.card_image?.width,
+        naturalHeight: ev.card_image?.height,
+      })),
+  [events]);
+
+  useBlurImages(eventcardManifest);
 
   useEffect(() => {
     floatTweensRef.current = [];
@@ -268,7 +285,7 @@ export default function VerticalTimeline({ events }) {
           lineHeight: 1.2,
           fontWeight: 500,
         }}>
-          Don't miss your registration period!
+          Don&apos;t miss your registration period!
         </p>
         <div style={{ marginTop: '1vh' }}>
           <Button href="/events" variant="primary" size="sm">SEE EVENTS</Button>
@@ -367,7 +384,7 @@ export default function VerticalTimeline({ events }) {
                       onMouseEnter={() => setHoveredIdx(i)}
                       onMouseLeave={() => setHoveredIdx(null)}
                       style={{
-                        position:   'relative',  // anchor for absolute CardNotch
+                        position:   'relative',
                         opacity:    0,
                         marginTop:  50,
                         width:      'clamp(90px, 32vw, 160px)',
@@ -390,11 +407,6 @@ export default function VerticalTimeline({ events }) {
                         <EventCard event={ev} className="w-full h-full" size="sm" />
                       </div>
 
-                      {/*
-                        Folder tab: bottom of card, offset to the inner side
-                        (toward the timeline center) like a real folder tab.
-                        Absolute so it takes zero flow space.
-                      */}
                       {(isHovered || isActive) && (
                         <CardNotch isActive={isActive} isLeft={isLeft} />
                       )}

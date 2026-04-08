@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { MatchCard } from "../match-stuff/MatchCard";
 import { MatchTable } from "../match-stuff/MatchTable";
 import Button from "@/components/Button";
+import { useBlurImages } from "@/hooks/useBlurImages";
+import { getAssetUrl } from "@/lib/directus";
 
 const SCALE_START = 1600;
 const SCALE_FLOOR = 0.875;
@@ -52,6 +54,26 @@ export default function MatchSection({ matches: rawMatches }) {
     io.observe(el);
     return () => io.disconnect();
   }, []);
+
+  // Register matchcard images so MatchCard children can read bitmaps from context
+  const matchcardManifest = useMemo(() =>
+    (rawMatches || [])
+      .filter(m => m.competition_category?.event_id?.card_image)
+      .map(m => {
+        const img = m.competition_category.event_id.card_image;
+        return {
+          url:           getAssetUrl(img),
+          type:          "matchcard",
+          width:         400,
+          height:        280,
+          naturalWidth:  img?.width,
+          naturalHeight: img?.height,
+        };
+      })
+      .filter(entry => !!entry.url),
+  [rawMatches]);
+
+  useBlurImages(matchcardManifest);
 
   // Filter matches
   const liveMatches = useMemo(() => 
