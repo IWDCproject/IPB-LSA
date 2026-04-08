@@ -20,8 +20,8 @@ const BASE = {
   mainCompactPad:   20,
   mainCompactStroke: 2,
 
-  smallTitle:   25,
-  smallTag:     16,
+  smallTitle:   20,
+  smallTag:     14,
   smallArrow:   20,
   smallPad:     30,
   smallStroke:  2,
@@ -278,7 +278,7 @@ const styles = {
   tag: (fontSize: number): React.CSSProperties => ({
     display:       "block",
     fontSize:      fontSize,
-    fontWeight:    "500",
+    fontWeight:    "700",
     color:         "rgba(255,255,255,0.72)",
     marginTop:     "6px",
     letterSpacing: "0.04em",
@@ -292,7 +292,7 @@ const styles = {
     lineHeight:      1.1,
     color:           "#fff",
     display:         "-webkit-box",
-    overflow:        "hidden",
+    overflow:        "visible",
     filter:          "drop-shadow(0 2px 8px rgba(0,0,0,0.6))",
     WebkitLineClamp: 2,
     WebkitBoxOrient: "vertical",
