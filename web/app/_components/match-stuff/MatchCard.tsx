@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { getAssetUrl } from "@/lib/directus";
+import { useBlur } from "@/contexts/BlurContext";
 
 const BB = { fontFamily: "'Bebas Neue', 'Arial Narrow', sans-serif" };
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
@@ -11,35 +12,26 @@ const S = {
     display: "flex", flexDirection: "column",
     width: "100%", height: "100%", position: "relative",
     contain: "layout paint",
-  },
+  } as React.CSSProperties,
   cardBg: {
     position: "absolute", inset: 0,
     backgroundSize: "cover", backgroundPosition: "center",
-  },
-  cardBgBlur: {
-    position: "absolute",
-    inset: "-5%",
-    backgroundSize: "cover", backgroundPosition: "center",
-    filter: "blur(6px)",
-    transform: "scale(1.1)",
-    willChange: "transform",
-    zIndex: 0,
-  },
+  } as React.CSSProperties,
   cardOverlay: {
     position: "absolute", inset: 0,
     background: "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.75) 100%)",
     zIndex: 1,
-  },
+  } as React.CSSProperties,
   cardInner: {
     position: "relative", zIndex: 2,
     display: "flex", flexDirection: "column", flex: 1,
     boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,1)",
     height: "100%",
     borderRadius: 10,
-  },
+  } as React.CSSProperties,
 };
 
-function fmtSecs(s) {
+function fmtSecs(s: number) {
   const t = Math.max(0, Math.floor(s));
   const h = Math.floor(t / 3600);
   const m = Math.floor((t % 3600) / 60);
@@ -48,10 +40,10 @@ function fmtSecs(s) {
   return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
 }
 
-function getEngine(fmt)   { return fmt?.modules?.[0] ?? null; }
-function getTimerMod(fmt) { return fmt?.modules?.find((m) => m.type === "timer") ?? null; }
+function getEngine(fmt: any)   { return fmt?.modules?.[0] ?? null; }
+function getTimerMod(fmt: any) { return fmt?.modules?.find((m: any) => m.type === "timer") ?? null; }
 
-function calcJudgeScore(scores = [], method = "avg") {
+function calcJudgeScore(scores: number[] = [], method = "avg") {
   if (!scores.length) return 0;
   if (method === "drop_extremes" && scores.length > 2) {
     const sorted = [...scores].sort((a, b) => a - b).slice(1, -1);
@@ -61,38 +53,33 @@ function calcJudgeScore(scores = [], method = "avg") {
   return method === "sum" ? sum : sum / scores.length;
 }
 
-function useMatchTimerDOM(ref, live, timerMod) {
+function useMatchTimerDOM(ref: React.RefObject<HTMLSpanElement>, live: any, timerMod: any) {
   useEffect(() => {
     if (!timerMod) return;
-
     const isStopwatch = timerMod?.config?.mode === "stopwatch";
-
     const calc = () => {
       const snap = Math.max(0, live?.timerSecs ?? 0);
       if (!live?.timerRunning || !live?.timerLastStarted) return snap;
       const elapsed = Math.max(0, (Date.now() - new Date(live.timerLastStarted).getTime()) / 1000);
       return isStopwatch ? snap + elapsed : Math.max(0, snap - elapsed);
     };
-
     if (ref.current) ref.current.textContent = fmtSecs(calc());
     if (!live?.timerRunning) return;
-
     const id = setInterval(() => {
       if (ref.current) ref.current.textContent = fmtSecs(calc());
     }, 1000);
-
     return () => clearInterval(id);
   }, [live?.timerRunning, live?.timerLastStarted, live?.timerSecs, timerMod?.config?.mode]);
 }
 
-function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }) {
+function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }: { inst: any; size?: string }) {
   if (!inst?.logo_url) {
     return <div style={{ width: size, height: size, borderRadius: "50%", background: inst?.color ?? "#334155", flexShrink: 0 }} />;
   }
   return <img src={inst.logo_url} alt={inst.name} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0 }} />;
 }
 
-function ScoreTimed({ live }) {
+function ScoreTimed({ live }: { live: any }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(8px * var(--s))" }}>
       <span style={{ ...BB, fontSize: "calc(48px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{live?.homeScore ?? 0}</span>
@@ -102,13 +89,13 @@ function ScoreTimed({ live }) {
   );
 }
 
-function ScoreSets({ live, engine }) {
+function ScoreSets({ live, engine }: { live: any; engine: any }) {
   const setsWon   = live?.setsWon  ?? [0, 0];
   const setScore  = live?.setScore ?? [0, 0];
   const setLog    = live?.setLog   ?? [];
   const setsToWin = engine?.config?.sets_to_win ?? 3;
 
-  const Dots = ({ filled }) => (
+  const Dots = ({ filled }: { filled: number }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: "calc(4px * var(--s))", justifyContent: "center" }}>
       {Array.from({ length: setsToWin }).map((_, i) => (
         <div key={i} style={{
@@ -119,7 +106,7 @@ function ScoreSets({ live, engine }) {
     </div>
   );
 
-  const pill = {
+  const pill: React.CSSProperties = {
     ...JK,
     background: "rgba(255,255,255,0.15)", borderRadius: 4,
     padding: "calc(2px * var(--s)) calc(7px * var(--s))",
@@ -137,7 +124,7 @@ function ScoreSets({ live, engine }) {
       </div>
       {setLog.length > 0 && (
         <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(8px * var(--s))", flexWrap: "wrap" }}>
-          {setLog.map((s, i) => (
+          {setLog.map((s: any, i: number) => (
             <span key={i} style={pill}>{s.label ?? `Set ${i + 1}`}: {s.home}-{s.away}</span>
           ))}
         </div>
@@ -146,11 +133,11 @@ function ScoreSets({ live, engine }) {
   );
 }
 
-function JudgeScores({ live, engine }) {
+function JudgeScores({ live, engine }: { live: any; engine: any }) {
   const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
   const result = calcJudgeScore(scores, method);
-  const pill = {
+  const pill: React.CSSProperties = {
     ...JK,
     background: "rgba(255,255,255,0.15)", borderRadius: 4,
     padding: "calc(2px * var(--s)) calc(7px * var(--s))",
@@ -160,7 +147,7 @@ function JudgeScores({ live, engine }) {
     <div style={{ textAlign: "center" }}>
       <div style={{ ...BB, fontSize: "calc(40px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{result.toFixed(2)}</div>
       <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(4px * var(--s))", flexWrap: "wrap" }}>
-        {scores.map((s, i) => <span key={i} style={pill}>{s.toFixed(1)}</span>)}
+        {scores.map((s: number, i: number) => <span key={i} style={pill}>{s.toFixed(1)}</span>)}
       </div>
       <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.5, marginTop: "calc(4px * var(--s))", textTransform: "uppercase", letterSpacing: 1 }}>
         {method === "drop_extremes" ? "Avg (drop extremes)" : method}
@@ -169,7 +156,7 @@ function JudgeScores({ live, engine }) {
   );
 }
 
-function FinishTime({ live }) {
+function FinishTime({ live }: { live: any }) {
   const log = live?.timeLog ?? [];
   if (!log.length) {
     return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", opacity: 0.4, textAlign: "center" }}>Waiting for results...</div>;
@@ -177,7 +164,7 @@ function FinishTime({ live }) {
   return (
     <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
       <div style={{ width: "calc(260px * var(--s))", display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
-        {log.map((e, i) => (
+        {log.map((e: any, i: number) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "calc(12px * var(--s))" }}>
             <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 700, minWidth: 0 }}>
               <span style={{ opacity: 0.4, fontSize: "calc(11px * var(--s))", fontWeight: 700, marginRight: "calc(5px * var(--s))" }}>{i + 1}</span>
@@ -191,7 +178,7 @@ function FinishTime({ live }) {
   );
 }
 
-function ManualPick({ live }) {
+function ManualPick({ live }: { live: any }) {
   const winner   = live?.winner   ?? null;
   const rankings = live?.rankings ?? [];
 
@@ -199,7 +186,7 @@ function ManualPick({ live }) {
     return (
       <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <div style={{ width: "calc(260px * var(--s))", display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
-          {rankings.map((r) => (
+          {rankings.map((r: any) => (
             <div key={r.rank} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "calc(12px * var(--s))" }}>
               <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, minWidth: 0 }}>
                 <span style={{ opacity: 0.4, fontSize: "calc(11px * var(--s))", fontWeight: 700, marginRight: "calc(5px * var(--s))" }}>#{r.rank}</span>
@@ -219,10 +206,10 @@ function ManualPick({ live }) {
   return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.5, textAlign: "center" }}>Waiting...</div>;
 }
 
-function OpenParticipants({ match }) {
+function OpenParticipants({ match }: { match: any }) {
   const entries = [...(match?.participants ?? [])]
-    .sort((a, b) => a.position - b.position)
-    .map((j) => j.participant_id);
+    .sort((a: any, b: any) => a.position - b.position)
+    .map((j: any) => j.participant_id);
 
   if (!entries.length) return null;
 
@@ -231,7 +218,7 @@ function OpenParticipants({ match }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "calc(3px * var(--s))", alignItems: "center" }}>
-      {shown.map((p, i) => (
+      {shown.map((p: any, i: number) => (
         <div key={p?.id ?? i} style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, display: "flex", alignItems: "center", gap: "calc(6px * var(--s))" }}>
           <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 700, width: "calc(14px * var(--s))", textAlign: "right" }}>{i + 1}</span>
           <span style={{ opacity: 0.9 }}>{p?.name ?? "?"}</span>
@@ -244,7 +231,7 @@ function OpenParticipants({ match }) {
   );
 }
 
-function ScoreSection({ fmt, live, match }) {
+function ScoreSection({ fmt, live, match }: { fmt: any; live: any; match: any }) {
   const engine = getEngine(fmt);
   switch (engine?.type) {
     case "score_timed":  return <ScoreTimed  live={live} />;
@@ -258,27 +245,37 @@ function ScoreSection({ fmt, live, match }) {
 
 function BitmapBlurLayer({ bitmap }) {
   const canvasRef = useRef(null);
+  const bitmapRef = useRef(null);
 
   useEffect(() => {
     if (!bitmap || !canvasRef.current) return;
+    bitmapRef.current = bitmap;
     const canvas = canvasRef.current;
 
     function draw() {
+      if (!bitmapRef.current) return;
       const dpr = window.devicePixelRatio || 1;
       const w   = canvas.offsetWidth  || 1;
       const h   = canvas.offsetHeight || 1;
-      canvas.width        = Math.round(w * dpr);
-      canvas.height       = Math.round(h * dpr);
-      canvas.style.width  = w + "px";
-      canvas.style.height = h + "px";
+      canvas.width  = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
       const ctx = canvas.getContext("2d");
-      ctx.scale(dpr, dpr);
-      ctx.drawImage(bitmap, 0, 0, w, h);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // cover-fit: scale bitmap so it fills w×h without distortion
+      const bw = bitmapRef.current.width;
+      const bh = bitmapRef.current.height;
+      const scale = Math.max(w / bw, h / bh);
+      const dw = bw * scale;
+      const dh = bh * scale;
+      const dx = (w - dw) / 2;
+      const dy = (h - dh) / 2;
+      ctx.drawImage(bitmapRef.current, dx, dy, dw, dh);
     }
 
     const ro = new ResizeObserver(draw);
     ro.observe(canvas);
-
+    draw(); // initial paint
     return () => ro.disconnect();
   }, [bitmap]);
 
@@ -291,13 +288,12 @@ function BitmapBlurLayer({ bitmap }) {
         width:         "100%",
         height:        "100%",
         pointerEvents: "none",
-        zIndex:        0,
       }}
     />
   );
 }
 
-export function MatchCard({ match, bitmap = null }) {
+export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bitmap?: ImageBitmap | null }) {
   const { live_state: live, competition_category: cat } = match;
   const event = cat?.event_id;
   const fmt   = cat?.format_id;
@@ -306,13 +302,13 @@ export function MatchCard({ match, bitmap = null }) {
   const isSolo = fmt?.match_type === "solo";
   const isOpen = fmt?.match_type === "open";
 
-  const timerMod = getTimerMod(fmt);
-  const badgeTimerRef = useRef(null);
-  const openTimerRef  = useRef(null);
+  const timerMod     = getTimerMod(fmt);
+  const badgeTimerRef = useRef<HTMLSpanElement>(null);
+  const openTimerRef  = useRef<HTMLSpanElement>(null);
   useMatchTimerDOM(badgeTimerRef, live, (!isOpen && timerMod) ? timerMod : null);
   useMatchTimerDOM(openTimerRef,  live,  (isOpen && timerMod) ? timerMod : null);
 
-  const cardRef  = useRef(null);
+  const cardRef  = useRef<HTMLDivElement>(null);
   const DESIGN_W = 350;
 
   useLayoutEffect(() => {
@@ -331,16 +327,16 @@ export function MatchCard({ match, bitmap = null }) {
   const imageUrl = getAssetUrl(event?.card_image);
   const hasBg    = !!imageUrl;
 
+  // Pull bitmap from BlurContext, fallback to prop
+  const { bitmaps } = useBlur();
+  const bitmap = bitmapProp ?? (imageUrl ? bitmaps[imageUrl]?.matchcard?.bitmap ?? null : null);
+
   return (
     <div ref={cardRef} style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
       {hasBg && (
         <>
           <div style={{ ...S.cardBg, backgroundImage: `url(${imageUrl})` }} />
-          {bitmap ? (
-            <BitmapBlurLayer bitmap={bitmap} />
-          ) : (
-            <div style={{ ...S.cardBgBlur, backgroundImage: `url(${imageUrl})` }} />
-          )}
+          {bitmap && <BitmapBlurLayer bitmap={bitmap} />}
         </>
       )}
 

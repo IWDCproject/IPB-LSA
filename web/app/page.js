@@ -26,8 +26,8 @@ export default async function Page() {
       return image ? { url: getAssetUrl(image), type: "matchcard", width: 400, height: 280 } : null;
     }).filter(Boolean),
     // Replace placeholder with real news thumbnails
-    ...news.map(n => n.thumbnail_url
-      ? { url: n.thumbnail_url, type: "newscard", width: 800, height: 600 }
+    ...news.map((n, i) => n.thumbnail_url
+      ? { url: n.thumbnail_url, type: "newscard", width: i === 0 ? 800 : 400, height: i === 0 ? 600 : 300 }
       : null
     ).filter(Boolean),
   ];
