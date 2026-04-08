@@ -2,6 +2,29 @@
 // Unified blur worker — processes all image types in a single batch.
 // Blur computation is offloaded to /api/blur (Sharp, server-side).
 // Worker handles: natural-AR sizing, masking, and compositing.
+//
+// Natural dimensions (naturalWidth, naturalHeight) are passed in via the
+// manifest from page.js (sourced from Directus file metadata) — no browser
+// fetch just to read pixel dimensions.
+//
+// TTL
+// ─────────────────────────────────────────────────────────────────────────
+// Each processor defines its own TTL_S (seconds). This is passed to the
+// route via &ttl= so the server enforces it on cache reads.
+// To change a type's TTL, edit the constant here — no route changes needed.
+//
+
+
+// =============================================================================
+// TTL config (seconds) — one place, owned by the worker
+// =============================================================================
+
+const TTL = {
+  hero:      30 * 24 * 60 * 60, // 30 days — hero images rarely change
+  eventcard:  7 * 24 * 60 * 60, //  7 days
+  newscard:   2 * 24 * 60 * 60, //  2 days — news updates frequently
+  matchcard:  7 * 24 * 60 * 60, //  7 days
+};
 
 
 // =============================================================================
@@ -31,9 +54,6 @@ const EVENTCARD_LAYERS = [
   { blurPx: 16, stops: [{ pos: 0, alpha: 1 }, { pos: 0.05, alpha: 1 }, { pos: 0.20, alpha: 0 }] },
 ];
 
-// Gradient positions are relative to the bottom container (bottom 55% of card).
-// remap() converts them to full-card coordinates so the mask aligns with the
-// CSS background-size: cover crop, which always operates on the full card height.
 const NEWSCARD_CONT_TOP = 0.45;
 const NEWSCARD_CONT_H   = 0.55;
 const remapNewscard     = (p) => NEWSCARD_CONT_TOP + p * NEWSCARD_CONT_H;
@@ -72,22 +92,6 @@ const NEWSCARD_LAYERS = [
 // Sizing helpers
 // =============================================================================
 
-// Fetches the original image and returns its natural pixel dimensions.
-// Uses the browser cache, so if the image is already on-page this is effectively free.
-async function getNaturalSize(url) {
-  const blob = await fetch(url).then((r) => r.blob());
-  const bmp  = await createImageBitmap(blob);
-  const size = { w: bmp.width, h: bmp.height };
-  bmp.close();
-  return size;
-}
-
-// Scales natural dimensions to fit within the manifest W x H box,
-// preserving the original aspect ratio (equivalent to sharp's fit: "inside").
-//
-// Using the original AR for the OffscreenCanvas ensures that BitmapBlurLayer's
-// cover-fit and CSS background-size: cover both start from the same source AR,
-// producing identical crops and eliminating subject-position misalignment.
 function insideDims(naturalW, naturalH, maxW, maxH) {
   const scale = Math.min(maxW / naturalW, maxH / naturalH);
   return {
@@ -102,14 +106,15 @@ function insideDims(naturalW, naturalH, maxW, maxH) {
 // =============================================================================
 
 // Requests a server-side blurred bitmap via /api/blur.
-// Sharp blurs at canW x canH; result is immutably cached by the CDN/browser.
-async function fetchBlurred(imageUrl, blurPx, canW, canH) {
+// ttl is passed so the server enforces the right cache lifespan per type.
+async function fetchBlurred(imageUrl, blurPx, canW, canH, ttl) {
   const endpoint =
     `${self.location.origin}/api/blur` +
     `?url=${encodeURIComponent(imageUrl)}` +
     `&blur=${blurPx}` +
     `&w=${canW}` +
-    `&h=${canH}`;
+    `&h=${canH}` +
+    `&ttl=${ttl}`;
 
   const res = await fetch(endpoint);
   if (!res.ok) throw new Error(`blur API ${res.status} for blurPx=${blurPx}`);
@@ -118,10 +123,9 @@ async function fetchBlurred(imageUrl, blurPx, canW, canH) {
   return createImageBitmap(blob);
 }
 
-// Fetches all unique blur levels in parallel and returns a blurPx -> bitmap map.
-async function fetchBlurMap(url, layers, canW, canH) {
+async function fetchBlurMap(url, layers, canW, canH, ttl) {
   const uniquePxs   = [...new Set(layers.map((l) => l.blurPx))];
-  const blurBitmaps = await Promise.all(uniquePxs.map((px) => fetchBlurred(url, px, canW, canH)));
+  const blurBitmaps = await Promise.all(uniquePxs.map((px) => fetchBlurred(url, px, canW, canH, ttl)));
   return Object.fromEntries(uniquePxs.map((px, i) => [px, blurBitmaps[i]]));
 }
 
@@ -130,8 +134,6 @@ async function fetchBlurMap(url, layers, canW, canH) {
 // Compositing helpers
 // =============================================================================
 
-// Creates a gradient mask canvas used to control where a blur layer is visible.
-// dir: "down" top->bottom | "up" bottom->top | "right" left->right | "left" right->left
 function makeMask(W, H, stops, dir = "down") {
   const oc  = new OffscreenCanvas(W, H);
   const ctx = oc.getContext("2d");
@@ -153,7 +155,6 @@ function makeMask(W, H, stops, dir = "down") {
   return oc;
 }
 
-// Composites a masked blur layer onto the destination context.
 function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas) {
   const tmp  = new OffscreenCanvas(W, H);
   const tctx = tmp.getContext("2d");
@@ -166,8 +167,6 @@ function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas) {
   destCtx.drawImage(tmp, 0, 0);
 }
 
-// Composites a list of layers onto a new OffscreenCanvas and returns the bitmap.
-// Cleans up all intermediate blur bitmaps after compositing.
 async function compositeLayers(layers, blurMap, canW, canH, maskDir) {
   const result = new OffscreenCanvas(canW, canH);
   const rctx   = result.getContext("2d");
@@ -187,15 +186,20 @@ async function compositeLayers(layers, blurMap, canW, canH, maskDir) {
 // Processors
 // =============================================================================
 
-async function processHero({ id, url, width: W, height: H }) {
-  const allLayers = [...HERO_BOTTOM_LAYERS, ...HERO_LEFT_LAYERS, ...HERO_RIGHT_LAYERS];
+async function processHero(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.hero;
 
-  const { w: nw, h: nh } = await getNaturalSize(url);
-  const { canW, canH }   = insideDims(nw, nh, W, H);
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+
+  const allLayers      = [...HERO_BOTTOM_LAYERS, ...HERO_LEFT_LAYERS, ...HERO_RIGHT_LAYERS];
+  const { canW, canH } = insideDims(nw, nh, W, H);
+  const scaledUrl      = `${url}&width=1200&fit=inside`;
 
   const [sharpBlob, blurMap] = await Promise.all([
-    fetch(url).then((r) => r.blob()),
-    fetchBlurMap(url, allLayers, canW, canH),
+    fetch(scaledUrl).then((r) => r.blob()),
+    fetchBlurMap(url, allLayers, canW, canH, ttl),
   ]);
 
   const sharp = await createImageBitmap(sharpBlob, {
@@ -220,35 +224,47 @@ async function processHero({ id, url, width: W, height: H }) {
   Object.values(blurMap).forEach((b) => b.close());
 
   const blurred = await createImageBitmap(result);
-  return { id, url, type: "hero", sharp, blurred };
+  return { id: img.id, url, type: "hero", sharp, blurred };
 }
 
-async function processEventcard({ id, url, width: W, height: H }) {
-  const { w: nw, h: nh } = await getNaturalSize(url);
-  const { canW, canH }   = insideDims(nw, nh, W, H);
+async function processEventcard(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.eventcard;
 
-  const blurMap = await fetchBlurMap(url, EVENTCARD_LAYERS, canW, canH);
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+  const { canW, canH } = insideDims(nw, nh, W, H);
+
+  const blurMap = await fetchBlurMap(url, EVENTCARD_LAYERS, canW, canH, ttl);
   const bitmap  = await compositeLayers(EVENTCARD_LAYERS, blurMap, canW, canH, "up");
 
-  return { id, url, type: "eventcard", bitmap };
+  return { id: img.id, url, type: "eventcard", bitmap };
 }
 
-async function processNewscard({ id, url, width: W, height: H }) {
-  const { w: nw, h: nh } = await getNaturalSize(url);
-  const { canW, canH }   = insideDims(nw, nh, W, H);
+async function processNewscard(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.newscard;
 
-  const blurMap = await fetchBlurMap(url, NEWSCARD_LAYERS, canW, canH);
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+  const { canW, canH } = insideDims(nw, nh, W, H);
+
+  const blurMap = await fetchBlurMap(url, NEWSCARD_LAYERS, canW, canH, ttl);
   const bitmap  = await compositeLayers(NEWSCARD_LAYERS, blurMap, canW, canH, "down");
 
-  return { id, url, type: "newscard", bitmap };
+  return { id: img.id, url, type: "newscard", bitmap };
 }
 
-async function processMatchcard({ id, url, width: W, height: H }) {
-  const { w: nw, h: nh } = await getNaturalSize(url);
-  const { canW, canH }   = insideDims(nw, nh, W, H);
+async function processMatchcard(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.matchcard;
 
-  const bitmap = await fetchBlurred(url, 6, canW, canH);
-  return { id, url, type: "matchcard", bitmap };
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+  const { canW, canH } = insideDims(nw, nh, W, H);
+
+  const bitmap = await fetchBlurred(url, 6, canW, canH, ttl);
+  return { id: img.id, url, type: "matchcard", bitmap };
 }
 
 
