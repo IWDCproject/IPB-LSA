@@ -157,7 +157,8 @@ export default function MatchSection({ matches: rawMatches }) {
                 flexDirection: "row",
                 gap: CARD_GAP,
                 overflowX: "auto",
-                scrollSnapType: "x mandatory",
+                scrollSnapType: "x proximity",
+                scrollPaddingLeft: mobilePad,
                 WebkitOverflowScrolling: "touch",
                 paddingLeft: mobilePad,
                 paddingRight: 0,
@@ -191,9 +192,9 @@ export default function MatchSection({ matches: rawMatches }) {
                 </div>
               ))}
 
-              <div style={{ ...anim(cardMatches.length + 2), "--s": 1, flexShrink: 0 }}>
+              <div style={{ ...anim(cardMatches.length + 2), flexShrink: 0 }}>
                 <div style={{
-                  width: 240, height: 280,
+                  width: "calc(240px * var(--s))", height: "calc(280px * var(--s))",
                   border: "2px dashed rgba(255,255,255,0.4)",
                   borderRadius: 10, boxSizing: "border-box",
                   display: "flex", flexDirection: "column",

@@ -123,9 +123,9 @@ function ScoreSets({ live, engine }: { live: any; engine: any }) {
         <Dots filled={setsWon[1]} />
       </div>
       {setLog.length > 0 && (
-        <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(8px * var(--s))", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(4px * var(--s))", flexWrap: "wrap" }}>
           {setLog.map((s: any, i: number) => (
-            <span key={i} style={pill}>{s.label ?? `Set ${i + 1}`}: {s.home}-{s.away}</span>
+            <span key={i} style={pill}>{s.home} - {s.away}</span>
           ))}
         </div>
       )}
@@ -369,21 +369,21 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
           {isH2H && (
             <div style={{ display: "flex", alignItems: "center", gap: "calc(12px * var(--s))" }}>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
-                <InstitutionLogo inst={match.home_participant?.institution} size="calc(48px * var(--s))" />
-                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(12px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 4, textAlign: "center", width: "100%" }}>
-                  {match.home_participant?.name?.split(" ")[0] ?? "?"}
+                <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
+                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
                 </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "calc(4px * var(--s))" }}>
-                <span style={{ ...BB, fontSize: "calc(16px * var(--s))", opacity: 0.5 }}>VS</span>
+                {/* <span style={{ ...BB, fontSize: "calc(16px * var(--s))", opacity: 0.5 }}>VS</span> */}
                 <ScoreSection fmt={fmt} live={live} match={match} />
               </div>
 
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
-                <InstitutionLogo inst={match.away_participant?.institution} size="calc(48px * var(--s))" />
-                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(12px * var(--s))", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 4, textAlign: "center", width: "100%" }}>
-                  {match.away_participant?.name?.split(" ")[0] ?? "?"}
+                <InstitutionLogo inst={match.away_participant?.institution} size="calc(56px * var(--s))" />
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
+                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
                 </div>
               </div>
             </div>
@@ -393,8 +393,8 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
                 <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
-                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 8 }}>
-                  {match.home_participant?.name ?? "?"}
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
+                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
