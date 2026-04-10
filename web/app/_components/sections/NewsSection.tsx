@@ -178,10 +178,15 @@ export default function NewsSection({ news }: NewsSectionProps) {
           paddingBottom: isMobile ? 60 : Math.min(100, Math.max(40, cw * 0.052)),
         }}
       >
+
         {/* Batik texture overlay */}
         <div style={{
           position: "absolute", inset: 0, backgroundImage: "url(/Batik_Pattern_dark.svg)",
-          backgroundSize: "cover", opacity: 0.3, pointerEvents: "none",
+          opacity: 0.2, pointerEvents: "none",
+          backgroundSize: "1900px auto",
+          backgroundRepeat: "repeat-x",
+          backgroundPosition: "bottom",
+          transform: "rotate(180deg)",
         }} />
 
         <h2

@@ -3,12 +3,16 @@ import Link from "next/link";
 import ArrowIcon from "@/app/icons/arrow-up-right.svg";
 
 interface ButtonProps {
-    variant?: "primary" | "outline" | "ghost";
+    variant?: "primary" | "outline" | "ghost" | "secondary" | "secondary-filled";
     size?: "sm" | "md" | "lg";
     href?: string;
-    onClick?: () => void;
+    onClick?: (e: React.MouseEvent) => void;
     disabled?: boolean;
     className?: string;
+    fixedWidth?: string;   // e.g. "140px" — makes all buttons the same width
+    external?: boolean;
+    showIcon?: boolean;
+    showShadow?: boolean;
     children: React.ReactNode;
 }
 
@@ -17,9 +21,13 @@ interface SlotTextProps {
 }
 
 const variants = {
-  primary: "bg-yellow-400 text-zinc-900 border-transparent hover:bg-yellow-300 font-bold",
-  outline: "bg-transparent text-white border-white hover:bg-white/10 font-semibold",
-  ghost:   "bg-transparent text-white/70 border-transparent hover:text-white font-semibold",
+  primary:           "bg-[#FFC936] text-zinc-900 border-transparent hover:bg-[#FFC936] font-bold",
+  outline:           "bg-transparent text-white border-white hover:bg-white/10 font-semibold",
+  ghost:             "bg-transparent text-white/70 border-transparent hover:text-white font-semibold",
+  // Blue stroke, white bg — for use on white/light surfaces (table)
+  secondary:         "bg-white text-[#0D26C2] border-[#0D26C2] hover:bg-[#0D26C2] hover:text-white font-bold",
+  // Solid blue — for active/highlighted states on light surfaces
+  "secondary-filled":"bg-[#0D26C2] text-white border-[#0D26C2] hover:bg-[#0a1faa] font-bold",
 };
 
 const sizes = {
@@ -104,10 +112,20 @@ export default function Button({
   onClick,
   disabled = false,
   className = "",
+  fixedWidth,
+  external = false,
+  showIcon = true,
+  showShadow = true,
   children,
 }: ButtonProps) {
   const classes = `${base} ${variants[variant]} ${sizes[size]} ${className}`;
   const { ref, onMouseEnter, onMouseLeave } = useSlotHover();
+
+  const sharedStyle = {
+    fontFamily: "'Bebas Neue', sans-serif",
+    ...(showShadow ? { filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))" } : {}),
+    ...(fixedWidth ? { width: fixedWidth } : {}),
+  };
 
   if (href) {
     return (
@@ -115,12 +133,15 @@ export default function Button({
         href={href}
         ref={ref}
         className={classes}
-        style={{ fontFamily: "'Bebas Neue', sans-serif", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))" }}
+        style={sharedStyle}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       >
         <SlotText>{children}</SlotText>
-        <ArrowIcon style={{ width: 16, height: 16, flexShrink: 0 }} strokeWidth={30} />
+        {showIcon && (
+          <ArrowIcon style={{ width: 16, height: 16, flexShrink: 0 }} strokeWidth={30} />
+        )}
       </Link>
     );
   }
@@ -131,11 +152,14 @@ export default function Button({
       onClick={onClick}
       disabled={disabled}
       className={classes}
-      style={{ fontFamily: "'Bebas Neue', sans-serif", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))", }}
+      style={sharedStyle}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       <SlotText>{children}</SlotText>
+      {showIcon && (
+        <ArrowIcon style={{ width: 16, height: 16, flexShrink: 0 }} strokeWidth={30} />
+      )}
     </button>
   );
 }
