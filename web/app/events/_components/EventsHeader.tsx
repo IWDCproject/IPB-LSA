@@ -1,6 +1,4 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { getAssetUrl } from "@/lib/directus";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 const BB = { fontFamily: "'Bebas Neue', sans-serif" }        as const;
@@ -20,82 +18,124 @@ const FILTERS: { key: FilterType; label: string }[] = [
   { key: "arts",  label: "Arts" },
 ];
 
+const KEYFRAMES = `
+  @keyframes evh-slide-up {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  @keyframes evh-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  input::placeholder {
+    color: rgba(255,255,255,0.7);
+    opacity: 1;
+  }
+`;
+
+function staggerStyle(delay: number): React.CSSProperties {
+  return {
+    opacity: 0,
+    animation: `evh-slide-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms forwards`,
+  };
+}
+
 export default function EventsHeader({
   filter, search, onFilterChange, onSearchChange,
 }: Props) {
   return (
-    <div style={{
-      position: "relative",
-      zIndex: 1,
-      height: "clamp(200px, 42vh, 300px)",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "flex-end",
-      padding: "0 clamp(20px, 8.33vw, 160px) 36px",
-			marginBottom: 16,
-      gap: 18,
-    }}>
-      <div>
-        <div style={{
-          ...BB,
-          fontSize: "clamp(2rem, 4.5vw, 3.5rem)",
-          color: "#fff",
-          lineHeight: 1,
-          textTransform: "uppercase",
-        }}>
-          See All Events
-        </div>
-        <div style={{
-          ...JK,
-          fontSize: "clamp(12px, 1.4vw, 14px)",
-          color: "rgba(255,255,255,0.6)",
-          marginTop: 8,
-          maxWidth: 480,
-          lineHeight: 1.6,
-        }}>
-          Join the most anticipated sports and art events. Prove your skills, compete with the best, and win prestigious awards.
-        </div>
-      </div>
+    <>
+      <style>{KEYFRAMES}</style>
+      <div style={{
+        position: "relative",
+        zIndex: 1,
+        height: "clamp(200px, 42vh, 300px)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-end",
+        padding: "0 clamp(20px, 8.33%, 160px) 36px",
+        marginBottom: 16,
+        gap: 18,
+      }}>
+        <div>
+          {/* Title */}
+          <div style={{
+            ...BB,
+            fontSize: "clamp(2rem, 4.5vw, 3.5rem)",
+            color: "#fff",
+            lineHeight: 1,
+            textTransform: "uppercase",
+            ...staggerStyle(80),
+          }}>
+            See All Events
+          </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          {FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => onFilterChange(f.key)}
+          {/* Subtitle */}
+          <div style={{
+            ...JK,
+            fontSize: "clamp(12px, 1.4vw, 14px)",
+            color: "rgba(255,255,255,0.6)",
+            marginTop: 8,
+            maxWidth: 480,
+            lineHeight: 1.6,
+            ...staggerStyle(200),
+          }}>
+            Join the most anticipated sports and art events. Prove your skills, compete with the best, and win prestigious awards.
+          </div>
+        </div>
+
+        {/* Controls row */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+          ...staggerStyle(320),
+        }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            {FILTERS.map((f, i) => (
+              <button
+                key={f.key}
+                onClick={() => onFilterChange(f.key)}
+                style={{
+                  ...JK, fontWeight: 700, fontSize: 13,
+                  padding: "7px 16px", borderRadius: 999,
+                  border: "1.5px solid rgba(255,255,255,0.7)",
+                  background: filter === f.key ? "#fff" : "rgba(255,255,255,0.1)",
+                  color: filter === f.key ? "#0D26C2" : "#fff",
+                  cursor: "pointer", transition: "background 0.2s, color 0.2s",
+                  // Per-pill stagger on top of the row stagger
+                  opacity: 0,
+                  animation: `evh-slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${360 + i * 60}ms forwards`,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div style={{
+            flex: 1, maxWidth: 360, minWidth: 180, position: "relative",
+            opacity: 0,
+            animation: `evh-fade-in 0.5s ease ${580}ms forwards`,
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24"
+              fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"
+              style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="text" placeholder="Search events..." value={search}
+              onChange={e => onSearchChange(e.target.value)}
               style={{
-                ...JK, fontWeight: 700, fontSize: 13,
-                padding: "7px 16px", borderRadius: 999,
-                border: filter === f.key ? "none" : "1.5px solid rgba(255,255,255,0.3)",
-                background: filter === f.key ? "#fff" : "rgba(255,255,255,0.1)",
-                color: filter === f.key ? "#0D26C2" : "#fff",
-                cursor: "pointer", transition: "background 0.2s, color 0.2s",
+                ...JK, width: "100%", boxSizing: "border-box",
+                padding: "8px 14px 8px 34px", borderRadius: 8,
+                border: "1.5px solid rgba(255,255,255,0.6)",
+                background: "rgba(255,255,255,0.1)", color: "#fff",
+                fontWeight: 700, fontSize: 13, outline: "none",
               }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ flex: 1, maxWidth: 360, minWidth: 180, position: "relative" }}>
-          <svg width="15" height="15" viewBox="0 0 24 24"
-            fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="2.5"
-            style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            type="text" placeholder="Search events..." value={search}
-            onChange={e => onSearchChange(e.target.value)}
-            style={{
-              ...JK, width: "100%", boxSizing: "border-box",
-              padding: "8px 14px 8px 34px", borderRadius: 8,
-              border: "1.5px solid rgba(255,255,255,0.2)",
-              background: "rgba(255,255,255,0.1)", color: "#fff",
-              fontSize: 13, outline: "none",
-            }}
-          />
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

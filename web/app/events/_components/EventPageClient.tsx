@@ -26,10 +26,22 @@ const BG_IMAGE_HEIGHT = "clamp(500px, 65vh, 650px)";
 // Mask: image (+ tint) fade to transparent so they dissolve into the gradient bg
 const IMAGE_MASK = "linear-gradient(to bottom, black 30%, transparent 85%)";
 
-// Blue tint overlaid on top of the image — tune opacity to taste (0 = no tint, 1 = full)
+// Blue tint overlaid on top of the image
 const TINT_COLOR = "linear-gradient(to top, rgba(13, 38, 194, 0.7) 0%, rgba(13, 38, 194, 0.5) 0%)";
 
+// ─── Page-level keyframes ────────────────────────────────────────────────────
+const PAGE_KEYFRAMES = `
+  @keyframes epc-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes epc-marquee-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+`;
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function sortEvents(events: any[]) {
   return [...events].sort((a, b) => {
@@ -48,17 +60,26 @@ function getImageUrl(ev: any): string | null {
   return null;
 }
 
+// ─── BgCrossfade (unchanged) ─────────────────────────────────────────────────
+
 function BgCrossfade({ cycleEvents }: { cycleEvents: any[] }) {
   const [imgA, setImgA]   = useState<string | null>(() => getImageUrl(cycleEvents[0] ?? null));
   const [imgB, setImgB]   = useState<string | null>(null);
   const [front, setFront] = useState<"a" | "b">("a");
   const [ready, setReady] = useState(false);
   const indexRef          = useRef(0);
+  const frontRef          = useRef<"a" | "b">("a"); // mirrors `front` for use inside setTimeout closures
   const timerRef          = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // FIX 1: cancelled guard — prevents setReady() firing on an unmounted
+  // component, and stops stale Promise batches from a previous cycleEvents
+  // value from resolving into the new render cycle.
   useEffect(() => {
     if (cycleEvents.length === 0) return;
     setImgA(getImageUrl(cycleEvents[0]));
+
+    let cancelled = false;
+
     const urls = cycleEvents.map(ev => getImageUrl(ev)).filter(Boolean) as string[];
     Promise.all(
       urls.map(url => new Promise<void>(res => {
@@ -66,7 +87,9 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: any[] }) {
         img.onload = img.onerror = () => res();
         img.src = url;
       }))
-    ).then(() => setReady(true));
+    ).then(() => { if (!cancelled) setReady(true); });
+
+    return () => { cancelled = true; };
   }, [cycleEvents]);
 
   useEffect(() => {
@@ -78,10 +101,14 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: any[] }) {
         const nextUrl = getImageUrl(cycleEvents[nextIdx]);
         indexRef.current = nextIdx;
 
-        setFront(prev => {
-          if (prev === "a") { setImgB(nextUrl); return "b"; }
-          else              { setImgA(nextUrl); return "a"; }
-        });
+        // FIX 2: never call setImgA/setImgB as side-effects inside a setState
+        // updater — React Strict Mode double-invokes updaters, causing double
+        // image swaps. Use frontRef to read current value synchronously instead.
+        const next = frontRef.current === "a" ? "b" : "a";
+        frontRef.current = next;
+        if (next === "b") setImgB(nextUrl);
+        else              setImgA(nextUrl);
+        setFront(next);
 
         schedule();
       }, CYCLE_MS);
@@ -100,6 +127,17 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: any[] }) {
       WebkitMaskImage: IMAGE_MASK,
       maskImage: IMAGE_MASK,
     }}>
+      {/*
+        FIX 3: removed `willChange: "opacity"` from both layers.
+        Each div already has `filter: blur()` AND `transform: scale()` —
+        both of which independently promote the element to its own GPU
+        compositor layer. Adding `willChange: "opacity"` on top creates a
+        THIRD promotion hint, causing the browser to allocate up to 3×
+        the VRAM for each layer. With two large hero images, that can
+        spike VRAM by hundreds of MB and crash the GPU process (taking
+        the whole browser / OS with it on low-VRAM machines).
+        The CSS transition on opacity still works fine without it.
+      */}
       {/* Layer A */}
       <div style={{
         position: "absolute", inset: 0,
@@ -108,7 +146,6 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: any[] }) {
         filter: "blur(3px)", transform: "scale(1.05)",
         opacity: front === "a" ? 1 : 0,
         transition: `opacity ${FADE_MS}ms ease-in-out`,
-        willChange: "opacity",
       }} />
       {/* Layer B */}
       <div style={{
@@ -118,7 +155,6 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: any[] }) {
         filter: "blur(3px)", transform: "scale(1.05)",
         opacity: front === "b" ? 1 : 0,
         transition: `opacity ${FADE_MS}ms ease-in-out`,
-        willChange: "opacity",
       }} />
 
       <div style={{
@@ -130,10 +166,20 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: any[] }) {
   );
 }
 
+// ─── Main page component ─────────────────────────────────────────────────────
+
 export default function EventPageClient({ events: rawEvents }: { events: any[] }) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [search, setSearch] = useState("");
   const [page, setPage]     = useState(1);
+
+  // Skeleton: show for a short window on first mount so the animation
+  // plays even when data is already available (SSR → hydration transition).
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(t);
+  }, []);
 
   const sorted = useMemo(() => sortEvents(rawEvents), [rawEvents]);
 
@@ -164,45 +210,59 @@ export default function EventPageClient({ events: rawEvents }: { events: any[] }
   );
 
   return (
-    <main style={{
-      position: "relative",
-      minHeight: "100vh",
-      // Single gradient, full page — the masked image dissolves into this
-      background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
-    }}>
-      {/* Batik texture overlay */}
-      <div style={{
-				position: "absolute", inset: 0, backgroundImage: "url(/Batik_Pattern_dark.svg)",
-        opacity: 0.4, pointerEvents: "none",
-        backgroundSize: "1400px 100%",
-				backgroundRepeat: "repeat-x",
-				backgroundPosition: "bottom",
-				transform: "rotate(180deg)",
-      }} />
+    <>
+      <style>{PAGE_KEYFRAMES}</style>
+      <main style={{
+        position: "relative",
+        minHeight: "100vh",
+        background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
+        // Whole-page soft fade-in
+        opacity: 0,
+        animation: "epc-fade-in 0.4s ease 0ms forwards",
+      }}>
+        {/* Batik texture overlay */}
+        <div style={{
+          position: "absolute", inset: 0, backgroundImage: "url(/Batik_Pattern_dark.svg)",
+          opacity: 0.4, pointerEvents: "none",
+          backgroundSize: "1530px 100%",
+          backgroundRepeat: "repeat-x",
+          backgroundPosition: "bottom",
+          transform: "rotate(180deg)",
+        }} />
 
-			<BgCrossfade cycleEvents={cycleEvents} />
+        <BgCrossfade cycleEvents={cycleEvents} />
 
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <EventsHeader
-          filter={filter}
-          search={search}
-          onFilterChange={handleFilter}
-          onSearchChange={handleSearch}
-        />
-
-        <div style={{ padding: `0 clamp(20px, 8.33vw, 160px) 34px` }}>
-          <EventsTable
-            events={paginated}
-            total={filtered.length}
-            page={page}
-            perPage={PER_PAGE}
-            onPageChange={setPage}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <EventsHeader
+            filter={filter}
+            search={search}
+            onFilterChange={handleFilter}
+            onSearchChange={handleSearch}
           />
+
+          <div style={{ padding: `0 clamp(20px, 8.33%, 160px) 34px` }}>
+            <EventsTable
+              events={paginated}
+              total={filtered.length}
+              page={page}
+              perPage={PER_PAGE}
+              onPageChange={setPage}
+              loading={loading}
+            />
+          </div>
+
+          {/* Marquee + footer fade up after table settles */}
+          <div style={{
+            opacity: 0,
+            animation: "epc-marquee-up 0.5s ease 900ms forwards",
+          }}>
+            <UniversityMarquee />
+          </div>
+
+          <div style={{ height: 120 }} />
+          <Footer />
         </div>
-        <UniversityMarquee />
-        <div style={{ height: 120 }} /> {/* spacer bottom margin gitu */}
-        <Footer />
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
