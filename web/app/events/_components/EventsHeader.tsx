@@ -10,6 +10,7 @@ interface Props {
   search:         string;
   onFilterChange: (f: FilterType) => void;
   onSearchChange: (s: string) => void;
+  isMobile?:      boolean;
 }
 
 const FILTERS: { key: FilterType; label: string }[] = [
@@ -27,9 +28,8 @@ const KEYFRAMES = `
     from { opacity: 0; }
     to   { opacity: 1; }
   }
-  input::placeholder {
-    color: rgba(255,255,255,0.7);
-    opacity: 1;
+  .evh-search::placeholder {
+    color: rgba(255, 255, 255, 0.7);
   }
 `;
 
@@ -41,7 +41,7 @@ function staggerStyle(delay: number): React.CSSProperties {
 }
 
 export default function EventsHeader({
-  filter, search, onFilterChange, onSearchChange,
+  filter, search, onFilterChange, onSearchChange, isMobile = false,
 }: Props) {
   return (
     <>
@@ -53,7 +53,7 @@ export default function EventsHeader({
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
-        padding: "0 clamp(20px, 8.33%, 160px) 36px",
+        padding: isMobile ? "0 20px 36px" : "0 clamp(20px, 8.33vw, 160px) 36px",
         marginBottom: 16,
         gap: 18,
       }}>
@@ -61,7 +61,8 @@ export default function EventsHeader({
           {/* Title */}
           <div style={{
             ...BB,
-            fontSize: "clamp(2rem, 4.5vw, 3.5rem)",
+            filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
+            fontSize: "clamp(3rem, 4.5vw, 4rem)",
             color: "#fff",
             lineHeight: 1,
             textTransform: "uppercase",
@@ -73,8 +74,11 @@ export default function EventsHeader({
           {/* Subtitle */}
           <div style={{
             ...JK,
+            textWrap: "balance",
             fontSize: "clamp(12px, 1.4vw, 14px)",
-            color: "rgba(255,255,255,0.6)",
+            fontWeight: 600,
+            color: "rgba(255,255,255,0.7)",
+            filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
             marginTop: 8,
             maxWidth: 480,
             lineHeight: 1.6,
@@ -86,7 +90,9 @@ export default function EventsHeader({
 
         {/* Controls row */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+          display: "flex", flexDirection: isMobile ? "column" : "row",
+          alignItems: "flex-start", gap: isMobile ? 8 : 10, flexWrap: "wrap", 
+          marginBottom: -20, marginTop: 30,
           ...staggerStyle(320),
         }}>
           <div style={{ display: "flex", gap: 8 }}>
@@ -113,7 +119,7 @@ export default function EventsHeader({
 
           {/* Search */}
           <div style={{
-            flex: 1, maxWidth: 360, minWidth: 180, position: "relative",
+            flex: 1, maxWidth: isMobile ? "100%" : 360, minWidth: 200, width: isMobile ? "100%" : undefined, position: "relative",
             opacity: 0,
             animation: `evh-fade-in 0.5s ease ${580}ms forwards`,
           }}>
@@ -125,12 +131,13 @@ export default function EventsHeader({
             <input
               type="text" placeholder="Search events..." value={search}
               onChange={e => onSearchChange(e.target.value)}
+              className="evh-search"
               style={{
                 ...JK, width: "100%", boxSizing: "border-box",
                 padding: "8px 14px 8px 34px", borderRadius: 8,
-                border: "1.5px solid rgba(255,255,255,0.6)",
+                border: "1.5px solid rgba(255,255,255,0.7)",
                 background: "rgba(255,255,255,0.1)", color: "#fff",
-                fontWeight: 700, fontSize: 13, outline: "none",
+                fontSize: 13, fontWeight: 700, outline: "none",
               }}
             />
           </div>
