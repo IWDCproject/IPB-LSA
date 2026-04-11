@@ -228,3 +228,31 @@ export const getNews = async ({ limit = 5 } = {}) => {
     return [];
   }
 };
+
+
+// Events Page
+
+export const getEventsForListing = async () => {
+  try {
+    return await directus.request(
+      readItems('events', {
+        filter: { is_published: { _eq: true } },
+        fields: [
+          '*',
+          'user_created.organisation_name',
+          'card_image.id',
+          'card_image.uploaded_on',
+          'card_image.width',
+          'card_image.height',
+          'banner_image.id',
+          'banner_image.uploaded_on',
+        ],
+        sort: ['start_date'],
+        limit: -1,
+      })
+    );
+  } catch (error) {
+    console.error('Error fetching events for listing:', error);
+    return [];
+  }
+};

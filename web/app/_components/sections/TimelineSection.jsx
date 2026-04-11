@@ -451,7 +451,10 @@ export default function EventTimeline({ events: rawEvents }) {
       {/* Batik texture overlay */}
       <div style={{
         position: "absolute", inset: 0, backgroundImage: "url(/Batik_Pattern_dark.svg)",
-        backgroundSize: "cover", opacity: 0.4, pointerEvents: "none",
+        opacity: 0.4, pointerEvents: "none",
+        backgroundSize: "1500px auto",
+				backgroundRepeat: "repeat-x",
+				backgroundPosition: "bottom",
       }} />
 
       <canvas ref={canvasRef} style={{
