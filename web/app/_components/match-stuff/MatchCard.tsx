@@ -366,6 +366,7 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
         {/* Participants & Scores */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 calc(18px * var(--s))" }}>
 
+          {/* HEAD TO HEAD */}
           {isH2H && (
             <div style={{ display: "flex", alignItems: "center", gap: "calc(12px * var(--s))" }}>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
@@ -375,47 +376,39 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "calc(4px * var(--s))" }}>
-                {/* <span style={{ ...BB, fontSize: "calc(16px * var(--s))", opacity: 0.5 }}>VS</span> */}
-                <ScoreSection fmt={fmt} live={live} match={match} />
-              </div>
+              <ScoreSection fmt={fmt} live={live} match={match} />
 
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
                 <InstitutionLogo inst={match.away_participant?.institution} size="calc(56px * var(--s))" />
                 <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
-                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
+                  {/* FIXED: Changed from home_participant to away_participant */}
+                  {match.away_participant?.name?.replace(" ", "\n") ?? "?"}
                 </div>
               </div>
             </div>
           )}
 
-          {isSolo && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
-                <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
-                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
-                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <ScoreSection fmt={fmt} live={live} match={match} />
-              </div>
-            </div>
-          )}
-
-          {isOpen && (
+          {/* SOLO & OPEN */}
+          {(isSolo || isOpen) && (
             <div style={{ textAlign: "center" }}>
-              {timerMod && (
+              {isOpen && timerMod && (
                 <div style={{ ...BB, fontSize: "calc(36px * var(--s))", marginBottom: "calc(10px * var(--s))", letterSpacing: 2 }}>
                   <span ref={openTimerRef}>00:00:00</span>
                 </div>
               )}
-              <div style={{ marginTop: "calc(4px * var(--s))" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
+                {isSolo && (
+                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+                     <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
+                     <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4 }}>
+                       {match.home_participant?.name ?? "?"}
+                     </div>
+                   </div>
+                )}
                 <ScoreSection fmt={fmt} live={live} match={match} />
               </div>
             </div>
           )}
-
         </div>
 
         {/* Footer */}
