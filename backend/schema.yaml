@@ -2950,7 +2950,7 @@ fields:
       field: home_participant_id
       group: null
       hidden: false
-      interface: null
+      interface: select-dropdown-m2o
       note: null
       options: null
       readonly: false
@@ -2958,7 +2958,7 @@ fields:
       searchable: true
       sort: null
       special:
-        - uuid
+        - m2o
       translations: null
       validation: null
       validation_message: null
@@ -2991,7 +2991,7 @@ fields:
       field: away_participant_id
       group: null
       hidden: false
-      interface: null
+      interface: select-dropdown-m2o
       note: null
       options: null
       readonly: false
@@ -2999,7 +2999,7 @@ fields:
       searchable: true
       sort: null
       special:
-        - uuid
+        - m2o
       translations: null
       validation: null
       validation_message: null
@@ -4390,7 +4390,7 @@ relations:
       one_allowed_collections: null
       one_collection: matches
       one_collection_field: null
-      one_deselect_action: nullify
+      one_deselect_action: cascade
       one_field: participants
       sort_field: null
     schema:
@@ -4400,7 +4400,7 @@ relations:
       foreign_key_column: id
       constraint_name: match_participants_match_id_fkey
       on_update: NO ACTION
-      on_delete: SET NULL
+      on_delete: CASCADE
   - collection: matches
     field: thumbnail_matches
     related_collection: directus_files
@@ -4420,6 +4420,48 @@ relations:
       foreign_key_table: directus_files
       foreign_key_column: id
       constraint_name: matches_thumbnail_matches_foreign
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: matches
+    field: home_participant_id
+    related_collection: participants
+    meta:
+      junction_field: null
+      many_collection: matches
+      many_field: home_participant_id
+      one_allowed_collections: null
+      one_collection: participants
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    schema:
+      table: matches
+      column: home_participant_id
+      foreign_key_table: participants
+      foreign_key_column: id
+      constraint_name: matches_home_participant_id_fkey
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: matches
+    field: away_participant_id
+    related_collection: participants
+    meta:
+      junction_field: null
+      many_collection: matches
+      many_field: away_participant_id
+      one_allowed_collections: null
+      one_collection: participants
+      one_collection_field: null
+      one_deselect_action: nullify
+      one_field: null
+      sort_field: null
+    schema:
+      table: matches
+      column: away_participant_id
+      foreign_key_table: participants
+      foreign_key_column: id
+      constraint_name: matches_away_participant_id_fkey
       on_update: NO ACTION
       on_delete: SET NULL
   - collection: news
