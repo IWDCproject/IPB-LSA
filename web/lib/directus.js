@@ -112,6 +112,11 @@ export const getStats = async () => {
   return { eventsCount: e.length, institutionsCount: i.length, participantsCount: p.length };
 };
 export const getNews = async ({ limit = 5 } = {}) => {
-  const items = await directus.request(readItems('news', { filter: { is_published: { _eq: true } }, fields: ['*', 'thumbnail.*'], sort: ['-published_at'], limit }));
+  const items = await directus.request(readItems('news', { 
+    filter: { is_published: { _eq: true } }, 
+    fields: ['*', 'thumbnail.*', 'event_id.name'], 
+    sort: ['-published_at'], 
+    limit 
+  }));
   return items.map(i => ({ ...i, thumbnail_url: getAssetUrl(i.thumbnail) }));
 };

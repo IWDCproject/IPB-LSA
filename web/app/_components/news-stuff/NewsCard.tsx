@@ -212,8 +212,8 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
         </div>
 
         <div style={styles.content(sz.pad)}>
-          <p style={styles.title(sz.title)}>{title}</p>
           {tag && <span style={styles.tag(sz.tag)}>{tag}</span>}
+          <p style={styles.title(sz.title)}>{title}</p>
         </div>
 
       </div>
