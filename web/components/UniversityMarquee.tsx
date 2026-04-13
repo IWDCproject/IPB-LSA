@@ -1,32 +1,22 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-const NAT_W = 1920; // sama dengan semua section lain
+const NAT_W = 1920; 
 
 const CONFIG = {
-  speed: 35,
-  itemGap: 15,
-  logoHeight: 35,
-  logoOpacity: 0.8,
-  copies: 4,
-  fade: {
-    start: 150,
-    end: 200,
-  },
+  speed: 50,
+  itemGap: -500,
+  logoHeight: 40,
+  logoOpacity: 1,
+  copies: 5,
 };
 
-interface Unis {
-  abbr: string;
-  name: [string, string];
-  logo: string;
-}
-
-const UNIVERSITIES: Unis[] = [
-  { abbr: "UI",    name: ["Universitas", "Indonesia"],               logo: "/universities/ui.png" },
-  { abbr: "UGM",   name: ["Universitas", "Gadjah Mada"],             logo: "/universities/ugm.png" },
-  { abbr: "ITS",   name: ["Institut Teknologi", "Sepuluh Nopember"], logo: "/universities/its.png" },
-  { abbr: "UNPAD", name: ["Universitas", "Padjadjaran"],             logo: "/universities/unpad.png" },
-  { abbr: "IPB",   name: ["Institut Pertanian", "Bogor"],            logo: "/universities/ipb.png" },
+const UNIVERSITIES = [
+  { name: "Universitas Indonesia",               logo: "/universities/ui.png" },
+  { name: "Universitas Gadjah Mada",             logo: "/universities/ugm.png" },
+  { name: "Institut Teknologi Sepuluh Nopember", logo: "/universities/its.png" },
+  { name: "Universitas Padjadjaran",             logo: "/universities/unpad.png" },
+  { name: "IPB University",                     logo: "/universities/ipb.png" },
 ];
 
 const ITEMS = Array.from({ length: CONFIG.copies }, () => UNIVERSITIES).flat();
@@ -45,18 +35,16 @@ export default function UniversityMarquee() {
 
   const isMobile = cw < 1024;
 
-  // fade edges match section margins: clamp(40px, 8.33vw, 160px)
-  const fadeStart  = isMobile ? 24  : Math.round(Math.min(160, Math.max(40, cw * 0.0833)));
-  const fadeEnd    = isMobile ? 48  : Math.round(Math.min(200, Math.max(60, cw * 0.1042)));
-  const logoHeight = CONFIG.logoHeight;
-  const fontSize   = 10.4;
-  const itemGap    = CONFIG.itemGap;
+  const fadeEnd    = isMobile ? 32 : Math.round(Math.min(220, Math.max(80, cw * 0.0833)));
+  const logoHeight = isMobile ? 22 : 28;
+  const fontSize   = isMobile ? 8.5 : 10;
+  const itemGap    = 3; // Sangat rapat sesuai permintaan
 
   const mask = `linear-gradient(to right,
-    transparent ${fadeStart}px,
+    transparent 0px,
     black ${fadeEnd}px,
     black calc(100% - ${fadeEnd}px),
-    transparent calc(100% - ${fadeStart}px)
+    transparent 100%
   )`;
 
   return (
@@ -78,19 +66,23 @@ export default function UniversityMarquee() {
           align-items: center;
           width: max-content;
           animation: marquee ${CONFIG.speed}s linear infinite;
+          will-change: transform;
         }
-      `}</style>
+        `}</style>
 
-      <div className="marquee-track">
+        <div className="marquee-track">
         {ITEMS.map((uni, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 shrink-0"
-            style={{ marginInline: itemGap }}
+            className="flex items-center shrink-0"
+            style={{ 
+              gap: "5px",
+              paddingRight: "50px" // Konsisten di setiap item, termasuk yang terakhir dalam grup
+            }}
           >
             <img
               src={uni.logo}
-              alt={uni.name.join(" ")}
+              alt={uni.name}
               style={{
                 height:  logoHeight,
                 width:   "auto",
@@ -102,12 +94,16 @@ export default function UniversityMarquee() {
               style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
                 fontSize:   fontSize,
-                fontWeight: 600,
-                color:      "rgba(255,255,255,0.5)",
-                lineHeight: 1.3,
+                fontWeight: 700,
+                color:      "rgba(255,255,255,0.4)",
+                letterSpacing: "0.04em",
+                lineHeight: 1.1,
+                maxWidth:   isMobile ? "80px" : "110px",
+                textTransform: "uppercase",
+                display: "block"
               }}
             >
-              {uni.name[0]}<br />{uni.name[1]}
+              {uni.name}
             </span>
           </div>
         ))}

@@ -116,7 +116,7 @@ export const getMatches = async () => {
           'participants.participant_id.*',
           'participants.participant_id.institution_id.*',
         ],
-        filter: { status: { _in: ['live', 'upcoming'] } },
+        filter: { status: { _in: ['live', 'upcoming', 'finished'] } },
         sort: ['status', 'scheduled_at'],
       })
     );
