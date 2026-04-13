@@ -44,8 +44,8 @@ services:
       CORS_METHODS: "GET,POST,PATCH,DELETE"
       CORS_ALLOWED_HEADERS: "Content-Type,Authorization"
     volumes:
-      - ./uploads:/directus/uploads
-      - ./extensions:/directus/extensions
+      - ./uploads:/directus/uploads:z
+      - ./extensions:/directus/extensions:z
 
 networks:
   app-network:
