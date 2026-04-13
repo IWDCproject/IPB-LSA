@@ -1,9 +1,5 @@
 "use client";
-<<<<<<< HEAD
-import { useEffect, useRef } from "react";
-=======
 import { useEffect, useLayoutEffect, useRef } from "react";
->>>>>>> 39312ad2e9d2c24321a7a31f41d71ab1d01d9922
 import { getAssetUrl } from "@/lib/directus";
 import { useBlur } from "@/contexts/BlurContext";
 
@@ -312,15 +308,7 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
   useMatchTimerDOM(badgeTimerRef, live, (!isOpen && timerMod) ? timerMod : null);
   useMatchTimerDOM(openTimerRef,  live,  (isOpen && timerMod) ? timerMod : null);
 
-<<<<<<< HEAD:web/app/_components/match-stuff/MatchCard.jsx
-<<<<<<< HEAD
-  const imageUrl = getAssetUrl(event?.card_image);
-  const hasBg = !!imageUrl;
-=======
-  const cardRef  = useRef(null);
-=======
   const cardRef  = useRef<HTMLDivElement>(null);
->>>>>>> 950ece0cde499955b56a9274a22a4e6e08b3fc98:web/app/_components/match-stuff/MatchCard.tsx
   const DESIGN_W = 350;
 
   useLayoutEffect(() => {
@@ -338,7 +326,6 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
 
   const imageUrl = getAssetUrl(event?.card_image);
   const hasBg    = !!imageUrl;
->>>>>>> 39312ad2e9d2c24321a7a31f41d71ab1d01d9922
 
   // Pull bitmap from BlurContext, fallback to prop
   const { bitmaps } = useBlur();

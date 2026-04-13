@@ -26,24 +26,6 @@ export default directus;
 //
 export const getAssetUrl = (asset) => {
   if (!asset) return null;
-<<<<<<< HEAD
-<<<<<<< HEAD
-  // Jika sudah berupa URL lengkap (mulai dengan http/https), langsung kembalikan
-  if (typeof asset === 'string' && (asset.startsWith('http://') || asset.startsWith('https://'))) {
-    return asset;
-  }
-  // Jika berupa ID (dari Directus), buat URL lengkapnya
-  const baseUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767';
-  return `${baseUrl}/assets/${asset}`;
-=======
-  const id = (asset !== null && typeof asset === 'object') ? asset.id : asset;
-  if (!id) return null;
-  if (typeof id === 'string' && id === 'null') return null; 
-  if (typeof id === 'string' && (id.startsWith('http://') || id.startsWith('https://'))) return id;
-  const baseUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767';
-  return `${baseUrl}/assets/${id}`;
->>>>>>> 39312ad2e9d2c24321a7a31f41d71ab1d01d9922
-=======
 
   const isObj = typeof asset === 'object';
   const id    = isObj ? asset.id : asset;
@@ -66,7 +48,6 @@ export const getAssetUrl = (asset) => {
   }
 
   return url;
->>>>>>> 950ece0cde499955b56a9274a22a4e6e08b3fc98
 };
 
 
@@ -107,19 +88,6 @@ export const getMatches = async () => {
       readItems('matches', {
         fields: [
           '*',
-<<<<<<< HEAD
-          'competition_category.id',
-          'competition_category.name',
-          'competition_category.participant_type',
-          'competition_category.event_id.id',
-          'competition_category.event_id.name',
-          'competition_category.event_id.card_image',
-          'competition_category.format_id.*', // Ambil format dari kategori
-          'home_participant.*',
-          'home_participant.institution.*',
-          'away_participant.*',
-          'away_participant.institution.*',
-=======
           'competition_category_id.id',
           'competition_category_id.name',
           'competition_category_id.participant_type',
@@ -143,13 +111,12 @@ export const getMatches = async () => {
           'home_participant_id.institution_id.*',
           'away_participant_id.*',
           'away_participant_id.institution_id.*',
->>>>>>> 39312ad2e9d2c24321a7a31f41d71ab1d01d9922
           'participants.id',
           'participants.position',
           'participants.participant_id.*',
           'participants.participant_id.institution_id.*',
         ],
-        filter: { status: { _in: ['live', 'upcoming'] } },
+        filter: { status: { _in: ['live', 'upcoming', 'finished'] } },
         sort: ['status', 'scheduled_at'],
       })
     );
