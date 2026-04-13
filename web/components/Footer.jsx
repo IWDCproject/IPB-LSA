@@ -6,8 +6,8 @@ import { useRef, useEffect, useState } from "react";
 // ─── Constants ────────────────────────────────────────────────────────────────
 const DESKTOP_BP   = 1024;
 const SLOT_STAGGER = 18;
-const SLOT_DUR     = "0.4s";
-const SLOT_EASE    = "cubic-bezier(0.76, 0, 0.24, 1)";
+const SLOT_DUR     = "0.5s";
+const SLOT_EASE = "cubic-bezier(0, 1, 0.2, 1)";
 
 // Aligned to other sections (StatSection / NewsSection)
 const SCALE_START = 1440;

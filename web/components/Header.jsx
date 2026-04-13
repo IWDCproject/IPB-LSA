@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 
 // Slot animation
 const STAGGER = 18;
-const DUR     = "0.4s";
-const EASE    = "cubic-bezier(0.76, 0, 0.24, 1)";
+const DUR     = "0.5s";
+const EASE = "cubic-bezier(0, 1, 0.2, 1)";
 
 // breakpoint where the header starts getting tight and needs to compress
 const COMPRESS_W = 900;
