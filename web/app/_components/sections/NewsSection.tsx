@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useBlurImages } from "@/hooks/useBlurImages";
 import NewsCard from "../news-stuff/NewsCard";
 import Button   from "@/components/Button";
 
@@ -12,7 +13,9 @@ interface NewsItem {
   title:         string;
   slug:          string;
   excerpt:       string | null;
-  thumbnail_url: string | null;
+  thumbnail_url:    string | null;
+  thumbnail_width:  number | null;
+  thumbnail_height: number | null;
   category:      string;
   published_at:  string;
   event_id:      { name: string } | null;
@@ -140,6 +143,21 @@ export default function NewsSection({ news }: NewsSectionProps) {
   const isMobile = cw < MOBILE_THRESHOLD;
   const pad      = isMobile ? MOBILE_PAD : desktopPad(cw);
 
+  // Register news thumbnails with the shared blur worker.
+  // NewsCard reads the resulting bitmaps directly from BlurContext.
+  const newsManifest = useMemo(() =>
+    (news ?? []).map((item, i) => item.thumbnail_url ? {
+      url:           item.thumbnail_url,
+      type:          "newscard" as const,
+      width:         i === 0 ? 800 : 400,
+      height:        i === 0 ? 600 : 300,
+      naturalWidth:  item.thumbnail_width,
+      naturalHeight: item.thumbnail_height,
+    } : null).filter(Boolean),
+  [news]);
+
+  useBlurImages(newsManifest);
+
   const [main, ...rest] = news;
   // if (!main) return null;
 
@@ -160,6 +178,17 @@ export default function NewsSection({ news }: NewsSectionProps) {
           paddingBottom: isMobile ? 60 : Math.min(100, Math.max(40, cw * 0.052)),
         }}
       >
+
+        {/* Batik texture overlay */}
+        <div style={{
+          position: "absolute", inset: 0, backgroundImage: "url(/Batik_Pattern_dark.svg)",
+          opacity: 0.2, pointerEvents: "none",
+          backgroundSize: "1900px auto",
+          backgroundRepeat: "repeat-x",
+          backgroundPosition: "bottom",
+          transform: "rotate(180deg)",
+        }} />
+
         <h2
           style={{
             ...styles.heading,
@@ -227,4 +256,3 @@ export default function NewsSection({ news }: NewsSectionProps) {
     </section>
   );
 }
-

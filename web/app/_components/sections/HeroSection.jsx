@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 import Button from "@/components/Button";
 import EventCard from "@/components/EventCard";
 import UniversityMarquee from "@/components/UniversityMarquee";
-import { useBlur } from "@/contexts/BlurContext";
+import { useBlurImages } from "@/hooks/useBlurImages";
 import { getAssetUrl } from "@/lib/directus";
 
 const INTERVAL_MS        = 10000;
@@ -100,7 +100,18 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
     const pausedRef       = useRef(paused);
     const tabVisRef       = useRef(true);
 
-    const { bitmaps, isReady } = useBlur();
+    const heroManifest = useMemo(() =>
+        EVENTS.map(ev => ({
+            url:           ev.image_url,
+            type:          "hero",
+            width:         1200,
+            height:        800,
+            naturalWidth:  ev.card_image?.width,
+            naturalHeight: ev.card_image?.height,
+        })),
+    [EVENTS]);
+
+    const { bitmaps, isReady } = useBlurImages(heroManifest);
 
     useEffect(() => { pausedRef.current = paused; }, [paused]);
 
@@ -144,7 +155,9 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
         return () => observers.forEach((ro) => ro.disconnect());
     }, [bitmaps, EVENTS]);
 
-    useEffect(() => { if (isReady) setMounted(true); }, [isReady]);
+    // Mount immediately — blur is progressive enhancement.
+    // Bitmaps arrive asynchronously and get drawn to canvas as they come in.
+    useEffect(() => { setMounted(true); }, []);
 
     const isMobile        = cw < 1024;
     const mobileCardPx    = cw * MOBILE_CARD_VW;

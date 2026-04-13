@@ -1,57 +1,139 @@
 // blurWorker.js
-// worker terpadu — proses semua jenis gambar dalam satu batch
-// hasilnya dikirim satu-satu lewat postMessage biar main thread bisa update progress
+// Unified blur worker — processes all image types in a single batch.
+// Blur computation is offloaded to /api/blur (Sharp, server-side).
+// Worker handles: natural-AR sizing, masking, and compositing.
+//
+// Natural dimensions (naturalWidth, naturalHeight) are passed in via the
+// manifest from page.js (sourced from Directus file metadata) — no browser
+// fetch just to read pixel dimensions.
+//
+// TTL
+// ─────────────────────────────────────────────────────────────────────────
+// Each processor defines its own TTL_S (seconds). This is passed to the
+// route via &ttl= so the server enforces it on cache reads.
+// To change a type's TTL, edit the constant here — no route changes needed.
+//
 
-const PAD_FACTOR = 3;
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+// =============================================================================
+// TTL config (seconds) — one place, owned by the worker
+// =============================================================================
 
-async function coverCrop(blob, W, H) {
-  const img   = await createImageBitmap(blob);
-  const imgAR = img.width / img.height;
-  const conAR = W / H;
+const TTL = {
+  hero:      30 * 24 * 60 * 60, // 30 days — hero images rarely change
+  eventcard:  7 * 24 * 60 * 60, //  7 days
+  newscard:   2 * 24 * 60 * 60, //  2 days — news updates frequently
+  matchcard:  7 * 24 * 60 * 60, //  7 days
+};
 
-  let sx, sy, sw, sh;
-  if (imgAR > conAR) {
-    // image lebih lebar — crop kiri-kanan
-    sh = img.height;
-    sw = img.height * conAR;
-    sx = (img.width - sw) / 2;
-    sy = 0;
-  } else {
-    // image lebih tinggi — crop atas-bawah
-    sw = img.width;
-    sh = img.width / conAR;
-    sx = 0;
-    sy = (img.height - sh) / 2;
-  }
 
-  img.close();
-  return createImageBitmap(blob, sx, sy, sw, sh, {
-    resizeWidth:   W,
-    resizeHeight:  H,
-    resizeQuality: "medium",
-  });
+// =============================================================================
+// Constants
+// =============================================================================
+
+const HERO_BOTTOM_LAYERS = [
+  { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.18, alpha: 1 }, { pos: 0.35, alpha: 0 }] },
+  { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.10, alpha: 1 }, { pos: 0.26, alpha: 0 }] },
+  { blurPx: 18, stops: [{ pos: 0, alpha: 1 }, { pos: 0.06, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
+  { blurPx: 32, stops: [{ pos: 0, alpha: 1 }, { pos: 0.03, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
+];
+
+const HERO_LEFT_LAYERS = [
+  { blurPx: 2, stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
+  { blurPx: 6, stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
+];
+
+const HERO_RIGHT_LAYERS = [
+  { blurPx: 2, stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
+];
+
+const EVENTCARD_LAYERS = [
+  { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.20, alpha: 1 }, { pos: 0.55, alpha: 0 }] },
+  { blurPx: 4,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.12, alpha: 1 }, { pos: 0.42, alpha: 0 }] },
+  { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.30, alpha: 0 }] },
+  { blurPx: 16, stops: [{ pos: 0, alpha: 1 }, { pos: 0.05, alpha: 1 }, { pos: 0.20, alpha: 0 }] },
+];
+
+const NEWSCARD_CONT_TOP = 0.45;
+const NEWSCARD_CONT_H   = 0.55;
+const remapNewscard     = (p) => NEWSCARD_CONT_TOP + p * NEWSCARD_CONT_H;
+
+const NEWSCARD_LAYERS = [
+  { blurPx: 1,  stops: [
+    { pos: remapNewscard(0),    alpha: 0 },
+    { pos: remapNewscard(0.15), alpha: 1 },
+    { pos: remapNewscard(0.40), alpha: 1 },
+    { pos: remapNewscard(0.58), alpha: 0 },
+  ]},
+  { blurPx: 3,  stops: [
+    { pos: remapNewscard(0),    alpha: 0 },
+    { pos: remapNewscard(0.25), alpha: 0 },
+    { pos: remapNewscard(0.42), alpha: 1 },
+    { pos: remapNewscard(0.62), alpha: 1 },
+    { pos: remapNewscard(0.76), alpha: 0 },
+  ]},
+  { blurPx: 6,  stops: [
+    { pos: remapNewscard(0),    alpha: 0 },
+    { pos: remapNewscard(0.50), alpha: 0 },
+    { pos: remapNewscard(0.64), alpha: 1 },
+    { pos: remapNewscard(0.80), alpha: 1 },
+    { pos: remapNewscard(0.90), alpha: 0 },
+  ]},
+  { blurPx: 10, stops: [
+    { pos: remapNewscard(0),    alpha: 0 },
+    { pos: remapNewscard(0.68), alpha: 0 },
+    { pos: remapNewscard(0.82), alpha: 1 },
+    { pos: remapNewscard(1.0),  alpha: 1 },
+  ]},
+];
+
+
+// =============================================================================
+// Sizing helpers
+// =============================================================================
+
+function insideDims(naturalW, naturalH, maxW, maxH) {
+  const scale = Math.min(maxW / naturalW, maxH / naturalH);
+  return {
+    canW: Math.round(naturalW * scale),
+    canH: Math.round(naturalH * scale),
+  };
 }
 
-async function blurBitmap(source, blurPx, W, H, srcX = 0, srcY = 0, srcW = W, srcH = H) {
-  const pad = Math.ceil(blurPx * PAD_FACTOR);
-  const pw  = W + pad * 2;
-  const ph  = H + pad * 2;
 
-  const expanded = new OffscreenCanvas(pw, ph);
-  const ectx     = expanded.getContext("2d");
-  ectx.filter    = `blur(${blurPx}px)`;
-  ectx.drawImage(source, srcX, srcY, srcW, srcH, pad, pad, W, H);
+// =============================================================================
+// Fetch helpers
+// =============================================================================
 
-  const cropped = new OffscreenCanvas(W, H);
-  const cctx    = cropped.getContext("2d");
-  cctx.drawImage(expanded, pad, pad, W, H, 0, 0, W, H);
-  return cropped;
+// Requests a server-side blurred bitmap via /api/blur.
+// ttl is passed so the server enforces the right cache lifespan per type.
+async function fetchBlurred(imageUrl, blurPx, canW, canH, ttl) {
+  const endpoint =
+    `${self.location.origin}/api/blur` +
+    `?url=${encodeURIComponent(imageUrl)}` +
+    `&blur=${blurPx}` +
+    `&w=${canW}` +
+    `&h=${canH}` +
+    `&ttl=${ttl}`;
+
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error(`blur API ${res.status} for blurPx=${blurPx}`);
+
+  const blob = await res.blob();
+  return createImageBitmap(blob);
 }
 
-// stops: [{ pos: 0-1, alpha: 0-1 }, ...]
-// dir: "down" top→bottom | "up" bottom→top | "right" left→right | "left" right→left
+async function fetchBlurMap(url, layers, canW, canH, ttl) {
+  const uniquePxs   = [...new Set(layers.map((l) => l.blurPx))];
+  const blurBitmaps = await Promise.all(uniquePxs.map((px) => fetchBlurred(url, px, canW, canH, ttl)));
+  return Object.fromEntries(uniquePxs.map((px, i) => [px, blurBitmaps[i]]));
+}
+
+
+// =============================================================================
+// Compositing helpers
+// =============================================================================
+
 function makeMask(W, H, stops, dir = "down") {
   const oc  = new OffscreenCanvas(W, H);
   const ctx = oc.getContext("2d");
@@ -67,142 +149,128 @@ function makeMask(W, H, stops, dir = "down") {
   for (const { pos, alpha } of stops) {
     grad.addColorStop(pos, `rgba(0,0,0,${alpha})`);
   }
+
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
   return oc;
 }
 
-function applyLayer(destCtx, W, H, blurredCanvas, maskCanvas) {
+function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas) {
   const tmp  = new OffscreenCanvas(W, H);
   const tctx = tmp.getContext("2d");
-  tctx.drawImage(blurredCanvas, 0, 0);
+
+  tctx.drawImage(blurredBitmap, 0, 0, W, H);
   tctx.globalCompositeOperation = "destination-in";
   tctx.drawImage(maskCanvas, 0, 0);
+
   destCtx.globalCompositeOperation = "source-over";
   destCtx.drawImage(tmp, 0, 0);
 }
 
-// ─── processors ──────────────────────────────────────────────────────────────
-
-async function processHero({ id, url, width: W, height: H }) {
-  const res    = await fetch(url);
-  const blob   = await res.blob();
-  const sharp  = await coverCrop(blob, W, H);
-  const source = await coverCrop(blob, W, H);
-
-  // BOTTOM_LAYERS — pull the fade stops down so blur doesn't climb so high
-  const BOTTOM_LAYERS = [
-      { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.18, alpha: 1 }, { pos: 0.35, alpha: 0 }] },
-      { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.10, alpha: 1 }, { pos: 0.26, alpha: 0 }] },
-      { blurPx: 18, stops: [{ pos: 0, alpha: 1 }, { pos: 0.06, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
-      { blurPx: 32, stops: [{ pos: 0, alpha: 1 }, { pos: 0.03, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
-  ];
-
-  const LEFT_LAYERS = [
-      { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
-      { blurPx: 6,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
-  ];
-
-  const RIGHT_LAYERS = [
-      { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
-  ];
-
-  const result = new OffscreenCanvas(W, H);
+async function compositeLayers(layers, blurMap, canW, canH, maskDir) {
+  const result = new OffscreenCanvas(canW, canH);
   const rctx   = result.getContext("2d");
 
-  for (const { blurPx, stops } of BOTTOM_LAYERS) {
-    const blurred = await blurBitmap(source, blurPx, W, H);
-    const mask    = makeMask(W, H, stops, "up");
-    applyLayer(rctx, W, H, blurred, mask);
+  for (const { blurPx, stops } of layers) {
+    const mask = makeMask(canW, canH, stops, maskDir);
+    applyLayer(rctx, canW, canH, blurMap[blurPx], mask);
   }
 
-  for (const { blurPx, stops } of LEFT_LAYERS) {
-    const blurred = await blurBitmap(source, blurPx, W, H);
-    const mask    = makeMask(W, H, stops, "right");
-    applyLayer(rctx, W, H, blurred, mask);
+  Object.values(blurMap).forEach((b) => b.close());
+
+  return createImageBitmap(result);
+}
+
+
+// =============================================================================
+// Processors
+// =============================================================================
+
+async function processHero(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.hero;
+
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+
+  const allLayers      = [...HERO_BOTTOM_LAYERS, ...HERO_LEFT_LAYERS, ...HERO_RIGHT_LAYERS];
+  const { canW, canH } = insideDims(nw, nh, W, H);
+  const scaledUrl      = `${url}&width=1200&fit=inside`;
+
+  const [sharpBlob, blurMap] = await Promise.all([
+    fetch(scaledUrl).then((r) => r.blob()),
+    fetchBlurMap(url, allLayers, canW, canH, ttl),
+  ]);
+
+  const sharp = await createImageBitmap(sharpBlob, {
+    resizeWidth:   canW,
+    resizeHeight:  canH,
+    resizeQuality: "medium",
+  });
+
+  const result = new OffscreenCanvas(canW, canH);
+  const rctx   = result.getContext("2d");
+
+  for (const { blurPx, stops } of HERO_BOTTOM_LAYERS) {
+    applyLayer(rctx, canW, canH, blurMap[blurPx], makeMask(canW, canH, stops, "up"));
+  }
+  for (const { blurPx, stops } of HERO_LEFT_LAYERS) {
+    applyLayer(rctx, canW, canH, blurMap[blurPx], makeMask(canW, canH, stops, "right"));
+  }
+  for (const { blurPx, stops } of HERO_RIGHT_LAYERS) {
+    applyLayer(rctx, canW, canH, blurMap[blurPx], makeMask(canW, canH, stops, "left"));
   }
 
-  for (const { blurPx, stops } of RIGHT_LAYERS) {
-    const blurred = await blurBitmap(source, blurPx, W, H);
-    const mask    = makeMask(W, H, stops, "left");
-    applyLayer(rctx, W, H, blurred, mask);
-  }
+  Object.values(blurMap).forEach((b) => b.close());
 
   const blurred = await createImageBitmap(result);
-  source.close();
-  return { id, url, type: "hero", sharp, blurred };
+  return { id: img.id, url, type: "hero", sharp, blurred };
 }
 
-async function processEventcard({ id, url, width: W, height: H }) {
-  const res    = await fetch(url);
-  const blob   = await res.blob();
-  const source = await coverCrop(blob, W, H);
+async function processEventcard(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.eventcard;
 
-  const LAYERS = [
-    { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.20, alpha: 1 }, { pos: 0.55, alpha: 0 }] },
-    { blurPx: 4,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.12, alpha: 1 }, { pos: 0.42, alpha: 0 }] },
-    { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.30, alpha: 0 }] },
-    { blurPx: 16, stops: [{ pos: 0, alpha: 1 }, { pos: 0.05, alpha: 1 }, { pos: 0.20, alpha: 0 }] },
-  ];
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+  const { canW, canH } = insideDims(nw, nh, W, H);
 
-  const result = new OffscreenCanvas(W, H);
-  const rctx   = result.getContext("2d");
+  const blurMap = await fetchBlurMap(url, EVENTCARD_LAYERS, canW, canH, ttl);
+  const bitmap  = await compositeLayers(EVENTCARD_LAYERS, blurMap, canW, canH, "up");
 
-  for (const { blurPx, stops } of LAYERS) {
-    const blurred = await blurBitmap(source, blurPx, W, H);
-    const mask    = makeMask(W, H, stops, "up");
-    applyLayer(rctx, W, H, blurred, mask);
-  }
-
-  const bitmap = await createImageBitmap(result);
-  source.close();
-  return { id, url, type: "eventcard", bitmap };
+  return { id: img.id, url, type: "eventcard", bitmap };
 }
 
-async function processNewscard({ id, url, width: W, height: H }) {
-  const res    = await fetch(url);
-  const blob   = await res.blob();
-  const source = await coverCrop(blob, W, H);
+async function processNewscard(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.newscard;
 
-  const CONT_TOP = 0.45;
-  const CONT_H   = 0.55;
-  const outH     = Math.round(H * CONT_H);
-  const srcY     = Math.round(H * CONT_TOP);
-  const srcH     = H - srcY;
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+  const { canW, canH } = insideDims(nw, nh, W, H);
 
-  const LAYERS = [
-    { blurPx: 1,  stops: [{ pos: 0, alpha: 0 }, { pos: 0.15, alpha: 1 }, { pos: 0.40, alpha: 1 }, { pos: 0.58, alpha: 0 }] },
-    { blurPx: 3,  stops: [{ pos: 0, alpha: 0 }, { pos: 0.25, alpha: 0 }, { pos: 0.42, alpha: 1 }, { pos: 0.62, alpha: 1 }, { pos: 0.76, alpha: 0 }] },
-    { blurPx: 6,  stops: [{ pos: 0, alpha: 0 }, { pos: 0.50, alpha: 0 }, { pos: 0.64, alpha: 1 }, { pos: 0.80, alpha: 1 }, { pos: 0.90, alpha: 0 }] },
-    { blurPx: 10, stops: [{ pos: 0, alpha: 0 }, { pos: 0.68, alpha: 0 }, { pos: 0.82, alpha: 1 }, { pos: 1.0,  alpha: 1 }] },
-  ];
+  const blurMap = await fetchBlurMap(url, NEWSCARD_LAYERS, canW, canH, ttl);
+  const bitmap  = await compositeLayers(NEWSCARD_LAYERS, blurMap, canW, canH, "down");
 
-  const result = new OffscreenCanvas(W, outH);
-  const rctx   = result.getContext("2d");
-
-  for (const { blurPx, stops } of LAYERS) {
-    const blurred = await blurBitmap(source, blurPx, W, outH, 0, srcY, W, srcH);
-    const mask    = makeMask(W, outH, stops, "down");
-    applyLayer(rctx, W, outH, blurred, mask);
-  }
-
-  const bitmap = await createImageBitmap(result);
-  source.close();
-  return { id, url, type: "newscard", bitmap };
+  return { id: img.id, url, type: "newscard", bitmap };
 }
 
-async function processMatchcard({ id, url, width: W, height: H }) {
-  const res    = await fetch(url);
-  const blob   = await res.blob();
-  const source = await coverCrop(blob, W, H);
+async function processMatchcard(img) {
+  const { url, width: W, height: H } = img;
+  const ttl = TTL.matchcard;
 
-  const blurCanvas = await blurBitmap(source, 6, W, H);
-  const bitmap     = await createImageBitmap(blurCanvas);
-  source.close();
-  return { id, url, type: "matchcard", bitmap };
+  const nw = img.naturalWidth  ?? W;
+  const nh = img.naturalHeight ?? H;
+  const { canW, canH } = insideDims(nw, nh, W, H);
+
+  const bitmap = await fetchBlurred(url, 6, canW, canH, ttl);
+  return { id: img.id, url, type: "matchcard", bitmap };
 }
 
-// ─── dispatch ────────────────────────────────────────────────────────────────
+
+// =============================================================================
+// Dispatch
+// =============================================================================
 
 const PROCESSORS = {
   hero:      processHero,
