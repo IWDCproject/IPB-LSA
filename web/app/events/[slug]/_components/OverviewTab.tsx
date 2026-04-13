@@ -32,8 +32,8 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
               registrationUrl={event.registration_url}
             />
           )}
-          <UpcomingMatchesPanel upcoming={upcoming} isMobile={isMobile} />
-          <LatestResultsPanel finished={finished} isMobile={isMobile} />
+          <UpcomingMatchesPanel upcoming={upcoming} />
+          <LatestResultsPanel finished={finished} />
         </div>
       </div>
 
