@@ -197,7 +197,7 @@ function CategoryChip({ ev }: { ev: EventListing }) {
 function CtaButton({ ev, small = false }: { ev: EventListing; small?: boolean }) {
   if (ev.status === "finished" || ev.status === "cancelled") return null;
   // Always navigate to the event detail page — no external registration redirect.
-  const href = `/event/${safeSlug(ev.slug)}`;
+  const href = `/events/${safeSlug(ev.slug)}`;
   return (
     <Button
       variant={ev.status === "active" ? "primary" : "secondary"}
@@ -227,7 +227,7 @@ function DesktopEventRow({ ev, isLast, index, cellPad, thumbW, thumbH }: {
   if (!ev?.id || !ev?.name || !ev?.status) return null;
 
   function handleRowClick() {
-    router.push(`/event/${safeSlug(ev.slug)}`);
+    router.push(`/events/${safeSlug(ev.slug)}`);
   }
 
   return (
@@ -288,7 +288,7 @@ function MobileEventRow({ ev, isLast, index }: { ev: EventListing; isLast: boole
 
   return (
     <div
-      onClick={() => router.push(`/event/${safeSlug(ev.slug)}`)}
+      onClick={() => router.push(`/events/${safeSlug(ev.slug)}`)}
       onPointerDown={() => setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}

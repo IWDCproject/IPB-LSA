@@ -256,3 +256,120 @@ export const getEventsForListing = async () => {
     return [];
   }
 };
+
+// ─── Event Detail ──────────────────────────────────────────────────────────
+//
+// Fetches everything the event detail page needs in one parallel round-trip.
+// Matches include upcoming + live + finished (capped at 50), news capped at 4.
+//
+export const getEventDetail = async (slug) => {
+  try {
+    const [events, phases, rawMatches, rawNews] = await Promise.all([
+      directus.request(readItems("events", {
+        filter: { slug: { _eq: slug }, is_published: { _eq: true } },
+        fields: [
+          "*",
+          "banner_image.id", "banner_image.uploaded_on",
+          "card_image.id",   "card_image.uploaded_on",
+          "user_created.organisation_name",
+        ],
+        limit: 1,
+      })),
+
+      directus.request(readItems("event_phases", {
+        filter: { event_id: { slug: { _eq: slug } } },
+        fields: ["id", "label", "description", "date_start", "date_end", "time_start", "status", "display_order"],
+        sort: ["display_order"],
+      })),
+
+      directus.request(readItems("matches", {
+        filter: {
+          competition_category_id: { event_id: { slug: { _eq: slug } } },
+          status: { _in: ["upcoming", "live", "finished"] },
+        },
+        fields: [
+          "*",
+          "competition_category_id.id",
+          "competition_category_id.name",
+          "competition_category_id.participant_type",
+          "competition_category_id.format_id.id",
+          "competition_category_id.format_id.name",
+          "competition_category_id.format_id.match_type",
+          "competition_category_id.format_id.modules",
+          "home_participant_id.*",
+          "home_participant_id.institution_id.*",
+          "away_participant_id.*",
+          "away_participant_id.institution_id.*",
+          "participants.id",
+          "participants.position",
+          "participants.participant_id.*",
+          "participants.participant_id.institution_id.*",
+        ],
+        sort: ["status", "scheduled_at"],
+        limit: 50,
+      })),
+
+      directus.request(readItems("news", {
+        filter: { event_id: { slug: { _eq: slug } }, is_published: { _eq: true } },
+        fields: ["id", "title", "slug", "excerpt", "thumbnail.id", "thumbnail.uploaded_on", "category", "published_at", "event_id.name"],
+        sort: ["-published_at"],
+        limit: 4,
+      })),
+    ]);
+
+    const event = events[0];
+    if (!event) return null;
+
+    // Same participant mapping pattern as getMatches
+    const mapParticipant = (p) => p ? {
+      ...p,
+      institution: p.institution_id ? {
+        ...p.institution_id,
+        logo_url: getAssetUrl(p.institution_id?.logo),
+      } : null,
+    } : null;
+
+    const matches = rawMatches.map((m) => {
+      const cat    = m.competition_category_id;
+      if (!cat || typeof cat !== "object") return m;
+      const rawFmt = cat.format_id;
+      const format = rawFmt && typeof rawFmt === "object" ? {
+        ...rawFmt,
+        modules: typeof rawFmt.modules === "string" ? JSON.parse(rawFmt.modules) : (rawFmt.modules ?? []),
+      } : null;
+      return {
+        ...m,
+        competition_category: { ...cat, format_id: format },
+        home_participant:      mapParticipant(m.home_participant_id),
+        away_participant:      mapParticipant(m.away_participant_id),
+        participants:          (m.participants ?? []).map((j) => ({
+          ...j,
+          participant_id: mapParticipant(j.participant_id),
+        })),
+      };
+    });
+
+    const news = rawNews.map((item) => ({
+      id:            item.id,
+      title:         item.title,
+      slug:          item.slug,
+      excerpt:       item.excerpt ?? null,
+      thumbnail_url: getAssetUrl(item.thumbnail),
+      category:      item.category,
+      published_at:  item.published_at,
+      event_name:    item.event_id?.name ?? null,
+    }));
+
+    return {
+      ...event,
+      banner_url: getAssetUrl(event.banner_image),
+      organiser:  event.user_created?.organisation_name ?? "",
+      phases,
+      matches,
+      news,
+    };
+  } catch (error) {
+    console.error("Error fetching event detail:", error);
+    return null;
+  }
+};
