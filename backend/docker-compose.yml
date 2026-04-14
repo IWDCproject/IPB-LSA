@@ -47,7 +47,7 @@ services:
       SCHEMA_SYNC: "BOTH"
       PROJECT_NAME: "IPB-LSA"
     volumes:
-      - ./schema-sync:/directus/schema-sync
+      - ./schema-sync:/directus/schema-sync:z
       - ./uploads:/directus/uploads:z
       - ./extensions:/directus/extensions:z
 
