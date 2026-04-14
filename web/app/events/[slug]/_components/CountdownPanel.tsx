@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { PanelCard, PanelTitle } from "./Panel";
+import { useState, useEffect, Fragment } from "react";
+import { PanelCard } from "./Panel";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 const BB = { fontFamily: "'Bebas Neue', sans-serif" } as const;
@@ -16,11 +16,8 @@ function calcRemaining(deadline: string) {
 }
 
 function fmtDeadline(deadline: string) {
-  return new Date(deadline).toLocaleDateString("en-GB", {
-    day: "numeric", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-    timeZone: "Asia/Jakarta",
-  });
+  const d = new Date(deadline);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) + " at " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 export default function CountdownPanel({ deadline, registrationUrl }: { deadline: string; registrationUrl?: string | null }) {
@@ -38,29 +35,45 @@ export default function CountdownPanel({ deadline, registrationUrl }: { deadline
     { label: "seconds", value: remaining.seconds },
   ];
 
+  const SquareDotSeparator = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center", paddingBottom: 22 }}>
+      <div style={{ width: 6, height: 6, background: "#0D26C2" }} />
+      <div style={{ width: 6, height: 6, background: "#0D26C2" }} />
+    </div>
+  );
+
   return (
     <PanelCard>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-        <PanelTitle>Register Countdown</PanelTitle>
-        {registrationUrl && (
-          <a href={registrationUrl} target="_blank" rel="noopener noreferrer" style={{ ...JK, fontSize: 12, fontWeight: 600, color: "#0D26C2", textDecoration: "none", flexShrink: 0 }}>
-            Why Wait? →
-          </a>
-        )}
+        <div style={{ ...JK, fontSize: "20px", fontWeight: 800, color: "#06125C" }}>
+          Register Countdown
+        </div>
+        <span style={{ ...JK, fontSize: 14, fontWeight: 700, color: "#9CA3AF" }}>Why Wait?</span>
       </div>
-      <div style={{ ...JK, fontSize: 12, color: "#9CA3AF", marginBottom: 18 }}>
-        Register until {fmtDeadline(deadline)}
+      
+      <div style={{ ...JK, fontSize: "14px", fontWeight: 500, color: "#6B7280", marginBottom: 24 }}>
+        Regist until {fmtDeadline(deadline)}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        {units.map((u) => (
-          <div key={u.label} style={{ flex: 1, textAlign: "center", border: "2px solid #E5E7EB", borderRadius: 8, padding: "12px 6px" }}>
-            <div style={{ ...BB, fontSize: 34, color: "#06125C", lineHeight: 1 }} suppressHydrationWarning>
-              {String(u.value).padStart(2, "0")}
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        {units.map((u, i) => (
+          <Fragment key={u.label}>
+            <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+              <div style={{ border: "2px solid #0D26C2", borderRadius: 8, padding: "16px 0", marginBottom: 8, background: "#fff" }}>
+                <div style={{ 
+                  ...BB, 
+                  fontSize: 56, 
+                  color: "#0D26C2", 
+                  lineHeight: 1,
+                  fontVariantNumeric: "tabular-nums" 
+                }} suppressHydrationWarning>
+                  {String(u.value).padStart(2, "0")}
+                </div>
+              </div>
+              <div style={{ ...JK, fontSize: 14, fontWeight: 500, color: "#6B7280" }}>{u.label}</div>
             </div>
-            <div style={{ ...JK, fontSize: 9, fontWeight: 700, color: "#9CA3AF", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              {u.label}
-            </div>
-          </div>
+            {i < units.length - 1 && <SquareDotSeparator />}
+          </Fragment>
         ))}
       </div>
     </PanelCard>

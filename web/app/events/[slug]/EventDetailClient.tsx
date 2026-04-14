@@ -7,7 +7,7 @@ import UniversityMarquee from "@/components/UniversityMarquee";
 import Footer from "@/components/Footer";
 import { getAssetUrl } from "@/lib/directus";
 
-// ── Constants — copied verbatim from EventPageClient ──────────────────────
+// ── Constants ────────────────────────────────────────────────────────────
 const BG_TOP    = "#0D26C2 30%";
 const BG_BOTTOM = "#06125C";
 
@@ -67,21 +67,36 @@ export default function EventDetailClient({ event }: { event: any }) {
         animation: "edc-fade-in 0.4s ease 0ms forwards",
       }}>
 
-        {/* Batik texture overlay — identical to EventPageClient */}
+        {/* 1. BOTTOM LAYER: Masked & Flipped Batik 
+            - top: -100px shifts the pattern up manually.
+            - scaleY(-1) flips it vertically in place (unlike rotate).
+            - repeat-x only.
+            - MaskImage makes the top edge of this pattern fade in smoothly. */}
         <div style={{
-          position: "absolute", inset: 0,
+          position: "absolute", 
+          top: -100, left: 0, right: 0,
+          height: 1200, 
           backgroundImage: "url(/Batik_Pattern_dark.svg)",
-          opacity: 0.4, pointerEvents: "none",
-          backgroundSize: "1400px 100%", backgroundRepeat: "repeat-x",
-          backgroundPosition: "bottom", transform: "rotate(180deg)",
+          opacity: 0.4, 
+          pointerEvents: "none",
+          backgroundSize: "1400px auto", 
+          backgroundRepeat: "repeat-x",
+          backgroundPosition: "top center",
+          transform: "scaleY(-1)", 
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+          maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+          zIndex: 0,
         }} />
 
-        {/* Static BG image — same layer structure as BgCrossfade, no crossfade */}
+        {/* 2. MIDDLE LAYER: Masked Banner Image 
+            - Rendered second so it sits ON TOP of the batik.
+            - Its opaque top section covers the batik's shifted edge. */}
         {bannerUrl && (
           <div style={{
             position: "absolute", top: 0, left: 0, right: 0,
             height: BG_IMAGE_HEIGHT, overflow: "hidden",
             WebkitMaskImage: IMAGE_MASK, maskImage: IMAGE_MASK,
+            zIndex: 0,
           }}>
             <div style={{
               position: "absolute", inset: 0,
@@ -96,6 +111,7 @@ export default function EventDetailClient({ event }: { event: any }) {
           </div>
         )}
 
+        {/* 3. TOP LAYER: Content (Nav, Buttons, Text) */}
         <div style={{ position: "relative", zIndex: 1 }}>
           <EventDetailHeader
             event={event}

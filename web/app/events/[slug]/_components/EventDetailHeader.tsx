@@ -1,4 +1,5 @@
 "use client";
+import Button from "@/components/Button";
 
 const BB = { fontFamily: "'Bebas Neue', sans-serif" }        as const;
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
@@ -62,7 +63,7 @@ interface Props {
 }
 
 export default function EventDetailHeader({ event, activeTab, onTabChange, isMobile }: Props) {
-  const NAVBAR_HEIGHT = 300; // TODO: this is fucking stupid, please change later
+  const NAVBAR_HEIGHT = 300; 
   const PAD = isMobile
     ? `${NAVBAR_HEIGHT}px 20px 36px`
     : `${NAVBAR_HEIGHT}px clamp(20px, 8.33vw, 160px) 36px`;
@@ -75,7 +76,6 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
     { label: "Dates",        value: event.start_date ? `${fmtDate(event.start_date)} – ${fmtDate(event.end_date)}` : "—" },
     { label: "Location",     value: event.location ?? "—" },
   ];
-
 
   return (
     <>
@@ -92,7 +92,6 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
         gap: 18,
       }}>
 
-        {/* Status badge + title + organiser */}
         <div style={staggerStyle(80)}>
           <span style={{
             ...JK,
@@ -117,51 +116,25 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
             {event.name}
           </div>
 
-          <div
-            style={{
-              ...JK,
-              fontSize: "clamp(14px, 1.4vw, 16px)",
-              fontWeight: 600,
-              color: "rgba(255,255,255,0.7)",
-              filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
-              marginTop: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
+          <div style={{ ...JK, fontSize: "clamp(14px, 1.4vw, 16px)", fontWeight: 600, color: "rgba(255,255,255,0.7)", filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))", marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontStyle: "italic" }}>by</span>
             <span style={{ fontWeight: 700 }}>{event.organiser}</span>
           </div>
         </div>
 
-        {/* Meta row */}
-        <div style={{
-          display: "flex", gap: isMobile ? 20 : 36, flexWrap: "wrap",
-          ...staggerStyle(200),
-        }}>
+        <div style={{ display: "flex", gap: isMobile ? 20 : 36, flexWrap: "wrap", ...staggerStyle(200) }}>
           {meta.map((m) => (
             <div key={m.label}>
-              <div style={{ ...JK, fontSize: 12, color: "#fff", fontWeight: 800, marginTop: 8 }}>
-                {m.label}
-              </div>
-              <div style={{ ...JK, fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: 800, marginTop: 2 }}>
-                {m.value}
-              </div>
+              <div style={{ ...JK, fontSize: 12, color: "#fff", fontWeight: 800, marginTop: 8 }}>{m.label}</div>
+              <div style={{ ...JK, fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: 800, marginTop: 2 }}>{m.value}</div>
             </div>
           ))}
         </div>
 
-        {/* Controls row — tabs + action buttons, same structure as EventsHeader filter pills */}
-        <div style={{
-          display: "flex", flexDirection: isMobile ? "column" : "row",
-          alignItems: "flex-start", gap: isMobile ? 8 : 10, flexWrap: "wrap",
-          marginBottom: -20, marginTop: 30,
-          ...staggerStyle(320),
-        }}>
-
-          {/* Tab pills */}
-          <div style={{ display: "flex", gap: 8 }}>
+        {/* ONLY SURGICAL FIX HERE: Changed flexDirection to always be "row" and added justifyContent */}
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: -20, marginTop: 30, width: "100%", ...staggerStyle(320) }}>
+          
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {TABS.map((t, i) => (
               <button
                 key={t.key}
@@ -182,45 +155,21 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
             ))}
           </div>
 
-          {/* Action buttons — same pill style, pushed to the right */}
-          <div style={{
-            display: "flex", gap: 8, flexWrap: "wrap",
-            marginLeft: isMobile ? 0 : "auto",
-            opacity: 0,
-            animation: `edh-fade-in 0.5s ease 620ms forwards`,
-          }}>
+          <div style={{ display: "flex", gap: 8, marginLeft: isMobile ? 0 : "auto", opacity: 0, animation: `edh-fade-in 0.5s ease 620ms forwards` }}>
             {event.guidebook_url && (
-              <a href={event.guidebook_url} target="_blank" rel="noopener noreferrer" style={{
-                ...JK, fontWeight: 700, fontSize: 13,
-                padding: "7px 16px", borderRadius: 8, whiteSpace: "nowrap",
-                border: "1.5px solid rgba(255,255,255,0.7)",
-                background: "rgba(255,255,255,0.1)", color: "#fff",
-                textDecoration: "none", cursor: "pointer",
-              }}>
+              <Button href={event.guidebook_url} variant="header-outline" size="sm" external className="!rounded-[8px]">
                 Guidebook
-              </a>
-            )}
-            {event.is_registration_open && event.registration_url && (
-              <a href={event.registration_url} target="_blank" rel="noopener noreferrer" style={{
-                ...JK, fontWeight: 700, fontSize: 13,
-                padding: "7px 16px", borderRadius: 8, whiteSpace: "nowrap",
-                border: "1.5px solid #fff",
-                background: "#fff", color: "#0D26C2",
-                textDecoration: "none", cursor: "pointer",
-              }}>
-                Register
-              </a>
+              </Button>
             )}
             {event.instagram_url && (
-              <a href={event.instagram_url} target="_blank" rel="noopener noreferrer" style={{
-                ...JK, fontWeight: 700, fontSize: 13,
-                padding: "7px 16px", borderRadius: 8, whiteSpace: "nowrap",
-                border: "1.5px solid rgba(255,255,255,0.7)",
-                background: "rgba(255,255,255,0.1)", color: "#fff",
-                textDecoration: "none", cursor: "pointer",
-              }}>
+              <Button href={event.instagram_url} variant="header-outline" size="sm" external className="!rounded-[8px]">
                 Instagram
-              </a>
+              </Button>
+            )}
+            {event.is_registration_open && event.registration_url && (
+              <Button href={event.registration_url} variant="header-solid" size="sm" external className="!rounded-[8px] !bg-[#FFC936] !border-[#FFC936]">
+                Register
+              </Button>
             )}
           </div>
         </div>

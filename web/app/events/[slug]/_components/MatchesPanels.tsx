@@ -291,19 +291,23 @@ function AwayCell({ match }: { match: any }) {
 }
 
 function PodiumRow({ live }: { live: any }) {
-  const podium = (live?.timeLog ??[]).slice(0, 3);
+  const podium = (live?.timeLog ?? []).slice(0, 3);
   const labels = ["1st", "2nd", "3rd"];
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       {podium.map((p: any, i: number) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
           <div style={{ ...JK, fontSize: 13, fontWeight: 800, color: "#111", background: "#f3f4f6", borderRadius: 6, padding: "4px 10px", flexShrink: 0 }}>
             {labels[i]}
           </div>
           <Logo inst={p.institution ?? null} size={28} />
-          <div>
-            <div style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#676767", lineHeight: 1.1 }}>{p.institution?.name ?? ""}</div>
-            <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111" }}>{p.name}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 600, color: "#676767", lineHeight: 1.1 }}>
+              {p.institution?.name ?? ""}
+            </div>
+            <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: "#111" }}>
+              {p.name}
+            </div>
           </div>
         </div>
       ))}

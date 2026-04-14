@@ -5,39 +5,48 @@ import { UpcomingMatchesPanel, LatestResultsPanel } from "./MatchesPanels";
 import LatestStoriesSection from "./LatestStoriesSection";
 
 export default function OverviewTab({ event, isMobile }: { event: any; isMobile: boolean }) {
-  const upcoming = (event.matches ??[]).filter((m: any) => m.status === "upcoming" || m.status === "live");
-  const finished = (event.matches ??[]).filter((m: any) => m.status === "finished");
+  const upcoming = (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live");
+  const finished = (event.matches ?? []).filter((m: any) => m.status === "finished");
+  
+  const isUpcomingEvent = event.status === "upcoming";
   const showCountdown = !!(event.is_registration_open && event.registration_end_date);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* 2-column grid */}
       <div style={{
         display: "grid",
         gridTemplateColumns: isMobile ? "1fr" : "3fr 2fr",
         gap: 16,
-        alignItems: "stretch",
+        alignItems: "stretch", // Ensures the columns have equal height
       }}>
-        {/* Left: description + timeline */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <AboutPanel event={event} />
-          <TimelinePanel phases={event.phases ??[]} />
+          <TimelinePanel phases={event.phases ?? []} />
         </div>
 
-        {/* Right: countdown (if open) + upcoming + results */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {showCountdown && (
             <CountdownPanel
               deadline={event.registration_end_date}
               registrationUrl={event.registration_url}
             />
           )}
-          <UpcomingMatchesPanel upcoming={upcoming} />
-          <LatestResultsPanel finished={finished} />
+          
+          {/* FIX: Use flex-grow and flex container to force the child to fill the space */}
+          <div style={{ 
+            flex: isUpcomingEvent ? 1 : "unset", 
+            display: "flex", 
+            flexDirection: "column" 
+          }}>
+            <UpcomingMatchesPanel upcoming={upcoming} />
+          </div>
+
+          {!isUpcomingEvent && finished.length > 0 && (
+            <LatestResultsPanel finished={finished} />
+          )}
         </div>
       </div>
 
-      {/* News */}
       {event.news?.length > 0 && (
         <LatestStoriesSection news={event.news} eventSlug={event.slug} />
       )}
