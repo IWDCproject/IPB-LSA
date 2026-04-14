@@ -267,9 +267,38 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
                 ))}
             </div>
 
-            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
-            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
+            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)", ...(isMobile && { display: "none" }) }} />
+            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)", ...(isMobile && { display: "none" }) }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
+
+            {isMobile && (
+							<div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
+								{/* Blurring Layers */}
+								<div className="absolute inset-0" style={{
+									backdropFilter: "blur(25px) saturate(150%)",
+									WebkitBackdropFilter: "blur(25px) saturate(150%)",
+									maskImage: "linear-gradient(to bottom, black 0%, black 5%, rgba(0,0,0,0.5) 20%, transparent 35%)",
+									WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 5%, rgba(0,0,0,0.5) 20%, transparent 35%)"
+								}} />
+								<div className="absolute inset-0" style={{
+									backdropFilter: "blur(12px) saturate(130%)",
+									WebkitBackdropFilter: "blur(12px) saturate(130%)",
+									maskImage: "linear-gradient(to bottom, black 0%, black 10%, rgba(0,0,0,0.5) 30%, transparent 45%)",
+									WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 10%, rgba(0,0,0,0.5) 30%, transparent 45%)"
+								}} />
+								<div className="absolute inset-0" style={{
+									backdropFilter: "blur(5px)",
+									WebkitBackdropFilter: "blur(5px)",
+									maskImage: "linear-gradient(to bottom, black 0%, black 15%, transparent 55%)",
+									WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 15%, transparent 55%)"
+								}} />
+
+								{/* Tint gradient */}
+								<div className="absolute inset-0" style={{ 
+									background: "linear-gradient(to bottom, rgba(6,18,92,0.8) 0%, transparent 50%)" 
+								}} />
+							</div>
+						)}
 
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30" style={mounted ? { animation: "hero-bar-intro 0.5s cubic-bezier(0.22, 1, 0.36, 1) 80ms both" } : { opacity: 0 }}>
                 <div ref={barRef} className="absolute top-0 h-full" style={{ background: "#FFC936" }} />
