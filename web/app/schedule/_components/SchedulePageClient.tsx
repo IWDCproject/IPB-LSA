@@ -6,6 +6,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { MapPin, Clock, Search, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { getAssetUrl } from "@/lib/directus";
+import bgLogo from "./Background/download (1) 2.png";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -322,8 +323,18 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
   }, [filteredMatches]);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-[#0D26C2] from-30% to-[#06125C] pt-6 pb-24 font-sans selection:bg-yellow-500 selection:text-blue-900">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8">
+    <div className="min-h-screen w-full bg-gradient-to-b from-[#0D26C2] from-30% to-[#06125C] pt-6 pb-24 font-sans selection:bg-yellow-500 selection:text-blue-900 relative overflow-hidden">
+      
+      {/* Background Logo Watermark */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden">
+        <img 
+          src={bgLogo.src} 
+          alt="Background Logo" 
+          className="w-[150%] md:w-[80%] max-w-none opacity-[0.15] mix-blend-overlay object-contain -translate-y-10"
+        />
+      </div>
+
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 relative z-10">
         
         {/* --- Redesigned Compact Hero Section --- */}
         <div className="relative bg-[#091340]/60 p-6 md:p-10 rounded-3xl border border-blue-800/30 overflow-hidden shadow-2xl backdrop-blur-md mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -354,7 +365,7 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
         </div>
 
         {/* --- Toolbar: Search, Tabs, Dates (Sticky) --- */}
-        <div className="sticky top-4 z-40 bg-[#06125C]/85 backdrop-blur-xl border border-blue-600/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-2xl p-4 flex flex-col xl:flex-row gap-4 items-center justify-between mb-10 transition-all">
+        <div className="sticky top-20 md:top-24 z-40 bg-[#06125C]/85 backdrop-blur-xl border border-blue-600/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-2xl p-4 flex flex-col xl:flex-row gap-4 items-center justify-between mb-10 transition-all">
           
           {/* Search Input */}
           <div className="relative w-full xl:w-[350px] shrink-0 group">
