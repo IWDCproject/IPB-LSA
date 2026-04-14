@@ -5,7 +5,7 @@ const NAT_W = 1920; // sama dengan semua section lain
 
 const CONFIG = {
   speed: 35,
-  itemGap: 15,
+  itemGap: 12,
   logoHeight: 35,
   logoOpacity: 0.8,
   copies: 4,
