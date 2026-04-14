@@ -116,7 +116,7 @@ export default function EventsHeader({
             ))}
           </div>
 
-          {/* Search - Fixed to use the same stagger animation as others */}
+          {/* Search */}
           <div style={{
             flex: 1, maxWidth: isMobile ? "100%" : 360, minWidth: 200, width: isMobile ? "100%" : undefined, position: "relative",
             ...staggerStyle(540), // Sequential delay after the last filter button
