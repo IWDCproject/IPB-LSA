@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { MapPin, Clock, Search, ChevronDown, ChevronUp, Calendar } from "lucide-react";
+import { getAssetUrl } from "@/lib/directus";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -49,6 +50,7 @@ function CompactMatchCard({ match }: { match: any }) {
   const isOpen = format?.match_type === 'open';
 
   const status = match.status;
+  const imageUrl = getAssetUrl(match.competition_category?.event_id?.card_image);
   
   const getBadgeStyle = (status: string) => {
     switch (status) {
@@ -176,35 +178,36 @@ function CompactMatchCard({ match }: { match: any }) {
 // --- Event Group Accordion ---
 function EventGroup({ eventName, cardImage, matches }: { eventName: string, cardImage: string | null, matches: any[] }) {
   const [isOpen, setIsOpen] = useState(true);
+  const imageUrl = getAssetUrl(cardImage);
 
   return (
     <motion.div layout className="flex flex-col gap-3 mb-8">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-between w-full bg-[#091340]/90 backdrop-blur-sm border border-blue-800/40 p-4 md:p-5 rounded-2xl hover:bg-[#0c1a5c] transition-colors shadow-lg group overflow-hidden"
+        className="relative flex items-center justify-between w-full bg-[#11194C] border border-blue-800/40 p-4 md:p-6 rounded-2xl hover:bg-[#162162] transition-colors shadow-lg group overflow-hidden"
       >
-        {cardImage && (
+        {imageUrl && (
           <div 
-            className="absolute right-0 top-0 bottom-0 w-1/2 opacity-[0.08] filter brightness-0 invert pointer-events-none transition-opacity group-hover:opacity-[0.15]"
+            className="absolute right-0 top-0 bottom-0 w-[70%] md:w-[50%] pointer-events-none transition-opacity opacity-50 group-hover:opacity-75"
             style={{
-              backgroundImage: `url(${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767'}/assets/${cardImage})`,
-              backgroundPosition: 'right center',
-              backgroundSize: 'contain',
+              backgroundImage: `url(${imageUrl})`,
+              backgroundPosition: 'center',
+              backgroundSize: 'cover',
               backgroundRepeat: 'no-repeat',
-              transform: 'scale(1.2)',
-              transformOrigin: 'right center'
+              WebkitMaskImage: 'linear-gradient(to left, black 0%, transparent 100%)',
+              maskImage: 'linear-gradient(to left, black 0%, transparent 100%)',
             }}
           />
         )}
-        <div className="relative z-10 flex items-center gap-4 text-left">
-          <h2 className="text-lg md:text-2xl font-bold text-white uppercase tracking-wide group-hover:text-yellow-400 transition-colors">
+        <div className="relative z-10 flex flex-wrap md:flex-nowrap items-center gap-3 md:gap-4 text-left">
+          <h2 className="text-lg md:text-2xl font-bold text-white uppercase tracking-wide group-hover:text-yellow-400 transition-colors drop-shadow-md">
             {eventName}
           </h2>
-          <span className="bg-blue-900/60 border border-blue-700/50 text-blue-200 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
+          <span className="bg-[#1D3282] text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-inner border border-blue-600/30">
             {matches.length} PERTANDINGAN
           </span>
         </div>
-        <div className="bg-blue-900/30 p-2 rounded-full text-blue-300 group-hover:text-yellow-400 group-hover:bg-yellow-400/10 transition-colors">
+        <div className="relative z-10 bg-[#091340]/50 p-2 rounded-full text-blue-300 group-hover:text-yellow-400 group-hover:bg-[#091340]/80 transition-colors shrink-0 ml-4 border border-blue-800/30">
           {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </button>
