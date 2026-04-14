@@ -131,9 +131,10 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
           ))}
         </div>
 
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", gap: isMobile ? 8 : 10, flexWrap: "wrap", marginBottom: -20, marginTop: 30, width: "100%", ...staggerStyle(320) }}>
+        {/* ONLY SURGICAL FIX HERE: Changed flexDirection to always be "row" and added justifyContent */}
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: -20, marginTop: 30, width: "100%", ...staggerStyle(320) }}>
           
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {TABS.map((t, i) => (
               <button
                 key={t.key}
@@ -167,7 +168,7 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
             )}
             {event.is_registration_open && event.registration_url && (
               <Button href={event.registration_url} variant="header-solid" size="sm" external className="!rounded-[8px] !bg-[#FFC936] !border-[#FFC936]">
-                Register Now
+                Register
               </Button>
             )}
           </div>
