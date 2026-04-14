@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { PanelCard, PanelTitle } from "./Panel";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
@@ -11,25 +11,11 @@ const TEXT_MUTED = "#6B7280";
 const DOT_SIZE = 14;
 const DOT_R = DOT_SIZE / 2;
 
-const TOP_ZONE = 40;
-const RAIL_ZONE = 28;
-const BOTTOM_ZONE = 40;
+const LINE_Y = 60; // Absolute Y-center for pixel-perfect vertical alignment
+const GAP = 28; // Gap between dot center and text
 
-const LABEL_H = 34;
 const LABEL_W_MIN = 110;
 const LABEL_W_MAX = 160;
-
-const KEYFRAMES = `
-  @keyframes timeline-pulse {
-    0%   { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
-    100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
-  }
-
-  @keyframes timeline-select {
-    0%   { transform: translate(-50%, -50%) scale(1); opacity: 0.35; }
-    100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
-  }
-`;
 
 function fmtPhaseDate(phase: any) {
   if (!phase?.date_start) return "";
@@ -47,17 +33,17 @@ function status(value: string) {
 
 function isYellow(value: string) {
   const s = status(value);
-  return ["active", "current", "done", "finished", "over"].includes(s);
+  return["active", "current", "done", "finished", "over"].includes(s);
 }
 
 function isCurrent(value: string) {
   const s = status(value);
-  return["active", "current"].includes(s);
+  return ["active", "current"].includes(s);
 }
 
 function splitLabel(label: string) {
   const words = label.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 1) return[label];
+  if (words.length <= 1) return [label];
   const mid = Math.ceil(words.length / 2);
   const first = words.slice(0, mid).join(" ");
   const second = words.slice(mid).join(" ");
@@ -74,30 +60,45 @@ function getLabelStyle(
 ): React.CSSProperties {
   const first = index === 0;
   const last = index === total - 1;
+  const isTop = zone === "top";
+
+  let translateX = "-50%";
+  let left: string | number = x;
+  let right: string | number = "auto";
+  let textAlign: any = "center";
+
+  // Perfectly anchor edges flush to container boundaries
+  if (first) {
+    translateX = "0";
+    left = 0; // Exactly aligned with the left edge of the first dot
+    textAlign = "left";
+  } else if (last) {
+    translateX = "0";
+    left = "auto";
+    right = 0; // Exactly aligned with the right edge of the last dot
+    textAlign = "right";
+  }
 
   return {
     position: "absolute",
-    top: zone === "top" ? 0 : TOP_ZONE + RAIL_ZONE,
-    left: first ? 0 : last ? "auto" : x - labelWidth / 2,
-    right: last ? 0 : "auto",
+    top: isTop ? LINE_Y - GAP : LINE_Y + GAP,
+    left,
+    right,
+    transform: `translate(${translateX}, ${isTop ? "-100%" : "0"})`,
     width: labelWidth,
-    height: LABEL_H,
-    display: "flex",
-    alignItems: zone === "top" ? "flex-end" : "flex-start",
-    justifyContent: first ? "flex-start" : last ? "flex-end" : "center",
-    textAlign: first ? "left" : last ? "right" : "center",
+    textAlign,
     ...JK,
     fontSize: 12,
     lineHeight: 1.15,
     fontWeight: selected ? 800 : 500,
     color: selected ? TEXT_DARK : TEXT_MUTED,
-    overflow: "hidden",
+    overflow: "visible",
   };
 }
 
 export default function TimelinePanel({ phases }: { phases: any[] }) {
   const railRef = useRef<HTMLDivElement>(null);
-  const[railWidth, setRailWidth] = useState(0);
+  const [railWidth, setRailWidth] = useState(0);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
 
   useEffect(() => {
@@ -143,13 +144,15 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
   const positions = useMemo(() => {
     if (!railWidth) return phases.map((_, i) => DOT_R + i * 120);
     if (phases.length === 1) return [railWidth / 2];
+    
+    // Mathematically calculates exact dot centering so the left/right physical
+    // boundaries of the dots never bleed over the wrapper limits.
     const usable = railWidth - DOT_SIZE;
     return phases.map((_, i) => DOT_R + (usable * i) / (phases.length - 1));
-  }, [railWidth, phases]);
+  },[railWidth, phases]);
 
   return (
     <PanelCard>
-      <style>{KEYFRAMES}</style>
       <PanelTitle>Event Timeline</PanelTitle>
 
       <div style={{ marginBottom: selectedPhase ? 20 : 0 }}>
@@ -158,7 +161,7 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
           style={{
             position: "relative",
             width: "100%",
-            minHeight: TOP_ZONE + RAIL_ZONE + BOTTOM_ZONE,
+            minHeight: 120,
             overflow: "visible",
           }}
         >
@@ -173,10 +176,12 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
                 key={`line-${phase.id}`}
                 style={{
                   position: "absolute",
-                  left: x1 + DOT_R,
-                  top: TOP_ZONE + RAIL_ZONE / 2 - 1.5,
-                  width: Math.max(0, x2 - x1 - DOT_SIZE),
+                  left: x1,
+                  top: LINE_Y,
+                  transform: "translateY(-50%)",
+                  width: Math.max(0, x2 - x1),
                   height: 3,
+                  zIndex: 1,
                   borderRadius: 999,
                   background:
                     isYellow(phase.status) && isYellow(phases[i + 1].status)
@@ -195,12 +200,23 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
             const x = positions[i];
             const above = i % 2 === 0;
             const selected = selectedPhase?.id === phase.id;
-            const current = isCurrent(phase.status);
             const label = splitLabel(phase.label);
 
             return (
-              <div key={phase.id} style={{ position: "absolute", inset: 0 }}>
-                <div style={getLabelStyle(i, phases.length, x, above ? "top" : "bottom", labelWidth, selected)}>
+              <Fragment key={phase.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(phase.id)}
+                  style={{
+                    ...getLabelStyle(i, phases.length, x, above ? "top" : "bottom", labelWidth, selected),
+                    display: "block",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    outline: "none",
+                  }}
+                >
                   {label.length === 1 ? (
                     label[0]
                   ) : (
@@ -210,7 +226,7 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
                       {label[1]}
                     </>
                   )}
-                </div>
+                </button>
 
                 <button
                   type="button"
@@ -218,8 +234,10 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
                   onClick={() => setSelectedId(phase.id)}
                   style={{
                     position: "absolute",
-                    left: x - DOT_R,
-                    top: TOP_ZONE + RAIL_ZONE / 2 - DOT_R + 1,
+                    left: x,
+                    top: LINE_Y,
+                    boxSizing: "border-box",
+                    transform: "translate(-50%, -50%)",
                     width: DOT_SIZE,
                     height: DOT_SIZE,
                     borderRadius: "50%",
@@ -228,48 +246,32 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
                     cursor: "pointer",
                     background: isYellow(phase.status) ? ACCENT : DOT_GRAY,
                     boxShadow: isYellow(phase.status)
-                      ? `0 0 0 3px rgba(255, 201, 54, 0.16), 0 0 10px rgba(255, 201, 54, 0.55)`
-                      : `0 0 8px rgba(255, 201, 54, 0.14)`,
+                      ? `0 0 12px 3px rgba(255, 201, 54, 0.45)`
+                      : `0 0 8px rgba(209, 213, 219, 0.4)`,
                     zIndex: 3,
                   }}
                 />
 
-                {selected && (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      left: x,
-                      top: TOP_ZONE + RAIL_ZONE / 2 + 1,
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      border: "2px solid rgba(255, 201, 54, 0.75)",
-                      animation: "timeline-select 1.2s ease-out infinite",
-                      pointerEvents: "none",
-                      zIndex: 2,
-                    }}
-                  />
-                )}
-
-                {current && (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      left: x,
-                      top: TOP_ZONE + RAIL_ZONE / 2 + 1,
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      border: "2px solid rgba(255, 201, 54, 0.6)",
-                      animation: "timeline-pulse 1.7s ease-out infinite",
-                      pointerEvents: "none",
-                      zIndex: 1,
-                    }}
-                  />
-                )}
-              </div>
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: x,
+                    top: LINE_Y,
+                    boxSizing: "border-box",
+                    transform: `translate(-50%, -50%) scale(${selected ? 1 : 0})`,
+                    opacity: selected ? 1 : 0,
+                    transition: "transform 0.3s cubic-bezier(0.1, 1, 0.2, 1), opacity 0.2s ease-out",
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    border: `3px solid ${ACCENT}`,
+                    boxShadow: `0 0 10px 2px rgba(255, 201, 54, 0.3)`,
+                    pointerEvents: "none",
+                    zIndex: 2,
+                  }}
+                />
+              </Fragment>
             );
           })}
         </div>
