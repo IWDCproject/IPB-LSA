@@ -39,8 +39,10 @@ const HERO_BOTTOM_LAYERS = [
 ];
 
 const HERO_LEFT_LAYERS = [
-  { blurPx: 2, stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.18, alpha: 0 }] },
-  { blurPx: 6, stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.12, alpha: 0 }] },
+  { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.22, alpha: 1 }, { pos: 0.45, alpha: 0 }] },
+  { blurPx: 8,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.14, alpha: 1 }, { pos: 0.36, alpha: 0 }] },
+  { blurPx: 12, stops: [{ pos: 0, alpha: 1 }, { pos: 0.08, alpha: 1 }, { pos: 0.28, alpha: 0 }] },
+  { blurPx: 20, stops: [{ pos: 0, alpha: 1 }, { pos: 0.04, alpha: 1 }, { pos: 0.20, alpha: 0 }] },
 ];
 
 const HERO_RIGHT_LAYERS = [
