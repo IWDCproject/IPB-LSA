@@ -43,7 +43,10 @@ function fmtSecs(s: number) {
 function getEngine(fmt: any)   { return fmt?.modules?.[0] ?? null; }
 function getTimerMod(fmt: any) { return fmt?.modules?.find((m: any) => m.type === "timer") ?? null; }
 
-function calcJudgeScore(scores: number[] = [], method = "avg") {
+function calcJudgeScore(rawScores: any[] =[], method = "avg") {
+  // 1. FILTER OUT NULL/UNDEFINED SCORES FIRST
+  const scores = rawScores.filter((s) => typeof s === "number" && !isNaN(s));
+  
   if (!scores.length) return 0;
   if (method === "drop_extremes" && scores.length > 2) {
     const sorted = [...scores].sort((a, b) => a - b).slice(1, -1);
@@ -69,7 +72,7 @@ function useMatchTimerDOM(ref: React.RefObject<HTMLSpanElement>, live: any, time
       if (ref.current) ref.current.textContent = fmtSecs(calc());
     }, 1000);
     return () => clearInterval(id);
-  }, [live?.timerRunning, live?.timerLastStarted, live?.timerSecs, timerMod?.config?.mode]);
+  },[live?.timerRunning, live?.timerLastStarted, live?.timerSecs, timerMod?.config?.mode]);
 }
 
 function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }: { inst: any; size?: string }) {
@@ -91,8 +94,8 @@ function ScoreTimed({ live }: { live: any }) {
 
 function ScoreSets({ live, engine }: { live: any; engine: any }) {
   const setsWon   = live?.setsWon  ?? [0, 0];
-  const setScore  = live?.setScore ?? [0, 0];
-  const setLog    = live?.setLog   ?? [];
+  const setScore  = live?.setScore ??[0, 0];
+  const setLog    = live?.setLog   ??[];
   const setsToWin = engine?.config?.sets_to_win ?? 3;
 
   const Dots = ({ filled }: { filled: number }) => (
@@ -134,7 +137,7 @@ function ScoreSets({ live, engine }: { live: any; engine: any }) {
 }
 
 function JudgeScores({ live, engine }: { live: any; engine: any }) {
-  const scores = live?.judgeScores ?? [];
+  const scores = live?.judgeScores ??[];
   const method = engine?.config?.method ?? "avg";
   const result = calcJudgeScore(scores, method);
   const pill: React.CSSProperties = {
@@ -147,7 +150,12 @@ function JudgeScores({ live, engine }: { live: any; engine: any }) {
     <div style={{ textAlign: "center" }}>
       <div style={{ ...BB, fontSize: "calc(40px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{result.toFixed(2)}</div>
       <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(4px * var(--s))", flexWrap: "wrap" }}>
-        {scores.map((s: number, i: number) => <span key={i} style={pill}>{s.toFixed(1)}</span>)}
+        {/* 2. SAFELY HANDLE NULL VALUES IN THE UI */}
+        {scores.map((s: number | null, i: number) => (
+          <span key={i} style={pill}>
+            {typeof s === "number" ? s.toFixed(1) : "-"}
+          </span>
+        ))}
       </div>
       <div style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.5, marginTop: "calc(4px * var(--s))", textTransform: "uppercase", letterSpacing: 1 }}>
         {method === "drop_extremes" ? "Avg (drop extremes)" : method}
@@ -157,7 +165,7 @@ function JudgeScores({ live, engine }: { live: any; engine: any }) {
 }
 
 function FinishTime({ live }: { live: any }) {
-  const log = live?.timeLog ?? [];
+  const log = live?.timeLog ??[];
   if (!log.length) {
     return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", opacity: 0.4, textAlign: "center" }}>Waiting for results...</div>;
   }
@@ -180,7 +188,7 @@ function FinishTime({ live }: { live: any }) {
 
 function ManualPick({ live }: { live: any }) {
   const winner   = live?.winner   ?? null;
-  const rankings = live?.rankings ?? [];
+  const rankings = live?.rankings ??[];
 
   if (rankings.length > 0) {
     return (
@@ -322,12 +330,11 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  },[]);
 
   const imageUrl = getAssetUrl(event?.card_image);
   const hasBg    = !!imageUrl;
 
-  // Pull bitmap from BlurContext, fallback to prop
   const { bitmaps } = useBlur();
   const bitmap = bitmapProp ?? (imageUrl ? bitmaps[imageUrl]?.matchcard?.bitmap ?? null : null);
 
@@ -343,7 +350,6 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
       <div style={S.cardOverlay} />
       <div style={S.cardInner}>
 
-        {/* Header */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
           padding: "calc(18px * var(--s)) calc(18px * var(--s)) 0", gap: "calc(8px * var(--s))",
@@ -363,7 +369,6 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
           </div>
         </div>
 
-        {/* Participants & Scores */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 calc(18px * var(--s))" }}>
 
           {isH2H && (
@@ -375,50 +380,39 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "calc(4px * var(--s))" }}>
-                {/* <span style={{ ...BB, fontSize: "calc(16px * var(--s))", opacity: 0.5 }}>VS</span> */}
-                <ScoreSection fmt={fmt} live={live} match={match} />
-              </div>
+              <ScoreSection fmt={fmt} live={live} match={match} />
 
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
                 <InstitutionLogo inst={match.away_participant?.institution} size="calc(56px * var(--s))" />
                 <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
-                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
+                  {match.away_participant?.name?.replace(" ", "\n") ?? "?"}
                 </div>
               </div>
             </div>
           )}
 
-          {isSolo && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
-                <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
-                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
-                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <ScoreSection fmt={fmt} live={live} match={match} />
-              </div>
-            </div>
-          )}
-
-          {isOpen && (
+          {(isSolo || isOpen) && (
             <div style={{ textAlign: "center" }}>
-              {timerMod && (
+              {isOpen && timerMod && (
                 <div style={{ ...BB, fontSize: "calc(36px * var(--s))", marginBottom: "calc(10px * var(--s))", letterSpacing: 2 }}>
                   <span ref={openTimerRef}>00:00:00</span>
                 </div>
               )}
-              <div style={{ marginTop: "calc(4px * var(--s))" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
+                {isSolo && (
+                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+                     <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
+                     <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4 }}>
+                       {match.home_participant?.name ?? "?"}
+                     </div>
+                   </div>
+                )}
                 <ScoreSection fmt={fmt} live={live} match={match} />
               </div>
             </div>
           )}
-
         </div>
 
-        {/* Footer */}
         <div style={{
           marginTop: "auto",
           padding: "calc(12px * var(--s)) calc(18px * var(--s))",
