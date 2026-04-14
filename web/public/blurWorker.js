@@ -1,35 +1,12 @@
 // blurWorker.js
 // Unified blur worker — processes all image types in a single batch.
-// Blur computation is offloaded to /api/blur (Sharp, server-side).
-// Worker handles: natural-AR sizing, masking, and compositing.
-//
-// Natural dimensions (naturalWidth, naturalHeight) are passed in via the
-// manifest from page.js (sourced from Directus file metadata) — no browser
-// fetch just to read pixel dimensions.
-//
-// TTL
-// ─────────────────────────────────────────────────────────────────────────
-// Each processor defines its own TTL_S (seconds). This is passed to the
-// route via &ttl= so the server enforces it on cache reads.
-// To change a type's TTL, edit the constant here — no route changes needed.
-//
-
-
-// =============================================================================
-// TTL config (seconds) — one place, owned by the worker
-// =============================================================================
 
 const TTL = {
-  hero:      30 * 24 * 60 * 60, // 30 days — hero images rarely change
-  eventcard:  7 * 24 * 60 * 60, //  7 days
-  newscard:   2 * 24 * 60 * 60, //  2 days — news updates frequently
-  matchcard:  7 * 24 * 60 * 60, //  7 days
+  hero:      30 * 24 * 60 * 60,
+  eventcard:  7 * 24 * 60 * 60,
+  newscard:   2 * 24 * 60 * 60,
+  matchcard:  7 * 24 * 60 * 60,
 };
-
-
-// =============================================================================
-// Constants
-// =============================================================================
 
 const HERO_BOTTOM_LAYERS = [
   { blurPx: 2,  stops: [{ pos: 0, alpha: 1 }, { pos: 0.18, alpha: 1 }, { pos: 0.35, alpha: 0 }] },
@@ -89,11 +66,6 @@ const NEWSCARD_LAYERS = [
   ]},
 ];
 
-
-// =============================================================================
-// Sizing helpers
-// =============================================================================
-
 function insideDims(naturalW, naturalH, maxW, maxH) {
   const scale = Math.min(maxW / naturalW, maxH / naturalH);
   return {
@@ -102,13 +74,6 @@ function insideDims(naturalW, naturalH, maxW, maxH) {
   };
 }
 
-
-// =============================================================================
-// Fetch helpers
-// =============================================================================
-
-// Requests a server-side blurred bitmap via /api/blur.
-// ttl is passed so the server enforces the right cache lifespan per type.
 async function fetchBlurred(imageUrl, blurPx, canW, canH, ttl) {
   const endpoint =
     `${self.location.origin}/api/blur` +
@@ -130,11 +95,6 @@ async function fetchBlurMap(url, layers, canW, canH, ttl) {
   const blurBitmaps = await Promise.all(uniquePxs.map((px) => fetchBlurred(url, px, canW, canH, ttl)));
   return Object.fromEntries(uniquePxs.map((px, i) => [px, blurBitmaps[i]]));
 }
-
-
-// =============================================================================
-// Compositing helpers
-// =============================================================================
 
 function makeMask(W, H, stops, dir = "down") {
   const oc  = new OffscreenCanvas(W, H);
@@ -179,14 +139,8 @@ async function compositeLayers(layers, blurMap, canW, canH, maskDir) {
   }
 
   Object.values(blurMap).forEach((b) => b.close());
-
   return createImageBitmap(result);
 }
-
-
-// =============================================================================
-// Processors
-// =============================================================================
 
 async function processHero(img) {
   const { url, width: W, height: H } = img;
@@ -197,7 +151,9 @@ async function processHero(img) {
 
   const allLayers      = [...HERO_BOTTOM_LAYERS, ...HERO_LEFT_LAYERS, ...HERO_RIGHT_LAYERS];
   const { canW, canH } = insideDims(nw, nh, W, H);
-  const scaledUrl      = `${url}&width=1200&fit=inside`;
+  
+  // Use the requested width W instead of hardcoded 1200
+  const scaledUrl      = `${url}&width=${W}&fit=inside`;
 
   const [sharpBlob, blurMap] = await Promise.all([
     fetch(scaledUrl).then((r) => r.blob()),
@@ -207,7 +163,7 @@ async function processHero(img) {
   const sharp = await createImageBitmap(sharpBlob, {
     resizeWidth:   canW,
     resizeHeight:  canH,
-    resizeQuality: "medium",
+    resizeQuality: "high", // Quality bumped to high for sharp layer
   });
 
   const result = new OffscreenCanvas(canW, canH);
@@ -232,35 +188,30 @@ async function processHero(img) {
 async function processEventcard(img) {
   const { url, width: W, height: H } = img;
   const ttl = TTL.eventcard;
-
   const nw = img.naturalWidth  ?? W;
   const nh = img.naturalHeight ?? H;
   const { canW, canH } = insideDims(nw, nh, W, H);
 
   const blurMap = await fetchBlurMap(url, EVENTCARD_LAYERS, canW, canH, ttl);
   const bitmap  = await compositeLayers(EVENTCARD_LAYERS, blurMap, canW, canH, "up");
-
   return { id: img.id, url, type: "eventcard", bitmap };
 }
 
 async function processNewscard(img) {
   const { url, width: W, height: H } = img;
   const ttl = TTL.newscard;
-
   const nw = img.naturalWidth  ?? W;
   const nh = img.naturalHeight ?? H;
   const { canW, canH } = insideDims(nw, nh, W, H);
 
   const blurMap = await fetchBlurMap(url, NEWSCARD_LAYERS, canW, canH, ttl);
   const bitmap  = await compositeLayers(NEWSCARD_LAYERS, blurMap, canW, canH, "down");
-
   return { id: img.id, url, type: "newscard", bitmap };
 }
 
 async function processMatchcard(img) {
   const { url, width: W, height: H } = img;
   const ttl = TTL.matchcard;
-
   const nw = img.naturalWidth  ?? W;
   const nh = img.naturalHeight ?? H;
   const { canW, canH } = insideDims(nw, nh, W, H);
@@ -268,11 +219,6 @@ async function processMatchcard(img) {
   const bitmap = await fetchBlurred(url, 6, canW, canH, ttl);
   return { id: img.id, url, type: "matchcard", bitmap };
 }
-
-
-// =============================================================================
-// Dispatch
-// =============================================================================
 
 const PROCESSORS = {
   hero:      processHero,
@@ -287,12 +233,10 @@ self.onmessage = async ({ data: { images } }) => {
       try {
         const fn = PROCESSORS[img.type];
         if (!fn) throw new Error(`Unknown type: ${img.type}`);
-
         const result    = await fn(img);
         const transfers = result.type === "hero"
           ? [result.sharp, result.blurred]
           : [result.bitmap];
-
         self.postMessage(result, transfers);
       } catch (err) {
         self.postMessage({ id: img.id, url: img.url, type: img.type, error: err.message });
