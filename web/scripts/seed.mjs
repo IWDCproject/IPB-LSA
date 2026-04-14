@@ -92,9 +92,9 @@ async function runMegaMasterSeed() {
         }));
 
         await client.request(createItems('event_phases',[
-            { event_id: e1.id, label: 'Technical Meeting', date_start: offsetDays(-5), time_start: '14:00', status: 'done', display_order: 1 },
-            { event_id: e1.id, label: 'Elimination Rounds', date_start: offsetDays(-1), time_start: '08:00', status: 'done', display_order: 2 },
-            { event_id: e1.id, label: 'Finals & Awarding', date_start: offsetDays(0), time_start: '09:00', status: 'current', display_order: 3 }
+            { event_id: e1.id, label: 'Technical Meeting', description: 'Briefing for all dojos and bracket drawing.', date_start: offsetDays(-5), time_start: '14:00', status: 'done', display_order: 1 },
+            { event_id: e1.id, label: 'Elimination Rounds', description: 'Preliminary matches across all categories.', date_start: offsetDays(-1), time_start: '08:00', status: 'done', display_order: 2 },
+            { event_id: e1.id, label: 'Finals & Awarding', description: 'Medal matches and closing ceremony.', date_start: offsetDays(0), time_start: '09:00', status: 'current', display_order: 3 }
         ]));
 
         const i1_ids = await seedInstitutionsForEvent(e1.id);
@@ -109,8 +109,8 @@ async function runMegaMasterSeed() {
         const p1_kata_2 = await client.request(createItem('participants', { competition_category_id: c1_kata.id, institution_id: i1_ids[1], name: generateName() }));
         const p1_kata_3 = await client.request(createItem('participants', { competition_category_id: c1_kata.id, institution_id: i1_ids[2], name: generateName() }));
 
-        const m1_kata_f = await client.request(createItem('matches', { competition_category_id: c1_kata.id, status: 'finished', round: 'Round 1', venue: 'Tatami 1', home_participant_id: p1_kata_1.id, live_state: { matchStatus: 'finished', judgeScores:[8.5, 8.2, 8.8, 8.4, 8.5], timerRunning: false, timerSecs: 184 } }));
-        const m1_kata_l = await client.request(createItem('matches', { competition_category_id: c1_kata.id, status: 'live', round: 'Round 1', venue: 'Tatami 1', home_participant_id: p1_kata_2.id, live_state: { matchStatus: 'live', judgeScores:[8.5, 8.4, null, null, null], timerRunning: true, timerSecs: 45, timerLastStarted: new Date().toISOString() } }));
+        const m1_kata_f = await client.request(createItem('matches', { competition_category_id: c1_kata.id, status: 'finished', round: 'Round 1', venue: 'Tatami 1', scheduled_at: offsetHours(-24), home_participant_id: p1_kata_1.id, live_state: { matchStatus: 'finished', judgeScores:[8.5, 8.2, 8.8, 8.4, 8.5], timerRunning: false, timerSecs: 184 } }));
+        const m1_kata_l = await client.request(createItem('matches', { competition_category_id: c1_kata.id, status: 'live', round: 'Round 1', venue: 'Tatami 1', scheduled_at: offsetHours(-1), home_participant_id: p1_kata_2.id, live_state: { matchStatus: 'live', judgeScores:[8.5, 8.4, null, null, null], timerRunning: true, timerSecs: 45, timerLastStarted: new Date().toISOString() } }));
         const m1_kata_u = await client.request(createItem('matches', { competition_category_id: c1_kata.id, status: 'upcoming', round: 'Round 1', venue: 'Tatami 1', scheduled_at: offsetHours(1), home_participant_id: p1_kata_3.id, live_state: { matchStatus: 'upcoming', judgeScores:[], timerRunning: false, timerSecs: 0 } }));
         allMatchIdsToDenorm.push(m1_kata_f.id, m1_kata_l.id);
 
@@ -120,15 +120,15 @@ async function runMegaMasterSeed() {
             const p = await client.request(createItem('participants', { competition_category_id: c1_k60.id, institution_id: randomPick(i1_ids), name: generateName(), seed: i+1 }));
             p1_k60_ids.push(p.id);
         }
-        const m1_kumi_f = await client.request(createItem('matches', { competition_category_id: c1_k60.id, status: 'finished', round: 'Semi Final 1', venue: 'Tatami 2', home_participant_id: p1_k60_ids[0], away_participant_id: p1_k60_ids[1], live_state: { matchStatus: 'finished', homeScore: 5, awayScore: 2, winner: p1_k60_ids[0], timerRunning: false, timerSecs: 0 } }));
-        const m1_kumi_l = await client.request(createItem('matches', { competition_category_id: c1_k60.id, status: 'live', round: 'Semi Final 2', venue: 'Tatami 2', home_participant_id: p1_k60_ids[2], away_participant_id: p1_k60_ids[3], live_state: { matchStatus: 'live', homeScore: 1, awayScore: 1, timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 120 } }));
+        const m1_kumi_f = await client.request(createItem('matches', { competition_category_id: c1_k60.id, status: 'finished', round: 'Semi Final 1', venue: 'Tatami 2', scheduled_at: offsetHours(-22), home_participant_id: p1_k60_ids[0], away_participant_id: p1_k60_ids[1], live_state: { matchStatus: 'finished', homeScore: 5, awayScore: 2, winner: p1_k60_ids[0], timerRunning: false, timerSecs: 0 } }));
+        const m1_kumi_l = await client.request(createItem('matches', { competition_category_id: c1_k60.id, status: 'live', round: 'Semi Final 2', venue: 'Tatami 2', scheduled_at: offsetHours(0), home_participant_id: p1_k60_ids[2], away_participant_id: p1_k60_ids[3], live_state: { matchStatus: 'live', homeScore: 1, awayScore: 1, timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 120 } }));
         const m1_kumi_u = await client.request(createItem('matches', { competition_category_id: c1_k60.id, status: 'upcoming', round: 'Grand Final', venue: 'Main Tatami', scheduled_at: offsetHours(3), home_participant_id: p1_k60_ids[0], away_participant_id: p1_k60_ids[2] }));
         allMatchIdsToDenorm.push(m1_kumi_f.id, m1_kumi_l.id);
 
         await client.request(createItems('news',[
-            { author_id: myId, event_id: e1.id, category: 'announcement', is_published: true, title: 'Sejarah Baru: Penjurian Elektronik WKF Aktif', slug: 'k-1', excerpt: 'FORKI X IPB Cup kini menggunakan sistem standar internasional WKF.', 
+            { author_id: myId, event_id: e1.id, category: 'announcement', is_published: true, published_at: offsetDays(-2), title: 'Sejarah Baru: Penjurian Elektronik WKF Aktif', slug: 'k-1', excerpt: 'FORKI X IPB Cup kini menggunakan sistem standar internasional WKF.', 
               content: 'Kompetisi tahun ini membawa angin segar bagi dunia bela diri mahasiswa. Untuk pertama kalinya dalam sejarah penyelenggaraan FORKI X IPB Cup, panitia resmi mengimplementasikan sistem penjurian elektronik (Electronic Scoring System) berstandar World Karate Federation (WKF).\n\nKetua panitia menjelaskan bahwa langkah ini diambil untuk memastikan transparansi dan keadilan mutlak di setiap pertandingan kumite. "Kami ingin atlet merasa dihargai dengan penilaian yang objektif. Sensor dan sistem tablet yang digunakan sama persis dengan yang dipakai di ajang PON maupun SEA Games," ujarnya.\n\nPara peserta menyambut antusias perubahan ini. Pertandingan di hari pertama berjalan jauh lebih lancar dengan minimnya protes dari kubu pelatih, membuktikan bahwa adaptasi teknologi adalah jalan ke depan untuk olahraga tatami antar perguruan tinggi di Indonesia.' },
-            { author_id: myId, event_id: e1.id, category: 'result', is_published: true, title: 'Dominasi Tuan Rumah di Babak Penyisihan Kumite', slug: 'k-2', excerpt: 'IPB University berhasil mengirimkan wakilnya ke babak semifinal Kumite dengan kemenangan dramatis.', 
+            { author_id: myId, event_id: e1.id, category: 'result', is_published: true, published_at: offsetHours(-5), title: 'Dominasi Tuan Rumah di Babak Penyisihan Kumite', slug: 'k-2', excerpt: 'IPB University berhasil mengirimkan wakilnya ke babak semifinal Kumite dengan kemenangan dramatis.', 
               content: 'Sorak-sorai penonton pecah di Gymnasium IPB saat atlet andalan tuan rumah mengeksekusi tendangan Ura Mawashi Geri yang sempurna tepat 10 detik sebelum waktu pertandingan berakhir.\n\nKemenangan dramatis dengan skor akhir 5-4 ini memastikan IPB mendominasi slot semifinal di kelas Kumite -60kg Putra. Sang pelatih menyebut bahwa pemusatan latihan selama 3 bulan terakhir di Puncak, Bogor, membuahkan hasil yang sangat signifikan, terutama pada ketahanan fisik para atlet di menit-menit kritis pertandingan.\n\nBabak semifinal akan dilanjutkan esok hari dan diprediksi akan menjadi pertarungan sengit melawan musuh bebuyutan dari perguruan tinggi asal Bandung. Pihak penyelenggara memperkirakan tiket penonton akan terjual habis sebelum pertandingan dimulai.' }
         ]));
 
@@ -143,6 +143,13 @@ async function runMegaMasterSeed() {
             description: `The IPB Badminton Cup is a premier regional tournament showcasing the finest student-athletes in the sport. Following the BWF standard for match officiating and equipment.`
         }));
 
+        await client.request(createItems('event_phases',[
+            { event_id: e2.id, label: 'Registration Phase', description: 'Early bird and normal registration via the IPB portal.', date_start: offsetDays(-30), time_start: '08:00', status: 'done', display_order: 1 },
+            { event_id: e2.id, label: 'Group Stage', description: 'Round-robin format matches for all groups.', date_start: offsetDays(-1), time_start: '08:00', status: 'done', display_order: 2 },
+            { event_id: e2.id, label: 'Semi Finals', description: 'The top 4 players clash for a spot in the finals.', date_start: offsetDays(0), time_start: '09:00', status: 'current', display_order: 3 },
+            { event_id: e2.id, label: 'Grand Final', description: 'The pinnacle of IPB Badminton Cup 2026.', date_start: offsetDays(1), time_start: '15:00', status: 'upcoming', display_order: 4 }
+        ]));
+
         const i2_ids = await seedInstitutionsForEvent(e2.id);
         const f2_sets = await client.request(createItem('match_formats', { event_id: e2.id, name: 'BWF Sets Format', match_type: 'head_to_head', modules:[{ type: 'score_sets', config: { sets_to_win: 2, term: "Set", max_sets: 3 } }, { type: 'timer', config: { mode: 'stopwatch' } }] }));
         const c2_putra = await client.request(createItem('competition_categories', { event_id: e2.id, format_id: f2_sets.id, name: 'Tunggal Putra', participant_type: 'individual' }));
@@ -154,20 +161,20 @@ async function runMegaMasterSeed() {
         }
 
         const m2_f = await client.request(createItem('matches', { 
-            competition_category_id: c2_putra.id, status: 'finished', venue: 'Court 2', home_participant_id: p2_p[0], away_participant_id: p2_p[1], round: 'Quarter Finals',
+            competition_category_id: c2_putra.id, status: 'finished', venue: 'Court 2', scheduled_at: offsetHours(-2), home_participant_id: p2_p[0], away_participant_id: p2_p[1], round: 'Quarter Finals',
             live_state: { matchStatus: 'finished', setIdx: 1, setScore: [21, 15], setsWon:[2, 0], setLog:[{ home: 21, away: 12 }, { home: 21, away: 15 }], winner: p2_p[0], timerRunning: false, timerSecs: 2400 }
         }));
         const m2_l = await client.request(createItem('matches', { 
             competition_category_id: c2_putra.id, status: 'live', venue: 'Court 1', scheduled_at: offsetHours(0), home_participant_id: p2_p[2], away_participant_id: p2_p[3], round: 'Semi Finals',
-            live_state: { matchStatus: 'live', setIdx: 2, setScore: [14, 18], setsWon:[1, 1], setLog:[{ home: 21, away: 19 }, { home: 13, away: 21 }], timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 3600 }
+            live_state: { matchStatus: 'live', setIdx: 2, setScore:[14, 18], setsWon:[1, 1], setLog:[{ home: 21, away: 19 }, { home: 13, away: 21 }], timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 3600 }
         }));
         const m2_u = await client.request(createItem('matches', { competition_category_id: c2_putra.id, status: 'upcoming', venue: 'Court 1', scheduled_at: offsetHours(5), home_participant_id: p2_p[4], away_participant_id: p2_p[5], round: 'Grand Final' }));
         allMatchIdsToDenorm.push(m2_f.id, m2_l.id);
 
         await client.request(createItems('news',[
-            { author_id: myId, event_id: e2.id, category: 'news', is_published: true, title: 'Rekor Kecepatan Smash Terpecahkan di GOR IPB', slug: 'b-1', excerpt: 'Alat ukur BWF mencatat kecepatan smash luar biasa yakni 320km/jam.', 
+            { author_id: myId, event_id: e2.id, category: 'news', is_published: true, published_at: offsetDays(-1), title: 'Rekor Kecepatan Smash Terpecahkan di GOR IPB', slug: 'b-1', excerpt: 'Alat ukur BWF mencatat kecepatan smash luar biasa yakni 320km/jam.', 
               content: 'Suasana GOR Badminton IPB langsung riuh saat sebuah smash keras menghujam lurus ke sisi lapangan lawan tanpa bisa dikembalikan. Bukan hanya karena poin krusial yang didapat, melainkan karena layar pengukur kecepatan di pinggir lapangan menunjukkan angka yang tidak masuk akal untuk ukuran atlet mahasiswa: 320km/jam.\n\nTechnical Delegate dari PBSI yang hadir memantau pertandingan pun dibuat terkejut. "Ini adalah potensi yang luar biasa. Sangat jarang kita melihat power frame rate sehebat itu di kelas kompetisi universitas. Shuttlecock yang digunakan sampai rusak bulunya dalam satu pukulan," ungkap beliau.\n\nRekor ini kini dipegang resmi oleh sang atlet, menjadikannya standar baru yang akan sangat sulit dipatahkan oleh pemain lain di turnamen ini.' },
-            { author_id: myId, event_id: e2.id, category: 'update', is_published: true, title: 'Kapasitas Tribun Hari Kedua Penuh Sesak', slug: 'b-2', excerpt: 'Tiket online ludes terjual dalam kurun waktu kurang dari 3 jam.', 
+            { author_id: myId, event_id: e2.id, category: 'update', is_published: true, published_at: offsetHours(-3), title: 'Kapasitas Tribun Hari Kedua Penuh Sesak', slug: 'b-2', excerpt: 'Tiket online ludes terjual dalam kurun waktu kurang dari 3 jam.', 
               content: 'Antusiasme mahasiswa terhadap IPB Badminton Cup tahun ini benar-benar di luar ekspektasi panitia penyelenggara. Seluruh tiket untuk pertandingan hari kedua yang mempertandingkan babak perempat final dan semifinal telah ludes terjual secara online hanya dalam hitungan jam.\n\nPanitia terpaksa menyediakan layar tancap (nobar) di pelataran luar GOR karena kapasitas 1.500 kursi di dalam venue sudah tak mampu lagi menampung animo suporter dari berbagai fakultas dan universitas tamu. Cuaca mendung khas Kota Hujan rupanya tak menyurutkan semangat ribuan penonton yang membawa drum, syal, dan spanduk dukungan bagi almamater mereka masing-masing.' }
         ]));
 
@@ -181,6 +188,13 @@ async function runMegaMasterSeed() {
             user_created: me.id, name: 'IPB BERLARI 2026', slug: 'ipb-berlari-2026', type: 'sport', status: 'active', is_published: true, location: 'Kampus Dramaga', start_date: offsetDays(-5), end_date: offsetDays(-5), registration_end_date: offsetDays(-15),
             description: `IPB BERLARI 2026 is an annual trail running event celebrating fitness and nature. Participants race through the lush, green research forests of IPB University.`
         }));
+
+        await client.request(createItems('event_phases',[
+            { event_id: e3.id, label: 'Race Pack Collection', description: 'Participants must collect their bibs and jerseys at GWW.', date_start: offsetDays(-7), time_start: '10:00', status: 'done', display_order: 1 },
+            { event_id: e3.id, label: '21K Flag Off', description: 'Start of the Half Marathon.', date_start: offsetDays(-5), time_start: '05:00', status: 'done', display_order: 2 },
+            { event_id: e3.id, label: '10K Flag Off', description: 'Start of the 10K Challenge.', date_start: offsetDays(-5), time_start: '05:30', status: 'current', display_order: 3 },
+            { event_id: e3.id, label: 'Awarding Ceremony', description: 'Medal presentations for podium finishers.', date_start: offsetDays(-5), time_start: '09:00', status: 'upcoming', display_order: 4 }
+        ]));
 
         const i3_ids = await seedInstitutionsForEvent(e3.id);
         const f3_time = await client.request(createItem('match_formats', { event_id: e3.id, name: 'Race Format', match_type: 'open', modules:[{ type: 'finish_time', config: { unit: 's', rank_order: 'asc' } }, { type: 'timer', config: { mode: 'stopwatch' } }] }));
@@ -197,7 +211,7 @@ async function runMegaMasterSeed() {
         }
         p3_21k.sort((a, b) => a.time - b.time);
         const m3_21k_f = await client.request(createItem('matches', { 
-            competition_category_id: c3_21k.id, status: 'finished', venue: 'Gate Utama', 
+            competition_category_id: c3_21k.id, status: 'finished', venue: 'Gate Utama', scheduled_at: offsetHours(-4),
             live_state: { matchStatus: 'finished', timeLog: p3_21k.map(r => ({ id: r.id, name: r.name, time: `${Math.floor(r.time/3600)}:${Math.floor((r.time%3600)/60).toString().padStart(2,'0')}:${(r.time%60).toString().padStart(2,'0')}` })), rankings: p3_21k.map((r, i) => ({ id: r.id, name: r.name, rank: i + 1 })), timerSecs: p3_21k[p3_21k.length-1].time, timerRunning: false }
         }));
         await client.request(createItems('match_participants', p3_21k.map((r, i) => ({ match_id: m3_21k_f.id, participant_id: r.id, position: i + 1 }))));
@@ -211,7 +225,7 @@ async function runMegaMasterSeed() {
         }
         const p3_10k_finished = p3_10k.slice(0, 3).sort((a,b) => a.time - b.time);
         const m3_10k_l = await client.request(createItem('matches', { 
-            competition_category_id: c3_10k.id, status: 'live', venue: 'Gate Utama', 
+            competition_category_id: c3_10k.id, status: 'live', venue: 'Gate Utama', scheduled_at: offsetHours(0),
             live_state: { matchStatus: 'live', timeLog: p3_10k_finished.map(r => ({ id: r.id, name: r.name, time: `${Math.floor(r.time/3600)}:${Math.floor((r.time%3600)/60).toString().padStart(2,'0')}:${(r.time%60).toString().padStart(2,'0')}` })), rankings: p3_10k_finished.map((r, i) => ({ id: r.id, name: r.name, rank: i + 1 })), timerSecs: 3600, timerRunning: true, timerLastStarted: new Date().toISOString() }
         }));
         await client.request(createItems('match_participants', p3_10k.map((r, i) => ({ match_id: m3_10k_l.id, participant_id: r.id, position: i + 1 }))));
@@ -223,13 +237,13 @@ async function runMegaMasterSeed() {
             const res = await client.request(createItem('participants', { name: generateName(), competition_category_id: c3_5k.id, institution_id: randomPick(i3_ids) }));
             p3_5k.push({ id: res.id, name: res.name });
         }
-        const m3_5k_u = await client.request(createItem('matches', { competition_category_id: c3_5k.id, status: 'upcoming', venue: 'Gate Utama', scheduled_at: offsetHours(2), live_state: { matchStatus: 'upcoming', timeLog: [], rankings:[], timerSecs: 0, timerRunning: false } }));
+        const m3_5k_u = await client.request(createItem('matches', { competition_category_id: c3_5k.id, status: 'upcoming', venue: 'Gate Utama', scheduled_at: offsetHours(2), live_state: { matchStatus: 'upcoming', timeLog:[], rankings:[], timerSecs: 0, timerRunning: false } }));
         await client.request(createItems('match_participants', p3_5k.map((r, i) => ({ match_id: m3_5k_u.id, participant_id: r.id, position: i + 1 }))));
 
         await client.request(createItems('news',[
-            { author_id: me.id, event_id: e3.id, category: 'result', is_published: true, title: 'Rekor Waktu 21K Trail Run Terpecahkan', slug: 'r-1', excerpt: `Trek perbukitan dan hutan penelitian IPB berhasil ditaklukkan dalam waktu super cepat.`, 
+            { author_id: me.id, event_id: e3.id, category: 'result', is_published: true, published_at: offsetDays(-2), title: 'Rekor Waktu 21K Trail Run Terpecahkan', slug: 'r-1', excerpt: `Trek perbukitan dan hutan penelitian IPB berhasil ditaklukkan dalam waktu super cepat.`, 
               content: `Edisi tahun ini dari IPB Berlari memberikan kejutan besar bagi komunitas lari jarak jauh. Seorang pelari muda berhasil memecahkan rekor lintasan 21K yang terkenal menantang dengan kombinasi jalan aspal dan tanah hutan berlumpur.\n\n"Trek di Sektor 4 dekat Hutan Konservasi sangat berat karena elevasi yang mendadak naik, namun udaranya sangat bersih dan sejuk sehingga membantu menjaga ritme pernapasan," kata sang pemenang usai menyentuh garis finis.\n\nKetua panitia memuji sportivitas seluruh peserta yang berhasil mencapai garis finis di bawah batas cut-off time (COT) 3,5 jam. Event ini semakin menegaskan posisi Kampus IPB sebagai venue sport-tourism hijau unggulan di Jawa Barat.` },
-            { author_id: me.id, event_id: e3.id, category: 'news', is_published: true, title: 'Sukseskan Konsep Zero-Waste Event', slug: 'r-2', excerpt: 'Panitia pastikan tidak ada satupun sampah plastik tertinggal di area hutan kampus.', 
+            { author_id: me.id, event_id: e3.id, category: 'news', is_published: true, published_at: offsetHours(-10), title: 'Sukseskan Konsep Zero-Waste Event', slug: 'r-2', excerpt: 'Panitia pastikan tidak ada satupun sampah plastik tertinggal di area hutan kampus.', 
               content: `Sejalan dengan visi IPB sebagai Green Campus, IPB Berlari 2026 menerapkan aturan nol sampah (zero-waste) secara ketat. Bekerja sama dengan UKM Lingkungan Hidup, panitia mendirikan 10 titik water station yang mewajibkan peserta menggunakan water-bladder atau tumbler bawaan sendiri, tanpa menyediakan cup plastik sekali pakai.\n\nTim penyapu jalur (sweeper) yang bertugas di akhir rombongan melaporkan hasil yang membanggakan: lintasan sepanjang 21 kilometer benar-benar bersih pasca acara.\n\nLangkah berani penyelenggara ini menuai pujian dari Dinas Lingkungan Hidup Kota Bogor dan diharapkan menjadi standar wajib bagi seluruh penyelenggaraan ajang lari marathon berskala nasional di masa mendatang.` }
         ]));
 
@@ -244,6 +258,13 @@ async function runMegaMasterSeed() {
             user_created: me.id, name: 'IT-TODAY HACKTODAY 2026', slug: 'hacktoday-2026', type: 'sport', status: 'active', is_published: true, location: 'Auditorium AHN', start_date: offsetDays(-1), end_date: offsetDays(0), registration_end_date: offsetDays(-20),
             description: `IT-TODAY HACKTODAY is IPB University's flagship technology competition. Indonesia's brightest young developers build high-tech solutions for local agricultural challenges.`
         }));
+
+        await client.request(createItems('event_phases',[
+            { event_id: e4.id, label: 'Opening Ceremony', description: 'Kick-off and theme announcement.', date_start: offsetDays(-1), time_start: '09:00', status: 'done', display_order: 1 },
+            { event_id: e4.id, label: 'Hacking Phase', description: '24 hours of non-stop coding.', date_start: offsetDays(-1), time_start: '10:00', status: 'current', display_order: 2 },
+            { event_id: e4.id, label: 'Pitching & Judging', description: 'Top teams present their solutions.', date_start: offsetDays(0), time_start: '13:00', status: 'upcoming', display_order: 3 },
+            { event_id: e4.id, label: 'Closing & Awarding', description: 'Winner announcement.', date_start: offsetDays(0), time_start: '16:00', status: 'upcoming', display_order: 4 }
+        ]));
 
         const i4_ids = await seedInstitutionsForEvent(e4.id);
         const f4_pick = await client.request(createItem('match_formats', { event_id: e4.id, name: 'Pitch Deck Judgement', match_type: 'open', modules:[{ type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } }, { type: 'timer', config: { mode: 'countdown', duration: 86400 } }] }));
@@ -264,7 +285,7 @@ async function runMegaMasterSeed() {
         // Web3 - FINISHED
         const p4_web3 = await genHackTeams(c4_web3.id);
         const m4_web3_f = await client.request(createItem('matches', { 
-            competition_category_id: c4_web3.id, status: 'finished', venue: 'Room A',
+            competition_category_id: c4_web3.id, status: 'finished', venue: 'Room A', scheduled_at: offsetHours(-5),
             live_state: { matchStatus: 'finished', rankings:[{ id: p4_web3[0].id, name: p4_web3[0].name, rank: 1 }, { id: p4_web3[1].id, name: p4_web3[1].name, rank: 2 }, { id: p4_web3[2].id, name: p4_web3[2].name, rank: 3 }], timerRunning: false, timerSecs: 0 }
         }));
         await client.request(createItems('match_participants', p4_web3.map((p, i) => ({ match_id: m4_web3_f.id, participant_id: p.id, position: i + 1 }))));
@@ -273,21 +294,21 @@ async function runMegaMasterSeed() {
         // AI - LIVE (Partial leaderboard)
         const p4_ai = await genHackTeams(c4_ai.id);
         const m4_ai_l = await client.request(createItem('matches', { 
-            competition_category_id: c4_ai.id, status: 'live', venue: 'Audit Hall',
-            live_state: { matchStatus: 'live', rankings: [{ id: p4_ai[2].id, name: p4_ai[2].name, rank: 1 }], timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 21600 } 
+            competition_category_id: c4_ai.id, status: 'live', venue: 'Audit Hall', scheduled_at: offsetHours(0),
+            live_state: { matchStatus: 'live', rankings:[{ id: p4_ai[2].id, name: p4_ai[2].name, rank: 1 }], timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 21600 } 
         }));
         await client.request(createItems('match_participants', p4_ai.map((p, i) => ({ match_id: m4_ai_l.id, participant_id: p.id, position: i + 1 }))));
         allMatchIdsToDenorm.push(m4_ai_l.id);
 
         // Cyber - UPCOMING
         const p4_cyber = await genHackTeams(c4_cyber.id);
-        const m4_cyber_u = await client.request(createItem('matches', { competition_category_id: c4_cyber.id, status: 'upcoming', venue: 'Lab 1', live_state: { matchStatus: 'upcoming', rankings:[], timerRunning: false, timerSecs: 86400 } }));
+        const m4_cyber_u = await client.request(createItem('matches', { competition_category_id: c4_cyber.id, status: 'upcoming', venue: 'Lab 1', scheduled_at: offsetHours(24), live_state: { matchStatus: 'upcoming', rankings:[], timerRunning: false, timerSecs: 86400 } }));
         await client.request(createItems('match_participants', p4_cyber.map((p, i) => ({ match_id: m4_cyber_u.id, participant_id: p.id, position: i + 1 }))));
 
         await client.request(createItems('news',[
-            { author_id: me.id, event_id: e4.id, category: 'news', is_published: true, title: 'Hacking Phase Tersisa 6 Jam, Ketegangan Meningkat', slug: 'h-1', excerpt: 'Para peserta HackToday berlomba dengan waktu untuk men-deploy model AI mereka.', 
+            { author_id: me.id, event_id: e4.id, category: 'news', is_published: true, published_at: offsetDays(-1), title: 'Hacking Phase Tersisa 6 Jam, Ketegangan Meningkat', slug: 'h-1', excerpt: 'Para peserta HackToday berlomba dengan waktu untuk men-deploy model AI mereka.', 
               content: 'Suasana di dalam Auditorium AHN IPB saat ini terasa sangat intens. Aroma kopi pekat dan bunyi ketikan keyboard mekanikal mendominasi seisi ruangan. Kompetisi HackToday 2026 telah memasuki jam ke-18 dari total waktu 24 jam non-stop yang diberikan kepada para peserta.\n\nBerdasarkan pantauan langsung, sebagian besar tim unggulan sedang berjuang keras mengintegrasikan model Machine Learning mereka ke backend aplikasi mobile. Beberapa peserta terlihat kelelahan, menyempatkan diri tidur sebentar di beanbag yang disediakan panitia di pojok ruangan.\n\n"Kami menemui bug yang cukup rumit di sistem pengenalan hama daun, namun kami optimis bisa menyelesaikannya sebelum waktu habis," ujar salah satu hacker dari tim asal Bandung yang matanya tampak memerah akibat kurang tidur.' },
-            { author_id: me.id, event_id: e4.id, category: 'announcement', is_published: true, title: 'Hadirkan Juri dari Raksasa Tech Multinasional', slug: 'h-2', excerpt: 'Total hadiah 50 juta rupiah dengan juri langsung dari Google dan GoTo.', 
+            { author_id: me.id, event_id: e4.id, category: 'announcement', is_published: true, published_at: offsetHours(-2), title: 'Hadirkan Juri dari Raksasa Tech Multinasional', slug: 'h-2', excerpt: 'Total hadiah 50 juta rupiah dengan juri langsung dari Google dan GoTo.', 
               content: 'Kualitas kompetisi IT-TODAY tahun ini naik kelas secara signifikan. Panitia berhasil menggandeng sejumlah raksasa teknologi (tech giants) untuk bertindak langsung sebagai juri panel pada fase Pitching besok pagi.\n\nDirektur Kemahasiswaan IPB mengapresiasi kerja keras himpunan mahasiswa Ilmu Komputer atas pencapaian ini. "Kesempatan dinilai langsung oleh praktisi industri kelas kakap adalah hadiah yang jauh lebih berharga daripada uang tunai. Ini adalah gerbang networking dan rekrutmen langsung bagi para talenta muda kita," tuturnya.\n\nSetiap tim nantinya hanya akan diberikan waktu 5 menit presentasi ditambah 10 menit sesi tanya jawab teknis yang dipastikan akan sangat menantang dan mencekam.' }
         ]));
 
@@ -303,6 +324,13 @@ async function runMegaMasterSeed() {
             description: `The IPB Futsal Cup is the university's most high-octane sporting event. Universities clash in a week-long battle for dominance.`
         }));
 
+        await client.request(createItems('event_phases',[
+            { event_id: e5.id, label: 'Technical Meeting', description: 'Rules discussion and group drawing.', date_start: offsetDays(-5), time_start: '15:00', status: 'done', display_order: 1 },
+            { event_id: e5.id, label: 'Group Stage W1', description: 'First week of group stage matches.', date_start: offsetDays(-2), time_start: '18:00', status: 'done', display_order: 2 },
+            { event_id: e5.id, label: 'Group Stage W2', description: 'Decisive matches for knockout qualification.', date_start: offsetDays(5), time_start: '18:00', status: 'current', display_order: 3 },
+            { event_id: e5.id, label: 'Knockout Stage', description: 'Quarter-finals to Grand Final.', date_start: offsetDays(10), time_start: '18:00', status: 'upcoming', display_order: 4 }
+        ]));
+
         const i5_ids = await seedInstitutionsForEvent(e5.id); 
         const f5_timed = await client.request(createItem('match_formats', { event_id: e5.id, name: 'Futsal Timed 2x20', match_type: 'head_to_head', modules:[{ type: 'score_timed', config: { has_periods: true, period_count: 2, period_term: 'Babak' } }, { type: 'timer', config: { mode: 'countdown', duration: 1200 } }] }));
         const c5_futsal = await client.request(createItem('competition_categories', { event_id: e5.id, format_id: f5_timed.id, name: 'Beregu Putra', participant_type: 'team' }));
@@ -315,13 +343,13 @@ async function runMegaMasterSeed() {
 
         // Group Stage - FINISHED
         const m5_f = await client.request(createItem('matches', { 
-            competition_category_id: c5_futsal.id, status: 'finished', round: 'Group A', venue: 'Pitch A', home_participant_id: p5_p[0], away_participant_id: p5_p[1],
+            competition_category_id: c5_futsal.id, status: 'finished', round: 'Group A', venue: 'Pitch A', scheduled_at: offsetDays(-1), home_participant_id: p5_p[0], away_participant_id: p5_p[1],
             live_state: { matchStatus: 'finished', homeScore: 5, awayScore: 2, periodIdx: 1, periodPhase: 'finished', winner: p5_p[0], timerRunning: false, timerSecs: 0 }
         }));
         
         // Group Stage - LIVE (2nd Half, Tied)
         const m5_l = await client.request(createItem('matches', { 
-            competition_category_id: c5_futsal.id, status: 'live', round: 'Group A', venue: 'Pitch B', home_participant_id: p5_p[2], away_participant_id: p5_p[3],
+            competition_category_id: c5_futsal.id, status: 'live', round: 'Group A', venue: 'Pitch B', scheduled_at: offsetHours(0), home_participant_id: p5_p[2], away_participant_id: p5_p[3],
             live_state: { matchStatus: 'live', homeScore: 2, awayScore: 2, periodIdx: 1, periodPhase: 'active', timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 600 } // 10 mins left in 2nd half
         }));
 
@@ -331,9 +359,9 @@ async function runMegaMasterSeed() {
         allMatchIdsToDenorm.push(m5_f.id, m5_l.id);
 
         await client.request(createItems('news',[
-            { author_id: me.id, event_id: e5.id, category: 'announcement', is_published: true, title: 'Drawing Grup A Menegangkan: Tuan Rumah Bertemu Rival Klasik', slug: 'f-1', excerpt: 'Hasil drawing menempatkan tim unggulan di grup neraka.', 
+            { author_id: me.id, event_id: e5.id, category: 'announcement', is_published: true, published_at: offsetDays(-1), title: 'Drawing Grup A Menegangkan: Tuan Rumah Bertemu Rival Klasik', slug: 'f-1', excerpt: 'Hasil drawing menempatkan tim unggulan di grup neraka.', 
               content: 'Pengundian fase grup IPB Futsal Cup yang digelar semalam di Student Center membuahkan hasil yang memicu riuh rendah perwakilan tim. Tuan rumah dipastikan harus satu grup dengan musuh bebuyutannya di dalam Grup A yang langsung dijuluki oleh para pandit kampus sebagai "Grup Neraka".\n\nKedua raksasa lapangan hijau kampus ini memiliki sejarah rivalitas yang panjang dan kerap kali memperagakan tensi pertandingan yang sangat tinggi di atas lapangan. Pertemuan terakhir mereka di turnamen nasional berujung pada kemenangan tipis lawan melalui drama adu penalti yang menguras emosi.\n\n"Kami sudah melakukan evaluasi besar-besaran sejak kekalahan menyakitkan tahun lalu. Bermain di kandang sendiri dengan dukungan penuh suporter se-fakultas akan menjadi keuntungan psikologis besar bagi mental bertanding anak-anak," tegas sang pelatih kepala dengan nada optimis saat konferensi pers.' },
-            { author_id: me.id, event_id: e5.id, category: 'update', is_published: true, title: 'Protokol Keamanan Ekstra Seputar Venue', slug: 'f-2', excerpt: 'Polisi Kampus siapkan skema sterilisasi demi kenyamanan bersama.', 
+            { author_id: me.id, event_id: e5.id, category: 'update', is_published: true, published_at: offsetHours(-1), title: 'Protokol Keamanan Ekstra Seputar Venue', slug: 'f-2', excerpt: 'Polisi Kampus siapkan skema sterilisasi demi kenyamanan bersama.', 
               content: 'Mengingat tingginya antusiasme serta sejarah tensi suporter dari berbagai fakultas dan universitas yang berlaga, panitia penyelenggara IPB Futsal Cup telah berkoordinasi erat dengan pihak Kepolisian Kampus (Polkam) IPB.\n\nDalam rilis resminya, panitia melarang keras penggunaan petasan, suar (flare), dan membawa botol kaca di dalam radius 100 meter dari GOR Futsal IPB. "Kami sangat menghargai semangat dan kreativitas suporter dalam membuat koreografi, namun keselamatan dan kenyamanan semua pihak penonton adalah prioritas mutlak kami. Tim yang kelompok suporternya kedapatan melanggar regulasi keamanan ini akan dikenakan sanksi tegas berupa pengurangan poin klasemen," demikian kutipan dari buku panduan tata tertib terbaru.\n\nLangkah preventif ini diambil demi memastikan jalannya turnamen menjunjung tinggi semangat fair play dan mempererat persaudaraan antar mahasiswa.' }
         ]));
 
@@ -348,6 +376,13 @@ async function runMegaMasterSeed() {
             user_created: me.id, name: 'IPB ART FESTIVAL 2026', slug: 'ipb-art-fest-2026', type: 'arts', status: 'active', is_published: true, location: 'Gedung Graha Widya Wisuda (GWW)', start_date: offsetDays(-1), end_date: offsetDays(1), registration_end_date: offsetDays(-30),
             description: `The biggest annual performing arts competition. Showcasing pristine vocal talents across universities.`
         }));
+
+        await client.request(createItems('event_phases',[
+            { event_id: e6.id, label: 'Online Auditions', description: 'Submission of vocal covers.', date_start: offsetDays(-30), time_start: '00:00', status: 'done', display_order: 1 },
+            { event_id: e6.id, label: 'Live Shows D1', description: 'Top 20 performances.', date_start: offsetDays(-1), time_start: '19:00', status: 'done', display_order: 2 },
+            { event_id: e6.id, label: 'Live Shows D2', description: 'Top 10 performances.', date_start: offsetDays(0), time_start: '19:00', status: 'current', display_order: 3 },
+            { event_id: e6.id, label: 'Grand Finale', description: 'The top 3 battle with full orchestra.', date_start: offsetDays(1), time_start: '19:00', status: 'upcoming', display_order: 4 }
+        ]));
 
         const i6_ids = await seedInstitutionsForEvent(e6.id);
         const f6_judge = await client.request(createItem('match_formats', { event_id: e6.id, name: 'Vocal Solo Judging', match_type: 'solo', modules:[{ type: 'judge_scores', config: { num_judges: 3, method: 'avg', score_min: 0, score_max: 100, step: 1 } }, { type: 'notes', config: {} }] }));
@@ -365,15 +400,15 @@ async function runMegaMasterSeed() {
             }
 
             const match = await client.request(createItem('matches', { 
-                competition_category_id: c6_vocal.id, status: isFinished ? 'finished' : (i===3 ? 'live' : 'upcoming'), venue: 'Main Stage', scheduled_at: offsetHours(i), home_participant_id: artist.id, live_state: state 
+                competition_category_id: c6_vocal.id, status: isFinished ? 'finished' : (i===3 ? 'live' : 'upcoming'), venue: 'Main Stage', scheduled_at: offsetHours(i - 3), home_participant_id: artist.id, live_state: state 
             }));
             if(isFinished || i === 3) allMatchIdsToDenorm.push(match.id);
         }
 
         await client.request(createItems('news',[
-            { author_id: me.id, event_id: e6.id, category: 'news', is_published: true, title: 'Tata Cahaya Panggung Megah Sihir Para Penonton', slug: 'a-1', excerpt: 'Gedung GWW disulap menjadi concert hall bertaraf internasional.', 
+            { author_id: me.id, event_id: e6.id, category: 'news', is_published: true, published_at: offsetDays(-1), title: 'Tata Cahaya Panggung Megah Sihir Para Penonton', slug: 'a-1', excerpt: 'Gedung GWW disulap menjadi concert hall bertaraf internasional.', 
               content: 'Para penonton yang memadati Gedung Graha Widya Wisuda (GWW) dibuat terpukau oleh setting panggung IPB Art Festival 2026. Alih-alih terlihat seperti panggung kampus pada umumnya, sistem tata cahaya dan tata suara (sound system) yang dipasang panitia malam ini benar-benar setara dengan konser musik profesional berskala besar.\n\nSistem peredam suara gedung dioptimalkan untuk memastikan kejernihan vokal setiap kontestan kategori Pop Solo dapat terdengar dengan artikulasi yang jelas hingga ke baris kursi paling belakang. "Kami bekerja keras dengan vendor produksi selama berbulan-bulan untuk menjamin agar kualitas audio malam ini bisa memfasilitasi rentang vokal ekstrem para seniman muda ini," ujar seksi acara ArtFest saat ditemui di belakang panggung.\n\nSorotan lampu LED dinamis mengikuti ritme dan dinamika lagu balada yang dibawakan peserta, menciptakan momen merinding massal bagi dewan juri dan seluruh hadirin.' },
-            { author_id: me.id, event_id: e6.id, category: 'update', is_published: true, title: 'Persaingan Ketat di Kategori Vocal Solo Pop', slug: 'a-2', excerpt: 'Tiga penyanyi sudah mengantongi skor di atas 85, persaingan menuju juara semakin panas.', 
+            { author_id: me.id, event_id: e6.id, category: 'update', is_published: true, published_at: offsetHours(-4), title: 'Persaingan Ketat di Kategori Vocal Solo Pop', slug: 'a-2', excerpt: 'Tiga penyanyi sudah mengantongi skor di atas 85, persaingan menuju juara semakin panas.', 
               content: 'Hari kedua penyelenggaraan IPB Art Festival menghadirkan tensi kompetisi yang sangat ketat, terutama di kategori Vocal Solo Pop. Berdasarkan papan skor sementara, tiga penyanyi berhasil memukau dewan juri dan sukses mencatatkan nilai rata-rata di atas angka 85.\n\nJuri utama, yang merupakan musisi papan atas nasional, mengakui bahwa standar kualitas peserta tahun ini jauh melampaui ekspektasinya. "Mereka bukan lagi sekadar bernyanyi dengan nada yang tepat, tapi mereka sudah mampu bercerita dan memberikan nyawa pada lagu yang dibawakan. Penguasaan teknik head voice dan falsetto yang ditunjukkan sungguh level profesional," komentarnya di akhir sesi pertama.\n\nBabak grand final akan diselenggarakan besok malam, di mana para peserta yang lolos akan diwajibkan menyanyikan satu lagu pilihan dewan juri dengan aransemen orkestra penuh.' }
         ]));
 

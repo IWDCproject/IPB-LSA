@@ -52,12 +52,12 @@ function isYellow(value: string) {
 
 function isCurrent(value: string) {
   const s = status(value);
-  return ["active", "current"].includes(s);
+  return["active", "current"].includes(s);
 }
 
 function splitLabel(label: string) {
   const words = label.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 1) return [label];
+  if (words.length <= 1) return[label];
   const mid = Math.ceil(words.length / 2);
   const first = words.slice(0, mid).join(" ");
   const second = words.slice(mid).join(" ");
@@ -87,7 +87,7 @@ function getLabelStyle(
     justifyContent: first ? "flex-start" : last ? "flex-end" : "center",
     textAlign: first ? "left" : last ? "right" : "center",
     ...JK,
-    fontSize: 14,
+    fontSize: 12,
     lineHeight: 1.15,
     fontWeight: selected ? 800 : 500,
     color: selected ? TEXT_DARK : TEXT_MUTED,
@@ -97,7 +97,7 @@ function getLabelStyle(
 
 export default function TimelinePanel({ phases }: { phases: any[] }) {
   const railRef = useRef<HTMLDivElement>(null);
-  const [railWidth, setRailWidth] = useState(0);
+  const[railWidth, setRailWidth] = useState(0);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
     ro.observe(el);
 
     return () => ro.disconnect();
-  }, []);
+  },[]);
 
   const selectedPhase = useMemo(() => {
     if (!phases?.length) return null;
@@ -123,7 +123,16 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
     setSelectedId(selectedPhase.id);
   }, [selectedPhase?.id]);
 
-  if (!phases?.length) return null;
+  if (!phases?.length) {
+    return (
+      <PanelCard>
+        <PanelTitle>Event Timeline</PanelTitle>
+        <div style={{ ...JK, fontSize: 14, color: TEXT_MUTED, textAlign: "center", padding: "30px 0" }}>
+          Event phases not available.
+        </div>
+      </PanelCard>
+    );
+  }
 
   const labelWidth = useMemo(() => {
     if (!railWidth) return 140;

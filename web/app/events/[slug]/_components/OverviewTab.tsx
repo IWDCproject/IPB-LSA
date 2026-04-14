@@ -5,8 +5,8 @@ import { UpcomingMatchesPanel, LatestResultsPanel } from "./MatchesPanels";
 import LatestStoriesSection from "./LatestStoriesSection";
 
 export default function OverviewTab({ event, isMobile }: { event: any; isMobile: boolean }) {
-  const upcoming = (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live");
-  const finished = (event.matches ?? []).filter((m: any) => m.status === "finished");
+  const upcoming = (event.matches ??[]).filter((m: any) => m.status === "upcoming" || m.status === "live");
+  const finished = (event.matches ??[]).filter((m: any) => m.status === "finished");
   const showCountdown = !!(event.is_registration_open && event.registration_end_date);
 
   return (
@@ -16,16 +16,16 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
         display: "grid",
         gridTemplateColumns: isMobile ? "1fr" : "3fr 2fr",
         gap: 16,
-        alignItems: "start",
+        alignItems: "stretch",
       }}>
         {/* Left: description + timeline */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <AboutPanel event={event} />
-          <TimelinePanel phases={event.phases ?? []} />
+          <TimelinePanel phases={event.phases ??[]} />
         </div>
 
         {/* Right: countdown (if open) + upcoming + results */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
           {showCountdown && (
             <CountdownPanel
               deadline={event.registration_end_date}
