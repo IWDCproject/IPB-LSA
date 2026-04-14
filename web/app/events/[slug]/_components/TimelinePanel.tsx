@@ -115,11 +115,28 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
     return phases.find((p) => p.id === selectedId) ?? phases.find((p) => isCurrent(p.status)) ?? phases[0];
   }, [phases, selectedId]);
 
+  // Fixed missing dependency warning
   useEffect(() => {
-    if (!selectedPhase) return;
-    setSelectedId(selectedPhase.id);
-  }, [selectedPhase?.id]);
+    if (selectedPhase) {
+        setSelectedId(selectedPhase.id);
+    }
+  }, [selectedPhase]);
 
+  // Moved useMemo hooks ABOVE the early return to follow Rules of Hooks
+  const labelWidth = useMemo(() => {
+    if (!railWidth || !phases?.length) return 140;
+    const approx = railWidth / Math.max(phases.length, 3) - 12;
+    return Math.max(LABEL_W_MIN, Math.min(LABEL_W_MAX, approx));
+  }, [railWidth, phases?.length]);
+
+  const positions = useMemo(() => {
+    if (!railWidth || !phases?.length) return [];
+    if (phases.length === 1) return [railWidth / 2];
+    const usable = railWidth - DOT_SIZE;
+    return phases.map((_, i) => DOT_R + (usable * i) / (phases.length - 1));
+  }, [railWidth, phases]);
+
+  // Now we can safely perform the early return
   if (!phases?.length) {
     return (
       <PanelCard>
@@ -130,19 +147,6 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
       </PanelCard>
     );
   }
-
-  const labelWidth = useMemo(() => {
-    if (!railWidth) return 140;
-    const approx = railWidth / Math.max(phases.length, 3) - 12;
-    return Math.max(LABEL_W_MIN, Math.min(LABEL_W_MAX, approx));
-  }, [railWidth, phases.length]);
-
-  const positions = useMemo(() => {
-    if (!railWidth) return phases.map((_, i) => DOT_R + i * 120);
-    if (phases.length === 1) return [railWidth / 2];
-    const usable = railWidth - DOT_SIZE;
-    return phases.map((_, i) => DOT_R + (usable * i) / (phases.length - 1));
-  }, [railWidth, phases]);
 
   return (
     <PanelCard>
