@@ -331,160 +331,133 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
             </div>
 
             {isMobile ? (
-                <div className="absolute z-10" style={{ bottom: "88px", left: 0, right: 0 }}>
-                    <p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
-                        {">>>"} Featured Events
-                    </p>
-                    <div ref={mobileScrollRef} className="match-scroll" style={{
-                        "--s": mobileCardScale, display: "flex", gap: "8px", overflowX: "auto", scrollSnapType: "x mandatory",
-                        scrollPaddingLeft: "24px", WebkitOverflowScrolling: "touch", paddingLeft: "24px",
-                        ...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }),
-                    }}>
-                        {EVENTS.map((ev, idx) => {
-                            const isActive  = idx === activeIdx;
-                            const isHovered = !isActive && hoveredIdx === idx;
-                            
-                            // TIMELINE STYLE TRANSFER
-                            const ringGradient = isActive 
+								<div className="absolute z-10" style={{ bottom: "88px", left: 0, right: 0 }}>
+										<p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
+												{">>>"} Featured Events
+										</p>
+										
+										{/* ADDED paddingBottom: "20px" here so the notch isn't clipped */}
+										<div ref={mobileScrollRef} className="match-scroll" style={{
+												"--s": mobileCardScale, display: "flex", gap: "8px", overflowX: "auto", scrollSnapType: "x mandatory",
+												scrollPaddingLeft: "24px", WebkitOverflowScrolling: "touch", paddingLeft: "24px", paddingBottom: "20px",
+												...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }),
+										}}>
+												{EVENTS.map((ev, idx) => {
+														const isActive  = idx === activeIdx;
+														const isHovered = !isActive && hoveredIdx === idx;
+														
+														const ringGradient = isActive 
 																? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
-																: (isHovered && ev)
+																: (isHovered)
 																		? `linear-gradient(to bottom, ${YEL}, ${WHT})`
-																		: ev 
-																				// This is the stroke for real events (stays at 0.45)
-																				? "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))" 
-																				// FIX: This is the stroke for placeholders (dropped to 12% and 5%)
-																				: "linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.05))";
-                            
-                            const shadow = isActive 
-                                ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)"
-                                : "0 4px 16px rgba(0,0,0,0.7)";
+																		: "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))";
 
-                            return (
-                                <div key={ev.id}
-                                    onClick={(e) => { e.preventDefault(); select(idx); }}
-                                    onMouseEnter={() => !isActive && setHoveredIdx(idx)}
-                                    onMouseLeave={() => setHoveredIdx(null)}
-                                    style={{
-                                        position: "relative", flexShrink: 0,
-                                        flex: `0 0 ${mobileCardPx}px`, width: `${mobileCardPx}px`,
-                                        height: mobileCardH, scrollSnapAlign: "start", cursor: "pointer",
-                                        borderRadius: "11px", padding: 2, // Timeline padding trick
-                                        background: ringGradient, boxShadow: shadow, transition: "background 0.2s ease, box-shadow 0.2s ease"
-                                    }}
-                                >
-                                    <div style={{ 
-																				width: "100%", 
-																				height: "100%", 
-																				borderRadius: "9px", 
-																				overflow: "hidden", 
-																				position: "relative"
-																		}}>
-																				{/* 1. THE CONTENT: Apply saturation only to the actual card/image */}
+														return (
+																<div key={ev.id}
+																		onClick={(e) => { e.preventDefault(); select(idx); }}
+																		onMouseEnter={() => !isActive && setHoveredIdx(idx)}
+																		onMouseLeave={() => setHoveredIdx(null)}
+																		style={{
+																				position: "relative", flexShrink: 0,
+																				flex: `0 0 ${mobileCardPx}px`, width: `${mobileCardPx}px`,
+																				height: mobileCardH, scrollSnapAlign: "start", cursor: "pointer",
+																				borderRadius: "11px", padding: 2, 
+																				background: ringGradient, 
+																				boxShadow: isActive ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)" : "0 4px 16px rgba(0,0,0,0.7)",
+																				transition: "background 0.2s ease",
+																				// Ensure the card itself doesn't hide the notch
+																				overflow: "visible" 
+																		}}
+																>
+																		<div style={{ width: "100%", height: "100%", borderRadius: "9px", overflow: "hidden", position: "relative" }}>
 																				<div style={{
 																						width: "100%", height: "100%",
-																						filter: (isActive || isHovered) ? "none" : "saturate(0.3)",
+																						filter: (isActive || isHovered) ? "none" : "saturate(0.2)",
 																						transition: "filter 0.4s ease"
 																				}}>
 																						<EventCard event={ev} size="sm" />
 																				</div>
-
-																				{/* 2. THE DARKENER: Use an overlay instead of brightness() filter */}
 																				<div style={{
-																						position: "absolute", inset: 0,
-																						backgroundColor: "black",
-																						opacity: (isActive || isHovered) ? 0 : 0.3, // 0.3 = 70% brightness
-																						transition: "opacity 0.4s ease",
-																						pointerEvents: "none"
+																						position: "absolute", inset: 0, backgroundColor: "black",
+																						opacity: (isActive || isHovered) ? 0 : 0.15,
+																						transition: "opacity 0.4s ease", pointerEvents: "none"
 																				}} />
 																		</div>
-                                    
-                                    {mounted && (isActive || isHovered) && (
-                                        <CardNotch
-                                            color={isActive ? "rgb(234,179,8)" : "rgba(255,255,255,0.92)"}
-                                            textColor={isActive ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.6)"}
-                                            label={isActive ? "this" : "see more"}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        })}
-                        <div style={{ flexShrink: 0, width: 8 }} />
-                    </div>
-                </div>
+																		
+																		{/* THE NOTCH */}
+																		{mounted && (isActive || isHovered) && (
+																				<CardNotch
+																						color={isActive ? "rgb(234,179,8)" : "rgba(255,255,255,0.92)"}
+																						textColor={isActive ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.6)"}
+																						label={isActive ? "this" : "see more"}
+																				/>
+																		)}
+																</div>
+														);
+												})}
+												<div style={{ flexShrink: 0, width: 8 }} />
+										</div>
+								</div>
             ) : (
                 <div className="absolute z-10" style={{ bottom: "clamp(30px, 2.75vw, 52px)", left: "clamp(40px, 8.33vw, 160px)", right: "clamp(40px, 8.33vw, 160px)", paddingBottom: "clamp(32px, 3.125vw, 60px)" }}>
                     <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "calc(14px * var(--s))", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "calc(20px * var(--s))", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
                         {">>>"} Featured Events
                     </p>
                     <div className="flex" style={{ height: "calc(240px * var(--s))", gap: "calc(4px * var(--s))", ...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }) }}>
-                        
-                        {mounted && Array.from({ length: desktopSlots }, (_, idx) => {
-                            const ev       = EVENTS[idx] ?? null;
-                            const isActive = ev && idx === activeIdx;
-                            const isHovered = ev && !isActive && hoveredIdx === idx;
-                            
-                            // TIMELINE STYLE TRANSFER
-                            const ringGradient = isActive 
+												{mounted && Array.from({ length: desktopSlots }, (_, idx) => {
+														const ev       = EVENTS[idx] ?? null;
+														const isActive = ev && idx === activeIdx;
+														const isHovered = ev && !isActive && hoveredIdx === idx;
+														
+														const ringGradient = isActive 
 																? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
-																: (isHovered && ev)
+																: isHovered
 																		? `linear-gradient(to bottom, ${YEL}, ${WHT})`
-																		: ev 
-																				// This is the stroke for real events (stays at 0.45)
-																				? "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))" 
-																				// FIX: This is the stroke for placeholders (dropped to 12% and 5%)
-																				: "linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.05))";
+																		: "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))";
 
-                            const shadow = isActive 
-                                ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)"
-                                : "0 4px 16px rgba(0,0,0,0.7)";
-
-                            return (
-                                <div key={ev ? ev.id : `placeholder-${idx}`}
-                                    onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
-                                    onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
-                                    onMouseLeave={() => setHoveredIdx(null)}
-                                    className={`flex-1 min-w-0 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
-                                    style={{ 
-                                        height: "calc(240px * var(--s))", 
-                                        borderRadius: "11px", padding: 2, // Timeline padding trick
-                                        background: ringGradient, boxShadow: shadow,
-                                        transition: "background 0.2s ease, box-shadow 0.2s ease" 
-                                    }}
-                                >
-                                    <div style={{ 
-																				width: "100%", 
-																				height: "100%", 
-																				borderRadius: "9px", 
-																				overflow: "hidden", 
-																				position: "relative", 
-																				"--s": "1" 
+														return (
+																<div key={ev ? ev.id : `placeholder-${idx}`}
+																		onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
+																		onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
+																		onMouseLeave={() => setHoveredIdx(null)}
+																		className={`flex-1 min-w-0 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
+																		style={{ 
+																				height: "calc(240px * var(--s))", 
+																				borderRadius: "11px",
+																				padding: ev ? 2 : 0, 
+																				background: ev ? ringGradient : "transparent",
+																				boxShadow: isActive ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)" : "0 4px 16px rgba(0,0,0,0.7)",
+																				transition: "background 0.2s ease",
+																				overflow: "visible" // Allows notch to show
+																		}}
+																>
+																		<div style={{ 
+																				width: "100%", height: "100%", borderRadius: "9px", overflow: "hidden", position: "relative",
+																				border: !ev ? "2px solid rgba(255, 255, 255, 0.2)" : "none"
 																		}}>
-																				{/* 1. THE CONTENT: Filter applied conditionally so it doesn't touch Placeholders */}
 																				<div style={{
 																						width: "100%", height: "100%",
-																						filter: (ev && !isActive && !isHovered) ? "saturate(0.3)" : "none",
+																						filter: (ev && !isActive && !isHovered) ? "saturate(0.2)" : "none",
 																						transition: "filter 0.4s ease"
 																				}}>
 																						{ev ? <EventCard event={ev} size="sm" /> : <PlaceholderCard />}
 																				</div>
 
-																				{/* 2. THE DARKENER: Overlay won't break the Placeholder's backdrop-blur */}
-																				<div style={{
-																						position: "absolute", inset: 0,
-																						backgroundColor: "black",
-																						// Only darken if it's an event and not active/hovered
-																						opacity: (ev && !isActive && !isHovered) ? 0.3 : 0, 
-																						transition: "opacity 0.4s ease",
-																						pointerEvents: "none"
-																				}} />
+																				{ev && (
+																						<div style={{
+																								position: "absolute", inset: 0, backgroundColor: "black",
+																								opacity: (isActive || isHovered) ? 0 : 0.15,
+																								transition: "opacity 0.4s ease", pointerEvents: "none"
+																						}} />
+																				)}
 																		</div>
-                                    
-                                    {isActive  && <CardNotch color="rgb(234,179,8)" textColor="rgba(0,0,0,0.75)" label="this" />}
-                                    {isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)" label="see more" />}
-                                </div>
-                            );
-                        })}
-                    </div>
+																		
+																		{isActive  && <CardNotch color="rgb(234,179,8)" textColor="rgba(0,0,0,0.75)" label="this" />}
+																		{isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)" label="see more" />}
+																</div>
+														);
+												})}
+										</div>
                 </div>
             )}
 
