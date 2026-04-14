@@ -40,6 +40,14 @@ const universities =[
     { name: 'Institut Teknologi Sepuluh Nopember', color: '#0000FF' }
 ];
 
+// Surgical Addition: Link Constants
+const DUMMY_LINKS = {
+    reg: 'https://ipb.link/join-event-2026',
+    guide: 'https://ipb.link/guidebook-2026',
+    ig: 'https://instagram.com/ipbuniversity',
+    web: 'https://lucky.ipb.ac.id'
+};
+
 async function seedInstitutionsForEvent(eventId) {
     const ids =[];
     for (const univ of universities) {
@@ -88,6 +96,8 @@ async function runMegaMasterSeed() {
         console.log("🥋 [1/6] Seeding FORKI X IPB CUP 2026...");
         const e1 = await client.request(createItem('events', {
             user_created: myId, name: 'FORKI X IPB CUP 2026', slug: 'forki-ipb-2026', type: 'sport', status: 'active', is_published: true, location: 'Gymnasium IPB Dramaga', start_date: offsetDays(-2), end_date: offsetDays(1), registration_end_date: offsetDays(-15),
+            // Surgical Additions
+            registration_url: DUMMY_LINKS.reg, guidebook_url: DUMMY_LINKS.guide, instagram_url: DUMMY_LINKS.ig, website_url: DUMMY_LINKS.web,
             description: `FORKI × IPB CUP 2026 is the premier inter-university karate championship hosted by UKM Karate IPB in official partnership with the Federation Olahraga Karate-Do Indonesia (FORKI). Now in its fifth consecutive edition, the tournament has grown from a regional campus competition into one of the most anticipated collegiate karate events in West Java.`
         }));
 
@@ -140,6 +150,8 @@ async function runMegaMasterSeed() {
         console.log("🏸 [2/6] Seeding IPB BADMINTON CUP 2026...");
         const e2 = await client.request(createItem('events', {
             user_created: me.id, name: 'IPB BADMINTON CUP 2026', slug: 'ipb-badminton-2026', type: 'sport', status: 'active', is_published: true, location: 'GOR Badminton IPB', start_date: offsetDays(-1), end_date: offsetDays(2), registration_end_date: offsetDays(-14),
+            // Surgical Additions
+            registration_url: DUMMY_LINKS.reg, guidebook_url: DUMMY_LINKS.guide, instagram_url: DUMMY_LINKS.ig, website_url: DUMMY_LINKS.web,
             description: `The IPB Badminton Cup is a premier regional tournament showcasing the finest student-athletes in the sport. Following the BWF standard for match officiating and equipment.`
         }));
 
@@ -186,6 +198,8 @@ async function runMegaMasterSeed() {
         console.log("🏃[3/6] Seeding IPB BERLARI 2026...");
         const e3 = await client.request(createItem('events', { 
             user_created: me.id, name: 'IPB BERLARI 2026', slug: 'ipb-berlari-2026', type: 'sport', status: 'active', is_published: true, location: 'Kampus Dramaga', start_date: offsetDays(-5), end_date: offsetDays(-5), registration_end_date: offsetDays(-15),
+            // Surgical Additions
+            registration_url: DUMMY_LINKS.reg, guidebook_url: DUMMY_LINKS.guide, instagram_url: DUMMY_LINKS.ig, website_url: DUMMY_LINKS.web,
             description: `IPB BERLARI 2026 is an annual trail running event celebrating fitness and nature. Participants race through the lush, green research forests of IPB University.`
         }));
 
@@ -256,6 +270,8 @@ async function runMegaMasterSeed() {
         console.log("💻 [4/6] Seeding IT-TODAY HACKTODAY 2026...");
         const e4 = await client.request(createItem('events', { 
             user_created: me.id, name: 'IT-TODAY HACKTODAY 2026', slug: 'hacktoday-2026', type: 'sport', status: 'active', is_published: true, location: 'Auditorium AHN', start_date: offsetDays(-1), end_date: offsetDays(0), registration_end_date: offsetDays(-20),
+            // Surgical Additions
+            registration_url: DUMMY_LINKS.reg, guidebook_url: DUMMY_LINKS.guide, instagram_url: DUMMY_LINKS.ig, website_url: DUMMY_LINKS.web,
             description: `IT-TODAY HACKTODAY is IPB University's flagship technology competition. Indonesia's brightest young developers build high-tech solutions for local agricultural challenges.`
         }));
 
@@ -307,7 +323,7 @@ async function runMegaMasterSeed() {
 
         await client.request(createItems('news',[
             { author_id: me.id, event_id: e4.id, category: 'news', is_published: true, published_at: offsetDays(-1), title: 'Hacking Phase Tersisa 6 Jam, Ketegangan Meningkat', slug: 'h-1', excerpt: 'Para peserta HackToday berlomba dengan waktu untuk men-deploy model AI mereka.', 
-              content: 'Suasana di dalam Auditorium AHN IPB saat ini terasa sangat intens. Aroma kopi pekat dan bunyi ketikan keyboard mekanikal mendominasi seisi ruangan. Kompetisi HackToday 2026 telah memasuki jam ke-18 dari total waktu 24 jam non-stop yang diberikan kepada para peserta.\n\nBerdasarkan pantauan langsung, sebagian besar tim unggulan sedang berjuang keras mengintegrasikan model Machine Learning mereka ke backend aplikasi mobile. Beberapa peserta terlihat kelelahan, menyempatkan diri tidur sebentar di beanbag yang disediakan panitia di pojok ruangan.\n\n"Kami menemui bug yang cukup rumit di sistem pengenalan hama daun, namun kami optimis bisa menyelesaikannya sebelum waktu habis," ujar salah satu hacker dari tim asal Bandung yang matanya tampak memerah akibat kurang tidur.' },
+              content: 'Suasana di dalam Auditorium AHN IPB saat ini terasa sangat intens. Aroma kopi pekat and bunyi ketikan keyboard mekanikal mendominasi seisi ruangan. Kompetisi HackToday 2026 telah memasuki jam ke-18 dari total waktu 24 jam non-stop yang diberikan kepada para peserta.\n\nBerdasarkan pantauan langsung, sebagian besar tim unggulan sedang berjuang keras mengintegrasikan model Machine Learning mereka ke backend aplikasi mobile. Beberapa peserta terlihat kelelahan, menyempatkan diri tidur sebentar di beanbag yang disediakan panitia di pojok ruangan.\n\n"Kami menemui bug yang cukup rumit di sistem pengenalan hama daun, namun kami optimis bisa menyelesaikannya sebelum waktu habis," ujar salah satu hacker dari tim asal Bandung yang matanya tampak memerah akibat kurang tidur.' },
             { author_id: me.id, event_id: e4.id, category: 'announcement', is_published: true, published_at: offsetHours(-2), title: 'Hadirkan Juri dari Raksasa Tech Multinasional', slug: 'h-2', excerpt: 'Total hadiah 50 juta rupiah dengan juri langsung dari Google dan GoTo.', 
               content: 'Kualitas kompetisi IT-TODAY tahun ini naik kelas secara signifikan. Panitia berhasil menggandeng sejumlah raksasa teknologi (tech giants) untuk bertindak langsung sebagai juri panel pada fase Pitching besok pagi.\n\nDirektur Kemahasiswaan IPB mengapresiasi kerja keras himpunan mahasiswa Ilmu Komputer atas pencapaian ini. "Kesempatan dinilai langsung oleh praktisi industri kelas kakap adalah hadiah yang jauh lebih berharga daripada uang tunai. Ini adalah gerbang networking dan rekrutmen langsung bagi para talenta muda kita," tuturnya.\n\nSetiap tim nantinya hanya akan diberikan waktu 5 menit presentasi ditambah 10 menit sesi tanya jawab teknis yang dipastikan akan sangat menantang dan mencekam.' }
         ]));
@@ -317,18 +333,24 @@ async function runMegaMasterSeed() {
         // EVENT 5: IPB FUTSAL CUP (Timed H2H)
         // Format Coverage: score_timed + countdown + periods
         // States: Finished, Live, Upcoming
+        // Surgical Edit: This is the primary target for the "Upcoming" Registration Countdown Test
         // ====================================================================
-        console.log("⚽[5/6] Seeding IPB FUTSAL CUP...");
+        console.log("⚽[5/6] Seeding IPB FUTSAL CUP (Target for countdown test)...");
         const e5 = await client.request(createItem('events', { 
-            user_created: me.id, name: 'IPB FUTSAL CUP 2026', slug: 'ipb-futsal-2026', type: 'sport', status: 'active', is_published: true, location: 'GOR Futsal IPB', start_date: offsetDays(-2), end_date: offsetDays(10), registration_end_date: offsetDays(7),
+            user_created: me.id, name: 'IPB FUTSAL CUP 2026', slug: 'ipb-futsal-2026', type: 'sport', status: 'upcoming', is_published: true, location: 'GOR Futsal IPB', start_date: offsetDays(15), end_date: offsetDays(25), 
+            // Countdown Trigger Logic:
+            is_registration_open: true, 
+            registration_end_date: offsetDays(12), // Registration ends in 12 days
+            registration_url: 'https://ipb.link/reg-futsal-2026',
+            guidebook_url: 'https://ipb.link/guidebook-futsal-2026',
+            instagram_url: 'https://instagram.com/ipbfutsalcup',
+            website_url: 'https://futsal.ipb.ac.id',
             description: `The IPB Futsal Cup is the university's most high-octane sporting event. Universities clash in a week-long battle for dominance.`
         }));
 
         await client.request(createItems('event_phases',[
-            { event_id: e5.id, label: 'Technical Meeting', description: 'Rules discussion and group drawing.', date_start: offsetDays(-5), time_start: '15:00', status: 'done', display_order: 1 },
-            { event_id: e5.id, label: 'Group Stage W1', description: 'First week of group stage matches.', date_start: offsetDays(-2), time_start: '18:00', status: 'done', display_order: 2 },
-            { event_id: e5.id, label: 'Group Stage W2', description: 'Decisive matches for knockout qualification.', date_start: offsetDays(5), time_start: '18:00', status: 'current', display_order: 3 },
-            { event_id: e5.id, label: 'Knockout Stage', description: 'Quarter-finals to Grand Final.', date_start: offsetDays(10), time_start: '18:00', status: 'upcoming', display_order: 4 }
+            { event_id: e5.id, label: 'Technical Meeting', description: 'Rules discussion and group drawing.', date_start: offsetDays(13), time_start: '15:00', status: 'upcoming', display_order: 1 },
+            { event_id: e5.id, label: 'Group Stage W1', description: 'First week of group stage matches.', date_start: offsetDays(15), time_start: '18:00', status: 'upcoming', display_order: 2 }
         ]));
 
         const i5_ids = await seedInstitutionsForEvent(e5.id); 
@@ -341,22 +363,10 @@ async function runMegaMasterSeed() {
             p5_p.push(res.id);
         }
 
-        // Group Stage - FINISHED
-        const m5_f = await client.request(createItem('matches', { 
-            competition_category_id: c5_futsal.id, status: 'finished', round: 'Group A', venue: 'Pitch A', scheduled_at: offsetDays(-1), home_participant_id: p5_p[0], away_participant_id: p5_p[1],
-            live_state: { matchStatus: 'finished', homeScore: 5, awayScore: 2, periodIdx: 1, periodPhase: 'finished', winner: p5_p[0], timerRunning: false, timerSecs: 0 }
+        // Futsal Matches
+        await client.request(createItem('matches', { 
+            competition_category_id: c5_futsal.id, status: 'upcoming', round: 'Group Stage', venue: 'Pitch A', scheduled_at: offsetDays(15), home_participant_id: p5_p[0], away_participant_id: p5_p[1]
         }));
-        
-        // Group Stage - LIVE (2nd Half, Tied)
-        const m5_l = await client.request(createItem('matches', { 
-            competition_category_id: c5_futsal.id, status: 'live', round: 'Group A', venue: 'Pitch B', scheduled_at: offsetHours(0), home_participant_id: p5_p[2], away_participant_id: p5_p[3],
-            live_state: { matchStatus: 'live', homeScore: 2, awayScore: 2, periodIdx: 1, periodPhase: 'active', timerRunning: true, timerLastStarted: new Date().toISOString(), timerSecs: 600 } // 10 mins left in 2nd half
-        }));
-
-        // Group Stage - UPCOMING
-        const m5_u = await client.request(createItem('matches', { competition_category_id: c5_futsal.id, status: 'upcoming', round: 'Group B', venue: 'Pitch A', scheduled_at: offsetHours(4), home_participant_id: p5_p[4], away_participant_id: p5_p[5] }));
-        
-        allMatchIdsToDenorm.push(m5_f.id, m5_l.id);
 
         await client.request(createItems('news',[
             { author_id: me.id, event_id: e5.id, category: 'announcement', is_published: true, published_at: offsetDays(-1), title: 'Drawing Grup A Menegangkan: Tuan Rumah Bertemu Rival Klasik', slug: 'f-1', excerpt: 'Hasil drawing menempatkan tim unggulan di grup neraka.', 
@@ -374,6 +384,8 @@ async function runMegaMasterSeed() {
         console.log("🎤[6/6] Seeding IPB ART FESTIVAL...");
         const e6 = await client.request(createItem('events', { 
             user_created: me.id, name: 'IPB ART FESTIVAL 2026', slug: 'ipb-art-fest-2026', type: 'arts', status: 'active', is_published: true, location: 'Gedung Graha Widya Wisuda (GWW)', start_date: offsetDays(-1), end_date: offsetDays(1), registration_end_date: offsetDays(-30),
+            // Surgical Additions
+            registration_url: DUMMY_LINKS.reg, guidebook_url: DUMMY_LINKS.guide, instagram_url: DUMMY_LINKS.ig, website_url: DUMMY_LINKS.web,
             description: `The biggest annual performing arts competition. Showcasing pristine vocal talents across universities.`
         }));
 
