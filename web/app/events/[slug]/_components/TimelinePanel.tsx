@@ -11,8 +11,8 @@ const TEXT_MUTED = "#6B7280";
 const DOT_SIZE = 14;
 const DOT_R = DOT_SIZE / 2;
 
-const LINE_Y = 60; // Absolute Y-center for pixel-perfect vertical alignment
-const GAP = 28; // Gap between dot center and text
+const LINE_Y = 60; 
+const GAP = 28; 
 
 const LABEL_W_MIN = 110;
 const LABEL_W_MAX = 160;
@@ -33,7 +33,7 @@ function status(value: string) {
 
 function isYellow(value: string) {
   const s = status(value);
-  return["active", "current", "done", "finished", "over"].includes(s);
+  return ["active", "current", "done", "finished", "over"].includes(s);
 }
 
 function isCurrent(value: string) {
@@ -67,15 +67,14 @@ function getLabelStyle(
   let right: string | number = "auto";
   let textAlign: any = "center";
 
-  // Perfectly anchor edges flush to container boundaries
   if (first) {
     translateX = "0";
-    left = 0; // Exactly aligned with the left edge of the first dot
+    left = 0;
     textAlign = "left";
   } else if (last) {
     translateX = "0";
     left = "auto";
-    right = 0; // Exactly aligned with the right edge of the last dot
+    right = 0;
     textAlign = "right";
   }
 
@@ -104,15 +103,12 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
   useEffect(() => {
     const el = railRef.current;
     if (!el) return;
-
     const update = () => setRailWidth(el.getBoundingClientRect().width);
     update();
-
     const ro = new ResizeObserver(update);
     ro.observe(el);
-
     return () => ro.disconnect();
-  },[]);
+  }, []);
 
   const selectedPhase = useMemo(() => {
     if (!phases?.length) return null;
@@ -144,18 +140,15 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
   const positions = useMemo(() => {
     if (!railWidth) return phases.map((_, i) => DOT_R + i * 120);
     if (phases.length === 1) return [railWidth / 2];
-    
-    // Mathematically calculates exact dot centering so the left/right physical
-    // boundaries of the dots never bleed over the wrapper limits.
     const usable = railWidth - DOT_SIZE;
     return phases.map((_, i) => DOT_R + (usable * i) / (phases.length - 1));
-  },[railWidth, phases]);
+  }, [railWidth, phases]);
 
   return (
     <PanelCard>
       <PanelTitle>Event Timeline</PanelTitle>
 
-      <div style={{ marginBottom: selectedPhase ? 20 : 0 }}>
+      <div style={{ marginBottom: selectedPhase ? 32 : 0 }}>
         <div
           ref={railRef}
           style={{
@@ -167,10 +160,8 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
         >
           {phases.map((phase, i) => {
             if (i === phases.length - 1) return null;
-
             const x1 = positions[i];
             const x2 = positions[i + 1];
-
             return (
               <div
                 key={`line-${phase.id}`}
@@ -201,7 +192,6 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
             const above = i % 2 === 0;
             const selected = selectedPhase?.id === phase.id;
             const label = splitLabel(phase.label);
-
             return (
               <Fragment key={phase.id}>
                 <button
@@ -217,15 +207,7 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
                     outline: "none",
                   }}
                 >
-                  {label.length === 1 ? (
-                    label[0]
-                  ) : (
-                    <>
-                      {label[0]}
-                      <br />
-                      {label[1]}
-                    </>
-                  )}
+                  {label.length === 1 ? label[0] : <>{label[0]}<br />{label[1]}</>}
                 </button>
 
                 <button
@@ -278,15 +260,18 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
       </div>
 
       {selectedPhase && (
-        <div style={{ background: "#F9FAFB", borderRadius: 8, padding: "16px 20px" }}>
-          <div style={{ ...JK, fontSize: 14, fontWeight: 800, color: TEXT_DARK, marginBottom: 2 }}>
-            {selectedPhase.label}
-          </div>
-          <div style={{ ...JK, fontSize: 12, color: "#9CA3AF", marginBottom: selectedPhase.description ? 10 : 0 }}>
-            {fmtPhaseDate(selectedPhase)}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: selectedPhase.description ? 12 : 0 }}>
+            <div style={{ ...JK, fontSize: 14, fontWeight: 800, color: TEXT_DARK, whiteSpace: "nowrap" }}>
+              {selectedPhase.label}
+            </div>
+            <div style={{ flexGrow: 1, height: 1, background: "#E5E7EB", margin: "0 16px" }} />
+            <div style={{ ...JK, fontSize: 13, fontWeight: 500, color: TEXT_MUTED, whiteSpace: "nowrap" }}>
+              {fmtPhaseDate(selectedPhase)}
+            </div>
           </div>
           {selectedPhase.description && (
-            <p style={{ ...JK, fontSize: 13, color: "#374151", lineHeight: 1.65, margin: 0 }}>
+            <p style={{ ...JK, fontSize: 13, color: "#4B5563", lineHeight: 1.6, margin: 0 }}>
               {selectedPhase.description}
             </p>
           )}
