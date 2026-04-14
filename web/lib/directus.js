@@ -44,16 +44,32 @@ const mapMatch = (m) => {
   const fmt = cat?.format_id;
   const modules = typeof fmt?.modules === 'string' ? JSON.parse(fmt.modules) : (fmt?.modules ?? []);
   
-  // Map junction parts first
+  // 1. Map junction parts first (this gets all the full institution/logo data)
   const junctionParts = (m.participants ?? []).map(j => ({
     ...j,
     participant_id: mapParticipant(j.participant_id)
   }));
 
-  // UNIVERSAL FALLBACK:
-  // If top-level home_participant is empty (Open matches), use the first junction participant.
   const home = mapParticipant(m.home_participant_id) || (junctionParts[0]?.participant_id ?? null);
   const away = mapParticipant(m.away_participant_id) || (junctionParts[1]?.participant_id ?? null);
+
+  // 2. FIX: Enrich the Podium (timeLog) with the already-mapped institution data
+  const live = m.live_state ?? {};
+  if (live.timeLog && Array.isArray(live.timeLog)) {
+    live.timeLog = live.timeLog.map(logEntry => {
+      // Find the ID. It might be logEntry.participant_id or logEntry.id depending on your Directus hook
+      const pid = logEntry.participant_id?.id || logEntry.participant_id || logEntry.id;
+
+      // Find the fully mapped participant from junctionParts
+      const found = junctionParts.find(jp => jp.participant_id?.id === pid);
+
+      return {
+        ...logEntry,
+        // If we found the participant in the junction table, use their institution (which has logo_url)
+        institution: found?.participant_id?.institution || logEntry.institution || null
+      };
+    });
+  }
 
   return {
     ...m,
@@ -61,6 +77,7 @@ const mapMatch = (m) => {
     home_participant: home,
     away_participant: away,
     participants: junctionParts,
+    live_state: live, // Return the enriched live state
   };
 };
 
