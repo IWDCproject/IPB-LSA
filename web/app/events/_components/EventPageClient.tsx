@@ -49,13 +49,11 @@ function sortEvents(events: EventListing[]): EventListing[] {
 }
 
 function getImageUrl(ev: EventListing): string | null {
-  // getAssetUrl already handles null/missing gracefully
   if (ev?.banner_image?.id) return getAssetUrl(ev.banner_image);
   if (ev?.card_image?.id)   return getAssetUrl(ev.card_image);
   return null;
 }
 
-// Preload with a TTL so a hanging or 404'd image doesn't stall the crossfade.
 function preloadWithTimeout(url: string): Promise<void> {
   return new Promise<void>(res => {
     const img = new Image();
@@ -117,6 +115,7 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: EventListing[] }) {
       position: "absolute", top: 0, left: 0, right: 0,
       height: BG_IMAGE_HEIGHT, overflow: "hidden",
       WebkitMaskImage: IMAGE_MASK, maskImage: IMAGE_MASK,
+      zIndex: 0,
     }}>
       <div style={{
         position: "absolute", inset: 0,
@@ -146,14 +145,12 @@ export default function EventPageClient({ events: rawEvents }: { events: EventLi
   const [search, setSearch] = useState("");
   const [page, setPage]     = useState(1);
 
-  // Skeleton for SSR → hydration transition
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 600);
     return () => clearTimeout(t);
   }, []);
 
-  // isMobile + containerWidth — single ResizeObserver, breakpoint 1024px
   const mainRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile]           = useState(false);
   const [containerWidth, setContainerWidth] = useState(1280);
@@ -207,16 +204,27 @@ export default function EventPageClient({ events: rawEvents }: { events: EventLi
         opacity: 0,
         animation: "epc-fade-in 0.4s ease 0ms forwards",
       }}>
-        {/* Batik texture overlay */}
+        {/* batik */}
         <div style={{
-          position: "absolute", inset: 0, backgroundImage: "url(/Batik_Pattern_dark.svg)",
-          opacity: 0.4, pointerEvents: "none",
-          backgroundSize: "1400px 100%", backgroundRepeat: "repeat-x",
-          backgroundPosition: "bottom", transform: "rotate(180deg)",
+          position: "absolute", 
+          top: -100, left: 0, right: 0,
+          height: 1200, 
+          backgroundImage: "url(/Batik_Pattern_dark.svg)",
+          opacity: 0.4, 
+          pointerEvents: "none",
+          backgroundSize: "1400px auto", 
+          backgroundRepeat: "repeat-x",
+          backgroundPosition: "top center",
+          transform: "scaleY(-1)", 
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+          maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+          zIndex: 0,
         }} />
 
+        {/* 2. MIDDLE LAYER: Image Crossfade sits on top of the batik */}
         <BgCrossfade cycleEvents={cycleEvents} />
 
+        {/* 3. TOP LAYER: Content (Header, Table, etc) */}
         <div style={{ position: "relative", zIndex: 1 }}>
           <EventsHeader
             filter={filter}
