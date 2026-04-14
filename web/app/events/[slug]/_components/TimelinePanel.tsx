@@ -87,7 +87,7 @@ function getLabelStyle(
     justifyContent: first ? "flex-start" : last ? "flex-end" : "center",
     textAlign: first ? "left" : last ? "right" : "center",
     ...JK,
-    fontSize: 14,
+    fontSize: 12,
     lineHeight: 1.15,
     fontWeight: selected ? 800 : 500,
     color: selected ? TEXT_DARK : TEXT_MUTED,

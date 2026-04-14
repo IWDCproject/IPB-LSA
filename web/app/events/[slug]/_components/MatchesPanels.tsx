@@ -45,7 +45,7 @@ function SolidLiveBadge() {
 }
 
 function ScoreSetsLive({ live }: { live: any }) {
-  const setScore = live?.setScore ??[0, 0];
+  const setScore = live?.setScore ?? [0, 0];
   const setLog   = live?.setLog   ??[];
 
   // Outer numbers: Current Set Point Score (e.g. 01 and 06)
@@ -201,7 +201,7 @@ function ParticipantInfo({ inst, name, align = "left" }: { inst: any; name: stri
 }
 
 function OpenParticipants({ match }: { match: any }) {
-  const entries = [...(match?.participants ?? [])]
+  const entries =[...(match?.participants ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((j: any) => j.participant_id);
 
@@ -292,7 +292,7 @@ function AwayCell({ match }: { match: any }) {
 
 function PodiumRow({ live }: { live: any }) {
   const podium = (live?.timeLog ??[]).slice(0, 3);
-  const labels =["1st", "2nd", "3rd"];
+  const labels = ["1st", "2nd", "3rd"];
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
       {podium.map((p: any, i: number) => (
@@ -374,6 +374,9 @@ const CARD: React.CSSProperties = {
   borderRadius: 12,
   padding: "16px 20px",
   overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+  flex: "1 0 auto",
 };
 
 // ─── Panels ────────────────────────────────────────────────────────────────────
@@ -384,7 +387,7 @@ interface Props {
 }
 
 export function UpcomingMatchesPanel({ upcoming }: Pick<Props, "upcoming">) {
-  const groups = useMemo(() => groupByDate(upcoming.slice(0, 12)), [upcoming]);
+  const groups = useMemo(() => groupByDate(upcoming.slice(0, 2)), [upcoming]);
 
   if (!upcoming.length) {
     return (
@@ -412,7 +415,7 @@ export function UpcomingMatchesPanel({ upcoming }: Pick<Props, "upcoming">) {
 }
 
 export function LatestResultsPanel({ finished }: Pick<Props, "finished">) {
-  const groups = useMemo(() => groupByDate(finished.slice(0, 12)), [finished]);
+  const groups = useMemo(() => groupByDate(finished.slice(0, 2)), [finished]);
 
   if (!finished.length) {
     return (
