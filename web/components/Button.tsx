@@ -3,6 +3,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import ArrowIcon from "@/app/icons/arrow-up-right.svg";
 
+// ... (keep ButtonProps and variants/sizes the same)
 interface ButtonProps {
     variant?: "primary" | "outline" | "ghost" | "secondary" | "secondary-filled" | "header-outline" | "header-solid";
     size?: "sm" | "md" | "lg";
@@ -28,9 +29,8 @@ const variants = {
 };
 
 const sizes = {
-  // Increased py-2 to py-[11px] to make it taller
-  sm: "text-sm px-4 py-[11px] gap-1.5",
-  md: "text-lg px-6 py-3 gap-1",
+  sm: "text-sm px-4 py-[11px] gap-2", // Increased gap slightly
+  md: "text-lg px-6 py-3 gap-2",
   lg: "text-lg px-8 py-4 gap-2.5",
 };
 
@@ -40,18 +40,22 @@ const STAGGER = 18;
 const DUR = "0.5s";
 const EASE = "cubic-bezier(0, 1, 0.2, 1)";
 
-function SlotText({ children }: { children: React.ReactNode }) {
-  const chars = String(children).split("");
+function SlotText({ children, isBebas }: { children: React.ReactNode, isBebas: boolean }) {
+  const label = typeof children === "string" ? children : "";
+  const chars = label.split("");
+
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", lineHeight: 1 }}>
+    <span style={{ display: "inline-flex", alignItems: "center" }}>
       {chars.map((char, i) => (
         <span
           key={i}
           style={{
             display: "inline-block",
             overflow: "hidden",
-            height: "1.2em", 
-            whiteSpace: char === " " ? "pre" : "normal",
+            height: "1.1em", // Reduced from 1.2 to tighten the box
+            width: char === " " ? "0.25em" : "auto",
+            whiteSpace: "pre",
+            position: "relative"
           }}
         >
           <span
@@ -63,16 +67,21 @@ function SlotText({ children }: { children: React.ReactNode }) {
               transition: `transform ${DUR} ${EASE}`,
             }}
           >
-            {/* Added flex center to handle font metric offsets */}
-            <span style={{ display: "flex", height: "1.2em", alignItems: "center", justifyContent: "center" }}>{char}</span>
-            <span style={{ display: "flex", height: "1.2em", alignItems: "center", justifyContent: "center" }} aria-hidden="true">{char}</span>
+            {/* The translateY corrects for font baseline offset */}
+            <span style={{ 
+                display: "flex", height: "1.1em", alignItems: "center", justifyContent: "center", whiteSpace: "pre",
+                transform: isBebas ? "translateY(0.05em)" : "translateY(0)" 
+            }}>{char}</span>
+            <span style={{ 
+                display: "flex", height: "1.1em", alignItems: "center", justifyContent: "center", whiteSpace: "pre",
+                transform: isBebas ? "translateY(0.05em)" : "translateY(0)" 
+            }} aria-hidden="true">{char}</span>
           </span>
         </span>
       ))}
     </span>
   );
 }
-
 
 function useSlotHover() {
   const ref = useRef<any>(null);
@@ -104,11 +113,28 @@ export default function Button({ variant = "primary", size = "md", href, onClick
     fontFamily: isHeader ? "'Plus Jakarta Sans', sans-serif" : "'Bebas Neue', sans-serif",
     textTransform: isHeader ? "none" : "uppercase",
     fontSize: isHeader ? 13 : undefined,
+    lineHeight: 1, // Force consistent line height
     ...(showShadow ? { filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))" } : {}),
     ...(fixedWidth ? { width: fixedWidth } : {}),
   } as React.CSSProperties;
 
-  const content = <><SlotText>{children}</SlotText>{showIcon && <ArrowIcon style={{ width: 16, height: 16, flexShrink: 0 }} strokeWidth={30} />}</>;
+  const content = (
+    <>
+      <SlotText isBebas={!isHeader}>{children}</SlotText>
+      {showIcon && (
+        <ArrowIcon 
+          style={{ 
+            width: isHeader ? 14 : 16, 
+            height: isHeader ? 14 : 16, 
+            flexShrink: 0,
+            // Visually align icon with text center
+            marginTop: isHeader ? "1px" : "0px" 
+          }} 
+          strokeWidth={30} 
+        />
+      )}
+    </>
+  );
 
   if (href) {
     return (
