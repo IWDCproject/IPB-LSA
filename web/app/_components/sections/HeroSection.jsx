@@ -58,6 +58,33 @@ function CardNotch({ color, textColor, label }) {
     );
 }
 
+function PlaceholderCard() {
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center p-4" 
+             style={{ 
+                // Drops white opacity
+                background: "rgba(255, 255, 255, 0.0)", 
+                backdropFilter: "blur(4px)",
+                WebkitBackdropFilter: "blur(4px)",
+             }}>
+            
+            {/* Extremely faint icon */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" style={{ marginBottom: 8 }}>
+                <path d="M12 5v14M5 12h14" />
+            </svg>
+
+            <span style={{ 
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: "0.45rem", fontWeight: 800, 
+                color: "rgba(255,255,255,0.4)", 
+                textTransform: "uppercase", 
+            }}>
+                Coming Soon
+            </span>
+        </div>
+    );
+}
+
 const introStyle = (ms) => ({ animation: `hero-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${ms}ms both` });
 
 const EXIT_DELAYS  =[150, 100, 50, 0];
@@ -319,10 +346,14 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
                             
                             // TIMELINE STYLE TRANSFER
                             const ringGradient = isActive 
-                                ? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
-                                : isHovered 
-                                    ? `linear-gradient(to bottom, ${YEL}, ${WHT})`
-                                    : "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))";
+																? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
+																: (isHovered && ev)
+																		? `linear-gradient(to bottom, ${YEL}, ${WHT})`
+																		: ev 
+																				// This is the stroke for real events (stays at 0.45)
+																				? "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))" 
+																				// FIX: This is the stroke for placeholders (dropped to 12% and 5%)
+																				: "linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.05))";
                             
                             const shadow = isActive 
                                 ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)"
@@ -372,10 +403,14 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
                             
                             // TIMELINE STYLE TRANSFER
                             const ringGradient = isActive 
-                                ? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
-                                : isHovered && ev
-                                    ? `linear-gradient(to bottom, ${YEL}, ${WHT})`
-                                    : "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))";
+																? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
+																: (isHovered && ev)
+																		? `linear-gradient(to bottom, ${YEL}, ${WHT})`
+																		: ev 
+																				// This is the stroke for real events (stays at 0.45)
+																				? "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))" 
+																				// FIX: This is the stroke for placeholders (dropped to 12% and 5%)
+																				: "linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.05))";
 
                             const shadow = isActive 
                                 ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)"
@@ -395,18 +430,12 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
                                     }}
                                 >
                                     <div style={{ width: "100%", height: "100%", borderRadius: "9px", overflow: "hidden", position: "relative", "--s": "1" }}>
-                                        {ev ? (
-                                            <EventCard event={ev} size="sm" />
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: "#111827" }}>
-                                                <div className="absolute inset-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)" }} />
-                                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
-                                                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                                                </svg>
-                                                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>Coming Soon</span>
-                                            </div>
-                                        )}
-                                    </div>
+																				{ev ? (
+																						<EventCard event={ev} size="sm" />
+																				) : (
+																						<PlaceholderCard /> 
+																				)}
+																		</div>
                                     
                                     {isActive  && <CardNotch color="rgb(234,179,8)" textColor="rgba(0,0,0,0.75)" label="this" />}
                                     {isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)" label="see more" />}
