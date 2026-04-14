@@ -36,9 +36,9 @@ function CardNotch({ color, textColor, label }) {
     const { height, width, path, fontFamily, fontSize, fontWeight, letterSpacing } = NOTCH_CONFIG;
     return (
         <div style={{
-            position: "absolute", bottom: -(height - 2), 
+            position: "absolute", bottom: -(height - 1), 
             // Placed at 25% like timeline, but protected from clipping out of small mobile cards
-            left: "max(25%, 44px)", 
+            left: "max(25%, 50px)", 
             zIndex: 20,
             width, height, display: "flex", alignItems: "center", justifyContent: "center",
             animation: "hero-notch-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards",
