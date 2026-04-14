@@ -1,5 +1,11 @@
 /**
  * Konfigurasi sinkronisasi data untuk Custom Collections IPB-LSA
+ * 
+ * Rules :
+ * Bikin/Ubah Field biasa? → Otomatis.
+ * Bikin/Ubah Relasi M2O / O2M? → Otomatis.
+ * Bikin Tabel Baru? → Wajib daftarkan nama tabelnya ke config.js.
+ * Bikin Relasi M2M Baru? → Cek nama Junction Table yang dibuat Directus, lalu wajib daftarkan juga ke config.js.
  */
 export const syncCustomCollections = {
 	activity_logs: { watch: ['activity_logs.items'] },
