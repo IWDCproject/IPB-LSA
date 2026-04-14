@@ -107,7 +107,6 @@ export default function EventsHeader({
                   background: filter === f.key ? "#fff" : "rgba(255,255,255,0.1)",
                   color: filter === f.key ? "#0D26C2" : "#fff",
                   cursor: "pointer", transition: "background 0.2s, color 0.2s",
-                  // Per-pill stagger on top of the row stagger
                   opacity: 0,
                   animation: `evh-slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${360 + i * 60}ms forwards`,
                 }}
@@ -117,11 +116,10 @@ export default function EventsHeader({
             ))}
           </div>
 
-          {/* Search */}
+          {/* Search - Fixed to use the same stagger animation as others */}
           <div style={{
             flex: 1, maxWidth: isMobile ? "100%" : 360, minWidth: 200, width: isMobile ? "100%" : undefined, position: "relative",
-            opacity: 0,
-            animation: `evh-fade-in 0.5s ease ${580}ms forwards`,
+            ...staggerStyle(540), // Sequential delay after the last filter button
           }}>
             <svg width="15" height="15" viewBox="0 0 24 24"
               fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"
