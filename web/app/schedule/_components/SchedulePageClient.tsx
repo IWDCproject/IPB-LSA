@@ -177,7 +177,7 @@ function CompactMatchCard({ match }: { match: any }) {
 
 // --- Event Group Accordion ---
 function EventGroup({ eventName, cardImage, matches }: { eventName: string, cardImage: string | null, matches: any[] }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const imageUrl = getAssetUrl(cardImage);
 
   return (
