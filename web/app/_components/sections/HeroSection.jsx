@@ -372,9 +372,31 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
                                         background: ringGradient, boxShadow: shadow, transition: "background 0.2s ease, box-shadow 0.2s ease"
                                     }}
                                 >
-                                    <div style={{ width: "100%", height: "100%", borderRadius: "9px", overflow: "hidden", position: "relative" }}>
-                                        <EventCard event={ev} size="sm" />
-                                    </div>
+                                    <div style={{ 
+																				width: "100%", 
+																				height: "100%", 
+																				borderRadius: "9px", 
+																				overflow: "hidden", 
+																				position: "relative"
+																		}}>
+																				{/* 1. THE CONTENT: Apply saturation only to the actual card/image */}
+																				<div style={{
+																						width: "100%", height: "100%",
+																						filter: (isActive || isHovered) ? "none" : "saturate(0.3)",
+																						transition: "filter 0.4s ease"
+																				}}>
+																						<EventCard event={ev} size="sm" />
+																				</div>
+
+																				{/* 2. THE DARKENER: Use an overlay instead of brightness() filter */}
+																				<div style={{
+																						position: "absolute", inset: 0,
+																						backgroundColor: "black",
+																						opacity: (isActive || isHovered) ? 0 : 0.3, // 0.3 = 70% brightness
+																						transition: "opacity 0.4s ease",
+																						pointerEvents: "none"
+																				}} />
+																		</div>
                                     
                                     {mounted && (isActive || isHovered) && (
                                         <CardNotch
@@ -429,12 +451,32 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
                                         transition: "background 0.2s ease, box-shadow 0.2s ease" 
                                     }}
                                 >
-                                    <div style={{ width: "100%", height: "100%", borderRadius: "9px", overflow: "hidden", position: "relative", "--s": "1" }}>
-																				{ev ? (
-																						<EventCard event={ev} size="sm" />
-																				) : (
-																						<PlaceholderCard /> 
-																				)}
+                                    <div style={{ 
+																				width: "100%", 
+																				height: "100%", 
+																				borderRadius: "9px", 
+																				overflow: "hidden", 
+																				position: "relative", 
+																				"--s": "1" 
+																		}}>
+																				{/* 1. THE CONTENT: Filter applied conditionally so it doesn't touch Placeholders */}
+																				<div style={{
+																						width: "100%", height: "100%",
+																						filter: (ev && !isActive && !isHovered) ? "saturate(0.3)" : "none",
+																						transition: "filter 0.4s ease"
+																				}}>
+																						{ev ? <EventCard event={ev} size="sm" /> : <PlaceholderCard />}
+																				</div>
+
+																				{/* 2. THE DARKENER: Overlay won't break the Placeholder's backdrop-blur */}
+																				<div style={{
+																						position: "absolute", inset: 0,
+																						backgroundColor: "black",
+																						// Only darken if it's an event and not active/hovered
+																						opacity: (ev && !isActive && !isHovered) ? 0.3 : 0, 
+																						transition: "opacity 0.4s ease",
+																						pointerEvents: "none"
+																				}} />
 																		</div>
                                     
                                     {isActive  && <CardNotch color="rgb(234,179,8)" textColor="rgba(0,0,0,0.75)" label="this" />}
