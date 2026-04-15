@@ -1,0 +1,23 @@
+[
+  {
+    "description": "$t:admin_description",
+    "icon": "verified",
+    "id": "b18d3bfd-2c54-46d4-99a5-13fdee6a2b21",
+    "name": "Administrator",
+    "parent": null
+  },
+  {
+    "description": "Izin Akses untuk PJ Ormawa",
+    "icon": "supervised_user_circle",
+    "id": "7883c172-0f51-45d1-8abc-5eab66ef4a65",
+    "name": "PJ Ormawa",
+    "parent": null
+  },
+  {
+    "description": "Izin Akses untuk SuperAdmin",
+    "icon": "supervised_user_circle",
+    "id": "dc42a2f7-80d7-4515-9719-8e2f77646540",
+    "name": "SuperAdmin",
+    "parent": null
+  }
+]

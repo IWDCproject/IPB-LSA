@@ -1,0 +1,30 @@
+{
+  "hash": "871dcefe558b238cda6ebdfd1f32304d0c6f7754",
+  "partial": true,
+  "version": 1,
+  "directus": "11.17.2",
+  "vendor": "postgres",
+  "systemFields": [
+    {
+      "collection": "directus_activity",
+      "field": "timestamp",
+      "schema": {
+        "is_indexed": true
+      }
+    },
+    {
+      "collection": "directus_revisions",
+      "field": "activity",
+      "schema": {
+        "is_indexed": true
+      }
+    },
+    {
+      "collection": "directus_revisions",
+      "field": "parent",
+      "schema": {
+        "is_indexed": true
+      }
+    }
+  ]
+}

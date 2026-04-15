@@ -24,18 +24,16 @@ build/
 # misc
 .DS_Store
 
-
-data/
-backend/data/
+# Garis miring '/' supaya Git cuma ignore folder data di root
+/data/
+/backend/data/
 
 # Abaikan file media/upload dari antarmuka Directus
 uploads/
 backend/uploads/
 
-# Tanda seru (!) memaksa Git untuk tidak mengabaikan folder ini
-!schema-sync/
+# Un-ignore folder schema-sync beserta seluruh isinya
 !backend/schema-sync/
-
-
+!backend/schema-sync/**
 
 .geminiignore
