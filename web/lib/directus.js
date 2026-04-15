@@ -137,3 +137,9 @@ export const getNews = async ({ limit = 5 } = {}) => {
   }));
   return items.map(i => ({ ...i, thumbnail_url: getAssetUrl(i.thumbnail) }));
 };
+
+export const getYouTubeID = (url) => {
+  if (!url) return null;
+  const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+  return (match && match[2].length === 11) ? match[2] : null;
+};

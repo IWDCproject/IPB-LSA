@@ -1,5 +1,6 @@
 "use client";
 import Button from "@/components/Button";
+import { getYouTubeID } from "@/lib/directus";
 
 const BB = { fontFamily: "'Bebas Neue', sans-serif" }        as const;
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
@@ -63,13 +64,13 @@ interface Props {
 }
 
 export default function EventDetailHeader({ event, activeTab, onTabChange, isMobile }: Props) {
-  const NAVBAR_HEIGHT = 300; 
-  const PAD = isMobile
-    ? `${NAVBAR_HEIGHT}px 20px 36px`
-    : `${NAVBAR_HEIGHT}px clamp(20px, 8.33vw, 160px) 36px`;
-  const HERO_HEIGHT = isMobile
-    ? "clamp(280px, 52vh, 420px)"
-    : "clamp(200px, 42vh, 300px)";
+  // Best Practice: Reasonable spacing that allows the hero image to show
+  const TOP_PAD = "30px"; 
+  const SIDE_PAD = isMobile ? "20px" : "clamp(20px, 8.33vw, 160px)";
+  const PAD = `${TOP_PAD} ${SIDE_PAD} 36px`;
+
+  // Use minHeight so the container can grow if the content is taller than the minimum
+  const MIN_HERO_HEIGHT = isMobile ? "0px" : "300px";
 
   const meta = [
     { label: "Registration", value: event.registration_end_date ? `Until ${fmtDate(event.registration_end_date)}` : "—" },
@@ -77,16 +78,19 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
     { label: "Location",     value: event.location ?? "—" },
   ];
 
+  const videoId = getYouTubeID(event.url_youtube);
+
   return (
     <>
       <style>{KEYFRAMES}</style>
       <div style={{
         position: "relative",
         zIndex: 1,
-        height: HERO_HEIGHT,
+        minHeight: MIN_HERO_HEIGHT,
+        height: "auto", // Always auto so it fits exactly what's inside
         display: "flex",
         flexDirection: "column",
-        justifyContent: "flex-end",
+        justifyContent: "flex-end", // Title/Meta stays at the bottom
         padding: PAD,
         marginBottom: 16,
         gap: 18,
@@ -107,20 +111,70 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
             {STATUS_LABEL[event.status] ?? event.status}
           </span>
 
-          <div style={{
-            ...BB,
-            filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
-            fontSize: "clamp(3rem, 4.5vw, 4rem)",
-            color: "#fff", lineHeight: 1, textTransform: "uppercase",
-          }}>
-            {event.name}
-          </div>
+          <div style={{ position: "relative" }}>
+            <div style={{
+              ...BB,
+              filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
+              fontSize: "clamp(3rem, 4.5vw, 4rem)",
+              color: "#fff", lineHeight: 1, textTransform: "uppercase",
+            }}>
+              {event.name}
+            </div>
 
-          <div style={{ ...JK, fontSize: "clamp(14px, 1.4vw, 16px)", fontWeight: 600, color: "rgba(255,255,255,0.7)", filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))", marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontStyle: "italic" }}>by</span>
-            <span style={{ fontWeight: 700 }}>{event.organiser}</span>
+            <div style={{ ...JK, fontSize: "clamp(14px, 1.4vw, 16px)", fontWeight: 600, color: "rgba(255,255,255,0.7)", filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))", marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontStyle: "italic" }}>by</span>
+              <span style={{ fontWeight: 700 }}>{event.organiser}</span>
+            </div>
+
+            {/* DESKTOP VIDEO: Floats to the right of the title block */}
+            {!isMobile && videoId && (
+              <div style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                width: "clamp(320px, 25vw, 330px)",
+                aspectRatio: "16/9",
+                borderRadius: 8,
+                overflow: "hidden",
+                background: "#000",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+                border: "2px solid rgba(255,255,255,1)",
+                zIndex: 10,
+              }}>
+                <iframe
+                  width="100%" height="100%"
+                  src={`https://www.youtube.com/embed/${videoId}`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
           </div>
         </div>
+
+        {/* MOBILE VIDEO: Inline, 100% width, stays between Title and Meta */}
+        {isMobile && videoId && (
+          <div style={{ 
+            ...staggerStyle(140), 
+            width: "100%", 
+            aspectRatio: "16/9", 
+            borderRadius: 8, 
+            overflow: "hidden", 
+            background: "#000", 
+            border: "2px solid #fff",
+            zIndex: 5,
+            marginTop: 4 
+          }}>
+            <iframe
+              width="100%" height="100%"
+              src={`https://www.youtube.com/embed/${videoId}`}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: isMobile ? 20 : 36, flexWrap: "wrap", ...staggerStyle(200) }}>
           {meta.map((m) => (
@@ -131,7 +185,6 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
           ))}
         </div>
 
-        {/* ONLY SURGICAL FIX HERE: Changed flexDirection to always be "row" and added justifyContent */}
         <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: -20, marginTop: 30, width: "100%", ...staggerStyle(320) }}>
           
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

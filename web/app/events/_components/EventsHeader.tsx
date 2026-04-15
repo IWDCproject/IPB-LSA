@@ -49,11 +49,12 @@ export default function EventsHeader({
       <div style={{
         position: "relative",
         zIndex: 1,
-        height: "clamp(200px, 42vh, 300px)",
+        minHeight: "clamp(200px, 42vh, 300px)",
+        height: isMobile ? "auto" : "clamp(200px, 42vh, 300px)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
-        padding: isMobile ? "0 20px 36px" : "0 clamp(20px, 8.33vw, 160px) 36px",
+        padding: isMobile ? "20px 20px 36px" : "0 clamp(20px, 8.33vw, 160px) 36px",
         marginBottom: 16,
         gap: 18,
       }}>
@@ -91,7 +92,8 @@ export default function EventsHeader({
         {/* Controls row */}
         <div style={{
           display: "flex", flexDirection: isMobile ? "column" : "row",
-          alignItems: "flex-start", gap: isMobile ? 8 : 10, flexWrap: "wrap", 
+          alignItems: isMobile ? "stretch" : "flex-start", // Stretch on mobile for better touch targets
+          gap: isMobile ? 12 : 10, flexWrap: "wrap", 
           marginBottom: -20, marginTop: 30,
           ...staggerStyle(320),
         }}>
@@ -119,7 +121,7 @@ export default function EventsHeader({
           {/* Search */}
           <div style={{
             flex: 1, maxWidth: isMobile ? "100%" : 360, minWidth: 200, width: isMobile ? "100%" : undefined, position: "relative",
-            ...staggerStyle(540), // Sequential delay after the last filter button
+            ...staggerStyle(540), 
           }}>
             <svg width="15" height="15" viewBox="0 0 24 24"
               fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"

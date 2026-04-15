@@ -14,33 +14,43 @@ const SCALE_START        = 1600;
 const SCALE_FLOOR        = 0.875;
 const DESKTOP_CARD_MIN_W = 180;
 const DESKTOP_SLOTS_MAX  = 8;
-const MOBILE_CARD_VW     = 0.26;
+const MOBILE_CARD_VW     = 0.29;
 const MOBILE_CARD_REF    = 80;
 
-// Shared notch spec — kept in sync with EventTimeline's NOTCH_CONFIG
-const NOTCH_W    = 68;
-const NOTCH_H    = 13;
-const NOTCH_PATH = "M 2 0 L 66 0 L 60 10 Q 58.5 13 56 13 L 12 13 Q 9.5 13 8 10 L 2 0 Z";
+// Shared Timeline Colors
+const YEL = "#FFC936";
+const WHT = "#ffffff";
+
+// Shared Notch Config exactly from Timeline
+const NOTCH_CONFIG = {
+  height: 16,
+  width: 80,
+  path: "M 2 0 L 78 0 L 70 12 Q 68.5 16 66 16 L 14 16 Q 11.5 16 10 12 L 2 0 Z",
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  fontSize: "0.44rem",
+  fontWeight: 900,
+  letterSpacing: "0.06em",
+};
 
 function CardNotch({ color, textColor, label }) {
+    const { height, width, path, fontFamily, fontSize, fontWeight, letterSpacing } = NOTCH_CONFIG;
     return (
         <div style={{
-            position: "absolute", bottom: -NOTCH_H, left: "25%", zIndex: 20,
-            width: NOTCH_W, height: NOTCH_H,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            animation: "notch-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards",
-            transformOrigin: "50% 0%",
+            position: "absolute", bottom: -(height - 1), 
+            // Placed at 25% like timeline, but protected from clipping out of small mobile cards
+            left: "max(25%, 50px)", 
+            zIndex: 20,
+            width, height, display: "flex", alignItems: "center", justifyContent: "center",
+            animation: "hero-notch-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards",
+            transformOrigin: "50% 0%", transform: "scaleY(0) translateX(-50%)",
         }}>
-            <svg width={NOTCH_W} height={NOTCH_H} viewBox={`0 0 ${NOTCH_W} ${NOTCH_H}`}
-                fill="none" style={{ position: "absolute", inset: 0 }}>
-                <path d={NOTCH_PATH} fill={color} />
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}
+                 fill="none" style={{ position: "absolute", inset: 0 }}>
+                <path d={path} fill={color} />
             </svg>
             <span style={{
-                position: "relative",
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: "0.42rem", fontWeight: 900,
-                letterSpacing: "0.06em", textTransform: "uppercase",
-                color: textColor, marginTop: -2,
+                position: "relative", fontFamily, fontSize, fontWeight, letterSpacing,
+                color: textColor, textTransform: "uppercase", marginTop: -1,
             }}>
                 {label}
             </span>
@@ -48,13 +58,39 @@ function CardNotch({ color, textColor, label }) {
     );
 }
 
+function PlaceholderCard() {
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center p-4" 
+             style={{ 
+                // Drops white opacity
+                background: "rgba(255, 255, 255, 0.0)", 
+                backdropFilter: "blur(4px)",
+                WebkitBackdropFilter: "blur(4px)",
+             }}>
+            
+            {/* Extremely faint icon */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" style={{ marginBottom: 8 }}>
+                <path d="M12 5v14M5 12h14" />
+            </svg>
+
+            <span style={{ 
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: "0.45rem", fontWeight: 800, 
+                color: "rgba(255,255,255,0.4)", 
+                textTransform: "uppercase", 
+            }}>
+                Coming Soon
+            </span>
+        </div>
+    );
+}
+
 const introStyle = (ms) => ({ animation: `hero-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) ${ms}ms both` });
 
-const EXIT_DELAYS  = [150, 100, 50, 0];
-const ENTER_DELAYS = [0, 70, 140, 210];
-const INTRO_DELAYS = [160, 240, 320, 400];
+const EXIT_DELAYS  =[150, 100, 50, 0];
+const ENTER_DELAYS =[0, 70, 140, 210];
+const INTRO_DELAYS =[160, 240, 320, 400];
 
-// ─── helper: draw bitmap with object-fit: cover behaviour ────────────────────
 const drawCover = (ctx, bitmap, w, h) => {
     const bw = bitmap.width;
     const bh = bitmap.height;
@@ -69,29 +105,30 @@ const drawCover = (ctx, bitmap, w, h) => {
 
 const drawToCanvas = (canvas, bitmap) => {
     if (!canvas || !bitmap) return;
+    const dpr = window.devicePixelRatio || 1;
     const w = canvas.offsetWidth  || window.innerWidth;
     const h = canvas.offsetHeight || window.innerHeight;
-    canvas.width  = w;
-    canvas.height = h;
-    drawCover(canvas.getContext("2d"), bitmap, w, h);
+    canvas.width  = w * dpr;
+    canvas.height = h * dpr;
+    drawCover(canvas.getContext("2d"), bitmap, canvas.width, canvas.height);
 };
 
-export default function HeroSection({ paused = false, events: rawEvents = [] }) {
+export default function HeroSection({ paused = false, events: rawEvents =[] }) {
     const EVENTS = useMemo(() => {
-        return (rawEvents || [])
+        return (rawEvents ||[])
             .filter(ev => ev.is_published)
             .map(ev => ({ ...ev, image_url: getAssetUrl(ev.card_image) }))
             .slice(0, 8);
-    }, [rawEvents]);
+    },[rawEvents]);
 
-    const [activeIdx,   setActiveIdx]   = useState(0);
-    const [hoveredIdx,  setHoveredIdx]  = useState(null);
-    const [animating,   setAnimating]   = useState(false);
+    const[activeIdx,   setActiveIdx]   = useState(0);
+    const[hoveredIdx,  setHoveredIdx]  = useState(null);
+    const[animating,   setAnimating]   = useState(false);
     const [mounted,     setMounted]     = useState(false);
-    const [displayIdx,  setDisplayIdx]  = useState(0);
-    const [transPhase,  setTransPhase]  = useState("idle");
+    const[displayIdx,  setDisplayIdx]  = useState(0);
+    const[transPhase,  setTransPhase]  = useState("idle");
     const [introPlayed, setIntroPlayed] = useState(false);
-    const [cw,          setCw]          = useState(1920);
+    const[cw,          setCw]          = useState(1920);
 
     const barRef          = useRef(null);
     const canvasRefs      = useRef({});
@@ -100,20 +137,21 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
     const pausedRef       = useRef(paused);
     const tabVisRef       = useRef(true);
 
-    const heroManifest = useMemo(() =>
-        EVENTS.map(ev => ({
+    const heroManifest = useMemo(() => {
+        const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1;
+        return EVENTS.map(ev => ({
             url:           ev.image_url,
             type:          "hero",
-            width:         1200,
-            height:        800,
+            width:         1920 * dpr, 
+            height:        1080 * dpr,
             naturalWidth:  ev.card_image?.width,
             naturalHeight: ev.card_image?.height,
-        })),
-    [EVENTS]);
+        }));
+    }, [EVENTS]);
 
-    const { bitmaps, isReady } = useBlurImages(heroManifest);
+    const { bitmaps } = useBlurImages(heroManifest);
 
-    useEffect(() => { pausedRef.current = paused; }, [paused]);
+    useEffect(() => { pausedRef.current = paused; },[paused]);
 
     useEffect(() => {
         const el = sectionRef.current;
@@ -126,43 +164,33 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
         ro.observe(el);
         apply(el.getBoundingClientRect().width);
         return () => ro.disconnect();
-    }, []);
+    },[]);
 
     useEffect(() => {
-        const observers = [];
-
+        const observers =[];
         EVENTS.forEach((ev) => {
             const pair = bitmaps[ev.image_url]?.hero;
-            if (!pair?.sharp || !pair?.blurred) return;
-
-            [
+            if (!pair?.sharp || !pair?.blurred) return;[
                 { key: `${ev.id}_sharp`,  bitmap: pair.sharp   },
                 { key: `${ev.id}_blur`,   bitmap: pair.blurred },
             ].forEach(({ key, bitmap }) => {
                 const canvas = canvasRefs.current[key];
                 if (!canvas) return;
-
-                // Initial draw
                 drawToCanvas(canvas, bitmap);
-
-                // Redraw whenever the canvas resizes (window resize, layout shift, etc.)
                 const ro = new ResizeObserver(() => drawToCanvas(canvas, bitmap));
                 ro.observe(canvas);
                 observers.push(ro);
             });
         });
-
         return () => observers.forEach((ro) => ro.disconnect());
     }, [bitmaps, EVENTS]);
 
-    // Mount immediately — blur is progressive enhancement.
-    // Bitmaps arrive asynchronously and get drawn to canvas as they come in.
-    useEffect(() => { setMounted(true); }, []);
+    useEffect(() => { setMounted(true); },[]);
 
     const isMobile        = cw < 1024;
     const mobileCardPx    = cw * MOBILE_CARD_VW;
     const mobileCardScale = Math.min(1, mobileCardPx / MOBILE_CARD_REF);
-    const mobileCardH     = Math.min(180, Math.round(mobileCardPx * 1.5));
+    const mobileCardH     = Math.min(195, Math.round(mobileCardPx * 1.4));
 
     const scale        = Math.max(SCALE_FLOOR, Math.min(1, cw / SCALE_START));
     const marginPx     = Math.min(160, Math.max(40, cw * 0.0833));
@@ -173,7 +201,7 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
     useEffect(() => {
         if (!isMobile || !mobileScrollRef.current) return;
         mobileScrollRef.current.scrollTo({ left: activeIdx * (mobileCardPx + 8), behavior: "smooth" });
-    }, [activeIdx, isMobile, mobileCardPx]);
+    },[activeIdx, isMobile, mobileCardPx]);
 
     const displayEvent = EVENTS[displayIdx];
 
@@ -185,10 +213,10 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
             if (!introPlayed) return introStyle(INTRO_DELAYS[slot]);
             return { opacity: 1 };
         };
-        return [0, 1, 2, 3].map(make);
-    }, [mounted, transPhase, introPlayed]);
+        return[0, 1, 2, 3].map(make);
+    },[mounted, transPhase, introPlayed]);
 
-    const infoAnimStyle = useCallback((slot) => infoAnimStyles[slot], [infoAnimStyles]);
+    const infoAnimStyle = useCallback((slot) => infoAnimStyles[slot],[infoAnimStyles]);
 
     useEffect(() => {
         if (!mounted || activeIdx === displayIdx) return;
@@ -239,37 +267,47 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
         };
         gsap.ticker.add(tick);
         return () => gsap.ticker.remove(tick);
-    }, [activeIdx, animating, EVENTS.length]);
+    },[activeIdx, animating, EVENTS.length]);
 
     useEffect(() => {
         const fn = () => { tabVisRef.current = !document.hidden; };
         document.addEventListener("visibilitychange", fn);
         return () => document.removeEventListener("visibilitychange", fn);
-    }, []);
+    },[]);
 
     return (
-        <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black">
+        <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black" style={{ "--s": scale }}>
+            
+            <style dangerouslySetInnerHTML={{__html: `
+                @keyframes hero-notch-pop {
+                    0%   { transform: translateX(-50%) scaleY(0);    opacity: 0; }
+                    60%  { transform: translateX(-50%) scaleY(1.15); opacity: 1; }
+                    100% { transform: translateX(-50%) scaleY(1);    opacity: 1; }
+                }
+            `}} />
 
             <div className="absolute inset-0 z-0">
                 {EVENTS.map((ev, idx) => (
                     <div key={ev.id} className="absolute inset-0" style={{ opacity: idx === activeIdx ? 1 : 0, transition: paused ? "none" : "opacity 0.8s ease" }}>
                         <img src={ev.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden="true" />
-                        <canvas
-                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }}
-                            className="absolute inset-0 w-full h-full"
-                        />
-                        {/* Progressive blur baked in the worker — no CSS filter here */}
-                        <canvas
-                            ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }}
-                            className="absolute inset-0 w-full h-full"
-                        />
+                        <canvas ref={(el) => { if (el) canvasRefs.current[`${ev.id}_sharp`] = el; }} className="absolute inset-0 w-full h-full" />
+                        <canvas ref={(el) => { if (el) canvasRefs.current[`${ev.id}_blur`] = el; }} className="absolute inset-0 w-full h-full" />
                     </div>
                 ))}
             </div>
 
-            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)" }} />
-            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)" }} />
+            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to right, rgba(6,18,92,0.7) 0%, rgba(6,18,92,0.3) 35%, transparent 60%)", ...(isMobile && { display: "none" }) }} />
+            <div className="absolute inset-0 z-[1]" style={{ background: "linear-gradient(to left, rgba(6,18,92,0.5) 0%, transparent 30%)", ...(isMobile && { display: "none" }) }} />
             <div className="absolute inset-0 z-[2]" style={{ background: "linear-gradient(to top, rgba(6,18,92,0.7) 10%, transparent 50%)" }} />
+
+            {isMobile && (
+                <div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
+                    <div className="absolute inset-0" style={{ backdropFilter: "blur(25px) saturate(150%)", maskImage: "linear-gradient(to bottom, black 0%, black 5%, rgba(0,0,0,0.5) 20%, transparent 35%)", WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 5%, rgba(0,0,0,0.5) 20%, transparent 35%)" }} />
+                    <div className="absolute inset-0" style={{ backdropFilter: "blur(12px) saturate(130%)", maskImage: "linear-gradient(to bottom, black 0%, black 10%, rgba(0,0,0,0.5) 30%, transparent 45%)", WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 10%, rgba(0,0,0,0.5) 30%, transparent 45%)" }} />
+                    <div className="absolute inset-0" style={{ backdropFilter: "blur(0px)", maskImage: "linear-gradient(to bottom, black 0%, black 15%, transparent 55%)", WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 15%, transparent 55%)" }} />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(6,18,92,0.8) 0%, transparent 50%)" }} />
+                </div>
+            )}
 
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-30" style={mounted ? { animation: "hero-bar-intro 0.5s cubic-bezier(0.22, 1, 0.36, 1) 80ms both" } : { opacity: 0 }}>
                 <div ref={barRef} className="absolute top-0 h-full" style={{ background: "#FFC936" }} />
@@ -293,94 +331,133 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
             </div>
 
             {isMobile ? (
-                <div className="absolute z-10" style={{ bottom: "88px", left: 0, right: 0 }}>
-                    <p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
-                        {">>>"} Featured Events
-                    </p>
-                    <div ref={mobileScrollRef} className="match-scroll" style={{
-                        "--s": mobileCardScale,
-                        display: "flex", gap: "8px",
-                        overflowX: "auto", scrollSnapType: "x mandatory",
-                        scrollPaddingLeft: "24px", WebkitOverflowScrolling: "touch",
-                        paddingLeft: "24px",
-                        ...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }),
-                    }}>
-                        {EVENTS.map((ev, idx) => {
-                            const isActive  = idx === activeIdx;
-                            const isHovered = !isActive && hoveredIdx === idx;
-                            const ringColor = isActive ? "#FFC936" : isHovered ? "rgba(255,255,255,0.5)" : "transparent";
-                            return (
-                                <div key={ev.id}
-                                    onClick={(e) => { e.preventDefault(); select(idx); }}
-                                    onMouseEnter={() => !isActive && setHoveredIdx(idx)}
-                                    onMouseLeave={() => setHoveredIdx(null)}
-                                    style={{
-                                        position: "relative", flexShrink: 0,
-                                        flex: `0 0 ${mobileCardPx}px`, width: `${mobileCardPx}px`,
-                                        height: mobileCardH + NOTCH_H,
-                                        scrollSnapAlign: "start", cursor: "pointer",
-                                    }}
-                                >
-                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.35)" }}>
-                                        <EventCard 
-                                            event={ev} 
-                                            size="sm" 
-                                        />
-                                    </div>
-                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: mobileCardH, borderRadius: "8px", border: `2px solid ${ringColor}`, pointerEvents: "none", zIndex: 10, transition: "border-color 0.2s ease" }} />
-                                    {(isActive || isHovered) && (
-                                        <CardNotch
-                                            color={isActive ? "#FFC936" : "rgba(255,255,255,0.92)"}
-                                            textColor={isActive ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.6)"}
-                                            label={isActive ? "this" : "see more"}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        })}
-                        <div style={{ flexShrink: 0, width: 8 }} />
-                    </div>
-                </div>
+								<div className="absolute z-10" style={{ bottom: "88px", left: 0, right: 0 }}>
+										<p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
+												{">>>"} Featured Events
+										</p>
+										
+										{/* ADDED paddingBottom: "20px" here so the notch isn't clipped */}
+										<div ref={mobileScrollRef} className="match-scroll" style={{
+												"--s": mobileCardScale, display: "flex", gap: "8px", overflowX: "auto", scrollSnapType: "x mandatory",
+												scrollPaddingLeft: "24px", WebkitOverflowScrolling: "touch", paddingLeft: "24px", paddingBottom: "20px",
+												...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }),
+										}}>
+												{EVENTS.map((ev, idx) => {
+														const isActive  = idx === activeIdx;
+														const isHovered = !isActive && hoveredIdx === idx;
+														
+														const ringGradient = isActive 
+																? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
+																: (isHovered)
+																		? `linear-gradient(to bottom, ${YEL}, ${WHT})`
+																		: "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))";
+
+														return (
+																<div key={ev.id}
+																		onClick={(e) => { e.preventDefault(); select(idx); }}
+																		onMouseEnter={() => !isActive && setHoveredIdx(idx)}
+																		onMouseLeave={() => setHoveredIdx(null)}
+																		style={{
+																				position: "relative", flexShrink: 0,
+																				flex: `0 0 ${mobileCardPx}px`, width: `${mobileCardPx}px`,
+																				height: mobileCardH, scrollSnapAlign: "start", cursor: "pointer",
+																				borderRadius: "11px", padding: 2, 
+																				background: ringGradient, 
+																				boxShadow: isActive ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)" : "0 4px 16px rgba(0,0,0,0.7)",
+																				transition: "background 0.2s ease",
+																				// Ensure the card itself doesn't hide the notch
+																				overflow: "visible" 
+																		}}
+																>
+																		<div style={{ width: "100%", height: "100%", borderRadius: "9px", overflow: "hidden", position: "relative" }}>
+																				<div style={{
+																						width: "100%", height: "100%",
+																						filter: (isActive || isHovered) ? "none" : "saturate(0.2)",
+																						transition: "filter 0.4s ease"
+																				}}>
+																						<EventCard event={ev} size="sm" />
+																				</div>
+																				<div style={{
+																						position: "absolute", inset: 0, backgroundColor: "black",
+																						opacity: (isActive || isHovered) ? 0 : 0.15,
+																						transition: "opacity 0.4s ease", pointerEvents: "none"
+																				}} />
+																		</div>
+																		
+																		{/* THE NOTCH */}
+																		{mounted && (isActive || isHovered) && (
+																				<CardNotch
+																						color={isActive ? "rgb(234,179,8)" : "rgba(255,255,255,0.92)"}
+																						textColor={isActive ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.6)"}
+																						label={isActive ? "this" : "see more"}
+																				/>
+																		)}
+																</div>
+														);
+												})}
+												<div style={{ flexShrink: 0, width: 8 }} />
+										</div>
+								</div>
             ) : (
-                <div className="absolute z-10" style={{ bottom: "clamp(48px, 4.17vw, 80px)", left: "clamp(40px, 8.33vw, 160px)", right: "clamp(40px, 8.33vw, 160px)", paddingBottom: "clamp(32px, 3.125vw, 60px)" }}>
+                <div className="absolute z-10" style={{ bottom: "clamp(30px, 2.75vw, 52px)", left: "clamp(40px, 8.33vw, 160px)", right: "clamp(40px, 8.33vw, 160px)", paddingBottom: "clamp(32px, 3.125vw, 60px)" }}>
                     <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "calc(14px * var(--s))", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "calc(20px * var(--s))", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
                         {">>>"} Featured Events
                     </p>
                     <div className="flex" style={{ height: "calc(240px * var(--s))", gap: "calc(4px * var(--s))", ...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }) }}>
-                        {Array.from({ length: desktopSlots }, (_, idx) => {
-                            const ev       = EVENTS[idx] ?? null;
-                            const isActive = ev && idx === activeIdx;
-                            const isHovered = ev && !isActive && hoveredIdx === idx;
-                            return (
-                                <div key={ev ? ev.id : `placeholder-${idx}`}
-                                    onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
-                                    onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
-                                    onMouseLeave={() => setHoveredIdx(null)}
-                                    className={`flex-1 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
-                                    style={{ height: "calc(240px * var(--s))", borderRadius: "8px", overflow: "visible", outline: isActive ? `2px solid #FFC936` : isHovered ? "2px solid rgba(255,255,255,0.5)" : "2px solid transparent", transition: "outline 0.2s ease" }}
-                                >
-                                    <div style={{ position: "absolute", inset: 0, borderRadius: "8px", overflow: "hidden", "--s": "1" }}>
-                                        {ev ? (
-                                            <EventCard 
-                                                event={ev} 
-                                                size="sm" 
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: "#111827" }}>
-                                                <div className="absolute inset-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px)" }} />
-                                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round">
-                                                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                                                </svg>
-                                                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>Coming Soon</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {isActive  && <CardNotch color="#FFC936"              textColor="rgba(0,0,0,0.75)" label="this"     />}
-                                    {isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)"  label="see more" />}
-                                </div>
-                            );
-                        })}
-                    </div>
+												{mounted && Array.from({ length: desktopSlots }, (_, idx) => {
+														const ev       = EVENTS[idx] ?? null;
+														const isActive = ev && idx === activeIdx;
+														const isHovered = ev && !isActive && hoveredIdx === idx;
+														
+														const ringGradient = isActive 
+																? "linear-gradient(to bottom, rgba(234,179,8,0.9), rgba(234,179,8,0.9))" 
+																: isHovered
+																		? `linear-gradient(to bottom, ${YEL}, ${WHT})`
+																		: "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.45))";
+
+														return (
+																<div key={ev ? ev.id : `placeholder-${idx}`}
+																		onClick={ev ? (e) => { e.preventDefault(); select(idx); } : undefined}
+																		onMouseEnter={() => ev && !isActive && setHoveredIdx(idx)}
+																		onMouseLeave={() => setHoveredIdx(null)}
+																		className={`flex-1 min-w-0 relative ${ev ? "cursor-pointer" : "cursor-default"}`}
+																		style={{ 
+																				height: "calc(240px * var(--s))", 
+																				borderRadius: "11px",
+																				padding: ev ? 2 : 0, 
+																				background: ev ? ringGradient : "transparent",
+																				boxShadow: isActive ? "0 4px 16px rgba(0,0,0,0.7), 0 0 2px rgba(240,165,0,0.4)" : "0 4px 16px rgba(0,0,0,0.7)",
+																				transition: "background 0.2s ease",
+																				overflow: "visible" // Allows notch to show
+																		}}
+																>
+																		<div style={{ 
+																				width: "100%", height: "100%", borderRadius: "9px", overflow: "hidden", position: "relative",
+																				border: !ev ? "2px solid rgba(255, 255, 255, 0.2)" : "none"
+																		}}>
+																				<div style={{
+																						width: "100%", height: "100%",
+																						filter: (ev && !isActive && !isHovered) ? "saturate(0.2)" : "none",
+																						transition: "filter 0.4s ease"
+																				}}>
+																						{ev ? <EventCard event={ev} size="sm" /> : <PlaceholderCard />}
+																				</div>
+
+																				{ev && (
+																						<div style={{
+																								position: "absolute", inset: 0, backgroundColor: "black",
+																								opacity: (isActive || isHovered) ? 0 : 0.15,
+																								transition: "opacity 0.4s ease", pointerEvents: "none"
+																						}} />
+																				)}
+																		</div>
+																		
+																		{isActive  && <CardNotch color="rgb(234,179,8)" textColor="rgba(0,0,0,0.75)" label="this" />}
+																		{isHovered && <CardNotch color="rgba(255,255,255,0.92)" textColor="rgba(0,0,0,0.6)" label="see more" />}
+																</div>
+														);
+												})}
+										</div>
                 </div>
             )}
 
