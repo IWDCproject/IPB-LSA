@@ -152,9 +152,9 @@ function ScoreCell({ match }: { match: any }) {
       const a = live.awayScore ?? 0;
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: isLive ? "#FFF8D6" : "#f3f4f6", border: isLive ? "1px solid #FFC936" : "1px solid transparent", borderRadius: 6, padding: "4px 16px" }}>
-          <span style={{ ...JK, fontSize: 18, fontWeight: 900, color: "#111" }}>{String(h).padStart(2, "0")}</span>
-          <span style={{ ...JK, fontSize: 15, fontWeight: 900, color: isLive ? "#CA8A04" : "#aaa" }}>-</span>
-          <span style={{ ...JK, fontSize: 18, fontWeight: 900, color: "#111" }}>{String(a).padStart(2, "0")}</span>
+          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111" }}>{String(h).padStart(2, "0")}</span>
+          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: isLive ? "#CA8A04" : "#aaa" }}>-</span>
+          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111" }}>{String(a).padStart(2, "0")}</span>
         </div>
       );
     }
@@ -292,7 +292,7 @@ function AwayCell({ match }: { match: any }) {
 
 function PodiumRow({ live }: { live: any }) {
   const podium = (live?.timeLog ?? []).slice(0, 3);
-  const labels = ["1st", "2nd", "3rd"];
+  const labels =["1st", "2nd", "3rd"];
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       {podium.map((p: any, i: number) => (

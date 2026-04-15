@@ -1,0 +1,32 @@
+[
+  {
+    "policy": "1990d9a8-6e77-4fd7-9d79-d6d2b25e9906",
+    "role": "7883c172-0f51-45d1-8abc-5eab66ef4a65",
+    "sort": null,
+    "user": null
+  },
+  {
+    "policy": "82ac3d98-ac2b-4195-b05c-f8e034a1b73e",
+    "role": "b18d3bfd-2c54-46d4-99a5-13fdee6a2b21",
+    "sort": null,
+    "user": null
+  },
+  {
+    "policy": "abf8a154-5b1c-4a46-ac9c-7300570f4f17",
+    "role": "b18d3bfd-2c54-46d4-99a5-13fdee6a2b21",
+    "sort": null,
+    "user": null
+  },
+  {
+    "policy": "9c8d904e-e152-40ec-aca6-dc56b490a417",
+    "role": "dc42a2f7-80d7-4515-9719-8e2f77646540",
+    "sort": null,
+    "user": null
+  },
+  {
+    "policy": "abf8a154-5b1c-4a46-ac9c-7300570f4f17",
+    "role": null,
+    "sort": null,
+    "user": null
+  }
+]

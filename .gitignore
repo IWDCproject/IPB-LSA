@@ -24,25 +24,16 @@ build/
 # misc
 .DS_Store
 
-# =========================================
-# DIRECTUS & DOCKER (JANGAN DI-PUSH)
-# =========================================
-# Abaikan folder database lokal PostgreSQL
-data/
-backend/data/
+# Garis miring '/' supaya Git cuma ignore folder data di root
+/data/
+/backend/data/
 
 # Abaikan file media/upload dari antarmuka Directus
 uploads/
 backend/uploads/
 
-# =========================================
-# SCHEMA SYNC (WAJIB DI-PUSH)
-# =========================================
-# Tanda seru (!) memaksa Git untuk tidak mengabaikan folder ini
-!schema-sync/
+# Un-ignore folder schema-sync beserta seluruh isinya
 !backend/schema-sync/
-
-# tmp photo
-zigizaga/
+!backend/schema-sync/**
 
 .geminiignore
