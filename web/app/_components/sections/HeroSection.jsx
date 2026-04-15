@@ -67,9 +67,26 @@ function PlaceholderCard() {
                 backdropFilter: "blur(4px)",
                 WebkitBackdropFilter: "blur(4px)",
              }}>
+            {/* spacer dikit */}
+            <div style={{ width: "100%", height: 18 }} />
+
+
+            {/* BATIK LAGI */}
+            <div style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: "url(/Batik_Pattern_white.svg)",
+                backgroundSize: "cover",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "center",
+                opacity: 0.3,
+                pointerEvents: "none",
+                zIndex: 0,
+                filter: "blur(1.5px)",
+            }} />
             
             {/* Extremely faint icon */}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" style={{ marginBottom: 8 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,1)" filter="opacity(0.4)" strokeWidth="1.5" style={{ marginBottom: 8 }}>
                 <path d="M12 5v14M5 12h14" />
             </svg>
 

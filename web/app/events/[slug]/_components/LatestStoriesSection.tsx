@@ -44,7 +44,8 @@ function NewsPlaceholder() {
         backgroundPosition: "center",
         opacity: 0.15,
         pointerEvents: "none",
-        zIndex: 0
+        zIndex: 0,
+        filter: "blur(1.5px)",
       }} />
 
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
