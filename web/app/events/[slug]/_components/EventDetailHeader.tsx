@@ -1,5 +1,6 @@
 "use client";
 import Button from "@/components/Button";
+import { getYouTubeID } from "@/lib/directus";
 
 const BB = { fontFamily: "'Bebas Neue', sans-serif" }        as const;
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
@@ -77,6 +78,8 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
     { label: "Location",     value: event.location ?? "—" },
   ];
 
+  const videoId = getYouTubeID(event.url_youtube);
+
   return (
     <>
       <style>{KEYFRAMES}</style>
@@ -107,18 +110,46 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
             {STATUS_LABEL[event.status] ?? event.status}
           </span>
 
-          <div style={{
-            ...BB,
-            filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
-            fontSize: "clamp(3rem, 4.5vw, 4rem)",
-            color: "#fff", lineHeight: 1, textTransform: "uppercase",
-          }}>
-            {event.name}
-          </div>
+          {/* SURGICAL FIX: Relative wrapper on the Title block to anchor the video at top: 0 */}
+          <div style={{ position: "relative" }}>
+            <div style={{
+              ...BB,
+              filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
+              fontSize: "clamp(3rem, 4.5vw, 4rem)",
+              color: "#fff", lineHeight: 1, textTransform: "uppercase",
+            }}>
+              {event.name}
+            </div>
 
-          <div style={{ ...JK, fontSize: "clamp(14px, 1.4vw, 16px)", fontWeight: 600, color: "rgba(255,255,255,0.7)", filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))", marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontStyle: "italic" }}>by</span>
-            <span style={{ fontWeight: 700 }}>{event.organiser}</span>
+            <div style={{ ...JK, fontSize: "clamp(14px, 1.4vw, 16px)", fontWeight: 600, color: "rgba(255,255,255,0.7)", filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))", marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontStyle: "italic" }}>by</span>
+              <span style={{ fontWeight: 700 }}>{event.organiser}</span>
+            </div>
+
+            {/* VIDEO: Absolutely positioned to start exactly at the Title's top edge */}
+            {!isMobile && videoId && (
+              <div style={{
+                position: "absolute",
+                top: 0, // Moves it up so it sits higher than the title, clearing room for buttons
+                right: 0,
+                width: "clamp(320px, 25vw, 330px)", // Larger than before, but slightly smaller than original
+                aspectRatio: "16/9",
+                borderRadius: 8,
+                overflow: "hidden",
+                background: "#000",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                zIndex: 10,
+              }}>
+                <iframe
+                  width="100%" height="100%"
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -131,7 +162,6 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
           ))}
         </div>
 
-        {/* ONLY SURGICAL FIX HERE: Changed flexDirection to always be "row" and added justifyContent */}
         <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: -20, marginTop: 30, width: "100%", ...staggerStyle(320) }}>
           
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

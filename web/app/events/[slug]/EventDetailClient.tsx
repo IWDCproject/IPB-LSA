@@ -7,41 +7,26 @@ import UniversityMarquee from "@/components/UniversityMarquee";
 import Footer from "@/components/Footer";
 import { getAssetUrl } from "@/lib/directus";
 
-// ── Constants ────────────────────────────────────────────────────────────
 const BG_TOP    = "#0D26C2 30%";
 const BG_BOTTOM = "#06125C";
-
 const BG_IMAGE_HEIGHT = "clamp(500px, 65vh, 650px)";
 const IMAGE_MASK      = "linear-gradient(to bottom, black 30%, transparent 85%)";
 const TINT_COLOR      = "linear-gradient(to top, rgba(13, 38, 194, 0.7) 0%, rgba(13, 38, 194, 0.5) 0%)";
 
 const KEYFRAMES = `
-  @keyframes edc-fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-  @keyframes edc-marquee-up {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0);    }
-  }
+  @keyframes edc-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes edc-marquee-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 `;
 
-// ── Shell tabs ────────────────────────────────────────────────────────────
 function Shell({ label }: { label: string }) {
-  return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "rgba(255,255,255,0.4)", fontSize: 14, paddingTop: 32 }}>
-      {label} tab — coming soon
-    </div>
-  );
+  return <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "rgba(255,255,255,0.4)", fontSize: 14, paddingTop: 32 }}>{label} tab — coming soon</div>;
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────
 export default function EventDetailClient({ event }: { event: any }) {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const activeTab    = (searchParams.get("tab") as TabKey) ?? "overview";
-
-  const mainRef = useRef<HTMLDivElement>(null);
+  const mainRef      = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -53,86 +38,29 @@ export default function EventDetailClient({ event }: { event: any }) {
   }, []);
 
   const setTab = (t: TabKey) => router.push(`?tab=${t}`, { scroll: false });
-
   const bannerUrl = event.banner_image?.id ? getAssetUrl(event.banner_image) : null;
 
   return (
     <>
       <style>{KEYFRAMES}</style>
-      <div ref={mainRef} style={{
-        position: "relative",
-        minHeight: "100vh",
-        background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
-        opacity: 0,
-        animation: "edc-fade-in 0.4s ease 0ms forwards",
-      }}>
-
-        {/* 1. BOTTOM LAYER: Masked & Flipped Batik 
-            - top: -100px shifts the pattern up manually.
-            - scaleY(-1) flips it vertically in place (unlike rotate).
-            - repeat-x only.
-            - MaskImage makes the top edge of this pattern fade in smoothly. */}
-        <div style={{
-          position: "absolute", 
-          top: -100, left: 0, right: 0,
-          height: 1200, 
-          backgroundImage: "url(/Batik_Pattern_dark.svg)",
-          opacity: 0.4, 
-          pointerEvents: "none",
-          backgroundSize: "1400px auto", 
-          backgroundRepeat: "repeat-x",
-          backgroundPosition: "top center",
-          transform: "scaleY(-1)", 
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
-          maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
-          zIndex: 0,
-        }} />
-
-        {/* 2. MIDDLE LAYER: Masked Banner Image 
-            - Rendered second so it sits ON TOP of the batik.
-            - Its opaque top section covers the batik's shifted edge. */}
+      <div ref={mainRef} style={{ position: "relative", minHeight: "100vh", background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`, opacity: 0, animation: "edc-fade-in 0.4s ease 0ms forwards" }}>
+        <div style={{ position: "absolute", top: -100, left: 0, right: 0, height: 1200, backgroundImage: "url(/Batik_Pattern_dark.svg)", opacity: 0.4, pointerEvents: "none", backgroundSize: "1400px auto", backgroundRepeat: "repeat-x", backgroundPosition: "top center", transform: "scaleY(-1)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)", maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)", zIndex: 0 }} />
         {bannerUrl && (
-          <div style={{
-            position: "absolute", top: 0, left: 0, right: 0,
-            height: BG_IMAGE_HEIGHT, overflow: "hidden",
-            WebkitMaskImage: IMAGE_MASK, maskImage: IMAGE_MASK,
-            zIndex: 0,
-          }}>
-            <div style={{
-              position: "absolute", inset: 0,
-              backgroundImage: `url(${bannerUrl})`,
-              backgroundSize: "cover", backgroundPosition: "center",
-              filter: "blur(3px)", transform: "scale(1.05)",
-            }} />
-            <div style={{
-              position: "absolute", inset: 0,
-              background: TINT_COLOR, pointerEvents: "none",
-            }} />
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: BG_IMAGE_HEIGHT, overflow: "hidden", WebkitMaskImage: IMAGE_MASK, maskImage: IMAGE_MASK, zIndex: 0 }}>
+            <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(3px)", transform: "scale(1.05)" }} />
+            <div style={{ position: "absolute", inset: 0, background: TINT_COLOR, pointerEvents: "none" }} />
           </div>
         )}
-
-        {/* 3. TOP LAYER: Content (Nav, Buttons, Text) */}
         <div style={{ position: "relative", zIndex: 1 }}>
-          <EventDetailHeader
-            event={event}
-            activeTab={activeTab}
-            onTabChange={setTab}
-            isMobile={isMobile}
-          />
-
+          <EventDetailHeader event={event} activeTab={activeTab} onTabChange={setTab} isMobile={isMobile} />
           <div style={{ padding: isMobile ? "0 20px 80px" : "0 clamp(20px, 8.33vw, 160px) 100px" }}>
             {activeTab === "overview"     && <OverviewTab event={event} isMobile={isMobile} />}
             {activeTab === "matches"      && <Shell label="Matches" />}
             {activeTab === "participants" && <Shell label="Participants" />}
             {activeTab === "news"         && <Shell label="News" />}
           </div>
-
-          <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}>
-            <UniversityMarquee />
-          </div>
-
-          <div style={{ height: 120 }} />
-          <Footer />
+          <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}><UniversityMarquee /></div>
+          <div style={{ height: 120 }} /><Footer />
         </div>
       </div>
     </>
