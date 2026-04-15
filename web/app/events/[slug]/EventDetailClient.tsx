@@ -53,7 +53,7 @@ export default function EventDetailClient({ event }: { event: any }) {
         )}
         <div style={{ position: "relative", zIndex: 1 }}>
           <EventDetailHeader event={event} activeTab={activeTab} onTabChange={setTab} isMobile={isMobile} />
-          <div style={{ padding: isMobile ? "0 20px 80px" : "0 clamp(20px, 8.33vw, 160px) 100px" }}>
+          <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>
             {activeTab === "overview"     && <OverviewTab event={event} isMobile={isMobile} />}
             {activeTab === "matches"      && <Shell label="Matches" />}
             {activeTab === "participants" && <Shell label="Participants" />}
