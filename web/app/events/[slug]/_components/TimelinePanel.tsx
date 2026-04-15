@@ -275,7 +275,7 @@ export default function TimelinePanel({ phases }: { phases: any[] }) {
             </div>
           </div>
           {selectedPhase.description && (
-            <p style={{ ...JK, fontSize: 13, color: "#4B5563", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ ...JK, fontSize: 13, color: "#4B5563", lineHeight: 1.6, margin: "20px 0 10px 20px" }}>
               {selectedPhase.description}
             </p>
           )}
