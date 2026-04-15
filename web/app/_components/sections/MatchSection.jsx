@@ -37,9 +37,38 @@ function useContainerWidth(ref) {
   return width;
 }
 
-export default function MatchSection({ matches: rawMatches }) {
-  // console.log(JSON.stringify(rawMatches[0], null, 2));
+// Helper for blurred background logic used in MatchCard
+function BitmapBlurLayer({ bitmap }) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    if (!bitmap || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const draw = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.offsetWidth || 1;
+      const h = canvas.offsetHeight || 1;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const bw = bitmap.width;
+      const bh = bitmap.height;
+      const scale = Math.max(w / bw, h / bh);
+      const dw = bw * scale;
+      const dh = bh * scale;
+      const dx = (w - dw) / 2;
+      const dy = (h - dh) / 2;
+      ctx.drawImage(bitmap, dx, dy, dw, dh);
+    };
+    const ro = new ResizeObserver(draw);
+    ro.observe(canvas);
+    draw();
+    return () => ro.disconnect();
+  }, [bitmap]);
+  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />;
+}
 
+export default function MatchSection({ matches: rawMatches }) {
   const sectionRef = useRef(null);
   const cw         = useContainerWidth(sectionRef);
 
@@ -55,7 +84,6 @@ export default function MatchSection({ matches: rawMatches }) {
     return () => io.disconnect();
   }, []);
 
-  // Register matchcard images so MatchCard children can read bitmaps from context
   const matchcardManifest = useMemo(() =>
     (rawMatches || [])
       .filter(m => m.competition_category?.event_id?.card_image)
@@ -73,9 +101,8 @@ export default function MatchSection({ matches: rawMatches }) {
       .filter(entry => !!entry.url),
   [rawMatches]);
 
-  useBlurImages(matchcardManifest);
+  const { bitmaps } = useBlurImages(matchcardManifest);
 
-  // Filter matches
   const liveMatches = useMemo(() => 
     (rawMatches || []).filter(m => m.status === 'live'), 
   [rawMatches]);
@@ -103,18 +130,25 @@ export default function MatchSection({ matches: rawMatches }) {
   const fittingCount = Math.max(1, Math.floor(availableW / (MIN_CARD_W + CARD_GAP)));
   const visibleCount = Math.min(fittingCount, SHOW_MAX);
   
-  // Ambil live matches untuk ditampilkan di kartu
   const cardMatches  = liveMatches.slice(0, visibleCount);
 
+  // RESTORED MOBILE VARIABLES
   const MOBILE_CARD_VW  = 0.38;
   const MOBILE_CARD_REF = 140;
   const mobileCardPx    = cw * MOBILE_CARD_VW;
   const mobileCardScale = Math.min(1, mobileCardPx / MOBILE_CARD_REF);
   const mobileCardH     = Math.round(260 * mobileCardScale);
 
+  // CTA Background Logic
+  const ctaBgInfo = useMemo(() => {
+    const sample = cardMatches[0] || rawMatches.find(m => m.competition_category?.event_id?.card_image);
+    if (!sample) return null;
+    const url = getAssetUrl(sample.competition_category.event_id.card_image);
+    return { url, bitmap: bitmaps[url]?.matchcard?.bitmap };
+  }, [cardMatches, rawMatches, bitmaps]);
+
   return (
     <section ref={sectionRef} style={{
-      // minHeight: "100vh",
       position: "relative",
       zIndex: 2,
       background: "#0D26C2",
@@ -192,19 +226,44 @@ export default function MatchSection({ matches: rawMatches }) {
                 </div>
               ))}
 
+              {/* DESKTOP CTA CARD */}
               <div style={{ ...anim(cardMatches.length + 2), flexShrink: 0 }}>
                 <div style={{
                   width: "calc(240px * var(--s))", height: "calc(280px * var(--s))",
-                  border: "2px dashed rgba(255,255,255,0.4)",
                   borderRadius: 10, boxSizing: "border-box",
-                  display: "flex", flexDirection: "column",
-                  alignItems: "center", justifyContent: "center",
-                  gap: 16, padding: 24,
+                  position: "relative", overflow: "hidden", 
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.35)"
                 }}>
-                  <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: "#fff", textAlign: "center", lineHeight: 1.4 }}>
-                    See real time update scores
+                  {/* Filtered Background Wrapper - This ensures the Canvas is also desaturated */}
+                  <div style={{ position: "absolute", inset: 0, filter: "saturate(0)", zIndex: 0 }}>
+                    {ctaBgInfo?.url && (
+                      <div style={{ position: "absolute", inset: 0, backgroundSize: "cover", backgroundPosition: "center", backgroundImage: `url(${ctaBgInfo.url})` }} />
+                    )}
+                    {ctaBgInfo?.bitmap && <BitmapBlurLayer bitmap={ctaBgInfo.bitmap} />}
                   </div>
-                  <Button href="/schedule" variant="primary" size="md">See Schedules</Button>
+                  {/* Card Overlay matching MatchCard */}
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.75) 100%)", zIndex: 1 }} />
+                  
+                  {/* Content with EXACT STROKE and width fix */}
+                  <div style={{ 
+                    position: "relative", zIndex: 2, 
+                    display: "flex", flexDirection: "column", 
+                    alignItems: "center", justifyContent: "center", 
+                    height: "100%", borderRadius: 10, 
+                    boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,1)", 
+                    padding: 24, textAlign: "center"
+                  }}>
+                    {/* spacer dikit */}
+                    <div style={{ height: 18 }} />
+                    <Button href="/schedule" variant="primary" size="md">See Schedules</Button>
+                    <div style={{ 
+                      fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 800, 
+                      color: "rgba(255,255,255,0.6)", textTransform: "uppercase", 
+                      letterSpacing: 1, lineHeight: 1.4, marginTop: 14
+                    }}>
+                      See real time update<br/>scores
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

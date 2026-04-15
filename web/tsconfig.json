@@ -30,7 +30,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "app/_components/sections/MatchSection.jsx"  ],
   "exclude": [
     "node_modules"
   ],
