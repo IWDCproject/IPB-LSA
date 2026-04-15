@@ -64,15 +64,13 @@ interface Props {
 }
 
 export default function EventDetailHeader({ event, activeTab, onTabChange, isMobile }: Props) {
-  // SET TO 30px as requested
-  const TOP_PAD = isMobile ? "30px" : "300px";
+  // Best Practice: Reasonable spacing that allows the hero image to show
+  const TOP_PAD = "30px"; 
   const SIDE_PAD = isMobile ? "20px" : "clamp(20px, 8.33vw, 160px)";
-  
   const PAD = `${TOP_PAD} ${SIDE_PAD} 36px`;
 
-  const HERO_HEIGHT = isMobile
-    ? "auto" 
-    : "clamp(200px, 42vh, 300px)";
+  // Use minHeight so the container can grow if the content is taller than the minimum
+  const MIN_HERO_HEIGHT = isMobile ? "0px" : "300px";
 
   const meta = [
     { label: "Registration", value: event.registration_end_date ? `Until ${fmtDate(event.registration_end_date)}` : "—" },
@@ -88,11 +86,11 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
       <div style={{
         position: "relative",
         zIndex: 1,
-        minHeight: isMobile ? "0" : HERO_HEIGHT,
-        height: HERO_HEIGHT, 
+        minHeight: MIN_HERO_HEIGHT,
+        height: "auto", // Always auto so it fits exactly what's inside
         display: "flex",
         flexDirection: "column",
-        justifyContent: isMobile ? "flex-start" : "flex-end",
+        justifyContent: "flex-end", // Title/Meta stays at the bottom
         padding: PAD,
         marginBottom: 16,
         gap: 18,
@@ -128,6 +126,7 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
               <span style={{ fontWeight: 700 }}>{event.organiser}</span>
             </div>
 
+            {/* DESKTOP VIDEO: Floats to the right of the title block */}
             {!isMobile && videoId && (
               <div style={{
                 position: "absolute",
@@ -154,7 +153,7 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
           </div>
         </div>
 
-        {/* MOBILE VIDEO */}
+        {/* MOBILE VIDEO: Inline, 100% width, stays between Title and Meta */}
         {isMobile && videoId && (
           <div style={{ 
             ...staggerStyle(140), 
