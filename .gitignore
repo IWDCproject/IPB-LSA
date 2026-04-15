@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.local
 .env.production
+.env.*
 
 # next.js
 .next/
@@ -14,7 +15,7 @@ out/
 web/.blur-cache/*
 !web/.blur-cache/.gitkeep
 
-# strapi
+# strapi / build tools
 .tmp/
 .cache/
 dist/
@@ -23,15 +24,18 @@ build/
 # misc
 .DS_Store
 
-# Docker database and storage
+
 data/
+backend/data/
+
+# Abaikan file media/upload dari antarmuka Directus
 uploads/
-.env
+backend/uploads/
 
-# Node modules 
-node_modules/
+# Tanda seru (!) memaksa Git untuk tidak mengabaikan folder ini
+!schema-sync/
+!backend/schema-sync/
 
-#tmp photo
-zigizaga/
+
 
 .geminiignore
