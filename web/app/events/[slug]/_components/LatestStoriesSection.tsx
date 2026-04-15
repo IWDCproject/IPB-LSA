@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
-import Button from "@/components/Button"; // Kept your original component
+import Button from "@/components/Button"; 
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 
@@ -179,7 +179,7 @@ function NewsCard({ item }: { item: any }) {
   );
 }
 
-export default function LatestStoriesSection({ news, eventSlug }: { news: any[]; eventSlug: string }) {
+export default function LatestStoriesSection({ news, eventSlug, isMobile }: { news: any[]; eventSlug: string; isMobile: boolean }) {
   const MIN_ITEMS = 4;
   const placeholders = Array.from({ length: Math.max(0, MIN_ITEMS - news.length) });
 
@@ -209,7 +209,11 @@ export default function LatestStoriesSection({ news, eventSlug }: { news: any[];
         alignItems: "stretch" 
       }}>
         {news.map((item) => <NewsCard key={item.id} item={item} />)}
-        {placeholders.map((_, i) => <NewsPlaceholder key={`p-${i}`} />)}
+
+        {/* NO PLACEHOLDERS ON MOBILE */}
+        {!isMobile && placeholders.map((_, i) => (
+          <NewsPlaceholder key={`p-${i}`} />
+        ))}
       </div>
     </div>
   );
