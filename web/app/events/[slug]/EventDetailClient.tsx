@@ -3,6 +3,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import EventDetailHeader, { type TabKey } from "./_components/EventDetailHeader";
 import OverviewTab from "./_components/OverviewTab";
+import NewsTab from "./_components/NewsTab";
 import UniversityMarquee from "@/components/UniversityMarquee";
 import Footer from "@/components/Footer";
 import { getAssetUrl } from "@/lib/directus";
@@ -19,7 +20,11 @@ const KEYFRAMES = `
 `;
 
 function Shell({ label }: { label: string }) {
-  return <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "rgba(255,255,255,0.4)", fontSize: 14, paddingTop: 32 }}>{label} tab — coming soon</div>;
+  return (
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "rgba(255,255,255,0.4)", fontSize: 14, paddingTop: 32 }}>
+      {label} tab — coming soon
+    </div>
+  );
 }
 
 export default function EventDetailClient({ event }: { event: any }) {
@@ -43,24 +48,38 @@ export default function EventDetailClient({ event }: { event: any }) {
   return (
     <>
       <style>{KEYFRAMES}</style>
-      <div ref={mainRef} style={{ position: "relative", minHeight: "100vh", background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`, opacity: 0, animation: "edc-fade-in 0.4s ease 0ms forwards" }}>
+      <div
+        ref={mainRef}
+        style={{
+          position: "relative",
+          minHeight: "100vh",
+          background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
+          opacity: 0,
+          animation: "edc-fade-in 0.4s ease 0ms forwards",
+        }}
+      >
         <div style={{ position: "absolute", top: -100, left: 0, right: 0, height: 1200, backgroundImage: "url(/Batik_Pattern_dark.svg)", opacity: 0.4, pointerEvents: "none", backgroundSize: "1400px auto", backgroundRepeat: "repeat-x", backgroundPosition: "top center", transform: "scaleY(-1)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)", maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)", zIndex: 0 }} />
+
         {bannerUrl && (
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: BG_IMAGE_HEIGHT, overflow: "hidden", WebkitMaskImage: IMAGE_MASK, maskImage: IMAGE_MASK, zIndex: 0 }}>
             <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(3px)", transform: "scale(1.05)" }} />
             <div style={{ position: "absolute", inset: 0, background: TINT_COLOR, pointerEvents: "none" }} />
           </div>
         )}
+
         <div style={{ position: "relative", zIndex: 1 }}>
           <EventDetailHeader event={event} activeTab={activeTab} onTabChange={setTab} isMobile={isMobile} />
           <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>
             {activeTab === "overview"     && <OverviewTab event={event} isMobile={isMobile} />}
             {activeTab === "matches"      && <Shell label="Matches" />}
             {activeTab === "participants" && <Shell label="Participants" />}
-            {activeTab === "news"         && <Shell label="News" />}
+            {activeTab === "news"         && <NewsTab event={event} isMobile={isMobile} />}
           </div>
-          <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}><UniversityMarquee /></div>
-          <div style={{ height: 120 }} /><Footer />
+          <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}>
+            <UniversityMarquee />
+          </div>
+          <div style={{ height: 120 }} />
+          <Footer />
         </div>
       </div>
     </>
