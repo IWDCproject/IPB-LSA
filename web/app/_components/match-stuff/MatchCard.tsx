@@ -360,7 +360,18 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
           padding: "calc(18px * var(--s)) calc(18px * var(--s)) 0", gap: "calc(8px * var(--s))",
         }}>
-          <div style={{ minWidth: 0, flex: 1 }} />
+          <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: "calc(2px * var(--s))", paddingTop: "calc(2px * var(--s))" }}>
+            {match.round && (
+              <span style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 800, color: "#FFC936", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {match.round}
+              </span>
+            )}
+            {cat?.name && (
+              <span style={{ ...JK, fontSize: "calc(11px * var(--s))", fontWeight: 600, opacity: 0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {cat.name}
+              </span>
+            )}
+          </div>
           <div style={{
             ...BB,
             display: "flex", alignItems: "center", gap: "calc(5px * var(--s))",
