@@ -164,9 +164,11 @@ function JudgeScores({ live, engine }: { live: any; engine: any }) {
   );
 }
 
-function FinishTime({ live }: { live: any }) {
+function FinishTime({ live, match }: { live: any; match: any }) {
   const log = live?.timeLog ??[];
   if (!log.length) {
+    const isOpen = match?.competition_category?.format_id?.match_type === "open";
+    if (isOpen && match?.participants?.length) return <OpenParticipants match={match} />;
     return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", opacity: 0.4, textAlign: "center" }}>Waiting for results...</div>;
   }
   return (
@@ -186,20 +188,18 @@ function FinishTime({ live }: { live: any }) {
   );
 }
 
-function ManualPick({ live }: { live: any }) {
+function ManualPick({ live, match }: { live: any; match: any }) {
   const winner   = live?.winner   ?? null;
   const rankings = live?.rankings ??[];
 
   if (rankings.length > 0) {
     return (
       <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-        <div style={{ width: "calc(260px * var(--s))", display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))", alignItems: "flex-start" }}>
           {rankings.map((r: any) => (
-            <div key={r.rank} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "calc(12px * var(--s))" }}>
-              <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, minWidth: 0 }}>
-                <span style={{ opacity: 0.4, fontSize: "calc(11px * var(--s))", fontWeight: 700, marginRight: "calc(5px * var(--s))" }}>#{r.rank}</span>
-                {r.name}
-              </span>
+            <div key={r.rank} style={{ display: "flex", alignItems: "baseline", gap: "calc(8px * var(--s))" }}>
+              <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 800 }}>#{r.rank}</span>
+              <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600 }}>{r.name}</span>
             </div>
           ))}
         </div>
@@ -211,7 +211,24 @@ function ManualPick({ live }: { live: any }) {
     return <div style={{ ...JK, textAlign: "center", fontWeight: 700, fontSize: "calc(15px * var(--s))" }}>🏆 {winner}</div>;
   }
 
+  const isOpen = match?.competition_category?.format_id?.match_type === "open";
+  if (isOpen && match?.participants?.length) {
+    return <OpenParticipants match={match} />;
+  }
+
   return <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.5, textAlign: "center" }}>Waiting...</div>;
+}
+
+function ScoreSection({ fmt, live, match }: { fmt: any; live: any; match: any }) {
+  const engine = getEngine(fmt);
+  switch (engine?.type) {
+    case "score_timed":  return <ScoreTimed  live={live} />;
+    case "score_sets":   return <ScoreSets   live={live} engine={engine} />;
+    case "judge_scores": return <JudgeScores live={live} engine={engine} />;
+    case "finish_time":  return <FinishTime  live={live} match={match} />;
+    case "manual_pick":  return <ManualPick  live={live} match={match} />;
+    default:             return null;
+  }
 }
 
 function OpenParticipants({ match }: { match: any }) {
@@ -239,17 +256,6 @@ function OpenParticipants({ match }: { match: any }) {
   );
 }
 
-function ScoreSection({ fmt, live, match }: { fmt: any; live: any; match: any }) {
-  const engine = getEngine(fmt);
-  switch (engine?.type) {
-    case "score_timed":  return <ScoreTimed  live={live} />;
-    case "score_sets":   return <ScoreSets   live={live} engine={engine} />;
-    case "judge_scores": return <JudgeScores live={live} engine={engine} />;
-    case "finish_time":  return <FinishTime  live={live} />;
-    case "manual_pick":  return <ManualPick  live={live} />;
-    default:             return null;
-  }
-}
 
 function BitmapBlurLayer({ bitmap }) {
   const canvasRef = useRef(null);
@@ -393,9 +399,13 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
 
           {(isSolo || isOpen) && (
             <div style={{ textAlign: "center" }}>
-              {isOpen && timerMod && (
+              {isOpen && (
                 <div style={{ ...BB, fontSize: "calc(36px * var(--s))", marginBottom: "calc(10px * var(--s))", letterSpacing: 2 }}>
-                  <span ref={openTimerRef}>00:00:00</span>
+                  {timerMod ? (
+                    <span ref={openTimerRef}>00:00:00</span>
+                  ) : (
+                    <span style={{ opacity: 0.15 }}>--:--:--</span>
+                  )}
                 </div>
               )}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>

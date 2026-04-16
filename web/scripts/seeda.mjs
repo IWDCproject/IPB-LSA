@@ -8,6 +8,7 @@ import {
   deleteItems,
   readMe,
   updateUser,
+  readItems,
 } from '@directus/sdk';
 
 // ==========================================
@@ -1458,6 +1459,48 @@ async function seed() {
         content: 'Draft berisi rencana fitur bracket generator, notifikasi push, dan integrasi single sign-on.',
       },
     ]));
+
+    // ====================================================================
+    // DYNAMIC NEWS ADJUSTMENT (Force exact counts: 0, 3, 6, 9, 12, 15)
+    // ====================================================================
+    console.log('📰 Adjusting news counts per event...');
+    
+    const newsTargets =[
+      { eId: e5.id, count: 0, prefix: 'Futsal' },
+      { eId: e6.id, count: 3, prefix: 'ArtFest' },
+      { eId: e4.id, count: 6, prefix: 'Hacktoday' },
+      { eId: e3.id, count: 9, prefix: 'Marathon' },
+      { eId: e2.id, count: 12, prefix: 'Badminton' },
+      { eId: e1.id, count: 15, prefix: 'Karate' },
+    ];
+    
+    for (const target of newsTargets) {
+      const existing = await client.request(readItems('news', { filter: { event_id: { _eq: target.eId } } }));
+      
+      if (existing.length > target.count) {
+        // Trim excess (e.g., Futsal has 2 hardcoded but target is 0)
+        const toDelete = existing.slice(target.count).map(n => n.id);
+        await client.request(deleteItems('news', toDelete));
+      } else if (existing.length < target.count) {
+        // Pad with dynamic data to reach exact target
+        const needed = target.count - existing.length;
+        const newItems =[];
+        for(let i = 0; i < needed; i++) {
+          newItems.push({
+            author_id: myId,
+            event_id: target.eId,
+            category: randomPick(['news', 'update', 'announcement', 'result']),
+            title: `${target.prefix} Update #${existing.length + i + 1}: ${randomPick(['Persiapan Semakin Matang', 'Kejutan Terjadi Hari Ini', 'Rekor Baru Tercipta', 'Antusiasme Penonton Membludak', 'Jadwal Pertandingan Berubah', 'Evaluasi Tengah Turnamen'])}`,
+            slug: `auto-news-${target.eId.substring(0,5)}-${Date.now()}-${i}`,
+            excerpt: 'Berita otomatis untuk update terkini seputar berjalannya acara dan perolehan skor sementara.',
+            content: `Ini adalah rilis berita otomatis. ${generateName()} selaku perwakilan panitia membagikan pandangannya mengenai event ini. Seluruh pihak berharap acara berjalan lancar hingga hari terakhir penutupan.`,
+            is_published: true,
+            published_at: offsetHours(-randomInt(1, 48))
+          });
+        }
+        await client.request(createItems('news', newItems));
+      }
+    }
 
     // ====================================================================
     // DENORMALIZATION — trigger PGSQL trigger for all finished/live matches
