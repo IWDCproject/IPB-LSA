@@ -5,7 +5,7 @@ import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
 import { getNewsByEvent } from "@/lib/directus";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 const BLUE = "#0D26C2";
 const YELLOW = "#FFC936";
 
@@ -270,7 +270,10 @@ export default function NewsTab({ event, isMobile }: { event: any; isMobile: boo
   }
 
   const remainder = items.length % columns;
-  const placeholderCount = !isMobile && remainder !== 0 ? columns - remainder : 0;
+  const isLastPage = page === totalPages;
+  
+  // Only calculate placeholders if we are actually on the last page
+  const placeholderCount = !isMobile && remainder !== 0 && isLastPage ? columns - remainder : 0;
 
   return (
     <div> {/* Removed paddingTop: 32 here to match OverviewTab */}
