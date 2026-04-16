@@ -76,7 +76,7 @@ function Pagination({
   if (totalPages <= 1) return null;
 
   // Build page number list with ellipsis
-  const pages: (number | "…")[] = [];
+  const pages: (number | "…")[] =[];
   if (totalPages <= 7) {
     for (let i = 1; i <= totalPages; i++) pages.push(i);
   } else {
@@ -184,13 +184,14 @@ export default function NewsTab({ event, isMobile }: { event: any; isMobile: boo
   // Show skeleton grid while loading
   if (loading) {
     return (
-      <div style={{ paddingTop: 32 }}>
+      <div> 
         <div
           style={{
             display: "grid",
             gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))",
             gap: 20,
             alignItems: "stretch",
+            padding: 2, // Added 2px padding to absorb the outward stroke without margin offset issues
           }}
         >
           {Array.from({ length: PAGE_SIZE }).map((_, i) => (
@@ -206,13 +207,14 @@ export default function NewsTab({ event, isMobile }: { event: any; isMobile: boo
   }
 
   return (
-    <div style={{ paddingTop: 32 }}>
+    <div> {/* Removed paddingTop: 32 here to match OverviewTab */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))",
           gap: 20,
           alignItems: "stretch",
+          padding: 2, 
         }}
       >
         {items.map((item) => (
