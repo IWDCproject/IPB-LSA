@@ -2,9 +2,9 @@
 import { useMemo } from "react";
 import { PanelTitle, EmptyState } from "./Panel";
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Helpers & Styles ─────────────────────────────────────────────────────────
 
-const JK: React.CSSProperties = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
+const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -17,7 +17,7 @@ function getEngine(fmt: any) {
   return fmt?.modules?.[0] ?? null;
 }
 
-function calcAvg(scores: number[] =[], method = "avg"): number {
+function calcAvg(scores: number[] = [], method = "avg"): number {
   if (!scores.length) return 0;
   if (method === "drop_extremes" && scores.length > 2) {
     const sorted = [...scores].sort((a, b) => a - b).slice(1, -1);
@@ -34,7 +34,7 @@ function groupByDate(matches: any[]): Map<string, any[]> {
   }, new Map<string, any[]>());
 }
 
-// ─── Score / badge components (Middle Part Only) ───────────────────────────────
+// ─── Score / badge components ──────────────────────────────────────────────────
 
 function SolidLiveBadge() {
   return (
@@ -46,22 +46,20 @@ function SolidLiveBadge() {
 
 function ScoreSetsLive({ live }: { live: any }) {
   const setScore = live?.setScore ?? [0, 0];
-  const setLog   = live?.setLog   ??[];
+  const setLog   = live?.setLog   ?? [];
 
-  // Outer numbers: Current Set Point Score (e.g. 01 and 06)
   const NumPill = ({ n }: { n: number }) => (
     <div style={{ ...JK, fontSize: 14, fontWeight: 900, color: "#111", background: "#FFC936", borderRadius: 6, minWidth: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>
       {String(n).padStart(2, "0")}
     </div>
   );
 
-  // Inner history: Pale yellow with yellow border because match is live
   const SetPill = ({ s, i }: { s: any; i: number }) => (
-    <div style={{ 
-      background: "#FFF8D6", 
-      border: "1px solid #FFC936", 
-      borderRadius: 6, 
-      padding: "4px 8px", 
+    <div style={{
+      background: "#FFF8D6",
+      border: "1px solid #FFC936",
+      borderRadius: 6,
+      padding: "4px 8px",
       textAlign: "center",
       minWidth: 50
     }}>
@@ -88,7 +86,7 @@ function ScoreSetsLive({ live }: { live: any }) {
 }
 
 function ScoreSetsFinished({ live }: { live: any }) {
-  const setLog = live?.setLog ??[];
+  const setLog = live?.setLog ?? [];
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
       {setLog.map((s: any, i: number) => (
@@ -106,7 +104,7 @@ function ScoreSetsFinished({ live }: { live: any }) {
 }
 
 function JudgeScoreBadge({ live, engine }: { live: any; engine: any }) {
-  const scores = live?.judgeScores ??[];
+  const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
   const result = calcAvg(scores, method).toFixed(2).replace(".", ",");
   return (
@@ -132,10 +130,10 @@ function ManualPickBadge({ live }: { live: any }) {
 function MiddleBadge({ match }: { match: any }) {
   const isH2H = match.competition_category?.format_id?.match_type === "head_to_head";
   return (
-    <div style={{ 
-      ...JK, fontSize: 13, fontWeight: 800, color: "#aaa", 
+    <div style={{
+      ...JK, fontSize: 13, fontWeight: 800, color: "#aaa",
       background: "#f3f4f6", borderRadius: 6, padding: "4px 16px",
-      whiteSpace: "nowrap", minWidth: 50, textAlign: "center" 
+      whiteSpace: "nowrap", minWidth: 50, textAlign: "center"
     }}>
       {isH2H ? "vs" : "---"}
     </div>
@@ -167,9 +165,7 @@ function ScoreCell({ match }: { match: any }) {
     case "judge_scores":
     case "finish_time":
     case "manual_pick":
-      // Figma reference: Solid yellow "Live" badge for these engines
       if (isLive) return <SolidLiveBadge />;
-      // Finished variants
       if (engine?.type === "judge_scores") return <JudgeScoreBadge live={live} engine={engine} />;
       if (engine?.type === "manual_pick") return <ManualPickBadge live={live} />;
       return null;
@@ -180,7 +176,7 @@ function ScoreCell({ match }: { match: any }) {
 
 // ─── Participant cells ─────────────────────────────────────────────────────────
 
-const LOGO_OPACITIES =[1, 0.75, 0.5, 0.25];
+const LOGO_OPACITIES = [1, 0.75, 0.5, 0.25];
 
 function Logo({ inst, size = 32 }: { inst: any; size?: number }) {
   if (!inst?.logo_url) {
@@ -205,7 +201,7 @@ function ParticipantInfo({ inst, name, align = "left" }: { inst: any; name: stri
 }
 
 function OpenParticipants({ match }: { match: any }) {
-  const entries =[...(match?.participants ?? [])]
+  const entries = [...(match?.participants ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((j: any) => j.participant_id);
 
@@ -295,7 +291,7 @@ function AwayCell({ match }: { match: any }) {
 
 function PodiumRow({ live }: { live: any }) {
   const podium = (live?.timeLog ?? []).slice(0, 3);
-  const labels =["1st", "2nd", "3rd"];
+  const labels = ["1st", "2nd", "3rd"];
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       {podium.map((p: any, i: number) => (
@@ -318,7 +314,7 @@ function PodiumRow({ live }: { live: any }) {
   );
 }
 
-// ─── Row (Compact Panel Row) ───────────────────────────────────────────────────
+// ─── Row ───────────────────────────────────────────────────────────────────────
 
 const ROW_GRID: React.CSSProperties = {
   display: "grid",
@@ -374,77 +370,198 @@ function DateHeader({ label }: { label: string }) {
   );
 }
 
-// ─── Card ──────────────────────────────────────────────────────────────────────
+// ─── Layout constants ──────────────────────────────────────────────────────────
+//
+// These represent the rendered pixel height of each repeating UI element.
+// They feed into useSmartSlice so the row-count is calculated without
+// ever measuring the panel itself (which would create a resize loop).
+//
+//  ROW_H  – CompactMatchRow: padding(10+10) + logo(32) = 52px
+//  DATE_H – DateHeader: padding(14+4) + text(~14px) ≈ 32px
+//
+//  OVERHEAD – The fixed chrome inside each panel card:
+//    vertical card padding : 16 + 16 = 32px
+//    title row + margin    : ~18px text + 6px spacing = 24px
+//    footer "+ N more"     : paddingTop(6) + text(~16px) = 22px
+//    ─────────────────────────────────────────────────────
+//    total                 : 78px
+//
+const ROW_H    = 52;
+const DATE_H   = 32;
+const OVERHEAD = 78; // panel chrome: padding + title + footer
 
-const CARD: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: 12,
-  padding: "16px 20px",
-  overflow: "hidden",
-  display: "flex",
-  flexDirection: "column",
-  flex: "1 0 auto",
-};
+// ─── Negotiated Greedy Growth — The Slicer ────────────────────────────────────
+//
+// Algorithm:
+//   1. Take the left-column anchor height and subtract any fixed right-column
+//      elements (countdown panel + inter-panel gaps) → effective pool.
+//   2. Apply the weighted share (60 % upcoming / 40 % results, or 100 % if
+//      only one panel is present).
+//   3. Subtract panel chrome (OVERHEAD) to get rows-only budget.
+//   4. Walk through matches, accumulating height. Stop at the first match
+//      that doesn't fit.
+//   5. Greedy Rule: if the leftover gap ≥ 50 % of ROW_H, absorb one extra row.
+//      This intentionally pushes the right column past the anchor height;
+//      CSS `align-items: stretch` then pulls AboutPanel flush.
+//
+function useSmartSlice(
+  matches:        any[],
+  anchorHeight:   number,
+  isMobile:       boolean,
+  priority:       boolean,
+  budgetDeduction: number,  // countdown height + inter-panel gaps (px)
+  hasCounterpart: boolean,  // false when only one matches panel exists
+): number {
+  return useMemo(() => {
+    // Mobile: skip all logic and let panels render naturally
+    if (isMobile || anchorHeight <= 0) return 3;
 
-// ─── Panels ────────────────────────────────────────────────────────────────────
+    // Step 1 & 2 – Weighted share of the deducted pool
+    const share = hasCounterpart ? (priority ? 0.6 : 0.4) : 1.0;
+    const pool  = (anchorHeight - budgetDeduction) * share - OVERHEAD;
 
-interface Props {
-  upcoming: any[];
-  finished: any[];
+    // Step 3 – Strict fit
+    let used     = 0;
+    let lastDate = "";
+    let count    = 0;
+
+    for (const m of matches) {
+      const matchDate   = m.scheduled_at?.split("T")[0] ?? "No Date";
+      const needsHeader = matchDate !== lastDate;
+      const cost        = (needsHeader ? DATE_H : 0) + ROW_H;
+
+      if (used + cost <= pool) {
+        used    += cost;
+        lastDate = matchDate;
+        count++;
+      } else {
+        // Step 4 – Greedy Rule: absorb one extra row if gap ≥ 50 % of ROW_H
+        if (pool - used >= ROW_H * 0.5) count++;
+        break;
+      }
+    }
+
+    return Math.max(1, count);
+  }, [matches, anchorHeight, isMobile, priority, budgetDeduction, hasCounterpart]);
 }
 
-export function UpcomingMatchesPanel({ upcoming }: Pick<Props, "upcoming">) {
-  const groups = useMemo(() => groupByDate(upcoming.slice(0, 2)), [upcoming]);
+// ─── Panel card shell ──────────────────────────────────────────────────────────
 
-  if (!upcoming.length) {
-    return (
-      <div style={CARD}>
-        <PanelTitle>Upcoming Matches</PanelTitle>
-        <EmptyState message="No Info Yet!" />
-      </div>
-    );
-  }
+const CARD: React.CSSProperties = {
+  background:     "#fff",
+  borderRadius:   12,
+  padding:        "16px 20px",
+  display:        "flex",
+  flexDirection:  "column",
+  flex:           1,
+  minHeight:      0,
+};
+
+// ─── Panels ───────────────────────────────────────────────────────────────────
+
+export interface MatchPanelProps {
+  anchorHeight:    number;
+  isMobile:        boolean;
+  budgetDeduction: number;  // see OverviewTab for calculation
+  hasCounterpart:  boolean;
+}
+
+export function UpcomingMatchesPanel({
+  upcoming,
+  anchorHeight,
+  isMobile,
+  budgetDeduction,
+  hasCounterpart,
+}: MatchPanelProps & { upcoming: any[] }) {
+  const limit     = useSmartSlice(upcoming, anchorHeight, isMobile, true, budgetDeduction, hasCounterpart);
+  const displayed = upcoming.slice(0, limit);
+  const groups    = Array.from(groupByDate(displayed).entries());
+  const remainder = upcoming.length - limit;
+
+  if (!upcoming.length) return null;
 
   return (
     <div style={CARD}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ ...JK, fontSize: 15, fontWeight: 800, color: "#06125C" }}>Upcoming Matches</span>
-        <span style={{ ...JK, fontSize: 12, color: "#aaa" }}>{upcoming.length} total</span>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C" }}>Upcoming Matches</span>
+        <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{upcoming.length} total</span>
       </div>
-      {Array.from(groups.entries()).map(([date, rows]) => (
-        <div key={date}>
-          <DateHeader label={date} />
-          {rows.map((match: any) => <CompactMatchRow key={match.id} match={match} />)}
+
+      {/* Rows — no overflow, sliced to fit */}
+      <div style={{ flex: 1 }}>
+        {groups.map(([date, rows]) => (
+          <div key={date}>
+            <DateHeader label={date} />
+            {rows.map((m: any) => <CompactMatchRow key={m.id} match={m} />)}
+          </div>
+        ))}
+      </div>
+
+      {/* Subtle footer — minimal height, only shown when rows are hidden */}
+      {remainder > 0 && (
+        <div style={{
+          ...JK,
+          fontSize:      10,
+          fontWeight:    600,
+          color:         "#c8c8c8",
+          textAlign:     "center",
+          paddingTop:    6,
+          letterSpacing: "0.02em",
+        }}>
+          +{remainder} more match{remainder !== 1 ? "es" : ""}
         </div>
-      ))}
+      )}
     </div>
   );
 }
 
-export function LatestResultsPanel({ finished }: Pick<Props, "finished">) {
-  const groups = useMemo(() => groupByDate(finished.slice(0, 2)), [finished]);
+export function LatestResultsPanel({
+  finished,
+  anchorHeight,
+  isMobile,
+  budgetDeduction,
+  hasCounterpart,
+}: MatchPanelProps & { finished: any[] }) {
+  const limit     = useSmartSlice(finished, anchorHeight, isMobile, false, budgetDeduction, hasCounterpart);
+  const displayed = finished.slice(0, limit);
+  const groups    = Array.from(groupByDate(displayed).entries());
+  const remainder = finished.length - limit;
 
-  if (!finished.length) {
-    return (
-      <div style={CARD}>
-        <PanelTitle>Latest Results</PanelTitle>
-        <EmptyState message="No results yet." />
-      </div>
-    );
-  }
+  if (!finished.length) return null;
 
   return (
     <div style={CARD}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ ...JK, fontSize: 15, fontWeight: 800, color: "#06125C" }}>Latest Results</span>
-        <span style={{ ...JK, fontSize: 12, color: "#aaa" }}>{finished.length} total</span>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C" }}>Latest Results</span>
+        <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{finished.length} total</span>
       </div>
-      {Array.from(groups.entries()).map(([date, rows]) => (
-        <div key={date}>
-          <DateHeader label={date} />
-          {rows.map((match: any) => <CompactMatchRow key={match.id} match={match} />)}
+
+      {/* Rows — no overflow, sliced to fit */}
+      <div style={{ flex: 1 }}>
+        {groups.map(([date, rows]) => (
+          <div key={date}>
+            <DateHeader label={date} />
+            {rows.map((m: any) => <CompactMatchRow key={m.id} match={m} />)}
+          </div>
+        ))}
+      </div>
+
+      {/* Subtle footer */}
+      {remainder > 0 && (
+        <div style={{
+          ...JK,
+          fontSize:      10,
+          fontWeight:    600,
+          color:         "#c8c8c8",
+          textAlign:     "center",
+          paddingTop:    6,
+          letterSpacing: "0.02em",
+        }}>
+          +{remainder} more result{remainder !== 1 ? "s" : ""}
         </div>
-      ))}
+      )}
     </div>
   );
 }

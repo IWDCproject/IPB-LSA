@@ -104,6 +104,14 @@ async function triggerDenorm(matchIds) {
 const LS = {
   upcoming: () => ({ matchStatus: 'upcoming', timerRunning: false, timerSecs: 0 }),
 
+  deadlineLive: ({ rankings = [], targetHours = 24 }) => ({
+    matchStatus: 'live',
+    rankings,
+    timerRunning: true, 
+    timerTarget: new Date(Date.now() + targetHours * 3600 * 1000).toISOString(),
+    notes: '',
+  }),
+
   // ── H2H score_timed ──
   timedLive: ({ homeScore, awayScore, secs, periodIdx = 0, periodPhase = 'active' }) => ({
     matchStatus: 'live',
@@ -940,9 +948,9 @@ async function seed() {
     const f4_hack = await client.request(createItem('match_formats', {
       event_id: e4.id, name: 'Hackathon — Manual Jury Pick Top 3',
       match_type: 'open',
-      modules: [
+      modules:[
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
-        // No timer — edge case: open match without timer module
+        { type: 'timer', config: { mode: 'deadline' } },
         { type: 'notes', config: {} },
       ],
     }));
@@ -1011,13 +1019,9 @@ async function seed() {
     // IoT — finished
     const p4_iot = await genHackTeams(c4_iot.id, 8);
     const m4_iot = await client.request(createItem('matches', {
-      competition_category_id: c4_iot.id, status: 'finished', venue: 'Ruang Sidang B',
-      scheduled_at: offsetHours(-4 * 24 + 15),
-      live_state: LS.pickFinished({ rankings: [
-        { rank: 1, id: p4_iot[3].id, name: p4_iot[3].name },
-        { rank: 2, id: p4_iot[0].id, name: p4_iot[0].name },
-        { rank: 3, id: p4_iot[6].id, name: p4_iot[6].name },
-      ]}),
+      competition_category_id: c4_iot.id, status: 'live', venue: 'Ruang Sidang B', // Changed to LIVE
+      scheduled_at: offsetHours(-4),
+      live_state: LS.deadlineLive({ targetHours: 12 }), // Now has a real ticking deadline
     }));
     await client.request(createItems('match_participants', p4_iot.map((p, i) => ({ match_id: m4_iot.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m4_iot.id);
@@ -1256,8 +1260,9 @@ async function seed() {
     const f6_visual = await client.request(createItem('match_formats', {
       event_id: e6.id, name: 'Seni Rupa — Panel Juri',
       match_type: 'open',
-      modules: [
+      modules:[
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
+        { type: 'timer', config: { mode: 'deadline' } }, 
       ],
     }));
 
@@ -1399,10 +1404,7 @@ async function seed() {
     const m6_visual = await client.request(createItem('matches', {
       competition_category_id: c6_visual.id, status: 'live', venue: 'Galeri GWW',
       scheduled_at: offsetHours(-4),
-      live_state: LS.pickLive({
-        rankings: [{ rank: 1, id: visualParticipants[4].id, name: visualParticipants[4].name }], // partial ranking — judging ongoing
-        secs: 7200,
-      }),
+      live_state: LS.deadlineLive({ targetHours: 5 }), // 5 hours remaining
     }));
     await client.request(createItems('match_participants', visualParticipants.map((p, i) => ({ match_id: m6_visual.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m6_visual.id);
