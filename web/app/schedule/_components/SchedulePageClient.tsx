@@ -98,7 +98,7 @@ function CompactMatchCard({ match }: { match: any }) {
       </div>
 
       {/* Main Body: Participants & Score */}
-      <div className="flex-1 flex flex-col justify-center bg-black/25 rounded-xl p-3 border border-white/5 relative overflow-hidden">
+      <div className="flex-1 flex flex-col justify-center bg-black/25 rounded-xl p-3 border border-white/5 relative overflow-x-hidden">
         {/* Subtle background glow for live matches */}
         {status === 'live' && <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none" />}
 
@@ -365,8 +365,7 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
         </div>
 
         {/* --- Toolbar: Search, Tabs, Dates (Sticky) --- */}
-        <div className="sticky top-20 md:top-24 z-40 bg-[#06125C]/85 backdrop-blur-xl border border-blue-600/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-2xl p-4 flex flex-col xl:flex-row gap-4 items-center justify-between mb-10 transition-all">
-          
+        <div className="sticky top-20 md:top-24 z-40 bg-[#06125C]/85 backdrop-blur-xl border border-blue-600/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-2xl p-4 flex  │ flex-col xl:flex-row gap-4 items-center justify-between mb-10 transition-all">
           {/* Search Input */}
           <div className="relative w-full xl:w-[350px] shrink-0 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 group-focus-within:text-yellow-400 transition-colors" size={18} />
