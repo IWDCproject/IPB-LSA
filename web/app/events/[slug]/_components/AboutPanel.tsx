@@ -1,41 +1,27 @@
 "use client";
-import { PanelCard, PanelTitle } from "./Panel";
+import { PanelTitle } from "./Panel";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 
-// AboutPanel is the "stretch recipient" in the Negotiated Greedy Growth layout.
-//
-// When the right column grows taller than the natural left-column height
-// (because the greedy rule added an extra match row), CSS `align-items: stretch`
-// on the parent grid makes the left column div match that taller height.
-// This component must then fill that div completely so the white card background
-// stays flush with the bottom of the right column.
-//
-// Key CSS properties that enable this:
-//   PanelCard  → height: "100%"              (fills the left-column div)
-//   inner div  → flex: 1, display: "flex"    (description text grows to fill card)
+// Added flex: 1 so it absorbs the stretch from the OverviewTab grid
+const CARD: React.CSSProperties = {
+  background:     "#fff",
+  borderRadius:   12,
+  padding:        "16px 20px",
+  display:        "flex",
+  flexDirection:  "column",
+  flex:           1,
+  minHeight:      0,
+};
 
 export default function AboutPanel({ event }: { event: any }) {
-  const contacts = Array.isArray(event.contact_person) ? event.contact_person : [];
+  const contacts = Array.isArray(event.contact_person) ? event.contact_person :[];
 
   return (
-    <PanelCard
-      style={{
-        // Step 5 — Mutual Compensation:
-        // height 100% ensures this card fills whatever height the grid column
-        // is stretched to after the greedy row expands the right column.
-        height:        "100%",
-        flex:           1,
-        display:       "flex",
-        flexDirection: "column",
-        // Prevent the card from collapsing when it has little text content
-        boxSizing:     "border-box",
-      }}
-    >
+    <div style={CARD}>
       <PanelTitle>About</PanelTitle>
 
-      {/* flex: 1 here makes the content area grow to fill extra card height */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", flexDirection: "column" }}>
         {event.description && (
           <p style={{
             ...JK,
@@ -69,6 +55,6 @@ export default function AboutPanel({ event }: { event: any }) {
           </div>
         )}
       </div>
-    </PanelCard>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 "use client";
-import { useMemo } from "react";
 import { PanelTitle, EmptyState } from "./Panel";
 
 // ─── Helpers & Styles ─────────────────────────────────────────────────────────
@@ -175,8 +174,6 @@ function ScoreCell({ match }: { match: any }) {
 }
 
 // ─── Participant cells ─────────────────────────────────────────────────────────
-
-const LOGO_OPACITIES = [1, 0.75, 0.5, 0.25];
 
 function Logo({ inst, size = 32 }: { inst: any; size?: number }) {
   if (!inst?.logo_url) {
@@ -370,126 +367,52 @@ function DateHeader({ label }: { label: string }) {
   );
 }
 
-// ─── Layout constants ──────────────────────────────────────────────────────────
-//
-// These represent the rendered pixel height of each repeating UI element.
-// They feed into useSmartSlice so the row-count is calculated without
-// ever measuring the panel itself (which would create a resize loop).
-//
-//  ROW_H  – CompactMatchRow: padding(10+10) + logo(32) = 52px
-//  DATE_H – DateHeader: padding(14+4) + text(~14px) ≈ 32px
-//
-//  OVERHEAD – The fixed chrome inside each panel card:
-//    vertical card padding : 16 + 16 = 32px
-//    title row + margin    : ~18px text + 6px spacing = 24px
-//    footer "+ N more"     : paddingTop(6) + text(~16px) = 22px
-//    ─────────────────────────────────────────────────────
-//    total                 : 78px
-//
-const ROW_H    = 52;
-const DATE_H   = 32;
-const OVERHEAD = 78; // panel chrome: padding + title + footer
-
-// ─── Negotiated Greedy Growth — The Slicer ────────────────────────────────────
-//
-// Algorithm:
-//   1. Take the left-column anchor height and subtract any fixed right-column
-//      elements (countdown panel + inter-panel gaps) → effective pool.
-//   2. Apply the weighted share (60 % upcoming / 40 % results, or 100 % if
-//      only one panel is present).
-//   3. Subtract panel chrome (OVERHEAD) to get rows-only budget.
-//   4. Walk through matches, accumulating height. Stop at the first match
-//      that doesn't fit.
-//   5. Greedy Rule: if the leftover gap ≥ 50 % of ROW_H, absorb one extra row.
-//      This intentionally pushes the right column past the anchor height;
-//      CSS `align-items: stretch` then pulls AboutPanel flush.
-//
-function useSmartSlice(
-  matches:        any[],
-  anchorHeight:   number,
-  isMobile:       boolean,
-  priority:       boolean,
-  budgetDeduction: number,  // countdown height + inter-panel gaps (px)
-  hasCounterpart: boolean,  // false when only one matches panel exists
-): number {
-  return useMemo(() => {
-    // Mobile: skip all logic and let panels render naturally
-    if (isMobile || anchorHeight <= 0) return 3;
-
-    // Step 1 & 2 – Weighted share of the deducted pool
-    const share = hasCounterpart ? (priority ? 0.6 : 0.4) : 1.0;
-    const pool  = (anchorHeight - budgetDeduction) * share - OVERHEAD;
-
-    // Step 3 – Strict fit
-    let used     = 0;
-    let lastDate = "";
-    let count    = 0;
-
-    for (const m of matches) {
-      const matchDate   = m.scheduled_at?.split("T")[0] ?? "No Date";
-      const needsHeader = matchDate !== lastDate;
-      const cost        = (needsHeader ? DATE_H : 0) + ROW_H;
-
-      if (used + cost <= pool) {
-        used    += cost;
-        lastDate = matchDate;
-        count++;
-      } else {
-        // Step 4 – Greedy Rule: absorb one extra row if gap ≥ 50 % of ROW_H
-        if (pool - used >= ROW_H * 0.5) count++;
-        break;
-      }
-    }
-
-    return Math.max(1, count);
-  }, [matches, anchorHeight, isMobile, priority, budgetDeduction, hasCounterpart]);
-}
-
 // ─── Panel card shell ──────────────────────────────────────────────────────────
-
+//
+// flex: 1 fills the explicit-height wrapper div from OverviewTab.
+// The wrapper is a flex column, so this card expands to match it exactly.
+//
 const CARD: React.CSSProperties = {
-  background:     "#fff",
-  borderRadius:   12,
-  padding:        "16px 20px",
-  display:        "flex",
-  flexDirection:  "column",
-  flex:           1,
-  minHeight:      0,
+  background:    "#fff",
+  borderRadius:  12,
+  padding:       "16px 20px",
+  display:       "flex",
+  flexDirection: "column",
+  flex:          1,
+  minHeight:     0,
 };
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+//
+// `limit` is computed by useRightColumnLayout in OverviewTab.
+// Panels no longer know about anchorHeight or budgetDeduction.
+//
+export interface MatchPanelProps {
+  limit:    number;
+  isMobile: boolean;
+}
 
 // ─── Panels ───────────────────────────────────────────────────────────────────
 
-export interface MatchPanelProps {
-  anchorHeight:    number;
-  isMobile:        boolean;
-  budgetDeduction: number;  // see OverviewTab for calculation
-  hasCounterpart:  boolean;
-}
-
 export function UpcomingMatchesPanel({
   upcoming,
-  anchorHeight,
+  limit,
   isMobile,
-  budgetDeduction,
-  hasCounterpart,
 }: MatchPanelProps & { upcoming: any[] }) {
-  const limit     = useSmartSlice(upcoming, anchorHeight, isMobile, true, budgetDeduction, hasCounterpart);
+  if (!upcoming.length) return null;
+
   const displayed = upcoming.slice(0, limit);
   const groups    = Array.from(groupByDate(displayed).entries());
   const remainder = upcoming.length - limit;
 
-  if (!upcoming.length) return null;
-
   return (
     <div style={CARD}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C" }}>Upcoming Matches</span>
         <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{upcoming.length} total</span>
       </div>
 
-      {/* Rows — no overflow, sliced to fit */}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
         {groups.map(([date, rows]) => (
           <div key={date}>
             <DateHeader label={date} />
@@ -498,7 +421,6 @@ export function UpcomingMatchesPanel({
         ))}
       </div>
 
-      {/* Subtle footer — minimal height, only shown when rows are hidden */}
       {remainder > 0 && (
         <div style={{
           ...JK,
@@ -518,28 +440,23 @@ export function UpcomingMatchesPanel({
 
 export function LatestResultsPanel({
   finished,
-  anchorHeight,
+  limit,
   isMobile,
-  budgetDeduction,
-  hasCounterpart,
 }: MatchPanelProps & { finished: any[] }) {
-  const limit     = useSmartSlice(finished, anchorHeight, isMobile, false, budgetDeduction, hasCounterpart);
+  if (!finished.length) return null;
+
   const displayed = finished.slice(0, limit);
   const groups    = Array.from(groupByDate(displayed).entries());
   const remainder = finished.length - limit;
 
-  if (!finished.length) return null;
-
   return (
     <div style={CARD}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C" }}>Latest Results</span>
         <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{finished.length} total</span>
       </div>
 
-      {/* Rows — no overflow, sliced to fit */}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
         {groups.map(([date, rows]) => (
           <div key={date}>
             <DateHeader label={date} />
@@ -548,7 +465,6 @@ export function LatestResultsPanel({
         ))}
       </div>
 
-      {/* Subtle footer */}
       {remainder > 0 && (
         <div style={{
           ...JK,
