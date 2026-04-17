@@ -1,4 +1,4 @@
-import { createDirectus, rest, readItems } from '@directus/sdk';
+import { createDirectus, rest, readItems, aggregate } from '@directus/sdk';
 
 const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL)
   .with(rest({ onRequest: (options) => ({ ...options, cache: "no-store" }) }));
@@ -43,8 +43,7 @@ const mapMatch = (m) => {
   const cat = m.competition_category_id;
   const fmt = cat?.format_id;
   const modules = typeof fmt?.modules === 'string' ? JSON.parse(fmt.modules) : (fmt?.modules ?? []);
-  
-  // 1. Map junction parts first (this gets all the full institution/logo data)
+
   const junctionParts = (m.participants ?? []).map(j => ({
     ...j,
     participant_id: mapParticipant(j.participant_id)
@@ -53,19 +52,13 @@ const mapMatch = (m) => {
   const home = mapParticipant(m.home_participant_id) || (junctionParts[0]?.participant_id ?? null);
   const away = mapParticipant(m.away_participant_id) || (junctionParts[1]?.participant_id ?? null);
 
-  // 2. FIX: Enrich the Podium (timeLog) with the already-mapped institution data
   const live = m.live_state ?? {};
   if (live.timeLog && Array.isArray(live.timeLog)) {
     live.timeLog = live.timeLog.map(logEntry => {
-      // Find the ID. It might be logEntry.participant_id or logEntry.id depending on your Directus hook
       const pid = logEntry.participant_id?.id || logEntry.participant_id || logEntry.id;
-
-      // Find the fully mapped participant from junctionParts
       const found = junctionParts.find(jp => jp.participant_id?.id === pid);
-
       return {
         ...logEntry,
-        // If we found the participant in the junction table, use their institution (which has logo_url)
         institution: found?.participant_id?.institution || logEntry.institution || null
       };
     });
@@ -77,16 +70,23 @@ const mapMatch = (m) => {
     home_participant: home,
     away_participant: away,
     participants: junctionParts,
-    live_state: live, // Return the enriched live state
+    live_state: live,
   };
 };
 
+const NEWS_FIELDS = ['*', 'thumbnail.*', 'event_id.name'];
+
+const mapNews = (n) => ({
+  ...n,
+  thumbnail_url: getAssetUrl(n.thumbnail),
+});
+
 export const getMatches = async () => {
   try {
-    const res = await directus.request(readItems('matches', { 
-      fields: MATCH_FIELDS, 
-      filter: { status: { _in: ['live', 'upcoming', 'finished'] } }, 
-      sort: ['status', 'scheduled_at'] 
+    const res = await directus.request(readItems('matches', {
+      fields: MATCH_FIELDS,
+      filter: { status: { _in: ['live', 'upcoming', 'finished'] } },
+      sort: ['status', 'scheduled_at']
     }));
     return res.map(mapMatch);
   } catch (e) { return []; }
@@ -106,36 +106,102 @@ export const getEventsForListing = async () => {
 export const getEventDetail = async (slug) => {
   try {
     const [events, phases, rawMatches, rawNews] = await Promise.all([
-      directus.request(readItems("events", { filter: { slug: { _eq: slug } }, fields: ["*", "banner_image.*", "card_image.*", "user_created.organisation_name"], limit: 1 })),
-      directus.request(readItems("event_phases", { filter: { event_id: { slug: { _eq: slug } } }, sort: ["display_order"] })),
-      directus.request(readItems("matches", { filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } }, fields: MATCH_FIELDS, sort: ["status", "scheduled_at"], limit: 50 })),
-      directus.request(readItems("news", { filter: { event_id: { slug: { _eq: slug } } }, fields: ["*", "thumbnail.*"], limit: 4 })),
+      directus.request(readItems("events", {
+        filter: { slug: { _eq: slug } },
+        fields: ["*", "banner_image.*", "card_image.*", "user_created.organisation_name"],
+        limit: 1,
+      })),
+      directus.request(readItems("event_phases", {
+        filter: { event_id: { slug: { _eq: slug } } },
+        sort: ["display_order"],
+      })),
+      directus.request(readItems("matches", {
+        filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
+        fields: MATCH_FIELDS,
+        sort: ["status", "scheduled_at"],
+        limit: 50,
+      })),
+      // Overview teaser: 4 items, published only, with event name for badge
+      directus.request(readItems("news", {
+        filter: {
+          event_id: { slug: { _eq: slug } },
+          is_published: { _eq: true },
+        },
+        fields: NEWS_FIELDS,
+        sort: ["-published_at"],
+        limit: 4,
+      })),
     ]);
+
     if (!events[0]) return null;
+
     return {
       ...events[0],
       banner_url: getAssetUrl(events[0].banner_image),
       organiser: events[0].user_created?.organisation_name ?? "",
       phases,
       matches: rawMatches.map(mapMatch),
-      news: rawNews.map(n => ({ ...n, thumbnail_url: getAssetUrl(n.thumbnail) })),
+      news: rawNews.map(mapNews),
     };
   } catch (e) { return null; }
 };
 
+/**
+ * Paginated news fetch for the News tab.
+ * Returns items for the requested page plus total count for pagination UI.
+ */
+export const getNewsByEvent = async (eventSlug, page = 1, pageSize = 6) => {
+  const filter = {
+    event_id: { slug: { _eq: eventSlug } },
+    is_published: { _eq: true },
+  };
+
+  try {
+    const [items, countResult] = await Promise.all([
+      directus.request(readItems('news', {
+        filter,
+        fields: NEWS_FIELDS,
+        sort: ['-published_at'],
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      })),
+      directus.request(aggregate('news', {
+        aggregate: { count: '*' },
+        query: { filter },
+      })),
+    ]);
+
+    const total = Number(countResult?.[0]?.count ?? 0);
+
+    return {
+      items: items.map(mapNews),
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  } catch (e) {
+    return { items: [], total: 0, totalPages: 0 };
+  }
+};
+
 export const getEvents = async () => getEventsForListing();
+
 export const getStats = async () => {
-  const [e, i, p] = await Promise.all([directus.request(readItems('events')), directus.request(readItems('institutions')), directus.request(readItems('participants'))]);
+  const [e, i, p] = await Promise.all([
+    directus.request(readItems('events')),
+    directus.request(readItems('institutions')),
+    directus.request(readItems('participants')),
+  ]);
   return { eventsCount: e.length, institutionsCount: i.length, participantsCount: p.length };
 };
+
 export const getNews = async ({ limit = 5 } = {}) => {
-  const items = await directus.request(readItems('news', { 
-    filter: { is_published: { _eq: true } }, 
-    fields: ['*', 'thumbnail.*', 'event_id.name'], 
-    sort: ['-published_at'], 
-    limit 
+  const items = await directus.request(readItems('news', {
+    filter: { is_published: { _eq: true } },
+    fields: NEWS_FIELDS,
+    sort: ['-published_at'],
+    limit,
   }));
-  return items.map(i => ({ ...i, thumbnail_url: getAssetUrl(i.thumbnail) }));
+  return items.map(mapNews);
 };
 
 export const getYouTubeID = (url) => {

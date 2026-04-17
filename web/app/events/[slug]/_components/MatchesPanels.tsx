@@ -77,7 +77,11 @@ function ScoreSetsLive({ live }: { live: any }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <NumPill n={setScore[0]} />
-      {setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)}
+      {setLog.length === 0 ? (
+        <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#CA8A04" }}>-</span>
+      ) : (
+        setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)
+      )}
       <NumPill n={setScore[1]} />
     </div>
   );
@@ -227,11 +231,11 @@ function OpenParticipants({ match }: { match: any }) {
                 width: 32, height: 32,
                 objectFit: "contain",
                 borderRadius: "50%",
+                background: "#fff",
                 border: "2px solid #fff",
                 marginLeft: i > 0 ? -12 : 0,
                 flexShrink: 0,
                 zIndex: shown.length - i,
-                opacity: LOGO_OPACITIES[i] ?? 0.25,
               }}
             />
           ) : (
@@ -245,7 +249,6 @@ function OpenParticipants({ match }: { match: any }) {
                 marginLeft: i > 0 ? -12 : 0,
                 flexShrink: 0,
                 zIndex: shown.length - i,
-                opacity: LOGO_OPACITIES[i] ?? 0.25,
               }}
             />
           )
@@ -271,7 +274,7 @@ function HomeCell({ match }: { match: any }) {
   if (isOpen) return <OpenParticipants match={match} />;
   if (!participant) return <div />;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
       <Logo inst={participant.institution} />
       <ParticipantInfo inst={participant.institution} name={participant.name} />
     </div>
@@ -283,7 +286,7 @@ function AwayCell({ match }: { match: any }) {
   const participant = match.away_participant;
   if (!isH2H || !participant) return <div />;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end", minWidth: 0 }}>
       <ParticipantInfo inst={participant.institution} name={participant.name} align="right" />
       <Logo inst={participant.institution} />
     </div>
