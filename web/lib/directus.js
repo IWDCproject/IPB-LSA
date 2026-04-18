@@ -16,8 +16,19 @@ export const getAssetUrl = (asset) => {
 
 const mapParticipant = (p) => {
   if (!p || typeof p !== 'object') return null;
+
+  let parsedMembers = p.members;
+  if (typeof p.members === 'string') {
+    try {
+      parsedMembers = JSON.parse(p.members);
+    } catch (e) {
+      // If it fails to parse, just leave it as is
+    }
+  }
+
   return {
     ...p,
+    members: parsedMembers,
     institution: p.institution_id ? {
       ...p.institution_id,
       logo_url: getAssetUrl(p.institution_id?.logo),

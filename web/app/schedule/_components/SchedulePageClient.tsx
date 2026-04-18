@@ -109,7 +109,16 @@ function CompactMatchCard({ match }: { match: any }) {
              </span>
              {match.home_participant?.members && (
                <span className="text-blue-300 text-[10px] mt-1 line-clamp-2 max-w-[90%]">
-                 {JSON.parse(match.home_participant.members).join(", ")}
+                 {Array.isArray(match.home_participant.members)
+                   ? match.home_participant.members.join(", ")
+                   : (() => {
+                       try {
+                         const parsed = JSON.parse(match.home_participant.members);
+                         return Array.isArray(parsed) ? parsed.join(", ") : String(parsed);
+                       } catch (e) {
+                         return String(match.home_participant.members);
+                       }
+                     })()}
                </span>
              )}
            </div>
