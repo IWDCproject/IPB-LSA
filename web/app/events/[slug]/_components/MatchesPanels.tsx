@@ -388,8 +388,10 @@ const CARD: React.CSSProperties = {
 // Panels no longer know about anchorHeight or budgetDeduction.
 //
 export interface MatchPanelProps {
-  limit:    number;
-  isMobile: boolean;
+  limit:         number;
+  isMobile:      boolean;
+  contentRef?:   React.RefObject<HTMLDivElement>;
+  firstRowRef?:  React.RefObject<HTMLDivElement>; // measures a single row's true offsetHeight
 }
 
 // ─── Panels ───────────────────────────────────────────────────────────────────
@@ -398,6 +400,8 @@ export function UpcomingMatchesPanel({
   upcoming,
   limit,
   isMobile,
+  contentRef,
+  firstRowRef,
 }: MatchPanelProps & { upcoming: any[] }) {
   if (!upcoming.length) return null;
 
@@ -412,11 +416,15 @@ export function UpcomingMatchesPanel({
         <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{upcoming.length} total</span>
       </div>
 
-      <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
-        {groups.map(([date, rows]) => (
+      <div ref={contentRef} style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
+        {groups.map(([date, rows], gi) => (
           <div key={date}>
             <DateHeader label={date} />
-            {rows.map((m: any) => <CompactMatchRow key={m.id} match={m} />)}
+            {rows.map((m: any, ri: number) => (
+              <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}>
+                <CompactMatchRow match={m} />
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -442,6 +450,8 @@ export function LatestResultsPanel({
   finished,
   limit,
   isMobile,
+  contentRef,
+  firstRowRef,
 }: MatchPanelProps & { finished: any[] }) {
   if (!finished.length) return null;
 
@@ -456,11 +466,15 @@ export function LatestResultsPanel({
         <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{finished.length} total</span>
       </div>
 
-      <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
-        {groups.map(([date, rows]) => (
+      <div ref={contentRef} style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
+        {groups.map(([date, rows], gi) => (
           <div key={date}>
             <DateHeader label={date} />
-            {rows.map((m: any) => <CompactMatchRow key={m.id} match={m} />)}
+            {rows.map((m: any, ri: number) => (
+              <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}>
+                <CompactMatchRow match={m} />
+              </div>
+            ))}
           </div>
         ))}
       </div>
