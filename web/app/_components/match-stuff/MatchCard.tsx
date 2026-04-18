@@ -433,8 +433,8 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
           )}
 
           {isSolo && (
-            <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))", width: "100%" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
                 <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
                 <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
                   {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
@@ -444,9 +444,6 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
               <div style={{ display: "flex", justifyContent: "center", flexShrink: 0 }}>
                 <ScoreSection fmt={fmt} live={live} match={match} />
               </div>
-
-              {/* Empty flex-1 to perfectly balance the participant on the left */}
-              <div style={{ flex: 1, minWidth: 0 }} />
             </div>
           )}
 
