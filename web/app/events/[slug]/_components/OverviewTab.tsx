@@ -16,6 +16,15 @@ const FOOTER_H      = 20;
 const ROW_H_DEFAULT      = 52;
 const ROW_H_SETS_DEFAULT = 64; // generous upper bound so first frame never clips
 
+// Cost of the next row after `count` shown (includes date-header if date changes).
+function nextRowCost(matches: any[], count: number, getRowH: (m: any) => number): number {
+  if (count >= matches.length) return Infinity;
+  const prevDate = count > 0 ? (matches[count - 1].scheduled_at?.split("T")[0] ?? "~") : "";
+  const next     = matches[count];
+  const nextDate = next.scheduled_at?.split("T")[0] ?? "~";
+  return (nextDate !== prevDate ? DATE_H : 0) + getRowH(next);
+}
+
 function naturalRowH(matches: any[], getRowH: (m: any) => number): number {
   let h = 0, lastDate = "";
   for (const m of matches) {
@@ -120,10 +129,29 @@ function useRightColumnLayout(
       upBudget = p60; resBudget = p40;
     }
 
-    const upLimit  = fitRows(upcoming, upBudget  - OVERHEAD_BASE, getRowH);
-    const resLimit = fitRows(finished, resBudget - OVERHEAD_BASE, getRowH);
-    const upH  = Math.max(upBudget,  OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH));
-    const resH = Math.max(resBudget, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
+    let upLimit  = fitRows(upcoming, upBudget  - OVERHEAD_BASE, getRowH);
+    let resLimit = fitRows(finished, resBudget - OVERHEAD_BASE, getRowH);
+    let upH  = Math.max(upBudget,  OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH));
+    let resH = Math.max(resBudget, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
+
+    // Cross-panel greedy: pool the leftover space from both panels.
+    // Each individual gap may be under threshold, but combined they may cover
+    // another row. Add it to whichever panel's next row is cheaper.
+    {
+      const upContentH  = OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH);
+      const resContentH = OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH);
+      const totalSlack  = Math.max(0, upH - upContentH) + Math.max(0, resH - resContentH);
+      const upNext      = nextRowCost(upcoming, upLimit,  getRowH);
+      const resNext     = nextRowCost(finished, resLimit, getRowH);
+
+      if (upNext <= resNext && totalSlack >= upNext * 0.3) {
+        upLimit++;
+        upH = Math.max(upH, OVERHEAD_BASE + rowsHeight(upcoming, upLimit, getRowH));
+      } else if (resNext < upNext && totalSlack >= resNext * 0.3) {
+        resLimit++;
+        resH = Math.max(resH, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
+      }
+    }
 
     return { upcomingH: upH, resultsH: resH, upcomingLimit: upLimit, resultsLimit: resLimit };
   }, [upcoming, finished, anchorHeight, countdownH, isMobile, getRowH]);
@@ -139,10 +167,8 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
   const countdownRef    = useRef<HTMLDivElement>(null);
   const upContentRef    = useRef<HTMLDivElement>(null);
   const resContentRef   = useRef<HTMLDivElement>(null);
-  // Measure a single row's true rendered height via offsetHeight.
-  // Unlike scrollHeight on a flex-stretched container, offsetHeight on a
-  // specific row element is always the browser's real layout height, immune
-  // to any parent flex-grow stretching.
+  // Measure a single row's offsetHeight — immune to parent flex-stretch,
+  // unlike scrollHeight on a flex:1 child which returns the stretched size.
   const upFirstRowRef   = useRef<HTMLDivElement>(null);
   const resFirstRowRef  = useRef<HTMLDivElement>(null);
 
@@ -170,10 +196,9 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
         setCountdownHeight(curr => curr !== ch ? ch : curr);
       }
 
-      // Measure actual row heights from the first rendered row element.
-      // offsetHeight on a specific DOM node is the browser's real rendered height
-      // and is never affected by the parent container's flex-grow stretching.
-      // We re-measure on every call so font-load and resize stay accurate too.
+      // Measure actual row heights from the first rendered row's offsetHeight.
+      // offsetHeight on a specific element is the browser's real layout height,
+      // never affected by parent flex-grow stretching (unlike scrollHeight).
       const upRowEl = upFirstRowRef.current;
       if (upRowEl) {
         const h = upRowEl.offsetHeight;
