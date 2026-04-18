@@ -163,26 +163,26 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
   useLayoutEffect(() => {
     if (isMobile) return;
 
-    const updateHeights = () => {
-      const el = leftColRef.current;
-      const cd = countdownRef.current;
+    const el = leftColRef.current;
+    const cd = countdownRef.current;
+    if (!el) return;
 
-      if (el) {
-        const prev = el.style.alignSelf;
-        el.style.alignSelf = "start";
-        const h = el.offsetHeight;
-        el.style.alignSelf = prev;
-        setAnchorHeight(curr => curr !== h ? h : curr);
-      }
+    const measure = () => {
+      const prev = el.style.alignSelf;
+      el.style.alignSelf = "start";
+      const h = el.offsetHeight;
+      el.style.alignSelf = prev;
+      setAnchorHeight(curr => curr !== h ? h : curr);
       if (cd) {
-        const h = cd.offsetHeight;
-        setCountdownHeight(curr => curr !== h ? h : curr);
+        const ch = cd.offsetHeight;
+        setCountdownHeight(curr => curr !== ch ? ch : curr);
       }
     };
 
-    updateHeights();
-    window.addEventListener("resize", updateHeights);
-    return () => window.removeEventListener("resize", updateHeights);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [isMobile]);
 
   const { upcomingH, resultsH, upcomingLimit, resultsLimit } = useRightColumnLayout(

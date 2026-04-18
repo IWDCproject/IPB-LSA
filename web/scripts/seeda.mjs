@@ -261,16 +261,20 @@ async function seed() {
       guidebook_url: 'https://ipb.link/forki-2026-guide',
       instagram_url: 'https://instagram.com/ukmkarate_ipb',
       website_url: 'https://karate.ipb.ac.id',
-      description: 'FORKI × IPB CUP 2026 adalah turnamen karate antar perguruan tinggi bergengsi bekerja sama dengan Federasi Olahraga Karate-Do Indonesia (FORKI). Kini memasuki edisi ke-5 dan diikuti oleh lebih dari 200 atlet dari seluruh Indonesia.',
+      description: `FORKI × IPB CUP 2026 adalah turnamen karate antar perguruan tinggi bergengsi yang diselenggarakan bekerja sama dengan Federasi Olahraga Karate-Do Indonesia (FORKI). Memasuki edisi ke-5, kompetisi ini tidak hanya menjadi ajang unjuk gigi bagi lebih dari 200 atlet mahasiswa dari seluruh Indonesia, tetapi juga sarana pencarian bakat resmi untuk persiapan Pelatnas dan PON mendatang.
+
+Tahun ini, penyelenggara menghadirkan inovasi besar dengan menerapkan sistem penjurian elektronik berstandar World Karate Federation (WKF) secara penuh. Sistem ini memastikan transparansi, kecepatan, dan objektivitas maksimal di setiap pertandingan, baik di kategori Kata maupun Kumite.
+
+Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pameran perlengkapan olahraga, dan sesi temu sapa dengan legenda karate nasional, menjadikannya festival seni bela diri yang komprehensif bagi seluruh partisipan dan penonton.`,
       contact_person: JSON.stringify({ name: 'Ahmad Fauzi', phone: '081234567890', email: 'karate@ipb.ac.id' }),
     }));
 
-    await client.request(createItems('event_phases', [
-      { event_id: e1.id, label: 'Technical Meeting', description: 'Briefing seluruh dojo dan drawing bracket.', date_start: toDate(offsetDays(-5)), time_start: '14:00', status: 'done', display_order: 1 },
-      { event_id: e1.id, label: 'Babak Penyisihan', description: 'Seluruh pertandingan kualifikasi Kumite dan Kata.', date_start: toDate(offsetDays(-2)), time_start: '08:00', status: 'done', display_order: 2 },
-      { event_id: e1.id, label: 'Babak Semifinal', description: 'Top 4 setiap kelas berlaga.', date_start: toDate(offsetDays(-1)), time_start: '08:00', status: 'done', display_order: 3 },
-      { event_id: e1.id, label: 'Final & Awarding', description: 'Partai puncak dan upacara penghargaan.', date_start: toDate(offsetDays(0)), time_start: '09:00', status: 'current', display_order: 4 },
-      { event_id: e1.id, label: 'Penutupan', description: 'Foto bersama dan penutupan resmi.', date_start: toDate(offsetDays(1)), time_start: '16:00', status: 'upcoming', display_order: 5 },
+    await client.request(createItems('event_phases',[
+      { event_id: e1.id, label: 'Technical Meeting', description: 'Briefing teknis komprehensif bagi seluruh perwakilan dojo dan universitas. Sesi ini akan membahas pembaruan regulasi WKF terbaru, tata tertib arena, serta pengundian (drawing) bracket secara transparan untuk seluruh kelas yang dipertandingkan.', date_start: toDate(offsetDays(-5)), time_start: '14:00', status: 'done', display_order: 1 },
+      { event_id: e1.id, label: 'Babak Penyisihan', description: 'Fase eliminasi awal di mana seluruh atlet dari berbagai kelas Kumite dan Kata berlaga secara serentak di tiga tatami berbeda. Pertandingan akan diawasi langsung oleh panel juri berlisensi nasional dari FORKI.', date_start: toDate(offsetDays(-2)), time_start: '08:00', status: 'done', display_order: 2 },
+      { event_id: e1.id, label: 'Babak Semifinal', description: 'Pertarungan sengit menuju partai puncak yang mempertemukan empat atlet terbaik (Top 4) dari setiap kelas. Tekanan mental dan fisik akan diuji karena pertandingan dipusatkan di Tatami Utama dengan sorotan penuh penonton.', date_start: toDate(offsetDays(-1)), time_start: '08:00', status: 'done', display_order: 3 },
+      { event_id: e1.id, label: 'Final & Awarding', description: 'Hari paling mendebarkan di mana perebutan medali emas berlangsung. Seluruh partai final dimainkan secara berurutan, ditutup dengan upacara pengalungan medali dan penyerahan piala bergilir kepada juara umum turnamen.', date_start: toDate(offsetDays(0)), time_start: '09:00', status: 'current', display_order: 4 },
+      { event_id: e1.id, label: 'Penutupan', description: 'Acara seremonial resmi untuk menutup keseluruhan rangkaian FORKI × IPB CUP 2026. Meliputi pidato penutupan dari Rektor IPB, sesi foto bersama seluruh kontingen, dan pelepasan panitia.', date_start: toDate(offsetDays(1)), time_start: '16:00', status: 'upcoming', display_order: 5 },
     ]));
 
     const i1 = await seedInstitutions(e1.id, 10);
@@ -569,15 +573,19 @@ async function seed() {
       guidebook_url: 'https://ipb.link/badminton-guide',
       instagram_url: 'https://instagram.com/ipbbadmintoncup',
       website_url: 'https://badminton.ipb.ac.id',
-      description: 'IPB Badminton Cup adalah turnamen bulutangkis berstandar BWF. Memasuki tahun ke-8, turnamen ini menarik peserta dari 10 universitas terbaik Indonesia.',
+      description: `IPB Badminton Cup 2026 merupakan kejuaraan bulutangkis tingkat perguruan tinggi yang mempertandingkan talenta-talenta terbaik dari lebih dari 10 universitas terkemuka di Indonesia. Turnamen ini dilaksanakan dengan standar regulasi resmi dari Badminton World Federation (BWF) untuk memastikan kualitas pertandingan di level tertinggi.
+
+Selain memperebutkan piala bergilir dan total hadiah puluhan juta rupiah, kompetisi yang kini memasuki tahun ke-8 penyelenggaraannya ini bertujuan kuat untuk membina semangat sportivitas, mental juara, serta mempererat tali persaudaraan antar mahasiswa melalui olahraga. 
+
+Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Badminton Cup tahun ini diproyeksikan menghadirkan atmosfer tribun yang riuh dan ikonik, menjadikannya salah satu turnamen kampus yang paling dinantikan di wilayah Jabodetabek.`,
     }));
 
-    await client.request(createItems('event_phases', [
-      { event_id: e2.id, label: 'Registrasi Peserta', description: 'Pendaftaran online via portal IPB.', date_start: toDate(offsetDays(-45)), time_start: '08:00', status: 'done', display_order: 1 },
-      { event_id: e2.id, label: 'Technical Meeting', description: 'Drawing grup dan konfirmasi peserta.', date_start: toDate(offsetDays(-3)), time_start: '14:00', status: 'done', display_order: 2 },
-      { event_id: e2.id, label: 'Fase Grup', description: 'Round robin dalam grup masing-masing.', date_start: toDate(offsetDays(-2)), time_start: '08:00', status: 'done', display_order: 3 },
-      { event_id: e2.id, label: 'Perempat Final', description: 'Top 2 tiap grup melaju ke fase knockout.', date_start: toDate(offsetDays(0)), time_start: '09:00', status: 'current', display_order: 4 },
-      { event_id: e2.id, label: 'Semifinal & Final', description: 'Pertandingan puncak dan awarding.', date_start: toDate(offsetDays(2)), time_start: '14:00', status: 'upcoming', display_order: 5 },
+    await client.request(createItems('event_phases',[
+      { event_id: e2.id, label: 'Registrasi Peserta', description: 'Periode pendaftaran terbuka melalui portal terintegrasi IPB. Seluruh calon peserta diwajibkan mengunggah kelengkapan administrasi seperti Kartu Tanda Mahasiswa (KTM) aktif dan surat rekomendasi dari institusi asal.', date_start: toDate(offsetDays(-45)), time_start: '08:00', status: 'done', display_order: 1 },
+      { event_id: e2.id, label: 'Technical Meeting', description: 'Pertemuan wajib bagi seluruh manajer tim untuk melakukan proses pengundian (drawing) fase grup secara langsung. Panitia juga akan menjelaskan regulasi pertandingan, tata letak lapangan, dan sistem poin yang digunakan.', date_start: toDate(offsetDays(-3)), time_start: '14:00', status: 'done', display_order: 2 },
+      { event_id: e2.id, label: 'Fase Grup', description: 'Tahap penyisihan dengan sistem kompetisi penuh (round robin) dalam masing-masing grup. Setiap atlet atau pasangan akan bertanding melawan seluruh anggota grupnya untuk memperebutkan poin maksimal menuju fase gugur.', date_start: toDate(offsetDays(-2)), time_start: '08:00', status: 'done', display_order: 3 },
+      { event_id: e2.id, label: 'Perempat Final', description: 'Fase gugur yang sangat krusial, mempertemukan dua tim teratas (Juara dan Runner-up) dari masing-masing grup. Intensitas permainan dipastikan meningkat tajam karena satu kekalahan berarti tereliminasi dari turnamen.', date_start: toDate(offsetDays(0)), time_start: '09:00', status: 'current', display_order: 4 },
+      { event_id: e2.id, label: 'Semifinal & Final', description: 'Puncak perhelatan di mana para semifinalis berjuang untuk tiket menuju Grand Final. Pertandingan pamungkas akan mempertandingkan format Best of 5 Sets, diakhiri dengan seremoni penganugerahan piala dan medali.', date_start: toDate(offsetDays(2)), time_start: '14:00', status: 'upcoming', display_order: 5 },
     ]));
 
     const i2 = await seedInstitutions(e2.id, 8);
@@ -746,7 +754,7 @@ async function seed() {
       name: 'IPB BERLARI 2026',
       slug: 'ipb-berlari-2026',
       type: 'sport',
-      status: 'finished',  // EDGE: status=finished event
+      status: 'finished',
       is_published: true,
       location: 'Kampus IPB Dramaga — Hutan Penelitian',
       start_date: toDate(offsetDays(-7)),
@@ -757,15 +765,19 @@ async function seed() {
       guidebook_url: 'https://ipb.link/berlari-guide',
       instagram_url: 'https://instagram.com/ipberlari',
       website_url: 'https://run.ipb.ac.id',
-      description: 'IPB BERLARI adalah event lari tahunan yang merayakan semangat kebugaran dan kecintaan pada alam. Trek melewati hutan penelitian hijau Kampus IPB Dramaga.',
+      description: `IPB BERLARI 2026 adalah perhelatan lari maraton berskala nasional yang mengajak mahasiswa, alumni, dan masyarakat umum untuk merayakan semangat kebugaran di tengah asrinya alam kampus. Menjadi agenda tahunan yang selalu ditunggu, acara ini memadukan olahraga dengan apresiasi terhadap keanekaragaman hayati.
+
+Rute lari dirancang secara khusus untuk menantang sekaligus memanjakan mata, membentang dari jalan aspal berbukit di sekitar rektorat hingga jalur lintasan teduh yang menembus kawasan konservasi Hutan Penelitian Dramaga. Kontur elevasi yang bervariasi menjadikan rute ini ujian yang sempurna, bahkan bagi pelari berpengalaman.
+
+Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedoman Zero-Waste secara ketat. Seluruh titik water station diwajibkan memfasilitasi pengisian ulang botol pribadi (tumbler), tanpa ada satupun penggunaan gelas plastik sekali pakai di sepanjang lintasan maupun area festival.`,
     }));
 
-    await client.request(createItems('event_phases', [
-      { event_id: e3.id, label: 'Pendaftaran Online', description: 'Registrasi via portal resmi.', date_start: toDate(offsetDays(-30)), time_start: '00:00', status: 'done', display_order: 1 },
-      { event_id: e3.id, label: 'Race Pack Pickup', description: 'Pengambilan nomor dada dan jersey.', date_start: toDate(offsetDays(-9)), time_start: '10:00', status: 'done', display_order: 2 },
-      { event_id: e3.id, label: 'Flag Off 21K & 10K', description: 'Start pukul 05:00 WIB.', date_start: toDate(offsetDays(-7)), time_start: '05:00', status: 'done', display_order: 3 },
-      { event_id: e3.id, label: 'Flag Off 5K & Relay', description: 'Start pukul 05:30 WIB.', date_start: toDate(offsetDays(-7)), time_start: '05:30', status: 'done', display_order: 4 },
-      { event_id: e3.id, label: 'Awarding Ceremony', description: 'Seremoni penganugerahan medali.', date_start: toDate(offsetDays(-7)), time_start: '09:00', status: 'done', display_order: 5 },
+    await client.request(createItems('event_phases',[
+      { event_id: e3.id, label: 'Pendaftaran Online', description: 'Pembukaan registrasi umum dengan sistem pembagian tiket secara bertahap (Early Bird, Regular, dan Last Call). Calon peserta wajib mengisi data medis dasar demi menjamin keselamatan selama lomba berlangsung.', date_start: toDate(offsetDays(-30)), time_start: '00:00', status: 'done', display_order: 1 },
+      { event_id: e3.id, label: 'Race Pack Pickup', description: 'Sesi pengambilan perlengkapan lomba yang wajib dihadiri peserta. Setiap pelari akan menerima nomor dada (BIB) yang dilengkapi sensor waktu, jersey eksklusif, panduan rute, serta berbagai suvenir sponsor dalam satu tas ramah lingkungan.', date_start: toDate(offsetDays(-9)), time_start: '10:00', status: 'done', display_order: 2 },
+      { event_id: e3.id, label: 'Flag Off 21K & 10K', description: 'Momen pelepasan pelari kategori Half-Marathon (21K) dan Challenge (10K) pada pagi buta. Dibuka langsung oleh Rektor IPB University, peserta menempuh rute terpanjang dengan batas waktu (Cut-Off Time) yang diawasi ketat oleh marshall.', date_start: toDate(offsetDays(-7)), time_start: '05:00', status: 'done', display_order: 3 },
+      { event_id: e3.id, label: 'Flag Off 5K & Relay', description: 'Pelepasan untuk kategori Fun Run 5K dan estafet (Relay). Fase ini diwarnai oleh suasana yang lebih santai dan meriah, cocok untuk pelari pemula, komunitas kampus, dan peserta yang berlari bersama keluarga.', date_start: toDate(offsetDays(-7)), time_start: '05:30', status: 'done', display_order: 4 },
+      { event_id: e3.id, label: 'Awarding Ceremony', description: 'Puncak perayaan yang dihelat di panggung utama. Acara meliputi penyerahan trofi kepada pelari tercepat di setiap kategori podium, pengumuman pemenang kostum terbaik, serta pengundian grand prize (doorprize) yang meriah.', date_start: toDate(offsetDays(-7)), time_start: '09:00', status: 'done', display_order: 5 },
     ]));
 
     const i3 = await seedInstitutions(e3.id, 8);
@@ -920,7 +932,7 @@ async function seed() {
       user_created: myId,
       name: 'IT-TODAY HACKTODAY 2026',
       slug: 'hacktoday-2026',
-      type: 'sport', // sport type for non-arts
+      type: 'sport', 
       status: 'finished',
       is_published: true,
       location: 'Auditorium AHN, Kampus IPB Dramaga',
@@ -932,15 +944,19 @@ async function seed() {
       guidebook_url: 'https://ipb.link/hacktoday-guide',
       instagram_url: 'https://instagram.com/ittodayipb',
       website_url: 'https://ittoday.ipb.ac.id',
-      description: 'IT-TODAY HACKTODAY adalah kompetisi teknologi flagship IPB University. Developer terbaik Indonesia membangun solusi high-tech untuk tantangan pertanian lokal dalam 24 jam non-stop.',
+      description: `IT-TODAY HACKTODAY 2026 adalah puncak kompetisi teknologi flagship milik IPB University yang mempertemukan developer, desainer, dan inovator muda berbakat dari berbagai universitas di Indonesia. Mengusung tema besar 'Digital Agriculture 4.0 — Feeding the Future', para peserta dituntut untuk merumuskan ide brilian dan mengubahnya menjadi produk digital yang fungsional.
+
+Peserta akan dikarantina dan ditantang untuk membangun solusi berbasis teknologi tingkat tinggi seperti kecerdasan buatan (AI), Internet of Things (IoT), dan teknologi Web3 dalam batas waktu 24 jam non-stop. Solusi yang dirancang harus menyasar secara langsung pada masalah-masalah riil di sektor ketahanan pangan, pertanian presisi, dan rantai pasok agrikultur nasional.
+
+Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 adalah inkubator inovasi, di mana prototipe terbaik akan dievaluasi langsung oleh panel juri yang terdiri dari akademisi senior, pemodal ventura, dan praktisi industri teknologi terkemuka yang siap mendukung pendanaan tahap awal.`,
     }));
 
-    await client.request(createItems('event_phases', [
-      { event_id: e4.id, label: 'Opening Ceremony', description: 'Kick-off dan pengumuman tema.', date_start: toDate(offsetDays(-4)), time_start: '09:00', status: 'done', display_order: 1 },
-      { event_id: e4.id, label: 'Hacking Phase', description: '24 jam non-stop coding.', date_start: toDate(offsetDays(-4)), time_start: '10:00', status: 'done', display_order: 2 },
-      { event_id: e4.id, label: 'Code Freeze', description: 'Submission ditutup. Persiapan pitching.', date_start: toDate(offsetDays(-3)), time_start: '10:00', status: 'done', display_order: 3 },
-      { event_id: e4.id, label: 'Pitching & Judging', description: 'Presentasi di hadapan panel juri industri.', date_start: toDate(offsetDays(-3)), time_start: '13:00', status: 'done', display_order: 4 },
-      { event_id: e4.id, label: 'Awarding & Closing', description: 'Pengumuman pemenang dan penutupan resmi.', date_start: toDate(offsetDays(-3)), time_start: '17:00', status: 'done', display_order: 5 },
+    await client.request(createItems('event_phases',[
+      { event_id: e4.id, label: 'Opening Ceremony', description: 'Acara kick-off resmi untuk membuka 24 jam hackathon. Panitia akan mengumumkan dataset rahasia yang baru dirilis, memaparkan rincian rubrik penilaian juri, serta menyelenggarakan sesi pengarahan dari sponsor utama kegiatan.', date_start: toDate(offsetDays(-4)), time_start: '09:00', status: 'done', display_order: 1 },
+      { event_id: e4.id, label: 'Hacking Phase', description: 'Fase inti yang menguji ketahanan mental dan fisik; seluruh tim dikarantina di dalam auditorium untuk menerjemahkan ide ke dalam baris kode. Selama fase ini, panitia menyediakan makanan, area istirahat, serta sesi konsultasi eksklusif bersama mentor industri.', date_start: toDate(offsetDays(-4)), time_start: '10:00', status: 'done', display_order: 2 },
+      { event_id: e4.id, label: 'Code Freeze', description: 'Waktu mutlak di mana segala aktivitas modifikasi kode sumber (commit) wajib dihentikan. Akses repositori sistem akan ditutup dan para tim diberi waktu singkat untuk menyempurnakan slide presentasi (pitch deck) mereka.', date_start: toDate(offsetDays(-3)), time_start: '10:00', status: 'done', display_order: 3 },
+      { event_id: e4.id, label: 'Pitching & Judging', description: 'Sesi presentasi akhir di hadapan panel juri. Setiap tim diberikan waktu 5 menit untuk melakukan live-demo aplikasi mereka, dilanjutkan dengan sesi tanya jawab (Q&A) teknis dan bisnis yang kritis untuk menguji validitas ide.', date_start: toDate(offsetDays(-3)), time_start: '13:00', status: 'done', display_order: 4 },
+      { event_id: e4.id, label: 'Awarding & Closing', description: 'Pengumuman karya-karya pemenang untuk seluruh kategori kompetisi, penyerahan hadiah secara simbolis senilai puluhan juta rupiah, dan acara networking santai yang mempertemukan peserta dengan perwakilan perusahaan perekrut.', date_start: toDate(offsetDays(-3)), time_start: '17:00', status: 'done', display_order: 5 },
     ]));
 
     const i4 = await seedInstitutions(e4.id, 8);
@@ -1083,21 +1099,25 @@ async function seed() {
       location: 'GOR Futsal IPB, Dramaga',
       start_date: toDate(offsetDays(18)),
       end_date: toDate(offsetDays(28)),
-      registration_end_date: offsetDays(10), // Reg masih buka 10 hari lagi
+      registration_end_date: offsetDays(10),
       is_registration_open: true,
       registration_url: 'https://ipb.link/futsal-2026',
       guidebook_url: 'https://ipb.link/futsal-guide',
       instagram_url: 'https://instagram.com/ipbfutsalcup',
       website_url: 'https://futsal.ipb.ac.id',
-      description: 'IPB Futsal Cup adalah turnamen futsal antar universitas paling bergengsi di Bogor. Setiap tim berlaga dalam format grup dan knockout selama 11 hari penuh.',
+      description: `IPB Futsal Cup 2026 adalah turnamen futsal mahasiswa paling bergengsi di wilayah Bogor dan sekitarnya, yang selalu menjadi pusat animo terbesar setiap tahunnya. Dengan kategori putra dan putri, kompetisi ini dirancang untuk mewadahi minat, bakat, serta menumbuhkan jiwa kepemimpinan di lapangan hijau.
+
+Selama 11 hari penuh, GOR Futsal IPB akan menjadi arena pertempuran sengit bagi puluhan tim perwakilan fakultas dan universitas undangan, memperebutkan supremasi tertinggi serta piala rektor. Format pertandingan dibagi menjadi fase grup yang penuh kalkulasi poin, berlanjut ke sistem gugur yang menegangkan.
+
+Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atlet, melainkan juga pada euforia dan kreativitas dari ribuan suporter di tribun. Kolaborasi antara pertandingan intens di lapangan dan gemuruh nyanyian (chants) suporter menciptakan sebuah festival olahraga yang benar-benar epik.`,
     }));
 
-    await client.request(createItems('event_phases', [
-      { event_id: e5.id, label: 'Registrasi Online', description: 'Pendaftaran via portal resmi, batas akhir 10 hari lagi.', date_start: toDate(offsetDays(-14)), time_start: '00:00', status: 'current', display_order: 1 },
-      { event_id: e5.id, label: 'Technical Meeting', description: 'Drawing grup dan sosialisasi peraturan.', date_start: toDate(offsetDays(15)), time_start: '15:00', status: 'upcoming', display_order: 2 },
-      { event_id: e5.id, label: 'Fase Grup', description: 'Pertandingan round-robin antar grup.', date_start: toDate(offsetDays(18)), time_start: '08:00', status: 'upcoming', display_order: 3 },
-      { event_id: e5.id, label: 'Fase Knockout', description: 'Perempat final, semifinal, dan final.', date_start: toDate(offsetDays(25)), time_start: '09:00', status: 'upcoming', display_order: 4 },
-      { event_id: e5.id, label: 'Grand Final & Awarding', description: 'Partai puncak dan penganugerahan trofi.', date_start: toDate(offsetDays(28)), time_start: '15:00', status: 'upcoming', display_order: 5 },
+    await client.request(createItems('event_phases',[
+      { event_id: e5.id, label: 'Registrasi Online', description: 'Periode penerimaan berkas pendaftaran bagi tim yang berminat. Karena kuota partisipan sangat dibatasi untuk menjaga kualitas turnamen, panitia menerapkan proses verifikasi dokumen administrasi secara ketat dan cepat.', date_start: toDate(offsetDays(-14)), time_start: '00:00', status: 'current', display_order: 1 },
+      { event_id: e5.id, label: 'Technical Meeting', description: 'Forum krusial pra-turnamen di mana panitia akan memandu proses drawing grup, mengesahkan roster pemain resmi, dan menetapkan aturan disiplin turnamen, termasuk regulasi ketat terkait perilaku suporter di tribun.', date_start: toDate(offsetDays(15)), time_start: '15:00', status: 'upcoming', display_order: 2 },
+      { event_id: e5.id, label: 'Fase Grup', description: 'Rangkaian pertandingan awal dengan sistem setengah kompetisi. Setiap tim bertarung untuk mengumpulkan poin tertinggi di grupnya masing-masing. Hanya juara dan runner-up grup yang berhak mengamankan tiket ke babak selanjutnya.', date_start: toDate(offsetDays(18)), time_start: '08:00', status: 'upcoming', display_order: 3 },
+      { event_id: e5.id, label: 'Fase Knockout', description: 'Babak penentuan mutlak yang dimulai dari perempat final hingga semifinal. Tidak ada ruang untuk kesalahan dalam fase ini; kekalahan berarti harus mengepak koper dan mengubur mimpi mengangkat trofi juara.', date_start: toDate(offsetDays(25)), time_start: '09:00', status: 'upcoming', display_order: 4 },
+      { event_id: e5.id, label: 'Grand Final & Awarding', description: 'Laga pamungkas turnamen dengan atmosfer paling meriah. Menampilkan perebutan juara 3 dan partai final yang menentukan penguasa futsal kampus tahun ini, ditutup dengan selebrasi pengangkatan trofi, gelar pemain terbaik, dan top skor.', date_start: toDate(offsetDays(28)), time_start: '15:00', status: 'upcoming', display_order: 5 },
     ]));
 
     const i5 = await seedInstitutions(e5.id, 8);
@@ -1218,16 +1238,20 @@ async function seed() {
       guidebook_url: 'https://ipb.link/artfest-guide',
       instagram_url: 'https://instagram.com/ipbartfest',
       website_url: 'https://art.ipb.ac.id',
-      description: 'IPB Art Festival adalah perayaan seni dan kreativitas mahasiswa terbesar di Kampus IPB. Menampilkan pertunjukan vokal, tari, karya tulis, dan seni rupa dari universitas terbaik Indonesia.',
+      description: `IPB Art Festival 2026 merupakan selebrasi akbar seni dan budaya yang mewadahi ragam ekspresi kreatif mahasiswa dari berbagai universitas terkemuka di Indonesia. Festival ini menegaskan komitmen kampus dalam mencetak generasi intelektual yang tidak hanya unggul secara akademis, namun juga memiliki sensitivitas dan apresiasi tinggi terhadap nilai estetika.
+
+Mulai dari seni pertunjukan yang memukau seperti vokal solo dan kompetisi tari, hingga karya cipta yang mendalam berupa pameran seni rupa digital dan simposium karya tulis ilmiah, seluruh agenda dirancang untuk mentransformasi gedung kampus menjadi pusat kebudayaan kontemporer yang inklusif.
+
+Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser profesional bertaraf internasional. Berbekal tata cahaya dinamis dan sistem suara termutakhir, panitia berdedikasi memberikan panggung megah bagi para seniman muda agar dapat mempersembahkan karya terbaik mereka kepada khalayak luas.`,
     }));
 
-    await client.request(createItems('event_phases', [
-      { event_id: e6.id, label: 'Audisi Online', description: 'Submission video audisi untuk vokal dan tari.', date_start: toDate(offsetDays(-30)), time_start: '00:00', status: 'done', display_order: 1 },
-      { event_id: e6.id, label: 'Pengumuman Lolos Audisi', description: '50 peserta terpilih diumumkan.', date_start: toDate(offsetDays(-14)), time_start: '12:00', status: 'done', display_order: 2 },
-      { event_id: e6.id, label: 'Hari 1 — Karya Tulis & Seni Rupa', description: 'Kompetisi karya tulis dan pameran seni rupa.', date_start: toDate(offsetDays(-2)), time_start: '09:00', status: 'done', display_order: 3 },
-      { event_id: e6.id, label: 'Hari 2 — Tari & Vokal (Top 10)', description: '10 penampil terbaik di setiap kategori.', date_start: toDate(offsetDays(-1)), time_start: '19:00', status: 'done', display_order: 4 },
-      { event_id: e6.id, label: 'Hari 3 — Grand Finale Vokal & Tari', description: 'Final dengan orkestra live.', date_start: toDate(offsetDays(0)), time_start: '19:00', status: 'current', display_order: 5 },
-      { event_id: e6.id, label: 'Malam Awarding', description: 'Pengumuman juara semua kategori dan konser penutup.', date_start: toDate(offsetDays(2)), time_start: '19:00', status: 'upcoming', display_order: 6 },
+    await client.request(createItems('event_phases',[
+      { event_id: e6.id, label: 'Audisi Online', description: 'Tahap penyaringan awal secara daring di mana seluruh pendaftar kategori seni pertunjukan wajib mengunggah video penampilan orisinal mereka. Kurator ahli akan menilai bakat dasar dan potensi panggung dari setiap kandidat.', date_start: toDate(offsetDays(-30)), time_start: '00:00', status: 'done', display_order: 1 },
+      { event_id: e6.id, label: 'Pengumuman Lolos Audisi', description: 'Publikasi daftar resmi berisi 50 peserta atau tim yang berhak melaju ke panggung utama (Live Show). Peserta terpilih juga akan mendapatkan jadwal pembekalan teknis panggung dan arahan logistik dari panitia pelaksana.', date_start: toDate(offsetDays(-14)), time_start: '12:00', status: 'done', display_order: 2 },
+      { event_id: e6.id, label: 'Hari 1 — Karya Tulis & Seni Rupa', description: 'Pembukaan resmi festival yang difokuskan pada presentasi mendalam karya tulis ilmiah (KTI) serta peresmian pameran galeri Seni Rupa Digital. Pengunjung dapat berinteraksi langsung dengan kreator di area exhibition hall.', date_start: toDate(offsetDays(-2)), time_start: '09:00', status: 'done', display_order: 3 },
+      { event_id: e6.id, label: 'Hari 2 — Tari & Vokal (Top 10)', description: 'Malam pertunjukan fase penyisihan live, menampilkan aksi 10 peserta terbaik dari kategori tari tradisional, tari modern, dan vokal solo. Panggung mulai memanas saat dewan juri melakukan kurasi ketat untuk menentukan finalis.', date_start: toDate(offsetDays(-1)), time_start: '19:00', status: 'done', display_order: 4 },
+      { event_id: e6.id, label: 'Hari 3 — Grand Finale Vokal & Tari', description: 'Malam puncak kompetisi pertunjukan seni. Para finalis terpilih akan memberikan penampilan pamungkas (all-out) yang dipadukan dengan aransemen live orkestra dan efek visual panggung tingkat tinggi untuk mengunci penilaian juri.', date_start: toDate(offsetDays(0)), time_start: '19:00', status: 'current', display_order: 5 },
+      { event_id: e6.id, label: 'Malam Awarding', description: 'Gala penutup rangkaian festival. Agenda utamanya adalah pengumuman juara umum dari seluruh kategori seni, penyematan medali, dan konser penutup (guest star performance) untuk merayakan keberhasilan bersama.', date_start: toDate(offsetDays(2)), time_start: '19:00', status: 'upcoming', display_order: 6 },
     ]));
 
     const i6 = await seedInstitutions(e6.id, 8);
