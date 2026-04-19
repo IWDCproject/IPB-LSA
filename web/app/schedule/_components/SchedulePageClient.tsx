@@ -239,7 +239,7 @@ function EventGroup({ eventName, cardImage, matches }: { eventName: string, card
 
 export default function SchedulePageClient({ initialMatches }: { initialMatches: any[] }) {
   const [activeTab, setActiveTab] = useState<"ALL" | "sport" | "arts">("ALL");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Derive unique dates
@@ -262,13 +262,6 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
     return sorted;
   }, [initialMatches]);
 
-  // Set initial selected date if not set
-  useMemo(() => {
-    if (!selectedDate && uniqueDates.length > 0) {
-      setSelectedDate(uniqueDates[0]);
-    }
-  }, [uniqueDates, selectedDate]);
-
   const filteredMatches = useMemo(() => {
     let result = initialMatches;
     
@@ -278,9 +271,9 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
     }
     
     // 2. Filter by Date
-    if (selectedDate) {
-      result = result.filter(m => {
-        if (!m.scheduled_at) return false;
+    if (selectedDate && selectedDate !== "ALL") {
+     result = result.filter(m => {
+      if (!m.scheduled_at) return false;
         const d = new Date(m.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
         return d === selectedDate;
       });
@@ -352,8 +345,8 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
                 MATCH & EVENT <br className="hidden md:block"/>
                 <span className="text-yellow-400">SCHEDULES</span>
               </h1>
-              <p className="text-blue-200 text-sm md:text-base mt-3 font-medium tracking-wide bg-blue-900/40 w-fit sm:mx-0 mx-auto px-4 py-1.5 rounded-full border border-blue-400/20">
-                Pantau jadwal & skor pertandingan secara real-time.
+              <p className="text-white text-sm md:text-base mt-3 font-bold font-['Plus_Jakarta_Sans'] tracking-wide">
+              PANTAU JADWAL DARI SELURUH KOMPETISI OLAGRAGA DAN SENI
               </p>
             </div>
           </div>
@@ -399,8 +392,24 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
             <div className="hidden lg:block w-px h-10 bg-blue-800/50 mx-2" />
 
             {/* Date Selector */}
-            <div className="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide shrink-0 px-2">
+            <div 
+              className="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-3 lg:pb-1 shrink-0 px-2"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: '#2563eb transparent' }}
+            >
               <Calendar className="text-blue-400 hidden lg:block mr-2 shrink-0" size={18} />
+              
+              <button
+                onClick={() => setSelectedDate("ALL")}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all border shrink-0",
+                  selectedDate === "ALL" 
+                    ? "bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.5)]" 
+                    : "bg-[#091340]/50 text-blue-300 border-blue-800/50 hover:border-blue-500 hover:bg-blue-900/30"
+                )}
+              >
+                Semua
+              </button>
+
               {uniqueDates.map(date => {
                 const isToday = date === new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
                 return (
@@ -408,7 +417,7 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
                     key={date}
                     onClick={() => setSelectedDate(date)}
                     className={cn(
-                      "px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all border",
+                      "px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all border shrink-0",
                       selectedDate === date 
                         ? "bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.5)]" 
                         : "bg-[#091340]/50 text-blue-300 border-blue-800/50 hover:border-blue-500 hover:bg-blue-900/30"
