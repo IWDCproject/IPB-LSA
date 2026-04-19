@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
 import { getNewsByEvent } from "@/lib/directus";
 import { TAB_ENTER } from "./Animations";
@@ -84,7 +84,7 @@ function NewsPlaceholder() {
       position: "relative", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", borderRadius: 8,
       boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.15)",
-      background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(4px)",
+      background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(8px)",
       padding: "40px", height: "100%", minHeight: 380, overflow: "hidden",
     }}>
       <div style={{
@@ -120,6 +120,8 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const [totalPages,   setTotalPages]   = useState(0);
   const [contentState, setContentState] = useState<"loading" | "loaded" | "empty">("loading");
   const [contentKey,   setContentKey]   = useState(0);
+  const containerRef                    = useRef<HTMLDivElement>(null);
+  const innerRef                        = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,12 +133,30 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
       setTotalPages(res.totalPages);
       setContentState(res.items.length === 0 ? "empty" : "loaded");
       setContentKey(k => k + 1);
+      
+      // WAIT for React to render the new cards before measuring height
+      requestAnimationFrame(() => {
+        if (containerRef.current && innerRef.current) {
+          // Now we measure the height of the NEW content
+          const newHeight = innerRef.current.scrollHeight;
+          containerRef.current.style.minHeight = `${newHeight}px`;
+
+          // Clear the lock only after the CSS transition finishes
+          setTimeout(() => {
+            if (containerRef.current) containerRef.current.style.minHeight = "";
+          }, 700); 
+        }
+      });
     });
 
     return () => { cancelled = true; };
   }, [event.slug, page]);
 
   const handlePageChange = (p: number) => {
+    if (containerRef.current) {
+      // Lock current height so the page doesn't collapse during the scroll
+      containerRef.current.style.minHeight = `${containerRef.current.offsetHeight}px`;
+    }
     setPage(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -175,8 +195,16 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const CARD_EASING     = TAB_ENTER.easing;
 
   return (
-    <div key={contentKey}>
+    <div 
+      ref={containerRef} 
+      style={{ 
+        transition: "min-height 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
+        willChange: "min-height"
+      }}
+    >
       <div
+        ref={innerRef}
+        key={contentKey} 
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,

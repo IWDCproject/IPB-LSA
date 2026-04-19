@@ -21,7 +21,7 @@ function NewsPlaceholder() {
         borderRadius: 8,
         boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.15)",
         background: "rgba(255, 255, 255, 0.03)",
-        backdropFilter: "blur(4px)",
+        backdropFilter: "blur(8px)",
         padding: "40px",
         height: "100%",
         minHeight: 380,
