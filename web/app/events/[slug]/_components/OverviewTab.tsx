@@ -17,7 +17,7 @@ const FOOTER_H      = 20;
 const ROW_H_DEFAULT      = 52;
 const ROW_H_SETS_DEFAULT = 64;
 
-// ─── Layout math (unchanged) ──────────────────────────────────────────────────
+// ─── Layout math ──────────────────────────────────────────────────────────────
 
 function nextRowCost(matches: any[], count: number, getRowH: (m: any) => number): number {
   if (count >= matches.length) return Infinity;
@@ -133,17 +133,29 @@ function useRightColumnLayout(
     let upH  = Math.max(upBudget,  OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH));
     let resH = Math.max(resBudget, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
 
+    // ── FIX: use per-panel slack, not combined (totalSlack) ───────────────────
+    //
+    // Bug: the old code computed totalSlack = upSlack + resSlack, then allowed
+    // upLimit++ even when upSlack alone was insufficient. This caused upH to
+    // grow beyond upBudget by consuming resH's slack — silently making
+    // upH + gap + resH > bothAvail, so the right column overflowed anchorHeight.
+    // That pushed the right column taller than the left, and the About panel
+    // (which couldn't grow — see wrapper fix below) failed to close the gap.
+    //
+    // Fix: only bump a panel's row count when THAT panel has enough slack.
+    // This keeps upH + gap + resH <= bothAvail at all times.
     {
       const upContentH  = OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH);
       const resContentH = OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH);
-      const totalSlack  = Math.max(0, upH - upContentH) + Math.max(0, resH - resContentH);
+      const upSlack     = Math.max(0, upH  - upContentH);
+      const resSlack    = Math.max(0, resH - resContentH);
       const upNext      = nextRowCost(upcoming, upLimit,  getRowH);
       const resNext     = nextRowCost(finished, resLimit, getRowH);
 
-      if (upNext <= resNext && totalSlack >= upNext * 0.3) {
+      if (upNext <= resNext && upSlack >= upNext * 0.3) {
         upLimit++;
         upH = Math.max(upH, OVERHEAD_BASE + rowsHeight(upcoming, upLimit, getRowH));
-      } else if (resNext < upNext && totalSlack >= resNext * 0.3) {
+      } else if (resNext < upNext && resSlack >= resNext * 0.3) {
         resLimit++;
         resH = Math.max(resH, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
       }
@@ -244,24 +256,15 @@ export default function OverviewTab({ event, isMobile, phase }: Props) {
   const measured = !isMobile && anchorHeight > 0;
 
   // ─── Panel stagger styles ────────────────────────────────────────────────
-  // On first page load (phase will transition through "entering" → "idle")
-  // use PAGE_ENTER; on subsequent tab switches, use TAB_ENTER.
-  // We can't know which this is inside the tab itself, so we always use
-  // TAB_ENTER here — it's quick enough for first load too since the header
-  // already covers the "grand entrance" with PAGE_ENTER.
   const tier = TAB_ENTER;
 
-  // Left column: about + timeline stagger
-  const s0 = staggerSlideUp(0,                tier); // about panel (or countdown on mobile)
-  const s1 = staggerSlideUp(tier.stagger,     tier); // timeline panel
-  // Right column
-  const s2 = staggerSlideUp(tier.stagger * 2, tier); // countdown (desktop) or upcoming
-  const s3 = staggerSlideUp(tier.stagger * 3, tier); // upcoming matches
-  const s4 = staggerSlideUp(tier.stagger * 4, tier); // latest results
-  // Bottom section
-  const s5 = staggerSlideUp(tier.stagger * 5, tier); // latest stories
+  const s0 = staggerSlideUp(0,                tier);
+  const s1 = staggerSlideUp(tier.stagger,     tier);
+  const s2 = staggerSlideUp(tier.stagger * 2, tier);
+  const s3 = staggerSlideUp(tier.stagger * 3, tier);
+  const s4 = staggerSlideUp(tier.stagger * 4, tier);
+  const s5 = staggerSlideUp(tier.stagger * 5, tier);
 
-  // Only apply stagger when entering; once idle, panels are just static
   const panelStyle = (s: React.CSSProperties) =>
     phase === "entering" ? s : {};
 
@@ -288,9 +291,40 @@ export default function OverviewTab({ event, isMobile, phase }: Props) {
               />
             </div>
           )}
-          <div style={panelStyle(isMobile && showCountdown ? s1 : s0)}>
+
+          {/*
+           * FIX: The wrapper around AboutPanel must be:
+           *   • a flex child that CAN GROW  →  flex: "1 1 auto"
+           *   • a flex container itself     →  display: flex / flexDirection: column
+           *
+           * Why flex-basis: auto (not 0)?
+           *   The measurement loop temporarily sets alignSelf: "start" on the
+           *   left column to read its natural height. With flex-basis: 0, the
+           *   wrapper collapses to 0px in that mode, understating anchorHeight
+           *   and making the right panels too short. flex-basis: auto uses the
+           *   wrapper's content height as the base, so measurement is correct.
+           *
+           * Why display: flex on the wrapper?
+           *   AboutPanel's CARD already declares flex: 1. flex: 1 only takes
+           *   effect when the parent is a flex container. Without this, the card
+           *   ignores the extra height given by flex-grow and stays content-sized.
+           *
+           * End result: when the grid stretches the left column to match a taller
+           * right column (e.g. extra match row), this wrapper absorbs the delta
+           * and AboutPanel's card fills it — both columns are flush at the bottom.
+           */}
+          <div
+            style={{
+              flex:          "1 1 auto",
+              display:       "flex",
+              flexDirection: "column",
+              minHeight:     0,
+              ...panelStyle(isMobile && showCountdown ? s1 : s0),
+            }}
+          >
             <AboutPanel event={event} />
           </div>
+
           <div style={panelStyle(isMobile && showCountdown ? staggerSlideUp(tier.stagger * 2, tier) : s1)}>
             <TimelinePanel phases={event.phases ?? []} />
           </div>

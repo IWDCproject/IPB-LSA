@@ -121,7 +121,10 @@ function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas) {
   const tmp  = new OffscreenCanvas(W, H);
   const tctx = tmp.getContext("2d");
 
-  tctx.drawImage(blurredBitmap, 0, 0, W, H);
+  const bw = blurredBitmap.width;
+  const bh = blurredBitmap.height;
+  const s  = Math.max(W / bw, H / bh);
+  tctx.drawImage(blurredBitmap, (W - bw * s) / 2, (H - bh * s) / 2, bw * s, bh * s);
   tctx.globalCompositeOperation = "destination-in";
   tctx.drawImage(maskCanvas, 0, 0);
 
