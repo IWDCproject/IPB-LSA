@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
 import { getNewsByEvent } from "@/lib/directus";
 import { TAB_ENTER } from "./Animations";
@@ -8,10 +8,9 @@ import type { AnimPhase } from "./UseTabTransition";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 const PAGE_SIZE = 12;
-const BLUE   = "#0D26C2";
 const YELLOW = "#FFC936";
 
-// ─── Pagination (unchanged) ────────────────────────────────────────────────────
+// ─── Pagination ───────────────────────────────────────────────────────────────
 
 function PaginationButton({
   label, active, disabled, onClick,
@@ -19,7 +18,6 @@ function PaginationButton({
   label: React.ReactNode; active?: boolean; disabled?: boolean; onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-
   const bg     = active ? YELLOW : hovered && !disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)";
   const color  = active ? "#06125C" : disabled ? "rgba(255,255,255,0.25)" : "#fff";
   const border = active ? `1px solid ${YELLOW}` : "1px solid rgba(255,255,255,0.15)";
@@ -47,7 +45,6 @@ function Pagination({ page, totalPages, onPageChange }: {
   page: number; totalPages: number; onPageChange: (p: number) => void;
 }) {
   if (totalPages <= 1) return null;
-
   const pages: (number | "…")[] = [];
   if (totalPages <= 7) {
     for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -58,7 +55,6 @@ function Pagination({ page, totalPages, onPageChange }: {
     if (page < totalPages - 2) pages.push("…");
     pages.push(totalPages);
   }
-
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 40 }}>
       <PaginationButton
@@ -80,7 +76,7 @@ function Pagination({ page, totalPages, onPageChange }: {
   );
 }
 
-// ─── Placeholder Card (fills last row) ────────────────────────────────────────
+// ─── Placeholder Card ─────────────────────────────────────────────────────────
 
 function NewsPlaceholder() {
   return (
@@ -110,21 +106,6 @@ function NewsPlaceholder() {
   );
 }
 
-// ─── Empty State ───────────────────────────────────────────────────────────────
-
-function EmptyState() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", gap: 12 }}>
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-        <path d="M4 4h16v16H4zM4 9h16M9 4v16" />
-      </svg>
-      <span style={{ ...JK, fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.3)" }}>
-        No news yet for this event
-      </span>
-    </div>
-  );
-}
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 interface Props {
@@ -133,38 +114,15 @@ interface Props {
   phase:    AnimPhase;
 }
 
-
 export default function NewsTab({ event, isMobile, phase }: Props) {
   const [page,         setPage]         = useState(1);
   const [items,        setItems]        = useState<any[]>([]);
   const [totalPages,   setTotalPages]   = useState(0);
   const [contentState, setContentState] = useState<"loading" | "loaded" | "empty">("loading");
-  // Increments every time fresh content arrives. Used as a React `key` on the
-  // content wrapper so the CSS animation resets and replays on each load —
-  // correct trigger point because by the time the fetch resolves, `phase` is
-  // already "idle" and would never fire the animation.
-  const [contentKey, setContentKey] = useState(0);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [columns, setColumns] = useState(1);
-
-  // Detect column count from rendered grid
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid || isMobile) return;
-    const update = () => {
-      const cols = window.getComputedStyle(grid).gridTemplateColumns.split(" ").length;
-      setColumns(cols);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(grid);
-    return () => ro.disconnect();
-  }, [isMobile, contentState]);
+  const [contentKey,   setContentKey]   = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    // Only show skeleton on first load (no existing items). On pagination,
-    // keep old items visible until new ones arrive — no layout shift.
     if (items.length === 0) setContentState("loading");
 
     getNewsByEvent(event.slug, page, PAGE_SIZE).then((res) => {
@@ -172,12 +130,10 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
       setItems(res.items);
       setTotalPages(res.totalPages);
       setContentState(res.items.length === 0 ? "empty" : "loaded");
-      // Bump key → React unmounts+remounts the content wrapper → CSS animation replays.
       setContentKey(k => k + 1);
     });
 
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.slug, page]);
 
   const handlePageChange = (p: number) => {
@@ -185,13 +141,21 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ─── Skeleton ─────────────────────────────────────────────────────────────
+  // Grid Configuration
+  const COLUMNS = isMobile ? 2 : 4;
+  const GAP = isMobile ? 12 : 20;
+
+  // Placeholder Logic: Fill the remainder of the last row on the last page
+  const remainder = items.length % COLUMNS;
+  const isLastPage = page === totalPages;
+  const placeholderCount = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
+
   if (contentState === "loading") {
     return (
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))",
-        gap: 20, alignItems: "stretch", padding: 2,
+        gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
+        gap: GAP, alignItems: "stretch", padding: 2,
       }}>
         {Array.from({ length: PAGE_SIZE }).map((_, i) => (
           <NewsCardSkeleton key={i} />
@@ -200,28 +164,23 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
     );
   }
 
-  if (contentState === "empty") return <EmptyState />;
+  if (contentState === "empty") return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
+        <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
+    </div>
+  );
 
-  const remainder        = items.length % columns;
-  const isLastPage       = page === totalPages;
-  const placeholderCount = !isMobile && remainder !== 0 && isLastPage ? columns - remainder : 0;
-
-  // Card stagger config — kept modest so the last card doesn't wait too long.
-  // 12 cards × 35ms = 420ms total spread, each card slides up individually.
   const CARD_STAGGER_MS = 35;
-  const CARD_DURATION   = TAB_ENTER.duration; // 280ms
+  const CARD_DURATION   = TAB_ENTER.duration;
   const CARD_EASING     = TAB_ENTER.easing;
 
-  // `key={contentKey}` unmounts+remounts this entire subtree on each fresh
-  // load, resetting all CSS animation-delay timers back to 0 automatically.
   return (
     <div key={contentKey}>
       <div
-        ref={gridRef}
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: 20, alignItems: "stretch", padding: 2,
+          gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
+          gap: GAP, alignItems: "stretch", padding: 2,
         }}
       >
         {items.map((item, i) => (
