@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import EventDetailHeader, { type TabKey } from "./_components/EventDetailHeader";
 import OverviewTab from "./_components/OverviewTab";
 import NewsTab from "./_components/NewsTab";
+import MatchesTab from "./_components/MatchesTab";
 import TabContentShell from "./_components/TabContentShell";
 import UniversityMarquee from "@/components/UniversityMarquee";
 import Footer from "@/components/Footer";
@@ -127,7 +128,7 @@ export default function EventDetailClient({ event }: { event: any }) {
                 <OverviewTab event={event} isMobile={isMobile} phase={phase} />
               )}
               {displayedTab === "matches" && (
-                <Shell label="Matches" />
+                <MatchesTab event={event} isMobile={isMobile} phase={phase} />
               )}
               {displayedTab === "participants" && (
                 <Shell label="Participants" />
