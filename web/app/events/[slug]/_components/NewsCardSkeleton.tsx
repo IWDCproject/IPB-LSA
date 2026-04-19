@@ -1,19 +1,5 @@
 "use client";
 
-// Paste this export into your existing /components/NewsCard.tsx
-// right above the default export, replacing the old NewsCardSkeleton.
-//
-// Matches NewsCard exactly:
-//   - Outer: borderRadius 8, boxShadow "0 0 0 2px #FFFFFF"
-//   - Inner white box: borderRadius 6, bg #fff
-//   - Image area: height 200, bg #E5E7EB
-//   - Body padding: "20px 22px 22px"
-//   - Date bone:    12px tall, 30% wide,  marginBottom 8
-//   - Title bones:  20px tall, 90%+55%,   marginBottom 12
-//   - Excerpt bones: 13px tall, 100%+75%, marginBottom 16
-//   - Divider:      1px #F3F4F6, marginTop auto
-//   - Read more:    14px tall, 28% wide,  paddingTop 16
-
 function Bone({ width, height, delay = "0s", radius = 4 }: {
   width: string | number;
   height: number;

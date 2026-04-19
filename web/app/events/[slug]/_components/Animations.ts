@@ -1,14 +1,4 @@
-/**
- * animations.ts
- *
- * Single source of truth for all animation keyframes and timing utilities.
- * Import KEYFRAMES into any component that needs `<style>{KEYFRAMES}</style>`,
- * and use staggerStyle() / fadeStyle() for coordinated stagger sequences.
- *
- * Timing tiers:
- *   PAGE_ENTER  — first load, generous (500–700ms total stagger window)
- *   TAB_ENTER   — tab switch, snappy (100–250ms total stagger window)
- */
+"use client";
 
 // ─── Keyframe definitions ──────────────────────────────────────────────────────
 

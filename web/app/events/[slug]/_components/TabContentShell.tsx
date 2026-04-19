@@ -1,15 +1,4 @@
 "use client";
-/**
- * TabContentShell.tsx
- *
- * Wraps each tab's root element and handles:
- *   1. Exit fade (opacity: 0, pointer-events: none) during `isExiting`
- *   2. Provides a stable container so layout doesn't shift during transitions
- *
- * All child stagger animations are driven by the `phase` prop passed down
- * from EventDetailClient → each Tab component. This shell only handles
- * the outer container's visibility.
- */
 
 import React from "react";
 

@@ -1,24 +1,4 @@
 "use client";
-/**
- * useTabTransition.ts
- *
- * Manages the lifecycle of tab transitions so every tab gets a coordinated
- * enter animation regardless of whether it's a first load or a tab switch.
- *
- * Usage in EventDetailClient:
- *
- *   const { displayedTab, phase } = useTabTransition(activeTab);
- *
- *   // Render displayedTab (not activeTab!) so the old tab stays mounted
- *   // during the exit phase, then swap to the new one.
- *   {displayedTab === "overview" && <OverviewTab phase={phase} ... />}
- *
- * Each tab receives `phase: "entering" | "idle"` and applies its own
- * stagger animations accordingly.
- *
- * Exit is handled here by keeping the old tab visible for EXIT_DURATION ms
- * via a CSS opacity fade (applied by TabContentShell), then swapping.
- */
 
 import { useState, useEffect, useRef } from "react";
 

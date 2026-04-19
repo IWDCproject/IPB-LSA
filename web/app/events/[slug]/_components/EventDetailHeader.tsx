@@ -1,13 +1,4 @@
 "use client";
-/**
- * EventDetailHeader.tsx
- *
- * Changes from original:
- *  - Removed local @keyframes definitions (now injected by EventDetailClient via animations.ts)
- *  - staggerStyle() now uses the shared staggerSlideUp() from animations.ts
- *  - Tab buttons use shared staggerSlideUp with PAGE_ENTER tier
- *  - No functional changes to layout or content
- */
 
 import { staggerSlideUp, staggerFadeIn, PAGE_ENTER } from "./Animations";
 import Button from "@/components/Button";

@@ -1,17 +1,4 @@
 "use client";
-/**
- * NewsTab.tsx
- *
- * Changes from original:
- *  - Accepts `phase: AnimPhase` prop
- *  - Skeleton is shown immediately on tab enter (no flicker) — we keep the
- *    skeleton mounted until data arrives, then crossfade to content.
- *    The tab-transition animation masks the first skeleton appearance entirely.
- *  - NewsCardSkeleton now lives in NewsCard (shimmer version); this file
- *    just imports it.
- *  - Grid and pagination stagger in using TAB_ENTER when phase === "entering"
- *  - Removed the separate loading branch that caused layout shift
- */
 
 import { useState, useEffect, useRef } from "react";
 import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";

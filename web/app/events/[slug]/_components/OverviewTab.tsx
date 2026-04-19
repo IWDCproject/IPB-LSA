@@ -1,13 +1,4 @@
 "use client";
-/**
- * OverviewTab.tsx
- *
- * Changes from original:
- *  - Accepts `phase: AnimPhase` prop from EventDetailClient
- *  - Panels stagger in using TAB_ENTER tier when phase === "entering"
- *  - Uses shared staggerSlideUp() from animations.ts
- *  - No changes to the layout algorithm (useRightColumnLayout) or measurement logic
- */
 
 import { useState, useLayoutEffect, useRef, useMemo } from "react";
 import AboutPanel from "./AboutPanel";

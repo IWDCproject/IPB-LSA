@@ -1,14 +1,4 @@
 "use client";
-/**
- * EventDetailClient.tsx
- *
- * Changes from original:
- *  - Imports useTabTransition to manage coordinated tab enter/exit animations
- *  - Renders `displayedTab` (not `activeTab`) so exit fades work correctly
- *  - Wraps tab content in TabContentShell for the outer exit-fade container
- *  - Passes `phase` down to each tab so they can drive their internal stagger
- *  - Imports shared KEYFRAMES from animations.ts (single source of truth)
- */
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
