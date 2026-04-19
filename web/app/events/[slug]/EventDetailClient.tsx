@@ -53,7 +53,14 @@ export default function EventDetailClient({ event }: { event: any }) {
   // `isExiting`    is true during the outgoing fade.
   const { displayedTab, phase, isExiting } = useTabTransition(activeTab);
 
-  const setTab = (t: TabKey) => router.push(`?tab=${t}`, { scroll: false });
+  const setTab = (t: TabKey) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", t);
+    window.history.pushState(null, "", url.toString());
+    
+    // This replicates "scroll: true" behavior
+    window.scrollTo({ top: 0, behavior: "smooth" }); 
+  };
   const bannerUrl = event.banner_image?.id ? getAssetUrl(event.banner_image) : null;
 
   return (
@@ -67,7 +74,10 @@ export default function EventDetailClient({ event }: { event: any }) {
         ref={mainRef}
         style={{
           position: "relative",
-          minHeight: "100vh",
+          minHeight: "calc(100vh - 64px)", 
+          display: "flex",
+          flexDirection: "column",
+          overflowX: "hidden",            
           background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
           opacity: 0,
           animation: "edc-fade-in 0.4s ease 0ms forwards",
@@ -102,14 +112,9 @@ export default function EventDetailClient({ event }: { event: any }) {
           </div>
         )}
 
-        <div style={{ 
-          position: "relative", 
-          zIndex: 1, 
-          display: "flex", 
-          flexDirection: "column", 
-          minHeight: "100vh" 
-        }}>
-          <div style={{ flex: 1 }}>
+        <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
+          {/* Fills exactly 100% of the visible screen below the navbar */}
+          <div style={{ flex: "1 0 auto", minHeight: "calc(100vh - 64px)" }}>
             <EventDetailHeader
               event={event}
               activeTab={activeTab}
@@ -137,10 +142,9 @@ export default function EventDetailClient({ event }: { event: any }) {
             <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}>
               <UniversityMarquee />
             </div>
-            <div style={{ height: 120 }} />
           </div>
           
-          {/* Footer is now pushed to the bottom by the flex: 1 container above */}
+          <div style={{ height: 120 }} />
           <Footer />
         </div>
       </div>
