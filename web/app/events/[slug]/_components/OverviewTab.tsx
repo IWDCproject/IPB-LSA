@@ -1,22 +1,24 @@
 "use client";
+
 import { useState, useLayoutEffect, useRef, useMemo } from "react";
 import AboutPanel from "./AboutPanel";
 import TimelinePanel from "./TimelinePanel";
 import CountdownPanel from "./CountdownPanel";
 import { UpcomingMatchesPanel, LatestResultsPanel } from "./MatchesPanels";
 import LatestStoriesSection from "./LatestStoriesSection";
+import { staggerSlideUp, TAB_ENTER, PAGE_ENTER } from "./Animations";
+import type { AnimPhase } from "./UseTabTransition";
 
 const PANEL_GAP     = 16;
 const DATE_H        = 32;
 const OVERHEAD_BASE = 57;
 const FOOTER_H      = 20;
 
-// Static fallbacks used before first measurement.
-// These only affect the very first render frame.
 const ROW_H_DEFAULT      = 52;
-const ROW_H_SETS_DEFAULT = 64; // generous upper bound so first frame never clips
+const ROW_H_SETS_DEFAULT = 64;
 
-// Cost of the next row after `count` shown (includes date-header if date changes).
+// ─── Layout math (unchanged) ──────────────────────────────────────────────────
+
 function nextRowCost(matches: any[], count: number, getRowH: (m: any) => number): number {
   if (count >= matches.length) return Infinity;
   const prevDate = count > 0 ? (matches[count - 1].scheduled_at?.split("T")[0] ?? "~") : "";
@@ -50,7 +52,6 @@ function rowsHeight(matches: any[], count: number, getRowH: (m: any) => number):
 function fitRows(matches: any[], budget: number, getRowH: (m: any) => number): number {
   if (!matches.length || budget <= 0) return 0;
 
-  // Step 1 — no footer cost
   let used = 0, lastDate = "", count = 0;
   for (const m of matches) {
     const d    = m.scheduled_at?.split("T")[0] ?? "~";
@@ -60,7 +61,6 @@ function fitRows(matches: any[], budget: number, getRowH: (m: any) => number): n
   }
   if (count >= matches.length) return count;
 
-  // Step 2 — reserve footer
   used = 0; lastDate = ""; count = 0;
   const b2 = budget - FOOTER_H;
   for (const m of matches) {
@@ -70,7 +70,6 @@ function fitRows(matches: any[], budget: number, getRowH: (m: any) => number): n
     used += cost; lastDate = d; count++;
   }
 
-  // Step 3 — greedy: if gap >= 50% of next row's actual cost, add one more
   if (count < matches.length) {
     const next     = matches[count];
     const nextDate = next.scheduled_at?.split("T")[0] ?? "~";
@@ -134,9 +133,6 @@ function useRightColumnLayout(
     let upH  = Math.max(upBudget,  OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH));
     let resH = Math.max(resBudget, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
 
-    // Cross-panel greedy: pool the leftover space from both panels.
-    // Each individual gap may be under threshold, but combined they may cover
-    // another row. Add it to whichever panel's next row is cheaper.
     {
       const upContentH  = OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH);
       const resContentH = OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH);
@@ -157,20 +153,26 @@ function useRightColumnLayout(
   }, [upcoming, finished, anchorHeight, countdownH, isMobile, getRowH]);
 }
 
-export default function OverviewTab({ event, isMobile }: { event: any; isMobile: boolean }) {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+interface Props {
+  event:    any;
+  isMobile: boolean;
+  phase:    AnimPhase;
+}
+
+export default function OverviewTab({ event, isMobile, phase }: Props) {
   const [anchorHeight,    setAnchorHeight]    = useState(0);
   const [countdownHeight, setCountdownHeight] = useState(0);
   const [upRowH,          setUpRowH]          = useState(ROW_H_DEFAULT);
   const [resRowH,         setResRowH]         = useState(ROW_H_SETS_DEFAULT);
 
-  const leftColRef      = useRef<HTMLDivElement>(null);
-  const countdownRef    = useRef<HTMLDivElement>(null);
-  const upContentRef    = useRef<HTMLDivElement>(null);
-  const resContentRef   = useRef<HTMLDivElement>(null);
-  // Measure a single row's offsetHeight — immune to parent flex-stretch,
-  // unlike scrollHeight on a flex:1 child which returns the stretched size.
-  const upFirstRowRef   = useRef<HTMLDivElement>(null);
-  const resFirstRowRef  = useRef<HTMLDivElement>(null);
+  const leftColRef     = useRef<HTMLDivElement>(null);
+  const countdownRef   = useRef<HTMLDivElement>(null);
+  const upContentRef   = useRef<HTMLDivElement>(null);
+  const resContentRef  = useRef<HTMLDivElement>(null);
+  const upFirstRowRef  = useRef<HTMLDivElement>(null);
+  const resFirstRowRef = useRef<HTMLDivElement>(null);
 
   const upcoming      = (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live");
   const finished      = (event.matches ?? []).filter((m: any) => m.status === "finished");
@@ -196,9 +198,6 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
         setCountdownHeight(curr => curr !== ch ? ch : curr);
       }
 
-      // Measure actual row heights from the first rendered row's offsetHeight.
-      // offsetHeight on a specific element is the browser's real layout height,
-      // never affected by parent flex-grow stretching (unlike scrollHeight).
       const upRowEl = upFirstRowRef.current;
       if (upRowEl) {
         const h = upRowEl.offsetHeight;
@@ -228,7 +227,6 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
     };
   }, [isMobile]);
 
-  // Stable function reference — only recreated when measured heights change.
   const getRowH = useMemo(
     () => (m: any) => m.status === "finished" ? resRowH : upRowH,
     [upRowH, resRowH],
@@ -245,6 +243,28 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
 
   const measured = !isMobile && anchorHeight > 0;
 
+  // ─── Panel stagger styles ────────────────────────────────────────────────
+  // On first page load (phase will transition through "entering" → "idle")
+  // use PAGE_ENTER; on subsequent tab switches, use TAB_ENTER.
+  // We can't know which this is inside the tab itself, so we always use
+  // TAB_ENTER here — it's quick enough for first load too since the header
+  // already covers the "grand entrance" with PAGE_ENTER.
+  const tier = TAB_ENTER;
+
+  // Left column: about + timeline stagger
+  const s0 = staggerSlideUp(0,                tier); // about panel (or countdown on mobile)
+  const s1 = staggerSlideUp(tier.stagger,     tier); // timeline panel
+  // Right column
+  const s2 = staggerSlideUp(tier.stagger * 2, tier); // countdown (desktop) or upcoming
+  const s3 = staggerSlideUp(tier.stagger * 3, tier); // upcoming matches
+  const s4 = staggerSlideUp(tier.stagger * 4, tier); // latest results
+  // Bottom section
+  const s5 = staggerSlideUp(tier.stagger * 5, tier); // latest stories
+
+  // Only apply stagger when entering; once idle, panels are just static
+  const panelStyle = (s: React.CSSProperties) =>
+    phase === "entering" ? s : {};
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div
@@ -255,23 +275,31 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
           alignItems:          "stretch",
         }}
       >
+        {/* Left column */}
         <div
           ref={leftColRef}
           style={{ display: "flex", flexDirection: "column", gap: PANEL_GAP }}
         >
           {isMobile && showCountdown && (
-            <CountdownPanel
-              deadline={event.registration_end_date}
-              registrationUrl={event.registration_url}
-            />
+            <div style={panelStyle(s0)}>
+              <CountdownPanel
+                deadline={event.registration_end_date}
+                registrationUrl={event.registration_url}
+              />
+            </div>
           )}
-          <AboutPanel event={event} />
-          <TimelinePanel phases={event.phases ?? []} />
+          <div style={panelStyle(isMobile && showCountdown ? s1 : s0)}>
+            <AboutPanel event={event} />
+          </div>
+          <div style={panelStyle(isMobile && showCountdown ? staggerSlideUp(tier.stagger * 2, tier) : s1)}>
+            <TimelinePanel phases={event.phases ?? []} />
+          </div>
         </div>
 
+        {/* Right column */}
         <div style={{ display: "flex", flexDirection: "column", gap: PANEL_GAP }}>
           {!isMobile && showCountdown && (
-            <div ref={countdownRef} style={{ flex: "0 0 auto" }}>
+            <div ref={countdownRef} style={{ flex: "0 0 auto", ...panelStyle(s2) }}>
               <CountdownPanel
                 deadline={event.registration_end_date}
                 registrationUrl={event.registration_url}
@@ -281,11 +309,12 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
 
           {hasUpcoming && (
             <div
-              style={
-                measured && upcomingH > 0
+              style={{
+                ...(measured && upcomingH > 0
                   ? { height: upcomingH, display: "flex", flexDirection: "column" }
-                  : { flex: hasResults ? 3 : 1, display: "flex", flexDirection: "column", minHeight: 0 }
-              }
+                  : { flex: hasResults ? 3 : 1, display: "flex", flexDirection: "column", minHeight: 0 }),
+                ...panelStyle(!isMobile && showCountdown ? s3 : s2),
+              }}
             >
               <UpcomingMatchesPanel
                 upcoming={upcoming}
@@ -299,11 +328,12 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
 
           {hasResults && (
             <div
-              style={
-                measured && resultsH > 0
+              style={{
+                ...(measured && resultsH > 0
                   ? { height: resultsH, display: "flex", flexDirection: "column" }
-                  : { flex: 2, display: "flex", flexDirection: "column", minHeight: 0 }
-              }
+                  : { flex: 2, display: "flex", flexDirection: "column", minHeight: 0 }),
+                ...panelStyle(!isMobile && showCountdown ? s4 : s3),
+              }}
             >
               <LatestResultsPanel
                 finished={finished}
@@ -318,11 +348,13 @@ export default function OverviewTab({ event, isMobile }: { event: any; isMobile:
       </div>
 
       {event.news?.length > 0 && (
-        <LatestStoriesSection
-          news={event.news}
-          eventSlug={event.slug}
-          isMobile={isMobile}
-        />
+        <div style={panelStyle(s5)}>
+          <LatestStoriesSection
+            news={event.news}
+            eventSlug={event.slug}
+            isMobile={isMobile}
+          />
+        </div>
       )}
     </div>
   );
