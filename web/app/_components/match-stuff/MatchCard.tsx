@@ -33,9 +33,12 @@ const S = {
 
 function fmtSecs(s: number) {
   const t = Math.max(0, Math.floor(s));
-  const h = Math.floor(t / 3600);
+  const d = Math.floor(t / 86400);
+  const h = Math.floor((t % 86400) / 3600);
   const m = Math.floor((t % 3600) / 60);
   const sec = t % 60;
+
+  if (d > 0) return `${d}D ${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   if (h > 0) return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
 }
@@ -60,19 +63,40 @@ function useMatchTimerDOM(ref: React.RefObject<HTMLSpanElement>, live: any, time
   useEffect(() => {
     if (!timerMod) return;
     const isStopwatch = timerMod?.config?.mode === "stopwatch";
+    const isDeadline  = timerMod?.config?.mode === "deadline";
+    
     const calc = () => {
+      // 1. Read the target directly from the JSON
+      if (isDeadline && live?.timerTarget) {
+        const diff = (new Date(live.timerTarget).getTime() - Date.now()) / 1000;
+        return diff <= 0 ? -1 : diff; // -1 means finished
+      }
+      
       const snap = Math.max(0, live?.timerSecs ?? 0);
       if (!live?.timerRunning || !live?.timerLastStarted) return snap;
       const elapsed = Math.max(0, (Date.now() - new Date(live.timerLastStarted).getTime()) / 1000);
       return isStopwatch ? snap + elapsed : Math.max(0, snap - elapsed);
     };
-    if (ref.current) ref.current.textContent = fmtSecs(calc());
-    if (!live?.timerRunning) return;
-    const id = setInterval(() => {
-      if (ref.current) ref.current.textContent = fmtSecs(calc());
-    }, 1000);
-    return () => clearInterval(id);
-  },[live?.timerRunning, live?.timerLastStarted, live?.timerSecs, timerMod?.config?.mode]);
+
+    const update = () => {
+      if (!ref.current) return;
+      const seconds = calc();
+      if (seconds === -1) {
+        ref.current.textContent = "FINISHED";
+        ref.current.style.opacity = "0.5";
+      } else {
+        ref.current.textContent = fmtSecs(seconds);
+        ref.current.style.opacity = "1";
+      }
+    };
+
+    update();
+
+    if (live?.timerRunning || (isDeadline && live?.timerTarget)) {
+      const id = setInterval(update, 1000);
+      return () => clearInterval(id);
+    }
+  },[live?.timerRunning, live?.timerLastStarted, live?.timerSecs, live?.timerTarget, timerMod?.config?.mode]);
 }
 
 function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }: { inst: any; size?: string }) {
@@ -173,14 +197,12 @@ function FinishTime({ live, match }: { live: any; match: any }) {
   }
   return (
     <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-      <div style={{ width: "calc(260px * var(--s))", display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
         {log.map((e: any, i: number) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "calc(12px * var(--s))" }}>
-            <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 700, minWidth: 0 }}>
-              <span style={{ opacity: 0.4, fontSize: "calc(11px * var(--s))", fontWeight: 700, marginRight: "calc(5px * var(--s))" }}>{i + 1}</span>
-              {e.name}
-            </span>
-            <span style={{ ...JK, fontSize: "calc(13px * var(--s))", opacity: 0.6, flexShrink: 0 }}>{e.time}</span>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))" }}>
+            <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 800, width: "calc(18px * var(--s))", textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
+            <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "calc(120px * var(--s))" }}>{e.name}</span>
+            <span style={{ ...JK, fontSize: "calc(13px * var(--s))", opacity: 0.6, flexShrink: 0, marginLeft: "calc(8px * var(--s))" }}>{e.time}</span>
           </div>
         ))}
       </div>
@@ -195,11 +217,11 @@ function ManualPick({ live, match }: { live: any; match: any }) {
   if (rankings.length > 0) {
     return (
       <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "calc(5px * var(--s))" }}>
           {rankings.map((r: any) => (
-            <div key={r.rank} style={{ display: "flex", alignItems: "baseline", gap: "calc(8px * var(--s))" }}>
-              <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 800 }}>#{r.rank}</span>
-              <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600 }}>{r.name}</span>
+            <div key={r.rank} style={{ display: "flex", alignItems: "center", gap: "calc(8px * var(--s))" }}>
+              <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 800, width: "calc(18px * var(--s))", textAlign: "right", flexShrink: 0 }}>#{r.rank}</span>
+              <span style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "calc(180px * var(--s))" }}>{r.name}</span>
             </div>
           ))}
         </div>
@@ -242,16 +264,18 @@ function OpenParticipants({ match }: { match: any }) {
   const rest  = entries.length - shown.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "calc(3px * var(--s))", alignItems: "center" }}>
-      {shown.map((p: any, i: number) => (
-        <div key={p?.id ?? i} style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, display: "flex", alignItems: "center", gap: "calc(6px * var(--s))" }}>
-          <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 700, width: "calc(14px * var(--s))", textAlign: "right" }}>{i + 1}</span>
-          <span style={{ opacity: 0.9 }}>{p?.name ?? "?"}</span>
-        </div>
-      ))}
-      {rest > 0 && (
-        <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.5, marginTop: "calc(2px * var(--s))" }}>+{rest} more competing...</div>
-      )}
+    <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "calc(3px * var(--s))" }}>
+        {shown.map((p: any, i: number) => (
+          <div key={p?.id ?? i} style={{ ...JK, fontSize: "calc(13px * var(--s))", fontWeight: 600, display: "flex", alignItems: "center", gap: "calc(6px * var(--s))" }}>
+            <span style={{ opacity: 0.5, fontSize: "calc(11px * var(--s))", fontWeight: 700, width: "calc(14px * var(--s))", textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
+            <span style={{ opacity: 0.9, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "calc(180px * var(--s))" }}>{p?.name ?? "?"}</span>
+          </div>
+        ))}
+        {rest > 0 && (
+          <div style={{ ...JK, fontSize: "calc(12px * var(--s))", fontWeight: 600, opacity: 0.5, marginTop: "calc(2px * var(--s))", textAlign: "center" }}>+{rest} more competing...</div>
+        )}
+      </div>
     </div>
   );
 }
@@ -408,26 +432,40 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
             </div>
           )}
 
-          {(isSolo || isOpen) && (
-            <div style={{ textAlign: "center" }}>
-              {isOpen && (
-                <div style={{ ...BB, fontSize: "calc(36px * var(--s))", marginBottom: "calc(10px * var(--s))", letterSpacing: 2 }}>
-                  {timerMod ? (
-                    <span ref={openTimerRef}>00:00:00</span>
-                  ) : (
-                    <span style={{ opacity: 0.15 }}>--:--:--</span>
-                  )}
+          {isSolo && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))", width: "100%" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+                <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
+                <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4, textAlign: "center", width: "100%", lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
+                  {match.home_participant?.name?.replace(" ", "\n") ?? "?"}
                 </div>
-              )}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(24px * var(--s))" }}>
-                {isSolo && (
-                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
-                     <InstitutionLogo inst={match.home_participant?.institution} size="calc(56px * var(--s))" />
-                     <div style={{ ...JK, fontWeight: 700, fontSize: "calc(14px * var(--s))", marginTop: 4 }}>
-                       {match.home_participant?.name ?? "?"}
-                     </div>
-                   </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "center", flexShrink: 0 }}>
+                <ScoreSection fmt={fmt} live={live} match={match} />
+              </div>
+            </div>
+          )}
+
+          {isOpen && (
+            <div style={{ textAlign: "center", width: "100%" }}>
+              <div style={{ ...BB, marginBottom: "calc(10px * var(--s))", letterSpacing: 2 }}>
+                {timerMod ? (
+                  <div style={{ fontSize: "calc(36px * var(--s))" }}>
+                    <span ref={openTimerRef}>00:00:00</span>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 0, lineHeight: 1 }}>
+                     <span style={{ fontSize: "calc(20px * var(--s))", opacity: 0.8 }}>
+                       {match.scheduled_at ? new Date(match.scheduled_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }).toUpperCase() : "NO DATE"}
+                     </span>
+                     <span style={{ fontSize: "calc(14px * var(--s))", opacity: 0.4 }}>
+                       {match.scheduled_at ? new Date(match.scheduled_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) : "--:--"}
+                     </span>
+                  </div>
                 )}
+              </div>
+              <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
                 <ScoreSection fmt={fmt} live={live} match={match} />
               </div>
             </div>

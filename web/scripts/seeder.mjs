@@ -15,6 +15,9 @@ import {
 // CONFIGURATION
 // ==========================================
 const ADMIN_TOKEN = 'ECH98IbvMYhkTbPM2sYWKsjeib3Bpgo2';
+const UNSPLASH_KEY = 'tanya-gilang';
+// ^ Get a free key at https://unsplash.com/developers (instant approval, 50 req/hr)
+// Usage: UNSPLASH_KEY=your_access_key node scripts/seeder.mjs
 const client = createDirectus('http://localhost:6767').with(rest()).with(staticToken(ADMIN_TOKEN));
 
 // ==========================================
@@ -86,6 +89,169 @@ async function seedInstitutions(eventId, count = 8) {
   }
   return ids;
 }
+
+// ==========================================
+// HELPER: IMPORT A REMOTE IMAGE INTO DIRECTUS
+// ==========================================
+// importImageFromUrl(keyword, title)
+// keyword  — plain-text search term, e.g. "karate kumite competition"
+// Requires: UNSPLASH_KEY env var (free at https://unsplash.com/developers)
+// Architecture: Node.js fetches image (internet access), uploads binary to
+//   Directus /files — Directus never makes outbound HTTP calls itself.
+async function importImageFromUrl(keyword, title) {
+  try {
+    if (!UNSPLASH_KEY) {
+      throw new Error('Set UNSPLASH_KEY env var. Free key at https://unsplash.com/developers');
+    }
+
+    // Step 1 — ask Unsplash API for a relevant landscape photo (retry once on rate-limit)
+    process.stdout.write(`   ⏳ "${title}"... `);
+    let apiRes;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      apiRes = await fetch(
+        'https://api.unsplash.com/photos/random?' +
+        `query=${encodeURIComponent(keyword)}&orientation=landscape&client_id=${UNSPLASH_KEY}`,
+      );
+      if (apiRes.status !== 403) break;
+      process.stdout.write('rate limited, waiting 62s... ');
+      await sleep(62000);
+    }
+    if (!apiRes.ok) {
+      const body = await apiRes.text();
+      throw new Error(`Unsplash API ${apiRes.status}: ${body}`);
+    }
+    const photo = await apiRes.json();
+    // Use raw URL with explicit size/crop params so we always get ≥1080p
+    const imageUrl = `${photo.urls.raw}&w=1920&h=1080&fit=crop&q=85`;
+
+    // Step 2 — fetch the actual image binary in this Node.js process
+    const imgRes = await fetch(imageUrl, { redirect: 'follow' });
+    if (!imgRes.ok) throw new Error(`Image fetch ${imgRes.status}: ${imageUrl}`);
+    const buffer = await imgRes.arrayBuffer();
+    const mime   = imgRes.headers.get('content-type') ?? 'image/jpeg';
+    const ext    = mime.includes('png') ? 'png' : 'jpg';
+    const name   = title.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 60);
+
+    // Step 3 — upload binary to Directus as multipart (local call, no outbound)
+    const form = new FormData();
+    form.append('title', title);
+    form.append('file', new Blob([buffer], { type: mime }), `${name}.${ext}`);
+
+    const upRes = await fetch('http://localhost:6767/files', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+      body: form,
+    });
+    if (!upRes.ok) throw new Error(`Upload ${upRes.status}: ${await upRes.text()}`);
+    const result = await upRes.json();
+    process.stdout.write('✅\n');
+    return result.data?.id ?? null;
+  } catch (err) {
+    console.warn(`⚠️  failed: ${err.message}`);
+    return null;
+  }
+}
+
+// Attach thumbnails to a batch of news items by index order.
+// Pass null in the imageUrls array to skip a specific item (e.g. drafts).
+async function attachThumbnails(newsItems, imageUrls) {
+  if (!newsItems?.length) return;
+  for (let i = 0; i < newsItems.length; i++) {
+    const url = imageUrls?.[i];
+    if (!url || !newsItems[i]?.id) continue;
+    const imgId = await importImageFromUrl(url, newsItems[i]?.title ?? `news-thumbnail-${i}`);
+    if (imgId) await client.request(updateItem('news', newsItems[i].id, { thumbnail: imgId }));
+    await sleep(400); // avoid hammering the import endpoint
+  }
+}
+
+// ==========================================
+// CURATED IMAGE URLs — Unsplash (>= 1920×1080, topic-specific, no duplicates)
+// Each URL uses a unique keyword combination to guarantee distinct photos.
+// ==========================================
+// Image keywords — passed to Unsplash API (UNSPLASH_KEY required).
+// Each string is a search query; Unsplash returns a genuinely relevant photo.
+// Use specific, descriptive terms for best results.
+const EVENT_IMAGES = {
+  karate:    'karate kumite competition tournament fighters',
+  badminton: 'badminton shuttlecock indoor court smash',
+  marathon:  'marathon running race crowd city street',
+  hackathon: 'hackathon coding laptop programming team',
+  futsal:    'futsal indoor football soccer goal',
+  artfest:   'concert stage performing arts spotlight music',
+};
+
+// Hardcoded news thumbnails keyed by article slug
+const NEWS_IMAGES = {
+  // E1 — Karate
+  'e1-n1': 'karate tournament ceremony sport arena',
+  'e1-n2': 'martial arts kata championship arena performance',
+  'e1-n3': 'martial arts rivalry duel fighter face off',
+  'e1-n4': 'sports scoreboard arena schedule announcement',
+  // E2 — Badminton
+  'e2-n1': 'badminton smash racket speed motion blur',
+  'e2-n2': 'sports crowd audience cheering stadium indoor',
+  'e2-n3': 'badminton court match quarterfinal rally',
+  // E3 — Marathon
+  'e3-n1': 'marathon running finish line race',
+  'e3-n2': 'running eco green campus nature trail',
+  // E4 — Hackathon
+  'e4-n1': 'hackathon coding university students team',
+  'e4-n2': 'programmer coding at night laptop deadline stress',
+  'e4-n3': 'winners trophy team celebration technology',
+  // E5 — Futsal
+  'e5-n1': 'futsal team indoor sport registration group',
+  'e5-n2': 'sports bracket tournament draw group stage board',
+  // E6 — Art Festival
+  'e6-n1': 'concert hall stage lighting grand venue setup',
+  'e6-n2': 'singer solo vocal microphone spotlight performance',
+  'e6-n3': 'academic paper research presentation podium',
+  'e6-n4': 'traditional dance cultural costume stage Indonesia',
+  // Global
+  'platform-launch': 'digital platform technology app launch innovation',
+};
+
+// Dynamic-news image pools — keyword variety prevents visually duplicate photos.
+const DYNAMIC_IMAGE_POOLS = {
+  Karate: [
+    'karate dojo discipline training Japan',
+    'martial arts athlete sparring training gloves',
+    'karate sparring kumite match attack',
+    'combat sport fighter arena championship',
+    'karate belt championship medal ceremony',
+    'martial arts kick technique action',
+    'sport athlete podium trophy victory',
+    'karate uniform tatami mat dojo',
+    'martial arts focus concentration stance',
+    'sports competition hall arena crowd',
+    'trophy ceremony gold medal award sport',
+  ],
+  Badminton: [
+    'badminton racket net indoor game',
+    'indoor racket sport athlete competition',
+    'badminton court rally match play',
+    'racket sport championship player tournament',
+    'sports gymnasium match tournament hall',
+    'badminton serve player court',
+    'sports hall crowd fans cheering event',
+    'athlete training indoor sports hall equipment',
+    'shuttlecock net badminton action',
+  ],
+  Marathon: [
+    'running road athlete early morning dawn',
+    'marathon city race event runners',
+    'runner trail endurance stamina nature',
+    'athletics track competition sprint',
+    'running sunrise park exercise sport',
+    'marathon crowd street race spectators',
+    'running fitness athlete road race',
+  ],
+  Hacktoday: [
+    'programming code screen developer computer',
+    'technology startup team office innovation',
+    'digital innovation agritech smart farming',
+  ],
+};
 
 // ==========================================
 // HELPER: TRIGGER DENORMALIZATION
@@ -245,6 +411,7 @@ async function seed() {
     // Matches: every status + cancelled + draw
     // ====================================================================
     console.log('🥋 [1/6] FORKI × IPB CUP 2026 — Karate...');
+    const e1Img = await importImageFromUrl(EVENT_IMAGES.karate, 'FORKI × IPB CUP 2026');
     const e1 = await client.request(createItem('events', {
       user_created: myId,
       name: 'FORKI × IPB CUP 2026',
@@ -267,6 +434,7 @@ Tahun ini, penyelenggara menghadirkan inovasi besar dengan menerapkan sistem pen
 
 Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pameran perlengkapan olahraga, dan sesi temu sapa dengan legenda karate nasional, menjadikannya festival seni bela diri yang komprehensif bagi seluruh partisipan dan penonton.`,
       contact_person: JSON.stringify({ name: 'Ahmad Fauzi', phone: '081234567890', email: 'karate@ipb.ac.id' }),
+      card_image: e1Img, banner_image: e1Img,
     }));
 
     await client.request(createItems('event_phases',[
@@ -512,7 +680,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
     // Edge: category exists but has 0 matches (c1_unassigned) — tests empty state
 
     // News for E1
-    await client.request(createItems('news', [
+    const e1News = await client.request(createItems('news', [
       {
         author_id: myId, event_id: e1.id, category: 'announcement', is_published: true,
         published_at: offsetDays(-3), title: 'FORKI × IPB Cup 2026 Resmi Dibuka — Sistem Penjurian Elektronik WKF Diaktifkan',
@@ -549,6 +717,10 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
         content: 'Draft artikel tentang rencana ekspansi kategori untuk edisi 2027.',
       },
     ]));
+    await attachThumbnails(e1News, [
+      NEWS_IMAGES['e1-n1'], NEWS_IMAGES['e1-n2'], NEWS_IMAGES['e1-n3'], NEWS_IMAGES['e1-n4'],
+      null, // e1-n5-draft — unpublished, no thumbnail needed
+    ]);
 
     // ====================================================================
     // EVENT 2: IPB BADMINTON CUP 2026
@@ -557,6 +729,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
     // Matches: full bracket including exhausted countdown edge case
     // ====================================================================
     console.log('🏸 [2/6] IPB BADMINTON CUP 2026...');
+    const e2Img = await importImageFromUrl(EVENT_IMAGES.badminton, 'IPB Badminton Cup 2026');
     const e2 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IPB BADMINTON CUP 2026',
@@ -578,6 +751,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
 Selain memperebutkan piala bergilir dan total hadiah puluhan juta rupiah, kompetisi yang kini memasuki tahun ke-8 penyelenggaraannya ini bertujuan kuat untuk membina semangat sportivitas, mental juara, serta mempererat tali persaudaraan antar mahasiswa melalui olahraga. 
 
 Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Badminton Cup tahun ini diproyeksikan menghadirkan atmosfer tribun yang riuh dan ikonik, menjadikannya salah satu turnamen kampus yang paling dinantikan di wilayah Jabodetabek.`,
+      card_image: e2Img, banner_image: e2Img,
     }));
 
     await client.request(createItems('event_phases',[
@@ -719,7 +893,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       }));
     }
 
-    await client.request(createItems('news', [
+    const e2News = await client.request(createItems('news', [
       {
         author_id: myId, event_id: e2.id, category: 'news', is_published: true,
         published_at: offsetDays(-2), title: 'Rekor Smash 320km/jam Terpecahkan di GOR IPB',
@@ -742,6 +916,9 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
         content: 'Babak perempat final IPB Badminton Cup 2026 menorehkan dua kejutan besar. Unggulan ke-3 dan ke-5 harus pulang lebih cepat setelah dikalahkan oleh pemain tak diunggulkan dari PTN luar Jawa.\n\nKekalahan unggulan ke-3 adalah yang paling mengejutkan — ia dikalahkan straight set 21-15, 21-18 dalam waktu kurang dari 40 menit oleh pemain asal Universitas Brawijaya yang baru pertama kali mengikuti turnamen ini.',
       },
     ]));
+    await attachThumbnails(e2News, [
+      NEWS_IMAGES['e2-n1'], NEWS_IMAGES['e2-n2'], NEWS_IMAGES['e2-n3'],
+    ]);
 
     // ====================================================================
     // EVENT 3: IPB BERLARI 2026 — MARATHON
@@ -749,6 +926,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
     // Participants: 20 (21K), 20 (10K), 10 (5K), 6 relay teams
     // ====================================================================
     console.log('🏃 [3/6] IPB BERLARI 2026 — Marathon...');
+    const e3Img = await importImageFromUrl(EVENT_IMAGES.marathon, 'IPB Berlari 2026');
     const e3 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IPB BERLARI 2026',
@@ -770,6 +948,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
 Rute lari dirancang secara khusus untuk menantang sekaligus memanjakan mata, membentang dari jalan aspal berbukit di sekitar rektorat hingga jalur lintasan teduh yang menembus kawasan konservasi Hutan Penelitian Dramaga. Kontur elevasi yang bervariasi menjadikan rute ini ujian yang sempurna, bahkan bagi pelari berpengalaman.
 
 Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedoman Zero-Waste secara ketat. Seluruh titik water station diwajibkan memfasilitasi pengisian ulang botol pribadi (tumbler), tanpa ada satupun penggunaan gelas plastik sekali pakai di sepanjang lintasan maupun area festival.`,
+      card_image: e3Img, banner_image: e3Img,
     }));
 
     await client.request(createItems('event_phases',[
@@ -905,7 +1084,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     await client.request(createItems('match_participants', p3_relay.map((r, i) => ({ match_id: m3_relay.id, participant_id: r.id, position: i + 1 }))));
     denormQueue.push(m3_relay.id);
 
-    await client.request(createItems('news', [
+    const e3News = await client.request(createItems('news', [
       {
         author_id: myId, event_id: e3.id, category: 'result', is_published: true,
         published_at: offsetDays(-7), title: 'IPB Berlari 2026 Sukses Besar — Rekor Lintasan Terpecahkan!',
@@ -921,6 +1100,9 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
         content: 'Sejalan dengan visi Green Campus IPB, panitia IPB Berlari 2026 memberlakukan aturan Zero-Waste secara ketat. Seluruh 12 titik water station menggunakan tumbler yang bisa diisi ulang, melarang sama sekali gelas plastik sekali pakai.\n\nTim Sweeper yang berjalan di belakang peserta terakhir melaporkan: jalur sepanjang 21 kilometer bersih tanpa satupun sampah plastik yang tercecer. Pencapaian ini langsung mendapat apresiasi tertulis dari Dinas Lingkungan Hidup Kota Bogor dan dijadikan contoh best practice untuk penyelenggara event outdoor lainnya.',
       },
     ]));
+    await attachThumbnails(e3News, [
+      NEWS_IMAGES['e3-n1'], NEWS_IMAGES['e3-n2'],
+    ]);
 
     // ====================================================================
     // EVENT 4: IT-TODAY HACKTODAY 2026 — HACKATHON
@@ -928,6 +1110,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     // Participants: 10 tim per kategori, 3 kategori
     // ====================================================================
     console.log('💻 [4/6] IT-TODAY HACKTODAY 2026 — Hackathon...');
+    const e4Img = await importImageFromUrl(EVENT_IMAGES.hackathon, 'IT-TODAY Hacktoday 2026');
     const e4 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IT-TODAY HACKTODAY 2026',
@@ -949,6 +1132,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
 Peserta akan dikarantina dan ditantang untuk membangun solusi berbasis teknologi tingkat tinggi seperti kecerdasan buatan (AI), Internet of Things (IoT), dan teknologi Web3 dalam batas waktu 24 jam non-stop. Solusi yang dirancang harus menyasar secara langsung pada masalah-masalah riil di sektor ketahanan pangan, pertanian presisi, dan rantai pasok agrikultur nasional.
 
 Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 adalah inkubator inovasi, di mana prototipe terbaik akan dievaluasi langsung oleh panel juri yang terdiri dari akademisi senior, pemodal ventura, dan praktisi industri teknologi terkemuka yang siap mendukung pendanaan tahap awal.`,
+      card_image: e4Img, banner_image: e4Img,
     }));
 
     await client.request(createItems('event_phases',[
@@ -1058,7 +1242,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     await client.request(createItems('match_participants', p4_ctf.map((p, i) => ({ match_id: m4_ctf.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m4_ctf.id);
 
-    await client.request(createItems('news', [
+    const e4News = await client.request(createItems('news', [
       {
         author_id: myId, event_id: e4.id, category: 'announcement', is_published: true,
         published_at: offsetDays(-5), title: 'IT-TODAY Hacktoday 2026 Dimulai — Tema "Digital Agriculture 4.0" Diumumkan',
@@ -1081,6 +1265,9 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
         content: 'Panel juri yang terdiri dari perwakilan perusahaan teknologi terkemuka telah menyelesaikan sesi penilaian. Keputusan akhir diumumkan dalam suasana yang penuh ketegangan.\n\nDi kategori AI × AgriTech, solusi peringkat pertama berhasil memenangkan persaingan ketat berkat pendekatan inovatif menggabungkan large language model dengan data sensor lapangan untuk memberikan rekomendasi pemupukan yang presisi. Di kategori IoT, solusi smart greenhouse yang dapat beradaptasi otomatis terhadap kondisi cuaca ekstrem menjadi favorit juri.\n\nTotal hadiah senilai 100 juta rupiah telah diserahkan langsung oleh Rektor IPB University dalam Awarding Ceremony yang meriah.',
       },
     ]));
+    await attachThumbnails(e4News, [
+      NEWS_IMAGES['e4-n1'], NEWS_IMAGES['e4-n2'], NEWS_IMAGES['e4-n3'],
+    ]);
 
     // ====================================================================
     // EVENT 5: IPB FUTSAL CUP 2026
@@ -1089,6 +1276,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     // Participants: 8 tim, grup stage sepenuhnya upcoming
     // ====================================================================
     console.log('⚽ [5/6] IPB FUTSAL CUP 2026 — Upcoming with open registration...');
+    const e5Img = await importImageFromUrl(EVENT_IMAGES.futsal, 'IPB Futsal Cup 2026');
     const e5 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IPB FUTSAL CUP 2026',
@@ -1110,6 +1298,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
 Selama 11 hari penuh, GOR Futsal IPB akan menjadi arena pertempuran sengit bagi puluhan tim perwakilan fakultas dan universitas undangan, memperebutkan supremasi tertinggi serta piala rektor. Format pertandingan dibagi menjadi fase grup yang penuh kalkulasi poin, berlanjut ke sistem gugur yang menegangkan.
 
 Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atlet, melainkan juga pada euforia dan kreativitas dari ribuan suporter di tribun. Kolaborasi antara pertandingan intens di lapangan dan gemuruh nyanyian (chants) suporter menciptakan sebuah festival olahraga yang benar-benar epik.`,
+      card_image: e5Img, banner_image: e5Img,
     }));
 
     await client.request(createItems('event_phases',[
@@ -1198,7 +1387,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
       }));
     }
 
-    await client.request(createItems('news', [
+    const e5News = await client.request(createItems('news', [
       {
         author_id: myId, event_id: e5.id, category: 'announcement', is_published: true,
         published_at: offsetDays(-3), title: 'Registrasi IPB Futsal Cup 2026 Dibuka — Kuota Terbatas!',
@@ -1214,6 +1403,9 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
         content: 'Drawing fase grup IPB Futsal Cup 2026 yang digelar kemarin sore menghasilkan komposisi grup yang sangat menarik. Grup A dihuni oleh tiga tim yang menjadi unggulan utama berdasarkan performa musim lalu, menjadikannya grup paling kompetitif dan sulit diprediksi.\n\nSementara Grup B tampak lebih terbuka, namun jangan meremehkan tim-tim di sini. Tahun lalu, juaranya justru berasal dari posisi runner-up di grup yang dianggap lebih mudah.\n\nTechnical Meeting akan diselenggarakan H-3 sebelum turnamen dimulai untuk konfirmasi skuad final dan sosialisasi peraturan terbaru.',
       },
     ]));
+    await attachThumbnails(e5News, [
+      NEWS_IMAGES['e5-n1'], NEWS_IMAGES['e5-n2'],
+    ]);
 
     // ====================================================================
     // EVENT 6: IPB ART FESTIVAL 2026
@@ -1222,6 +1414,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
     // Status: active, is_published, all phases
     // ====================================================================
     console.log('🎤 [6/6] IPB ART FESTIVAL 2026 — Arts...');
+    const e6Img = await importImageFromUrl(EVENT_IMAGES.artfest, 'IPB Art Festival 2026');
     const e6 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IPB ART FESTIVAL 2026',
@@ -1243,6 +1436,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
 Mulai dari seni pertunjukan yang memukau seperti vokal solo dan kompetisi tari, hingga karya cipta yang mendalam berupa pameran seni rupa digital dan simposium karya tulis ilmiah, seluruh agenda dirancang untuk mentransformasi gedung kampus menjadi pusat kebudayaan kontemporer yang inklusif.
 
 Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser profesional bertaraf internasional. Berbekal tata cahaya dinamis dan sistem suara termutakhir, panitia berdedikasi memberikan panggung megah bagi para seniman muda agar dapat mempersembahkan karya terbaik mereka kepada khalayak luas.`,
+      card_image: e6Img, banner_image: e6Img,
     }));
 
     await client.request(createItems('event_phases',[
@@ -1433,7 +1627,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     await client.request(createItems('match_participants', visualParticipants.map((p, i) => ({ match_id: m6_visual.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m6_visual.id);
 
-    await client.request(createItems('news', [
+    const e6News = await client.request(createItems('news', [
       {
         author_id: myId, event_id: e6.id, category: 'news', is_published: true,
         published_at: offsetDays(-2), title: 'GWW Berubah Menjadi Concert Hall Bertaraf Internasional',
@@ -1463,11 +1657,14 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
         content: 'Kompetisi Tari Tradisional memasuki babak yang semakin panas. Penampil ke-5 yang membawakan tari tradisional dari daerahnya dengan kostum yang sangat autentik dan gerakan yang sangat presisi berhasil merebut skor tertinggi sementara dari panel lima juri.\n\nDua dari lima juri bahkan memberikan skor sempurna untuk aspek keaslian budaya dan ketepatan gerak. "Saya sangat terkesan dengan kedalaman pemahaman budayanya. Ini bukan sekadar meniru gerakan — ia benar-benar menghayati jiwa tarian ini," ujar juri senior.',
       },
     ]));
+    await attachThumbnails(e6News, [
+      NEWS_IMAGES['e6-n1'], NEWS_IMAGES['e6-n2'], NEWS_IMAGES['e6-n3'], NEWS_IMAGES['e6-n4'],
+    ]);
 
     // ====================================================================
     // BONUS: GLOBAL PLATFORM NEWS (event_id = null) — edge case
     // ====================================================================
-    await client.request(createItems('news', [
+    const globalNews = await client.request(createItems('news', [
       {
         author_id: myId, event_id: e1.id, category: 'announcement', is_published: true,
         published_at: offsetDays(-10),
@@ -1485,6 +1682,10 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
         content: 'Draft berisi rencana fitur bracket generator, notifikasi push, dan integrasi single sign-on.',
       },
     ]));
+    await attachThumbnails(globalNews, [
+      NEWS_IMAGES['platform-launch'],
+      null, // draft — no thumbnail
+    ]);
 
     // ====================================================================
     // DYNAMIC NEWS ADJUSTMENT (Force exact counts: 0, 3, 6, 9, 12, 15)
@@ -1492,12 +1693,12 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     console.log('📰 Adjusting news counts per event...');
     
     const newsTargets =[
-      { eId: e5.id, count: 0, prefix: 'Futsal' },
-      { eId: e6.id, count: 3, prefix: 'ArtFest' },
-      { eId: e4.id, count: 6, prefix: 'Hacktoday' },
-      { eId: e3.id, count: 9, prefix: 'Marathon' },
-      { eId: e2.id, count: 12, prefix: 'Badminton' },
-      { eId: e1.id, count: 15, prefix: 'Karate' },
+      { eId: e5.id, count: 0, prefix: 'Futsal',    poolKey: 'Futsal' },
+      { eId: e6.id, count: 3, prefix: 'ArtFest',   poolKey: 'ArtFest' },
+      { eId: e4.id, count: 6, prefix: 'Hacktoday', poolKey: 'Hacktoday' },
+      { eId: e3.id, count: 9, prefix: 'Marathon',  poolKey: 'Marathon' },
+      { eId: e2.id, count: 12, prefix: 'Badminton', poolKey: 'Badminton' },
+      { eId: e1.id, count: 15, prefix: 'Karate',   poolKey: 'Karate' },
     ];
     
     for (const target of newsTargets) {
@@ -1525,6 +1726,19 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
           });
         }
         await client.request(createItems('news', newItems));
+        // Attach thumbnails to the padded items using the sport-specific pool
+        const pool = DYNAMIC_IMAGE_POOLS[target.poolKey] ?? DYNAMIC_IMAGE_POOLS['Karate'];
+        const freshItems = await client.request(readItems('news', {
+          filter: { event_id: { _eq: target.eId } },
+          sort: ['-created_at'],
+          limit: needed,
+        }));
+        for (let i = 0; i < freshItems.length; i++) {
+          const imgUrl = pool[i % pool.length];
+          const imgId = await importImageFromUrl(imgUrl, freshItems[i].title ?? `dynamic-news-${i}`);
+          if (imgId) await client.request(updateItem('news', freshItems[i].id, { thumbnail: imgId }));
+          await sleep(400);
+        }
       }
     }
 

@@ -6,6 +6,13 @@
 
 ## Updates
 
+### 2026-04-17
+
+**Penambahan mode `deadline` pada module `timer`**
+Untuk event yang berlangsung lama (seperti Hackathon atau Game Jam), module `timer` sekarang mendukung `mode: "deadline"`. Alih-alih menghitung detik dari backend, module ini membaca `timerTarget` (ISO Timestamp) dari `live_state` JSON dan frontend akan menghitung mundur sisa hari/jam/menit secara pasif. Tidak ada perubahan struktur tabel DB, semua murni via JSON `live_state`.
+
+---
+
 ### 2026-04-05
 
 **Koreksi field `logo` pada tabel `institutions` dan semua query yang mereferensikannya.**
@@ -540,7 +547,7 @@ Array JSONB. Elemen pertama selalu scoring engine (tepat satu). Add-on opsional 
 
 **`timer` (add-on)** — hanya untuk `score_timed`, `score_sets`, `finish_time`, dan `open`
 ```json
-{ "mode": "countdown", "duration": 180 }
+{ "mode": "countdown | stopwatch | deadline", "duration": 180 } // Catatan: duration diabaikan jika mode adalah deadline.
 ```
 
 **`notes` (add-on)** — untuk semua engine
@@ -770,6 +777,7 @@ CREATE TABLE app_settings (
   "notes": "",
 
   "timerSecs": 180,
+  "timerTarget": "2026-04-18T10:00:00Z",
   "timerLastStarted": null,
   "timerRunning": false,
   "timerFlags": [],
