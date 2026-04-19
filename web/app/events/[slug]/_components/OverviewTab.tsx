@@ -171,9 +171,10 @@ interface Props {
   event:    any;
   isMobile: boolean;
   phase:    AnimPhase;
+  onTabChange: (t: any) => void; 
 }
 
-export default function OverviewTab({ event, isMobile, phase }: Props) {
+export default function OverviewTab({ event, isMobile, phase, onTabChange }: Props) {
   const [anchorHeight,    setAnchorHeight]    = useState(0);
   const [countdownHeight, setCountdownHeight] = useState(0);
   const [upRowH,          setUpRowH]          = useState(ROW_H_DEFAULT);
@@ -387,6 +388,7 @@ export default function OverviewTab({ event, isMobile, phase }: Props) {
             news={event.news}
             eventSlug={event.slug}
             isMobile={isMobile}
+            onTabChange={onTabChange}
           />
         </div>
       )}

@@ -125,7 +125,7 @@ export default function EventDetailClient({ event }: { event: any }) {
             <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>
               <TabContentShell isExiting={isExiting}>
                 {displayedTab === "overview" && (
-                  <OverviewTab event={event} isMobile={isMobile} phase={phase} />
+                  <OverviewTab event={event} isMobile={isMobile} phase={phase} onTabChange={setTab} />
                 )}
                 {displayedTab === "matches" && (
                   <MatchesTab event={event} isMobile={isMobile} phase={phase} />

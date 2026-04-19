@@ -58,10 +58,12 @@ export default function LatestStoriesSection({
   news = [],
   eventSlug,
   isMobile,
+  onTabChange,
 }: {
   news: any[];
   eventSlug: string;
   isMobile: boolean;
+  onTabChange?: (t: "news") => void;
 }) {
   // Limit to 4 items for the "Latest" row
   const displayNews = news.slice(0, 4);
@@ -90,7 +92,7 @@ export default function LatestStoriesSection({
         <Button
           variant="header-outline"
           size="sm"
-          href={`/news?event=${eventSlug}`}
+          onClick={() => onTabChange?.("news")} 
           showShadow={false}
         >
           Read More News!
