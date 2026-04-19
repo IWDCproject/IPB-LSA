@@ -75,7 +75,7 @@ export default function EventDetailClient({ event }: { event: any }) {
       >
         {/* Batik pattern overlay */}
         <div style={{
-          position: "absolute", top: -100, left: 0, right: 0, height: 1200,
+          position: "absolute", top: -100, left: 0, right: 0, height: "100%", maxHeight: 1200,
           backgroundImage: "url(/Batik_Pattern_dark.svg)", opacity: 0.4,
           pointerEvents: "none", backgroundSize: "1400px auto",
           backgroundRepeat: "repeat-x", backgroundPosition: "top center",
@@ -102,47 +102,45 @@ export default function EventDetailClient({ event }: { event: any }) {
           </div>
         )}
 
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <EventDetailHeader
-            event={event}
-            activeTab={activeTab}        // header always tracks real active tab for button highlight
-            onTabChange={setTab}
-            isMobile={isMobile}
-          />
+        <div style={{ 
+          position: "relative", 
+          zIndex: 1, 
+          display: "flex", 
+          flexDirection: "column", 
+          minHeight: "100vh" 
+        }}>
+          <div style={{ flex: 1 }}>
+            <EventDetailHeader
+              event={event}
+              activeTab={activeTab}
+              onTabChange={setTab}
+              isMobile={isMobile}
+            />
 
-          <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>
-            {/*
-              TabContentShell applies the exit-fade to the outgoing tab.
-              Inside, each tab drives its own internal stagger via `phase`.
-
-              We render based on `displayedTab` (not `activeTab`) so the
-              old tab stays in the DOM during its exit fade.
-
-              When adding new tabs (Matches, Participants), follow this pattern:
-                {displayedTab === "matches" && (
-                  <MatchesTab phase={phase} event={event} isMobile={isMobile} />
+            <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>
+              <TabContentShell isExiting={isExiting}>
+                {displayedTab === "overview" && (
+                  <OverviewTab event={event} isMobile={isMobile} phase={phase} />
                 )}
-            */}
-            <TabContentShell isExiting={isExiting}>
-              {displayedTab === "overview" && (
-                <OverviewTab event={event} isMobile={isMobile} phase={phase} />
-              )}
-              {displayedTab === "matches" && (
-                <MatchesTab event={event} isMobile={isMobile} phase={phase} />
-              )}
-              {displayedTab === "participants" && (
-                <Shell label="Participants" />
-              )}
-              {displayedTab === "news" && (
-                <NewsTab event={event} isMobile={isMobile} phase={phase} />
-              )}
-            </TabContentShell>
-          </div>
+                {displayedTab === "matches" && (
+                  <MatchesTab event={event} isMobile={isMobile} phase={phase} />
+                )}
+                {displayedTab === "participants" && (
+                  <Shell label="Participants" />
+                )}
+                {displayedTab === "news" && (
+                  <NewsTab event={event} isMobile={isMobile} phase={phase} />
+                )}
+              </TabContentShell>
+            </div>
 
-          <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}>
-            <UniversityMarquee />
+            <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}>
+              <UniversityMarquee />
+            </div>
+            <div style={{ height: 120 }} />
           </div>
-          <div style={{ height: 120 }} />
+          
+          {/* Footer is now pushed to the bottom by the flex: 1 container above */}
           <Footer />
         </div>
       </div>
