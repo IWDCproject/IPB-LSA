@@ -36,9 +36,9 @@ function SkeletonRows({ isMobile }: { isMobile: boolean }) {
             <div style={{ flex: 1, height: 1, background: BORDER }} />
             <div style={{ width: 80, height: 13, background: "#E5E7EB", borderRadius: 4 }} />
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(auto-fill, minmax(150px, 1fr))" : "repeat(auto-fill, minmax(210px, 1fr))", gap: isMobile ? 8 : 12 }}>
             {Array.from({ length: n }).map((_, i) => (
-              <div key={i} style={{ width: isMobile ? "calc(50% - 4px)" : 210, height: 58, borderRadius: 10, background: "#F3F4F6", border: `1.5px solid ${BORDER}` }} />
+              <div key={i} style={{ height: 58, borderRadius: 10, background: "#F3F4F6", border: `1.5px solid ${BORDER}` }} />
             ))}
           </div>
         </div>
@@ -54,11 +54,13 @@ type DropdownPos = { top: number; left: number; width: number };
 function MemberDropdown({
   members,
   pos,
+  isClosing,
   onMouseEnter,
   onMouseLeave,
 }: {
   members:      any[];
   pos:          DropdownPos;
+  isClosing:    boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }) {
@@ -72,49 +74,60 @@ function MemberDropdown({
         left:     pos.left,
         width:    pos.width,
         zIndex:   9999,
-        background: "#fff",
-        borderRadius: 10,
-        boxShadow: "0 8px 24px rgba(6,18,92,0.13), 0 2px 6px rgba(6,18,92,0.07)",
-        border: `1px solid ${BORDER}`,
-        overflow: "hidden",
+        pointerEvents: isClosing ? "none" : "auto",
       }}
     >
-      {/* Triangle pointer */}
+      <div style={{ position: "absolute", top: -12, left: 0, right: 0, height: 12, background: "transparent" }} />
+
+      <style>{`
+        @keyframes dropdownReveal {
+          from { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-4px); }
+          to   { clip-path: inset(0 0 0% 0); opacity: 1; transform: translateY(0); }
+        }
+        @keyframes dropdownHide {
+          from { clip-path: inset(0 0 0% 0); opacity: 1; transform: translateY(0); }
+          to   { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-4px); }
+        }
+        @keyframes memberSlide {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div
         style={{
-          position: "absolute", top: -5, left: 18,
-          width: 9, height: 9,
           background: "#fff",
+          borderRadius: 10,
+          boxShadow: "0 12px 32px rgba(6,18,92,0.15), 0 4px 8px rgba(6,18,92,0.05)",
           border: `1px solid ${BORDER}`,
-          borderBottom: "none", borderRight: "none",
-          transform: "rotate(45deg)",
+          overflow: "hidden",
+          animation: `${isClosing ? "dropdownHide" : "dropdownReveal"} 0.2s ease-in-out forwards`,
         }}
-      />
-      <div style={{ padding: "10px 12px 8px" }}>
-        <div style={{ ...JK, fontSize: 10, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
-          Members · {members.length}
+      >
+        <div style={{ position: "absolute", top: -5, left: 18, width: 9, height: 9, background: "#fff", border: `1px solid ${BORDER}`, borderBottom: "none", borderRight: "none", transform: "rotate(45deg)" }} />
+        <div style={{ padding: "10px 12px 8px" }}>
+          <div style={{ ...JK, fontSize: 10, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
+            Members · {members.length}
+          </div>
+          {members.map((m: any, i: number) => {
+            const name = typeof m === "string" ? m : (m.name ?? "—");
+            const role = typeof m === "object" ? (m.role ?? m.position ?? null) : null;
+            return (
+              <div
+                key={i}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "5px 0",
+                  borderTop: i > 0 ? `1px solid ${BORDER}` : "none",
+                  animation: !isClosing ? "memberSlide 0.3s ease both" : "none",
+                  animationDelay: `${60 + (i * 30)}ms`
+                }}
+              >
+                <span style={{ ...JK, fontSize: 12, fontWeight: 600, color: NAVY }}>{name}</span>
+                {role && <span style={{ ...JK, fontSize: 10, fontWeight: 600, color: MUTED, background: "#F3F4F6", borderRadius: 4, padding: "2px 6px" }}>{role}</span>}
+              </div>
+            );
+          })}
         </div>
-        {members.map((m: any, i: number) => {
-          const name = typeof m === "string" ? m : (m.name ?? "—");
-          const role = typeof m === "object" ? (m.role ?? m.position ?? null) : null;
-          return (
-            <div
-              key={i}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                gap: 12, padding: "5px 0",
-                borderTop: i > 0 ? `1px solid ${BORDER}` : "none",
-              }}
-            >
-              <span style={{ ...JK, fontSize: 12, fontWeight: 600, color: NAVY }}>{name}</span>
-              {role && (
-                <span style={{ ...JK, fontSize: 10, fontWeight: 600, color: MUTED, background: "#F3F4F6", borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap" }}>
-                  {role}
-                </span>
-              )}
-            </div>
-          );
-        })}
       </div>
     </div>
   );
@@ -125,16 +138,22 @@ function MemberDropdown({
 // ─── Participant card ─────────────────────────────────────────────────────────
 
 function ParticipantCard({ participant, animDelay }: { participant: any; animDelay: number }) {
-  const [open,    setOpen]       = useState(false);
-  const [hovered, setHovered]    = useState(false);
-  const [pos,     setPos]        = useState<DropdownPos | null>(null);
-  const buttonRef                = useRef<HTMLButtonElement>(null);
-  const closeTimer               = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [open,    setOpen]        = useState(false);
+	const [isClosing, setIsClosing] = useState(false);
+  const [hovered, setHovered]     = useState(false);
+  const [pos,     setPos]         = useState<DropdownPos | null>(null);
+  const buttonRef                 = useRef<HTMLButtonElement>(null);
+  const closeTimer                = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleClose = () => {
-    closeTimer.current = setTimeout(() => { setOpen(false); setHovered(false); }, CLOSE_DELAY);
+    setIsClosing(true);
+    closeTimer.current = setTimeout(() => { 
+      setOpen(false); setIsClosing(false); setHovered(false); 
+    }, 180); // Matches animation duration
   };
+
   const cancelClose = () => {
+    setIsClosing(false);
     if (closeTimer.current) clearTimeout(closeTimer.current);
   };
 
@@ -150,11 +169,16 @@ function ParticipantCard({ participant, animDelay }: { participant: any; animDel
 
   const handleClick = () => {
     if (!hasMembers) return;
-    if (!open && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+    if (open) {
+      setIsClosing(true);
+      setTimeout(() => { setOpen(false); setIsClosing(false); }, 180);
+    } else {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+      }
+      setOpen(true);
     }
-    setOpen(o => !o);
   };
 
   const institution = participant.institution;
@@ -228,6 +252,7 @@ function ParticipantCard({ participant, animDelay }: { participant: any; animDel
         <MemberDropdown
           members={members}
           pos={pos}
+          isClosing={isClosing}
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         />
@@ -294,13 +319,13 @@ function CategoryGroup({
       </button>
 
       <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: "grid-template-rows 0.3s ease" }}>
-        <div style={{ overflow: "hidden" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 8 : 12 }}>
+        <div style={{ overflow: "hidden", padding: "0px 1px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(auto-fill, minmax(210px, 1fr))" : "repeat(auto-fill, minmax(210px, 1fr))", gap: isMobile ? 8 : 12 }}>
             {participants.length === 0 ? (
-              <div style={{ ...JK, fontSize: 13, color: "#9CA3AF", padding: "12px 0" }}>No participants yet.</div>
+              <div style={{ gridColumn: "1 / -1", ...JK, fontSize: 13, color: "#9CA3AF", padding: "12px 0" }}>No participants yet.</div>
             ) : (
               participants.map((p: any, i: number) => (
-                <div key={`${animKey}-${p.id}`} style={{ width: isMobile ? "calc(50% - 4px)" : 210 }}>
+                <div key={`${animKey}-${p.id}`} style={{ minWidth: 0 }}>
                   <ParticipantCard participant={p} animDelay={cardBaseDelay + i * CARD_STAGGER} />
                 </div>
               ))
