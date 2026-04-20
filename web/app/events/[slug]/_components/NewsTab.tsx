@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import NewsCard from "@/components/NewsCard";
 import { getNewsByEvent } from "@/lib/directus";
 import { TAB_ENTER } from "./Animations";
@@ -116,12 +116,17 @@ interface Props {
 
 export default function NewsTab({ event, isMobile, phase }: Props) {
   const [page,       setPage]       = useState(1);
-  // null = in-flight fetch; array = settled (may be empty)
   const [items,      setItems]      = useState<any[] | null>(null);
   const [totalPages, setTotalPages] = useState(0);
 
+  // outerRef     — always-mounted container; we hard-set its height to lock it
+  // innerRef     — wraps actual content so we can measure its natural height
+  // lockedHeight — null = free flow; number = locked/transitioning to that px value
+  const outerRef     = useRef<HTMLDivElement>(null);
+  const innerRef     = useRef<HTMLDivElement>(null);
+  const [lockedHeight, setLockedHeight] = useState<number | null>(null);
+
   useEffect(() => {
-    // Reset to loading state immediately so the skeleton grid shows right away
     setItems(null);
     let cancelled = false;
 
@@ -134,82 +139,126 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
     return () => { cancelled = true; };
   }, [event.slug, page]);
 
+  // Once new items have painted, measure the inner content's natural height and
+  // transition the outer container from its locked height to the new one.
+  // useLayoutEffect runs synchronously after DOM mutations, before the browser
+  // repaints, so the measurement is always fresh.
+  useLayoutEffect(() => {
+    if (items === null)        return; // still fetching — keep the lock
+    if (lockedHeight === null) return; // no active lock (initial load)
+    if (!innerRef.current)     return;
+
+    const newHeight = innerRef.current.offsetHeight;
+    setLockedHeight(newHeight); // CSS transition: old locked px → new content px
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   const handlePageChange = (p: number) => {
-    setPage(p);
+    // Step 1 — snapshot & hard-lock the height so the page stays tall
+    if (outerRef.current) {
+      setLockedHeight(outerRef.current.offsetHeight);
+    }
+    // Step 2 — scroll to top while the page is still full height (always works)
     window.scrollTo({ top: 0, behavior: "smooth" });
+    // Step 3 — trigger the fetch (items → null, content disappears inside lock)
+    setPage(p);
   };
+
+  // After the height transition finishes, release back to auto so the container
+  // can reflow naturally (handles viewport resize etc.)
+  const handleTransitionEnd = () => setLockedHeight(null);
 
   const COLUMNS = isMobile ? 2 : 4;
   const GAP     = isMobile ? 12 : 20;
   const isLoading  = items === null;
-  const isEmpty    = items !== null && items.length === 0;
+  const isEmpty    = !isLoading && items!.length === 0;
   const isLastPage = page === totalPages;
 
   const DUR     = TAB_ENTER.duration;
   const EASE    = TAB_ENTER.easing;
   const BASE    = TAB_ENTER.baseDelay;
   const STAGGER = TAB_ENTER.stagger;
-  if (isLoading) return null;
 
-  if (isEmpty) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
-      <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
-    </div>
-  );
-
-  // Fill the last row with placeholder cards on the last page
-  const remainder        = items.length % COLUMNS;
+  const remainder        = !isLoading && !isEmpty ? items!.length % COLUMNS : 0;
   const placeholderCount = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
-  const totalSlots       = items.length + placeholderCount;
+  const totalSlots       = !isLoading && !isEmpty ? items!.length + placeholderCount : 0;
 
   return (
-    <div>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
-        gap: GAP, alignItems: "stretch", padding: 2,
-      }}>
-        {Array.from({ length: totalSlots }).map((_, i) => {
-          const item = items[i];
-          const isPlaceholder = i >= items.length;
+    // Outer div: always mounted. When lockedHeight is set, it holds a hard pixel
+    // height with overflow:hidden, then CSS-transitions to the new content height.
+    <div
+      ref={outerRef}
+      onTransitionEnd={handleTransitionEnd}
+      style={{
+        height:     lockedHeight !== null ? lockedHeight : undefined,
+        overflow:   lockedHeight !== null ? "hidden"     : undefined,
+        transition: lockedHeight !== null ? "height 0.4s ease" : undefined,
+      }}
+    >
+      {/* Inner div sits at its natural content height — lets us measure it */}
+      <div ref={innerRef}>
 
-          if (isPlaceholder) {
-            return (
-              <div
-                key={`placeholder-${i}`}
-                style={{
-                  opacity: 0,
-                  animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
-                }}
-              >
-                <NewsPlaceholder />
-              </div>
-            );
-          }
+        {/* Loading: render nothing (outer stays locked at old height) */}
+        {isLoading && null}
 
-          return (
-            <div
-              key={`card-${item.id}`}
-              style={{
-                opacity: 0,
-                animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
-              }}
-            >
-              <NewsCard item={item} />
+        {/* Empty */}
+        {isEmpty && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
+            <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
+          </div>
+        )}
+
+        {/* Card grid */}
+        {!isLoading && !isEmpty && (
+          <>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
+              gap: GAP, alignItems: "stretch", padding: 2,
+            }}>
+              {Array.from({ length: totalSlots }).map((_, i) => {
+                const item = items![i];
+                const isPlaceholder = i >= items!.length;
+
+                if (isPlaceholder) {
+                  return (
+                    <div
+                      key={`placeholder-${i}`}
+                      style={{
+                        opacity: 0,
+                        animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
+                      }}
+                    >
+                      <NewsPlaceholder />
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={`card-${item.id}`}
+                    style={{
+                      opacity: 0,
+                      animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
+                    }}
+                  >
+                    <NewsCard item={item} />
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
 
-      {/* Pagination fades in after the last card finishes */}
-      {!isLoading && (
-        <div style={{
-          opacity: 0,
-          animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
-        }}>
-          <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
-        </div>
-      )}
+            {/* Pagination fades in after the last card finishes */}
+            <div style={{
+              opacity: 0,
+              animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
+            }}>
+              <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+            </div>
+          </>
+        )}
+
+      </div>
     </div>
   );
 }
