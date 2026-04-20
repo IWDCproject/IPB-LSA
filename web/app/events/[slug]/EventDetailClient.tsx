@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import EventDetailHeader, { type TabKey } from "./_components/EventDetailHeader";
 import OverviewTab from "./_components/OverviewTab";
@@ -25,16 +25,7 @@ const LOCAL_KEYFRAMES = `
   @keyframes edc-marquee-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 `;
 
-function Shell({ label }: { label: string }) {
-  return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "rgba(255,255,255,0.4)", fontSize: 14, paddingTop: 32 }}>
-      {label} tab — coming soon
-    </div>
-  );
-}
-
 export default function EventDetailClient({ event }: { event: any }) {
-  const router       = useRouter();
   const searchParams = useSearchParams();
   const activeTab    = (searchParams.get("tab") as TabKey) ?? "overview";
   const mainRef      = useRef<HTMLDivElement>(null);

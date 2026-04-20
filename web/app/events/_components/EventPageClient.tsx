@@ -196,7 +196,7 @@ export default function EventPageClient({ events: rawEvents }: { events: EventLi
 
   return (
     <>
-      <style>{PAGE_KEYFRAMES}</style>
+      <style dangerouslySetInnerHTML={{ __html: PAGE_KEYFRAMES }} />
       <main ref={mainRef} style={{
         position: "relative",
         minHeight: "100vh",
