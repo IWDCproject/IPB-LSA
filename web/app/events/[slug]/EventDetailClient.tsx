@@ -108,21 +108,20 @@ export default function EventDetailClient({ event }: { event: any }) {
           flexDirection: "column",
           overflowX: "hidden",            
           background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
-          opacity: 0,
-          animation: "edc-fade-in 0.4s ease 0ms forwards",
         }}
       >
         {/* Batik pattern overlay */}
-        <div style={{
-          position: "absolute", top: -100, left: 0, right: 0, height: "100%", maxHeight: 1200,
-          backgroundImage: "url(/Batik_Pattern_dark.svg)", opacity: 0.4,
-          pointerEvents: "none", backgroundSize: "1400px auto",
-          backgroundRepeat: "repeat-x", backgroundPosition: "top center",
-          transform: "scaleY(-1)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
-          maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
-          zIndex: 0,
-        }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", zIndex: 0, opacity: 0, animation: "edc-fade-in 0.4s ease 0ms forwards" }}>
+          <div style={{
+            position: "absolute", top: -100, left: 0, right: 0, height: "100%", maxHeight: 1200,
+            backgroundImage: "url(/Batik_Pattern_dark.svg)", opacity: 0.4,
+            pointerEvents: "none", backgroundSize: "1400px auto",
+            backgroundRepeat: "repeat-x", backgroundPosition: "top center",
+            transform: "scaleY(-1)",
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+            maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+          }} />
+        </div>
 
         {/* Banner image */}
         {bannerUrl && (
@@ -130,6 +129,7 @@ export default function EventDetailClient({ event }: { event: any }) {
             position: "absolute", top: 0, left: 0, right: 0,
             height: BG_IMAGE_HEIGHT, overflow: "hidden",
             WebkitMaskImage: IMAGE_MASK, maskImage: IMAGE_MASK, zIndex: 0,
+            opacity: 0, animation: "edc-fade-in 0.4s ease 0ms forwards",
           }}>
             <div style={{
               position: "absolute", inset: 0,
@@ -141,7 +141,7 @@ export default function EventDetailClient({ event }: { event: any }) {
           </div>
         )}
 
-        <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", opacity: 0, animation: "edc-fade-in 0.4s ease 0ms forwards" }}>
           {/* Fills exactly 100% of the visible screen below the navbar */}
           <div style={{ flex: "1 0 auto", minHeight: "calc(100vh - 64px)" }}>
             <EventDetailHeader
