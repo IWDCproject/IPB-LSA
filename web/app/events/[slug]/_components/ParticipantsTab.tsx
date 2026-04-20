@@ -101,7 +101,7 @@ function MemberDropdown({
           boxShadow: "0 12px 32px rgba(6,18,92,0.15), 0 4px 8px rgba(6,18,92,0.05)",
           border: `1px solid ${BORDER}`,
           overflow: "hidden",
-          animation: `${isClosing ? "dropdownHide" : "dropdownReveal"} 0.2s ease-in-out forwards`,
+          animation: `${isClosing ? "dropdownHide" : "dropdownReveal"} 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards`,
         }}
       >
         <div style={{ position: "absolute", top: -5, left: 18, width: 9, height: 9, background: "#fff", border: `1px solid ${BORDER}`, borderBottom: "none", borderRight: "none", transform: "rotate(45deg)" }} />
