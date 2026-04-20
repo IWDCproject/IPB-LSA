@@ -431,8 +431,8 @@ const DESKTOP_GRID: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "160px 1fr auto 1fr 160px",
   alignItems: "center",
-  gap: "0 16px",
-  padding: "14px 0",
+  gap: "0 40px",
+  padding: "7px 0",
 };
 
 function TimeVenueCell({ match, isLive }: { match: any; isLive: boolean }) {

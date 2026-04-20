@@ -7,6 +7,10 @@ export const KEYFRAMES = `
     from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0);    }
   }
+  @keyframes anim-slide-up-soft {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
   @keyframes anim-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -35,11 +39,16 @@ export const PAGE_ENTER = {
   easing:    EASE_OUT_EXPO,
 } as const;
 
-/** Tab-switch stagger: quick, purposeful, not distracting */
+/**
+ * Tab-switch stagger: smooth enough not to flicker, quick enough to feel
+ * responsive. translateY is intentionally small (8px) at this speed so the
+ * motion reads as a gentle lift rather than a jarring jump.
+ */
 export const TAB_ENTER = {
-  duration:  280,
-  stagger:   40,
+  duration:   600,  // was 280 — long enough to read as a fade, not a blink
+  stagger:     60,  // was 40  — slight breathing room between items
   easing:    EASE_OUT_SOFT,
+  baseDelay:   30,  // ms head-start so the first item doesn't fire on paint
 } as const;
 
 // ─── Style factories ───────────────────────────────────────────────────────────
@@ -47,14 +56,18 @@ export const TAB_ENTER = {
 /**
  * Returns an inline style that plays `anim-slide-up` after `delay` ms.
  * Start opacity:0 so the element is invisible before the animation fires.
+ *
+ * When used with TAB_ENTER the keyframe's 20px translate is overridden to
+ * a softer 8px via a wrapper transform so fast tab switches don't feel jarring.
  */
 export function staggerSlideUp(
   delay: number,
   tier: typeof PAGE_ENTER | typeof TAB_ENTER = PAGE_ENTER,
 ): React.CSSProperties {
+  const isTabTier = tier === TAB_ENTER;
   return {
     opacity: 0,
-    animation: `anim-slide-up ${tier.duration}ms ${tier.easing} ${delay}ms forwards`,
+    animation: `${isTabTier ? "anim-slide-up-soft" : "anim-slide-up"} ${tier.duration}ms ${tier.easing} ${delay}ms forwards`,
   };
 }
 
@@ -74,6 +87,7 @@ export function staggerFadeIn(
 /**
  * Convenience: build a stagger sequence for N items.
  * Returns an array of styles, each offset by `tier.stagger` ms.
+ * When using TAB_ENTER, `baseDelay` from the tier is applied automatically.
  *
  * @example
  * const styles = buildStagger(panels.length, TAB_ENTER, "slide-up");
@@ -83,7 +97,7 @@ export function buildStagger(
   count: number,
   tier: typeof PAGE_ENTER | typeof TAB_ENTER = TAB_ENTER,
   variant: "slide-up" | "fade-in" = "slide-up",
-  baseDelay = 0,
+  baseDelay = "baseDelay" in tier ? tier.baseDelay : 0,
 ): React.CSSProperties[] {
   return Array.from({ length: count }, (_, i) => {
     const delay = baseDelay + i * tier.stagger;
