@@ -10,11 +10,18 @@ const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 const PAGE_SIZE = 12;
 const YELLOW = "#FFC936";
 
+// ─── Skeleton debounce thresholds ─────────────────────────────────────────────
+// 1. Show delay  — if data arrives before this, skeleton never appears at all.
+// 2. Min display — once skeleton is visible, keep it for at least this long
+//                  to avoid a flash.
+const SKELETON_SHOW_DELAY_MS  = 200;
+const SKELETON_MIN_DISPLAY_MS = 200;
+
 // ─── Responsive columns ────────────────────────────────────────────────────────
 
 function getColumns(width: number, isMobile: boolean): number {
   if (isMobile || width < 768) return 2;
-  if (width < 1400)            return 3;
+  if (width < 1280)            return 3;
   return 4;
 }
 
@@ -127,54 +134,80 @@ function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
 }
 
 // ─── Card Slot ────────────────────────────────────────────────────────────────
-// Uses CSS grid stacking (grid-area: 1/1) so skeleton and real card occupy the
-// same cell. Slot height = max(skeleton, card) — no clipping, no absolute
-// positioning, no height jump. Skeleton fades out, card fades in, in place.
+// CSS grid stacking (grid-area:1/1) keeps both layers in normal flow so slot
+// height = max(skeleton, card) — no clipping, no position:absolute games.
+//
+// showSkeleton = false (fast path): card slides in directly, no skeleton layer.
+// showSkeleton = true             : skeleton animates in, crossfades to card.
 
 interface SlotProps {
-  index:         number;
-  item:          any | null;
+  index:        number;
+  item:         any | null;
   isPlaceholder: boolean;
-  ready:         boolean;
-  isMobile:      boolean;
-  dur:           number;
-  ease:          string;
-  base:          number;
-  stagger:       number;
+  ready:        boolean;
+  showSkeleton: boolean;
+  isMobile:     boolean;
+  dur:          number;
+  ease:         string;
+  base:         number;
+  stagger:      number;
 }
 
-function CardSlot({ index, item, isPlaceholder, ready, isMobile, dur, ease, base, stagger }: SlotProps) {
+function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, dur, ease, base, stagger }: SlotProps) {
+  // cardShowing lags one rAF behind ready (skeleton path only).
+  // This ensures the card first paints at opacity:0, then the transition fires —
+  // giving a real crossfade instead of an instant jump that flashes the background.
+  const [cardShowing, setCardShowing] = useState(false);
+
+  useEffect(() => {
+    if (!ready || !showSkeleton) return;
+    const raf = requestAnimationFrame(() => setCardShowing(true));
+    return () => cancelAnimationFrame(raf);
+  }, [ready, showSkeleton]);
+
+  // On the fast path (no skeleton) the card is immediately visible; the parent
+  // slide-up keyframe animation handles the visual entry.
+  const cardOpacity    = showSkeleton ? (cardShowing ? 1 : 0) : (ready ? 1 : 0);
+  const cardInteract   = showSkeleton ? cardShowing : ready;
+
   return (
     <div
       style={{
         opacity: 0,
         animation: `anim-slide-up-soft ${dur}ms ${ease} ${base + index * stagger}ms forwards`,
-        display: "grid",   // grid stacking: both children share the same cell
+        display: "grid",
         height: "100%",
       }}
     >
-      {/* Skeleton — grid-area 1/1, fades out when ready, stays in layout */}
-      <div
-        style={{
-          gridArea:      "1/1",
-          opacity:       ready ? 0 : 1,
-          visibility:    ready ? "hidden" : "visible",
-          transition:    ready ? "opacity 0.3s ease" : "none",
-          pointerEvents: "none",
-          zIndex:        ready ? 0 : 1,
-        }}
-      >
-        <NewsCardSkeleton isMobile={isMobile} />
-      </div>
+      {/* Skeleton layer — only mounted when showSkeleton=true */}
+      {showSkeleton && (
+        <div
+          style={{
+            gridArea:      "1/1",
+            opacity:       cardShowing ? 0 : 1,
+            // Delay visibility:hidden until after the opacity fade completes
+            // so the skeleton doesn't disappear before the card is fully visible.
+            visibility:    cardShowing ? "hidden" : "visible",
+            transition:    "opacity 0.3s ease, visibility 0s linear 0.3s",
+            pointerEvents: "none",
+            zIndex:        cardShowing ? 0 : 1,
+          }}
+        >
+          <NewsCardSkeleton isMobile={isMobile} />
+        </div>
+      )}
 
-      {/* Real card — grid-area 1/1, fades in when ready */}
+      {/* Real card layer */}
       <div
         style={{
           gridArea:      "1/1",
-          opacity:       ready ? 1 : 0,
-          transition:    ready ? "opacity 0.3s ease" : "none",
-          pointerEvents: ready ? "auto" : "none",
-          zIndex:        ready ? 1 : 0,
+          opacity:       cardOpacity,
+          // Always keep transition present so the browser has a "from" state
+          // when opacity changes from 0→1 (avoids instant jump).
+          transition:    showSkeleton ? "opacity 0.3s ease" : "none",
+          pointerEvents: cardInteract ? "auto" : "none",
+          zIndex:        cardInteract ? 1 : 0,
+          height:        "100%",
         }}
       >
         {ready && (
@@ -198,12 +231,15 @@ interface Props {
 }
 
 export default function NewsTab({ event, isMobile, phase }: Props) {
-  const [page,       setPage]       = useState(1);
-  const [items,      setItems]      = useState<any[] | null>(null);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalSlots, setTotalSlots] = useState(PAGE_SIZE);
-  const [ready,      setReady]      = useState(false);
-  const [animKey,    setAnimKey]    = useState(0);
+  const [page,            setPage]            = useState(1);
+  const [items,           setItems]           = useState<any[] | null>(null);
+  const [totalPages,      setTotalPages]      = useState(0);
+  const [totalSlots,      setTotalSlots]      = useState(PAGE_SIZE);
+  const [ready,           setReady]           = useState(false);
+  // skeletonVisible: true only once the show-delay fires. If data arrives
+  // before the delay, this stays false and skeleton is never rendered at all.
+  const [skeletonVisible, setSkeletonVisible] = useState(false);
+  const [animKey,         setAnimKey]         = useState(0);
 
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -215,29 +251,74 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   useEffect(() => {
     setItems(null);
     setReady(false);
+    setSkeletonVisible(false);
     setTotalSlots(PAGE_SIZE);
     setAnimKey(k => k + 1);
 
-    let cancelled = false;
+    let cancelled        = false;
+    let skeletonShownAt: number | null = null;
+    let resolvedItems:   any[] | null  = null;
+    let resolvedCount                  = false;
+    let minDisplayTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // Called once both fetches have landed. Decides whether to flip ready
+    // immediately or wait out the skeleton minimum display time.
+    const tryCommit = () => {
+      if (!resolvedItems || !resolvedCount) return;
+
+      if (skeletonShownAt === null) {
+        // Fast path — data arrived before show delay fired.
+        // Skeleton was never shown; go straight to cards.
+        clearTimeout(showTimer);
+        if (!cancelled) setReady(true);
+      } else {
+        // Skeleton is (or was) visible — enforce minimum display time.
+        const elapsed   = Date.now() - skeletonShownAt;
+        const remaining = SKELETON_MIN_DISPLAY_MS - elapsed;
+        if (remaining <= 0) {
+          if (!cancelled) setReady(true);
+        } else {
+          minDisplayTimer = setTimeout(() => {
+            if (!cancelled) setReady(true);
+          }, remaining);
+        }
+      }
+    };
+
+    // ── Show delay ────────────────────────────────────────────────────────
+    // If this fires before data arrives, show the skeleton. If data is already
+    // here by now, tryCommit will have cleared this timer already (fast path).
+    const showTimer = setTimeout(() => {
+      if (cancelled || resolvedItems) return; // data already committed
+      skeletonShownAt = Date.now();
+      setSkeletonVisible(true);
+    }, SKELETON_SHOW_DELAY_MS);
+
+    // ── Count fetch ───────────────────────────────────────────────────────
     getNewsCountByEvent(event.slug, page, PAGE_SIZE).then(({ pageCount, totalPages: tp }) => {
       if (cancelled) return;
-
       const isLastPage   = page === tp;
       const remainder    = pageCount % COLUMNS;
       const placeholders = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
-
       setTotalSlots(pageCount + placeholders);
       setTotalPages(tp);
+      resolvedCount = true;
+      tryCommit();
     });
 
+    // ── Items fetch ───────────────────────────────────────────────────────
     getNewsByEvent(event.slug, page, PAGE_SIZE).then(({ items: newItems }) => {
       if (cancelled) return;
       setItems(newItems);
-      setReady(true);
+      resolvedItems = newItems;
+      tryCommit();
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      clearTimeout(showTimer);
+      if (minDisplayTimer) clearTimeout(minDisplayTimer);
+    };
   }, [event.slug, page]);
 
   useLayoutEffect(() => {
@@ -261,7 +342,8 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const BASE    = TAB_ENTER.baseDelay;
   const STAGGER = TAB_ENTER.stagger;
 
-  const isEmpty = ready && items !== null && items.length === 0;
+  const isEmpty    = ready && items !== null && items.length === 0;
+  const showGrid   = skeletonVisible || ready; // don't render anything until needed
 
   return (
     <div
@@ -281,7 +363,7 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
           </div>
         )}
 
-        {!isEmpty && (
+        {!isEmpty && showGrid && (
           <>
             <div style={{
               display: "grid",
@@ -299,6 +381,7 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
                     item={item}
                     isPlaceholder={isPlaceholder}
                     ready={ready}
+                    showSkeleton={skeletonVisible}
                     isMobile={isMobile}
                     dur={DUR} ease={EASE} base={BASE} stagger={STAGGER}
                   />

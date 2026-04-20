@@ -45,8 +45,7 @@ export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
       `}} />
       <div style={{
         display: "flex", flexDirection: "column", height: "100%",
-        borderRadius: 8,
-        boxShadow: "0 0 0 2px #FFFFFF",
+        borderRadius: 8, boxShadow: "0 0 0 2px #FFFFFF",
       }}>
         <div style={{
           background: "#fff", borderRadius: 6, overflow: "hidden",
@@ -65,24 +64,31 @@ export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
           </div>
 
           {/* Body */}
-          <div style={{
-            padding: bodyPad,
-            flex: 1, display: "flex", flexDirection: "column",
-          }}>
-            <Bone width="30%" height={12} delay="0s" />
-            <div style={{ marginTop: 8, marginBottom: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-              <Bone width="92%" height={isMobile ? 14 : 20} delay="0.05s" />
-              <Bone width="60%" height={isMobile ? 14 : 20} delay="0.09s" />
+          <div style={{ padding: bodyPad, flex: 1, display: "flex", flexDirection: "column" }}>
+
+            {/* Date — fontSize:12, line-height:normal ≈ 1.25 → ~15px */}
+            <Bone width="30%" height={15} delay="0s" />
+
+            {/* Title — fontSize:18 × lineHeight:1.3 ≈ 23px/line */}
+            <div style={{ marginTop: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 5 }}>
+              <Bone width="92%" height={isMobile ? 17 : 23} delay="0.05s" />
+              <Bone width="60%" height={isMobile ? 17 : 23} delay="0.09s" />
             </div>
+
+            {/* Excerpt — fontSize:14 × lineHeight:1.6 ≈ 22px/line (desktop only) */}
             {!isMobile && (
-              <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-                <Bone width="100%" height={13} delay="0.12s" />
-                <Bone width="78%"  height={13} delay="0.16s" />
+              <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 4 }}>
+                <Bone width="100%" height={22} delay="0.12s" />
+                <Bone width="78%"  height={22} delay="0.16s" />
               </div>
             )}
+
+            {/* Divider */}
             <div style={{ height: 1, background: "#F3F4F6", width: "100%", marginTop: "auto" }} />
+
+            {/* Read more — SlotText is height:1.2em: desktop 15×1.2=18px, mobile 12×1.2≈14px */}
             <div style={{ paddingTop: isMobile ? 10 : 16 }}>
-              <Bone width="28%" height={14} delay="0.20s" />
+              <Bone width="28%" height={isMobile ? 14 : 18} delay="0.20s" />
             </div>
           </div>
         </div>
@@ -101,18 +107,14 @@ function SlotText({ children, isHovered }: { children: string; isHovered: boolea
         <span
           key={i}
           style={{
-            display: "inline-block",
-            overflow: "hidden",
-            height: "1.2em",
-            width: char === " " ? "0.25em" : "auto",
-            whiteSpace: "pre",
-            position: "relative",
+            display: "inline-block", overflow: "hidden",
+            height: "1.2em", width: char === " " ? "0.25em" : "auto",
+            whiteSpace: "pre", position: "relative",
           }}
         >
           <span
             style={{
-              display: "flex",
-              flexDirection: "column",
+              display: "flex", flexDirection: "column",
               transition: `transform ${DUR} ${EASE}`,
               transitionDelay: isHovered
                 ? `${i * STAGGER}ms`
@@ -161,11 +163,8 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        textDecoration: "none",
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        borderRadius: 8,
+        textDecoration: "none", display: "flex", flexDirection: "column",
+        height: "100%", borderRadius: 8,
         transition: "box-shadow 0.3s ease",
         boxShadow: isHovered
           ? `0 0 0 2px ${YELLOW}, 0 0 20px rgba(255, 201, 54, 0.35)`
@@ -176,34 +175,22 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
         {/* Thumbnail */}
         <div
           style={{
-            height: thumbH,
-            position: "relative",
+            height: thumbH, position: "relative",
             backgroundImage: item.thumbnail_url ? `url(${item.thumbnail_url})` : "none",
-            backgroundColor: "#E5E7EB",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            flexShrink: 0,
+            backgroundColor: "#E5E7EB", backgroundSize: "cover",
+            backgroundPosition: "center", flexShrink: 0,
           }}
         >
           {badge && (
-            <span
-              style={{
-                ...JK,
-                position: "absolute",
-                top: 12,
-                left: 12,
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.05em",
-                padding: "5px 10px",
-                borderRadius: 4,
-                background: isHovered ? YELLOW : "#FFFFFF",
-                color: isHovered ? "#000" : "#06125C",
-                textTransform: "uppercase",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                transition: "all 0.3s ease",
-              }}
-            >
+            <span style={{
+              ...JK, position: "absolute", top: 12, left: 12,
+              fontSize: 10, fontWeight: 800, letterSpacing: "0.05em",
+              padding: "5px 10px", borderRadius: 4,
+              background: isHovered ? YELLOW : "#FFFFFF",
+              color: isHovered ? "#000" : "#06125C",
+              textTransform: "uppercase", boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              transition: "all 0.3s ease",
+            }}>
               {badge}
             </span>
           )}
@@ -219,19 +206,12 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
           <div style={{ ...JK, fontSize: titleSize, fontWeight: 800, color: "#06125C", lineHeight: 1.3, marginBottom: titleMB }}>
             {item.title}
           </div>
-          {/* Excerpt hidden on mobile — biggest height contributor */}
           {!isMobile && item.excerpt && (
             <div
               style={{
-                ...JK,
-                fontSize: 14,
-                color: "#6B7280",
-                lineHeight: 1.6,
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                marginBottom: 16,
+                ...JK, fontSize: 14, color: "#6B7280", lineHeight: 1.6,
+                overflow: "hidden", display: "-webkit-box",
+                WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 16,
               } as React.CSSProperties}
             >
               {item.excerpt}
@@ -242,24 +222,15 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
             <div style={{ ...JK, fontSize: isMobile ? 12 : 15, fontWeight: 800 }}>
               <SlotText isHovered={isHovered}>Read more</SlotText>
             </div>
-            <div
-              style={{
-                opacity: isHovered ? 1 : 0,
-                visibility: isHovered ? "visible" : "hidden",
-                transition: "opacity 0.2s ease",
-                display: "flex",
-              }}
-            >
+            <div style={{
+              opacity: isHovered ? 1 : 0, visibility: isHovered ? "visible" : "hidden",
+              transition: "opacity 0.2s ease", display: "flex",
+            }}>
               <svg
                 ref={arrowRef}
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={BLUE}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke={BLUE} strokeWidth="2.5"
+                strokeLinecap="round" strokeLinejoin="round"
                 style={{ transform: isHovered ? "translate(2px, -2px)" : "none", transition: "transform 0.3s ease" }}
               >
                 <line x1="7" y1="17" x2="17" y2="7" />
