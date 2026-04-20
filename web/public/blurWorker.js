@@ -145,41 +145,73 @@ async function compositeLayers(layers, blurMap, canW, canH, maskDir) {
   return createImageBitmap(result);
 }
 
+// ---------------------------------------------------------------------------
+// HELPERS
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the compositing canvas dimensions by reading back the ACTUAL pixel
+ * dimensions of the first bitmap the blur API returned.
+ *
+ * Why: insideDims() uses naturalWidth/naturalHeight to preserve source AR, but
+ * those fields can be null (not fetched from Directus) or 0. When they fall
+ * back to the manifest's hard-coded W×H (e.g. 400×300 = 4:3), the canvas gets
+ * the wrong AR while the CSS background still cover-fits the true natural-AR
+ * image → different crop windows → visible misalignment.
+ *
+ * By reading the bitmap the API actually returned we get the AR the server
+ * chose (which honours the image's natural proportions) without needing the
+ * caller to supply accurate metadata.
+ */
+function canvasDimsFromBlurMap(blurMap) {
+  const first = Object.values(blurMap)[0];
+  return { canW: first.width, canH: first.height };
+}
+
+// ---------------------------------------------------------------------------
+// PROCESSORS
+// ---------------------------------------------------------------------------
+
 async function processHero(img) {
   const { url, width: W, height: H } = img;
   const ttl = TTL.hero;
 
-  const nw = img.naturalWidth  ?? W;
-  const nh = img.naturalHeight ?? H;
+  // Use || so that 0 (impossible but defensive) also falls back
+  const nw = img.naturalWidth  || W;
+  const nh = img.naturalHeight || H;
 
   const allLayers      = [...HERO_BOTTOM_LAYERS, ...HERO_LEFT_LAYERS, ...HERO_RIGHT_LAYERS];
   const { canW, canH } = insideDims(nw, nh, W, H);
-  
-  // Use the requested width W instead of hardcoded 1200
-  const scaledUrl      = `${url}&width=${W}&fit=inside`;
+
+  const scaledUrl = `${url}&width=${W}&fit=inside`;
 
   const [sharpBlob, blurMap] = await Promise.all([
     fetch(scaledUrl).then((r) => r.blob()),
     fetchBlurMap(url, allLayers, canW, canH, ttl),
   ]);
 
+  // Re-derive canvas size from the bitmap the API actually returned.
+  // If natural dims were wrong the API may return a different size; using its
+  // real dimensions keeps the gradient coordinate-space honest.
+  const { canW: realW, canH: realH } = canvasDimsFromBlurMap(blurMap);
+
   const sharp = await createImageBitmap(sharpBlob, {
-    resizeWidth:   canW,
-    resizeHeight:  canH,
-    resizeQuality: "high", // Quality bumped to high for sharp layer
+    resizeWidth:   realW,
+    resizeHeight:  realH,
+    resizeQuality: "high",
   });
 
-  const result = new OffscreenCanvas(canW, canH);
+  const result = new OffscreenCanvas(realW, realH);
   const rctx   = result.getContext("2d");
 
   for (const { blurPx, stops } of HERO_BOTTOM_LAYERS) {
-    applyLayer(rctx, canW, canH, blurMap[blurPx], makeMask(canW, canH, stops, "up"));
+    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "up"));
   }
   for (const { blurPx, stops } of HERO_LEFT_LAYERS) {
-    applyLayer(rctx, canW, canH, blurMap[blurPx], makeMask(canW, canH, stops, "right"));
+    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "right"));
   }
   for (const { blurPx, stops } of HERO_RIGHT_LAYERS) {
-    applyLayer(rctx, canW, canH, blurMap[blurPx], makeMask(canW, canH, stops, "left"));
+    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "left"));
   }
 
   Object.values(blurMap).forEach((b) => b.close());
@@ -191,34 +223,57 @@ async function processHero(img) {
 async function processEventcard(img) {
   const { url, width: W, height: H } = img;
   const ttl = TTL.eventcard;
-  const nw = img.naturalWidth  ?? W;
-  const nh = img.naturalHeight ?? H;
-  const { canW, canH } = insideDims(nw, nh, W, H);
 
-  const blurMap = await fetchBlurMap(url, EVENTCARD_LAYERS, canW, canH, ttl);
-  const bitmap  = await compositeLayers(EVENTCARD_LAYERS, blurMap, canW, canH, "up");
+  const nw = img.naturalWidth  || W;
+  const nh = img.naturalHeight || H;
+  const { canW: reqW, canH: reqH } = insideDims(nw, nh, W, H);
+
+  const blurMap = await fetchBlurMap(url, EVENTCARD_LAYERS, reqW, reqH, ttl);
+
+  // FIX: use actual API-returned dimensions so the canvas AR matches the
+  // source image — even when naturalWidth/naturalHeight were missing.
+  const { canW, canH } = canvasDimsFromBlurMap(blurMap);
+
+  const bitmap = await compositeLayers(EVENTCARD_LAYERS, blurMap, canW, canH, "up");
   return { id: img.id, url, type: "eventcard", bitmap };
 }
 
 async function processNewscard(img) {
   const { url, width: W, height: H } = img;
   const ttl = TTL.newscard;
-  const nw = img.naturalWidth  ?? W;
-  const nh = img.naturalHeight ?? H;
-  const { canW, canH } = insideDims(nw, nh, W, H);
 
-  const blurMap = await fetchBlurMap(url, NEWSCARD_LAYERS, canW, canH, ttl);
-  const bitmap  = await compositeLayers(NEWSCARD_LAYERS, blurMap, canW, canH, "down");
+  const nw = img.naturalWidth  || W;
+  const nh = img.naturalHeight || H;
+  const { canW: reqW, canH: reqH } = insideDims(nw, nh, W, H);
+
+  const blurMap = await fetchBlurMap(url, NEWSCARD_LAYERS, reqW, reqH, ttl);
+
+  // FIX: derive canvas dimensions from the actual blur-API response.
+  //
+  // The gradient stops (0 → 1) map to the canvas height, which must equal the
+  // source image's natural AR for the blur overlay to cover-fit identically to
+  // the CSS background image.  When naturalWidth/naturalHeight are null the
+  // fallback above uses the manifest's hard-coded W×H (e.g. 400×300 = 4:3),
+  // producing a wrong-AR canvas even though the source image might be 16:9.
+  // Reading the first returned bitmap's real dimensions bypasses that problem,
+  // because the blur API always scales to the image's true AR.
+  const { canW, canH } = canvasDimsFromBlurMap(blurMap);
+
+  const bitmap = await compositeLayers(NEWSCARD_LAYERS, blurMap, canW, canH, "down");
   return { id: img.id, url, type: "newscard", bitmap };
 }
 
 async function processMatchcard(img) {
   const { url, width: W, height: H } = img;
   const ttl = TTL.matchcard;
-  const nw = img.naturalWidth  ?? W;
-  const nh = img.naturalHeight ?? H;
+
+  const nw = img.naturalWidth  || W;
+  const nh = img.naturalHeight || H;
   const { canW, canH } = insideDims(nw, nh, W, H);
 
+  // fetchBlurred returns the bitmap at whatever AR the API chose — that's fine
+  // here because matchcard has no gradient compositing; BitmapBlurLayer will
+  // cover-fit it into the card just like the CSS background does.
   const bitmap = await fetchBlurred(url, 6, canW, canH, ttl);
   return { id: img.id, url, type: "matchcard", bitmap };
 }
