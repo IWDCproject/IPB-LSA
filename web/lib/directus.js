@@ -220,3 +220,53 @@ export const getYouTubeID = (url) => {
   const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
   return (match && match[2].length === 11) ? match[2] : null;
 };
+
+const PARTICIPANT_FIELDS = [
+  '*',
+  'institution_id.*',
+  'institution_id.logo.*',
+  'competition_category_id.id',
+  'competition_category_id.name',
+  'competition_category_id.display_order',
+];
+ 
+export const getParticipantsByEvent = async (eventSlug) => {
+  try {
+    const [categories, rawParticipants] = await Promise.all([
+      // All competition categories for this event, ordered for display
+      directus.request(readItems('competition_categories', {
+        filter: { event_id: { slug: { _eq: eventSlug } } },
+        fields: ['id', 'name', 'display_order'],
+        sort: ['display_order', 'name'],
+        limit: -1,
+      })),
+      // All participants linked to this event via their category
+      directus.request(readItems('participants', {
+        filter: {
+          competition_category_id: {
+            event_id: { slug: { _eq: eventSlug } },
+          },
+        },
+        fields: PARTICIPANT_FIELDS,
+        sort: ['name'],
+        limit: -1,
+      })),
+    ]);
+ 
+    const participants = rawParticipants.map(mapParticipant);
+ 
+    // Group participants under their category
+    return categories.map(cat => ({
+      category: cat,
+      participants: participants.filter(p => {
+        const catId =
+          typeof p.competition_category_id === 'object'
+            ? p.competition_category_id?.id
+            : p.competition_category_id;
+        return catId === cat.id;
+      }),
+    }));
+  } catch (e) {
+    return [];
+  }
+};

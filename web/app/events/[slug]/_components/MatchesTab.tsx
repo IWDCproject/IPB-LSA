@@ -766,6 +766,8 @@ export default function MatchesTab({ event, isMobile, phase }: Props) {
             </div>
           );
         })()}
+        {/* spacer di bawah biar ga mepet */}
+        <div style={{ height: 20 }} />
       </div>
     </div>
   );
