@@ -12,8 +12,6 @@ const YELLOW = "#FFC936";
 const BLUE = "#0D26C2";
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
-// Mirrors the exact DOM structure, spacing, and colours of NewsCard so the
-// skeleton occupies the same pixel footprint as the real card.
 
 function Bone({ width, height, delay = "0s", radius = 4 }: {
   width: string | number; height: number; delay?: string; radius?: number;
@@ -33,7 +31,10 @@ function Bone({ width, height, delay = "0s", radius = 4 }: {
   );
 }
 
-export function NewsCardSkeleton() {
+export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
+  const thumbH  = isMobile ? 120 : 200;
+  const bodyPad = isMobile ? "12px 14px 14px" : "20px 22px 22px";
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -42,25 +43,18 @@ export function NewsCardSkeleton() {
           100% { transform: translateX(100%); }
         }
       `}} />
-
-      {/*
-        Outer wrapper: matches <Link> — borderRadius 8, same white ring,
-        flex col so inner div stretches to full height.
-      */}
       <div style={{
         display: "flex", flexDirection: "column", height: "100%",
         borderRadius: 8,
         boxShadow: "0 0 0 2px #FFFFFF",
       }}>
-        {/* Inner white card — matches <div background="#fff" borderRadius=6> */}
         <div style={{
           background: "#fff", borderRadius: 6, overflow: "hidden",
           flex: 1, display: "flex", flexDirection: "column",
         }}>
-
-          {/* Thumbnail — matches height:200, backgroundColor:#E5E7EB */}
+          {/* Thumbnail */}
           <div style={{
-            height: 200, background: "#E5E7EB",
+            height: thumbH, background: "#E5E7EB",
             flexShrink: 0, position: "relative", overflow: "hidden",
           }}>
             <div style={{
@@ -70,35 +64,26 @@ export function NewsCardSkeleton() {
             }} />
           </div>
 
-          {/* Body — matches padding "20px 22px 22px", flex col */}
+          {/* Body */}
           <div style={{
-            padding: "20px 22px 22px",
+            padding: bodyPad,
             flex: 1, display: "flex", flexDirection: "column",
           }}>
-
-            {/* Date — fontSize:12, marginBottom:8 */}
             <Bone width="30%" height={12} delay="0s" />
-
-            {/* Title — fontSize:18, fontWeight:800, lineHeight:1.3, marginBottom:12 */}
-            <div style={{ marginTop: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 7 }}>
-              <Bone width="92%" height={20} delay="0.05s" />
-              <Bone width="60%" height={20} delay="0.09s" />
+            <div style={{ marginTop: 8, marginBottom: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+              <Bone width="92%" height={isMobile ? 14 : 20} delay="0.05s" />
+              <Bone width="60%" height={isMobile ? 14 : 20} delay="0.09s" />
             </div>
-
-            {/* Excerpt — fontSize:14, lineClamp:2, marginBottom:16 */}
-            <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-              <Bone width="100%" height={13} delay="0.12s" />
-              <Bone width="78%"  height={13} delay="0.16s" />
-            </div>
-
-            {/* Divider — matches height:1, background:#F3F4F6, marginTop:auto */}
+            {!isMobile && (
+              <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                <Bone width="100%" height={13} delay="0.12s" />
+                <Bone width="78%"  height={13} delay="0.16s" />
+              </div>
+            )}
             <div style={{ height: 1, background: "#F3F4F6", width: "100%", marginTop: "auto" }} />
-
-            {/* Read more row — matches paddingTop:16 */}
-            <div style={{ paddingTop: 16 }}>
+            <div style={{ paddingTop: isMobile ? 10 : 16 }}>
               <Bone width="28%" height={14} delay="0.20s" />
             </div>
-
           </div>
         </div>
       </div>
@@ -145,21 +130,16 @@ function SlotText({ children, isHovered }: { children: string; isHovered: boolea
   );
 }
 
-// ─── Bone helper (used inside NewsCard only, not exported) ────────────────────
-
-function DarkBone({ width, height, delay }: { width: string; height: number; delay: string }) {
-  return (
-    <div style={{ width, height, borderRadius: 4, background: "rgba(255,255,255,0.08)", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%)", animation: `news-shimmer 1.6s ease-in-out ${delay} infinite` }} />
-    </div>
-  );
-}
-
 // ─── News Card ────────────────────────────────────────────────────────────────
 
-export default function NewsCard({ item }: { item: any }) {
+export default function NewsCard({ item, isMobile = false }: { item: any; isMobile?: boolean }) {
   const [isHovered, setIsHovered] = useState(false);
   const arrowRef = useRef<SVGSVGElement>(null);
+
+  const thumbH    = isMobile ? 120 : 200;
+  const bodyPad   = isMobile ? "12px 14px 14px" : "20px 22px 22px";
+  const titleSize = isMobile ? 13 : 18;
+  const titleMB   = isMobile ? 8 : 12;
 
   useEffect(() => {
     const paths = arrowRef.current?.querySelectorAll("path, line, polyline");
@@ -193,9 +173,10 @@ export default function NewsCard({ item }: { item: any }) {
       }}
     >
       <div style={{ background: "#fff", borderRadius: 6, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
+        {/* Thumbnail */}
         <div
           style={{
-            height: 200,
+            height: thumbH,
             position: "relative",
             backgroundImage: item.thumbnail_url ? `url(${item.thumbnail_url})` : "none",
             backgroundColor: "#E5E7EB",
@@ -228,16 +209,18 @@ export default function NewsCard({ item }: { item: any }) {
           )}
         </div>
 
-        <div style={{ padding: "20px 22px 22px", flex: 1, display: "flex", flexDirection: "column" }}>
+        {/* Body */}
+        <div style={{ padding: bodyPad, flex: 1, display: "flex", flexDirection: "column" }}>
           <div style={{ ...JK, fontSize: 12, color: "#9CA3AF", fontWeight: 600, marginBottom: 8 }}>
             {item.published_at
               ? new Date(item.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
               : "—"}
           </div>
-          <div style={{ ...JK, fontSize: 18, fontWeight: 800, color: "#06125C", lineHeight: 1.3, marginBottom: 12 }}>
+          <div style={{ ...JK, fontSize: titleSize, fontWeight: 800, color: "#06125C", lineHeight: 1.3, marginBottom: titleMB }}>
             {item.title}
           </div>
-          {item.excerpt && (
+          {/* Excerpt hidden on mobile — biggest height contributor */}
+          {!isMobile && item.excerpt && (
             <div
               style={{
                 ...JK,
@@ -255,8 +238,8 @@ export default function NewsCard({ item }: { item: any }) {
             </div>
           )}
           <div style={{ height: "1px", background: "#F3F4F6", width: "100%", marginTop: "auto" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 16 }}>
-            <div style={{ ...JK, fontSize: 15, fontWeight: 800 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: isMobile ? 10 : 16 }}>
+            <div style={{ ...JK, fontSize: isMobile ? 12 : 15, fontWeight: 800 }}>
               <SlotText isHovered={isHovered}>Read more</SlotText>
             </div>
             <div

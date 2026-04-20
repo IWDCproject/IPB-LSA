@@ -1,14 +1,34 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
-import NewsCard from "@/components/NewsCard";
-import { getNewsByEvent } from "@/lib/directus";
+import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
+import { getNewsByEvent, getNewsCountByEvent } from "@/lib/directus";
 import { TAB_ENTER } from "./Animations";
 import type { AnimPhase } from "./UseTabTransition";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 const PAGE_SIZE = 12;
 const YELLOW = "#FFC936";
+
+// ─── Responsive columns ────────────────────────────────────────────────────────
+
+function getColumns(width: number, isMobile: boolean): number {
+  if (isMobile || width < 768) return 2;
+  if (width < 1400)            return 3;
+  return 4;
+}
+
+function useColumns(isMobile: boolean): number {
+  const [columns, setColumns] = useState(() =>
+    typeof window !== "undefined" ? getColumns(window.innerWidth, isMobile) : 4
+  );
+  useEffect(() => {
+    const handler = () => setColumns(getColumns(window.innerWidth, isMobile));
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [isMobile]);
+  return columns;
+}
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
@@ -18,8 +38,8 @@ function PaginationButton({
   label: React.ReactNode; active?: boolean; disabled?: boolean; onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const bg    = active ? YELLOW : hovered && !disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)";
-  const color = active ? "#06125C" : disabled ? "rgba(255,255,255,0.25)" : "#fff";
+  const bg     = active ? YELLOW : hovered && !disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)";
+  const color  = active ? "#06125C" : disabled ? "rgba(255,255,255,0.25)" : "#fff";
   const border = active ? `1px solid ${YELLOW}` : "1px solid rgba(255,255,255,0.15)";
 
   return (
@@ -76,16 +96,16 @@ function Pagination({ page, totalPages, onPageChange }: {
   );
 }
 
-// ─── Placeholder Card (fills remainder of last row) ───────────────────────────
+// ─── Placeholder Card ─────────────────────────────────────────────────────────
 
-function NewsPlaceholder() {
+function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <div style={{
       position: "relative", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", borderRadius: 8,
       boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.15)",
       background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(8px)",
-      padding: "40px", height: "100%", minHeight: 380, overflow: "hidden",
+      padding: "40px", height: "100%", overflow: "hidden",
     }}>
       <div style={{
         position: "absolute", inset: 0,
@@ -106,6 +126,69 @@ function NewsPlaceholder() {
   );
 }
 
+// ─── Card Slot ────────────────────────────────────────────────────────────────
+// Uses CSS grid stacking (grid-area: 1/1) so skeleton and real card occupy the
+// same cell. Slot height = max(skeleton, card) — no clipping, no absolute
+// positioning, no height jump. Skeleton fades out, card fades in, in place.
+
+interface SlotProps {
+  index:         number;
+  item:          any | null;
+  isPlaceholder: boolean;
+  ready:         boolean;
+  isMobile:      boolean;
+  dur:           number;
+  ease:          string;
+  base:          number;
+  stagger:       number;
+}
+
+function CardSlot({ index, item, isPlaceholder, ready, isMobile, dur, ease, base, stagger }: SlotProps) {
+  return (
+    <div
+      style={{
+        opacity: 0,
+        animation: `anim-slide-up-soft ${dur}ms ${ease} ${base + index * stagger}ms forwards`,
+        display: "grid",   // grid stacking: both children share the same cell
+        height: "100%",
+      }}
+    >
+      {/* Skeleton — grid-area 1/1, fades out when ready, stays in layout */}
+      <div
+        style={{
+          gridArea:      "1/1",
+          opacity:       ready ? 0 : 1,
+          visibility:    ready ? "hidden" : "visible",
+          transition:    ready ? "opacity 0.3s ease" : "none",
+          pointerEvents: "none",
+          zIndex:        ready ? 0 : 1,
+        }}
+      >
+        <NewsCardSkeleton isMobile={isMobile} />
+      </div>
+
+      {/* Real card — grid-area 1/1, fades in when ready */}
+      <div
+        style={{
+          gridArea:      "1/1",
+          opacity:       ready ? 1 : 0,
+          transition:    ready ? "opacity 0.3s ease" : "none",
+          pointerEvents: ready ? "auto" : "none",
+          zIndex:        ready ? 1 : 0,
+        }}
+      >
+        {ready && (
+          isPlaceholder
+            ? <NewsPlaceholder isMobile={isMobile} />
+            : item
+              ? <NewsCard item={item} isMobile={isMobile} />
+              : null
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 interface Props {
@@ -118,74 +201,69 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const [page,       setPage]       = useState(1);
   const [items,      setItems]      = useState<any[] | null>(null);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalSlots, setTotalSlots] = useState(PAGE_SIZE);
+  const [ready,      setReady]      = useState(false);
+  const [animKey,    setAnimKey]    = useState(0);
 
-  // outerRef     — always-mounted container; we hard-set its height to lock it
-  // innerRef     — wraps actual content so we can measure its natural height
-  // lockedHeight — null = free flow; number = locked/transitioning to that px value
-  const outerRef     = useRef<HTMLDivElement>(null);
-  const innerRef     = useRef<HTMLDivElement>(null);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
+
+  const COLUMNS = useColumns(isMobile);
+  const GAP     = isMobile ? 12 : 20;
 
   useEffect(() => {
     setItems(null);
+    setReady(false);
+    setTotalSlots(PAGE_SIZE);
+    setAnimKey(k => k + 1);
+
     let cancelled = false;
 
-    getNewsByEvent(event.slug, page, PAGE_SIZE).then((res) => {
+    getNewsCountByEvent(event.slug, page, PAGE_SIZE).then(({ pageCount, totalPages: tp }) => {
       if (cancelled) return;
-      setItems(res.items);
-      setTotalPages(res.totalPages);
+
+      const isLastPage   = page === tp;
+      const remainder    = pageCount % COLUMNS;
+      const placeholders = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
+
+      setTotalSlots(pageCount + placeholders);
+      setTotalPages(tp);
+    });
+
+    getNewsByEvent(event.slug, page, PAGE_SIZE).then(({ items: newItems }) => {
+      if (cancelled) return;
+      setItems(newItems);
+      setReady(true);
     });
 
     return () => { cancelled = true; };
   }, [event.slug, page]);
 
-  // Once new items have painted, measure the inner content's natural height and
-  // transition the outer container from its locked height to the new one.
-  // useLayoutEffect runs synchronously after DOM mutations, before the browser
-  // repaints, so the measurement is always fresh.
   useLayoutEffect(() => {
-    if (items === null)        return; // still fetching — keep the lock
-    if (lockedHeight === null) return; // no active lock (initial load)
+    if (!ready)                return;
+    if (lockedHeight === null) return;
     if (!innerRef.current)     return;
-
-    const newHeight = innerRef.current.offsetHeight;
-    setLockedHeight(newHeight); // CSS transition: old locked px → new content px
+    setLockedHeight(innerRef.current.offsetHeight);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [ready]);
 
   const handlePageChange = (p: number) => {
-    // Step 1 — snapshot & hard-lock the height so the page stays tall
-    if (outerRef.current) {
-      setLockedHeight(outerRef.current.offsetHeight);
-    }
-    // Step 2 — scroll to top while the page is still full height (always works)
+    if (outerRef.current) setLockedHeight(outerRef.current.offsetHeight);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    // Step 3 — trigger the fetch (items → null, content disappears inside lock)
     setPage(p);
   };
 
-  // After the height transition finishes, release back to auto so the container
-  // can reflow naturally (handles viewport resize etc.)
   const handleTransitionEnd = () => setLockedHeight(null);
-
-  const COLUMNS = isMobile ? 2 : 4;
-  const GAP     = isMobile ? 12 : 20;
-  const isLoading  = items === null;
-  const isEmpty    = !isLoading && items!.length === 0;
-  const isLastPage = page === totalPages;
 
   const DUR     = TAB_ENTER.duration;
   const EASE    = TAB_ENTER.easing;
   const BASE    = TAB_ENTER.baseDelay;
   const STAGGER = TAB_ENTER.stagger;
 
-  const remainder        = !isLoading && !isEmpty ? items!.length % COLUMNS : 0;
-  const placeholderCount = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
-  const totalSlots       = !isLoading && !isEmpty ? items!.length + placeholderCount : 0;
+  const isEmpty = ready && items !== null && items.length === 0;
 
   return (
-    // Outer div: always mounted. When lockedHeight is set, it holds a hard pixel
-    // height with overflow:hidden, then CSS-transitions to the new content height.
     <div
       ref={outerRef}
       onTransitionEnd={handleTransitionEnd}
@@ -195,21 +273,15 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
         transition: lockedHeight !== null ? "height 0.4s ease" : undefined,
       }}
     >
-      {/* Inner div sits at its natural content height — lets us measure it */}
       <div ref={innerRef}>
 
-        {/* Loading: render nothing (outer stays locked at old height) */}
-        {isLoading && null}
-
-        {/* Empty */}
         {isEmpty && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
             <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
           </div>
         )}
 
-        {/* Card grid */}
-        {!isLoading && !isEmpty && (
+        {!isEmpty && (
           <>
             <div style={{
               display: "grid",
@@ -217,44 +289,31 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
               gap: GAP, alignItems: "stretch", padding: 2,
             }}>
               {Array.from({ length: totalSlots }).map((_, i) => {
-                const item = items![i];
-                const isPlaceholder = i >= items!.length;
-
-                if (isPlaceholder) {
-                  return (
-                    <div
-                      key={`placeholder-${i}`}
-                      style={{
-                        opacity: 0,
-                        animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
-                      }}
-                    >
-                      <NewsPlaceholder />
-                    </div>
-                  );
-                }
+                const isPlaceholder = ready && items !== null && i >= items.length;
+                const item          = ready && items !== null && !isPlaceholder ? items[i] : null;
 
                 return (
-                  <div
-                    key={`card-${item.id}`}
-                    style={{
-                      opacity: 0,
-                      animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
-                    }}
-                  >
-                    <NewsCard item={item} />
-                  </div>
+                  <CardSlot
+                    key={`${animKey}-${i}`}
+                    index={i}
+                    item={item}
+                    isPlaceholder={isPlaceholder}
+                    ready={ready}
+                    isMobile={isMobile}
+                    dur={DUR} ease={EASE} base={BASE} stagger={STAGGER}
+                  />
                 );
               })}
             </div>
 
-            {/* Pagination fades in after the last card finishes */}
-            <div style={{
-              opacity: 0,
-              animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
-            }}>
-              <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
-            </div>
+            {ready && (
+              <div style={{
+                opacity: 0,
+                animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
+              }}>
+                <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+              </div>
+            )}
           </>
         )}
 
