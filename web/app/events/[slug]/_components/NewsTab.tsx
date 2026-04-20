@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
+import { useState, useEffect } from "react";
+import NewsCard from "@/components/NewsCard";
 import { getNewsByEvent } from "@/lib/directus";
 import { TAB_ENTER } from "./Animations";
 import type { AnimPhase } from "./UseTabTransition";
@@ -18,8 +18,8 @@ function PaginationButton({
   label: React.ReactNode; active?: boolean; disabled?: boolean; onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const bg     = active ? YELLOW : hovered && !disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)";
-  const color  = active ? "#06125C" : disabled ? "rgba(255,255,255,0.25)" : "#fff";
+  const bg    = active ? YELLOW : hovered && !disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)";
+  const color = active ? "#06125C" : disabled ? "rgba(255,255,255,0.25)" : "#fff";
   const border = active ? `1px solid ${YELLOW}` : "1px solid rgba(255,255,255,0.15)";
 
   return (
@@ -76,7 +76,7 @@ function Pagination({ page, totalPages, onPageChange }: {
   );
 }
 
-// ─── Placeholder Card ─────────────────────────────────────────────────────────
+// ─── Placeholder Card (fills remainder of last row) ───────────────────────────
 
 function NewsPlaceholder() {
   return (
@@ -115,132 +115,101 @@ interface Props {
 }
 
 export default function NewsTab({ event, isMobile, phase }: Props) {
-  const [page,         setPage]         = useState(1);
-  const [items,        setItems]        = useState<any[]>([]);
-  const [totalPages,   setTotalPages]   = useState(0);
-  const [contentState, setContentState] = useState<"loading" | "loaded" | "empty">("loading");
-  const [contentKey,   setContentKey]   = useState(0);
-  const containerRef                    = useRef<HTMLDivElement>(null);
-  const innerRef                        = useRef<HTMLDivElement>(null);
+  const [page,       setPage]       = useState(1);
+  // null = in-flight fetch; array = settled (may be empty)
+  const [items,      setItems]      = useState<any[] | null>(null);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
+    // Reset to loading state immediately so the skeleton grid shows right away
+    setItems(null);
     let cancelled = false;
-    if (items.length === 0) setContentState("loading");
 
     getNewsByEvent(event.slug, page, PAGE_SIZE).then((res) => {
       if (cancelled) return;
       setItems(res.items);
       setTotalPages(res.totalPages);
-      setContentState(res.items.length === 0 ? "empty" : "loaded");
-      setContentKey(k => k + 1);
-      
-      // WAIT for React to render the new cards before measuring height
-      requestAnimationFrame(() => {
-        if (containerRef.current && innerRef.current) {
-          // Now we measure the height of the NEW content
-          const newHeight = innerRef.current.scrollHeight;
-          containerRef.current.style.minHeight = `${newHeight}px`;
-
-          // Clear the lock only after the CSS transition finishes
-          setTimeout(() => {
-            if (containerRef.current) containerRef.current.style.minHeight = "";
-          }, 700); 
-        }
-      });
     });
 
     return () => { cancelled = true; };
   }, [event.slug, page]);
 
   const handlePageChange = (p: number) => {
-    if (containerRef.current) {
-      // Lock current height so the page doesn't collapse during the scroll
-      containerRef.current.style.minHeight = `${containerRef.current.offsetHeight}px`;
-    }
     setPage(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Grid Configuration
   const COLUMNS = isMobile ? 2 : 4;
-  const GAP = isMobile ? 12 : 20;
-
-  // Placeholder Logic: Fill the remainder of the last row on the last page
-  const remainder = items.length % COLUMNS;
+  const GAP     = isMobile ? 12 : 20;
+  const isLoading  = items === null;
+  const isEmpty    = items !== null && items.length === 0;
   const isLastPage = page === totalPages;
-  const placeholderCount = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
 
-  if (contentState === "loading") {
-    return (
+  const DUR     = TAB_ENTER.duration;
+  const EASE    = TAB_ENTER.easing;
+  const BASE    = TAB_ENTER.baseDelay;
+  const STAGGER = TAB_ENTER.stagger;
+  if (isLoading) return null;
+
+  if (isEmpty) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
+      <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
+    </div>
+  );
+
+  // Fill the last row with placeholder cards on the last page
+  const remainder        = items.length % COLUMNS;
+  const placeholderCount = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
+  const totalSlots       = items.length + placeholderCount;
+
+  return (
+    <div>
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
         gap: GAP, alignItems: "stretch", padding: 2,
       }}>
-        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-          <NewsCardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
+        {Array.from({ length: totalSlots }).map((_, i) => {
+          const item = items[i];
+          const isPlaceholder = i >= items.length;
 
-  if (contentState === "empty") return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
-        <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
-    </div>
-  );
+          if (isPlaceholder) {
+            return (
+              <div
+                key={`placeholder-${i}`}
+                style={{
+                  opacity: 0,
+                  animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
+                }}
+              >
+                <NewsPlaceholder />
+              </div>
+            );
+          }
 
-  const CARD_STAGGER_MS = 35;
-  const CARD_DURATION   = TAB_ENTER.duration;
-  const CARD_EASING     = TAB_ENTER.easing;
-
-  return (
-    <div 
-      ref={containerRef} 
-      style={{ 
-        transition: "min-height 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
-        willChange: "min-height"
-      }}
-    >
-      <div
-        ref={innerRef}
-        key={contentKey} 
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
-          gap: GAP, alignItems: "stretch", padding: 2,
-        }}
-      >
-        {items.map((item, i) => (
-          <div
-            key={item.id}
-            style={{
-              opacity:   0,
-              animation: `anim-slide-up ${CARD_DURATION}ms ${CARD_EASING} ${i * CARD_STAGGER_MS}ms forwards`,
-            }}
-          >
-            <NewsCard item={item} />
-          </div>
-        ))}
-        {Array.from({ length: placeholderCount }).map((_, i) => (
-          <div
-            key={`p-${i}`}
-            style={{
-              opacity:   0,
-              animation: `anim-slide-up ${CARD_DURATION}ms ${CARD_EASING} ${(items.length + i) * CARD_STAGGER_MS}ms forwards`,
-            }}
-          >
-            <NewsPlaceholder />
-          </div>
-        ))}
+          return (
+            <div
+              key={`card-${item.id}`}
+              style={{
+                opacity: 0,
+                animation: `anim-slide-up-soft ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms forwards`,
+              }}
+            >
+              <NewsCard item={item} />
+            </div>
+          );
+        })}
       </div>
 
-      <div style={{
-        opacity:   0,
-        animation: `anim-fade-in ${CARD_DURATION}ms ${CARD_EASING} ${items.length * CARD_STAGGER_MS + 60}ms forwards`,
-      }}>
-        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
-      </div>
+      {/* Pagination fades in after the last card finishes */}
+      {!isLoading && (
+        <div style={{
+          opacity: 0,
+          animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
+        }}>
+          <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+        </div>
+      )}
     </div>
   );
 }

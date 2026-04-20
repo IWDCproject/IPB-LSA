@@ -37,7 +37,14 @@ export default function EventDetailClient({ event }: { event: any }) {
   const searchParams = useSearchParams();
   const activeTab    = (searchParams.get("tab") as TabKey) ?? "overview";
   const mainRef      = useRef<HTMLDivElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile,      setIsMobile]      = useState(false);
+  // Spinner: "showing" → visible at full opacity for ≥500ms
+  //          "fading"  → opacity transitioning to 0 over 500ms
+  //          "hidden"  → unmounted
+  const [spinnerPhase,  setSpinnerPhase]  = useState<"hidden" | "showing" | "fading">("hidden");
+  const showTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstTab = useRef(true);
 
   useEffect(() => {
     const el = mainRef.current;
@@ -46,6 +53,27 @@ export default function EventDetailClient({ event }: { event: any }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // ─── Spinner: shows on every tab switch, min 500ms visible, 500ms fade ──────
+  useEffect(() => {
+    // Skip the very first render — page load has its own entry animation
+    if (isFirstTab.current) { isFirstTab.current = false; return; }
+
+    if (showTimer.current) clearTimeout(showTimer.current);
+    if (fadeTimer.current) clearTimeout(fadeTimer.current);
+
+    setSpinnerPhase("showing");
+
+    showTimer.current = setTimeout(() => {
+      setSpinnerPhase("fading");
+      fadeTimer.current = setTimeout(() => setSpinnerPhase("hidden"), 500);
+    }, 500);
+
+    return () => {
+      if (showTimer.current) clearTimeout(showTimer.current);
+      if (fadeTimer.current) clearTimeout(fadeTimer.current);
+    };
+  }, [activeTab]);
 
   // ─── Tab transition system ─────────────────────────────────────────────────
   // `displayedTab` lags behind `activeTab` by EXIT_DURATION ms during exit.
@@ -120,6 +148,7 @@ export default function EventDetailClient({ event }: { event: any }) {
               activeTab={activeTab}
               onTabChange={setTab}
               isMobile={isMobile}
+              spinnerPhase={spinnerPhase}
             />
 
             <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>

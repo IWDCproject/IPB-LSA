@@ -41,13 +41,14 @@ function fmtDate(d: string | null) {
 }
 
 interface Props {
-  event:       any;
-  activeTab:   TabKey;
-  onTabChange: (t: TabKey) => void;
-  isMobile:    boolean;
+  event:        any;
+  activeTab:    TabKey;
+  onTabChange:  (t: TabKey) => void;
+  isMobile:     boolean;
+  spinnerPhase: "hidden" | "showing" | "fading";
 }
 
-export default function EventDetailHeader({ event, activeTab, onTabChange, isMobile }: Props) {
+export default function EventDetailHeader({ event, activeTab, onTabChange, isMobile, spinnerPhase }: Props) {
   const TOP_PAD  = "30px";
   const SIDE_PAD = isMobile ? "20px" : "clamp(20px, 8.33vw, 160px)";
   const PAD      = `${TOP_PAD} ${SIDE_PAD} 36px`;
@@ -209,7 +210,7 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
         width:          "100%",
         ...s.tabRow,
       }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {TABS.map((t, i) => (
             <button
               key={t.key}
@@ -232,6 +233,25 @@ export default function EventDetailHeader({ event, activeTab, onTabChange, isMob
               {t.label}
             </button>
           ))}
+
+          {/* Loading spinner — fades in on tab switch, min 500ms, fades out 500ms */}
+          {spinnerPhase !== "hidden" && (
+            <>
+              <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes tab-spin { to { transform: rotate(360deg); } }
+              `}} />
+              <div style={{
+                marginLeft: 4,
+                width: 24, height: 24, borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderTopColor: "rgba(255,255,255,1)",
+                animation: "tab-spin 0.7s linear infinite",
+                flexShrink: 0,
+                opacity:    spinnerPhase === "fading" ? 0 : 1,
+                transition: spinnerPhase === "fading" ? "opacity 500ms ease" : "none",
+              }} />
+            </>
+          )}
         </div>
 
         <div style={{
