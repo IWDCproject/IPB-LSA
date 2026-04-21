@@ -181,7 +181,7 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
             backgroundPosition: "center", flexShrink: 0,
           }}
         >
-          {badge && (
+          {badge && !isMobile && (
             <span style={{
               ...JK, position: "absolute", top: 12, left: 12,
               fontSize: 10, fontWeight: 800, letterSpacing: "0.05em",
@@ -203,13 +203,17 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
               ? new Date(item.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
               : "—"}
           </div>
-          <div style={{ ...JK, fontSize: titleSize, fontWeight: 800, color: "#06125C", lineHeight: 1.3, marginBottom: titleMB }}>
+          <div style={{
+            ...JK, fontSize: titleSize, fontWeight: 800, color: "#06125C", lineHeight: 1.3, marginBottom: titleMB,
+            overflow: "hidden", display: "-webkit-box",
+            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+          } as React.CSSProperties}>
             {item.title}
           </div>
-          {!isMobile && item.excerpt && (
+          {item.excerpt && (
             <div
               style={{
-                ...JK, fontSize: 14, color: "#6B7280", lineHeight: 1.6,
+                ...JK, fontSize: 12, color: "#6B7280", lineHeight: 1.6,
                 overflow: "hidden", display: "-webkit-box",
                 WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 16,
               } as React.CSSProperties}
