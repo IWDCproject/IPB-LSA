@@ -107,20 +107,6 @@ function CompactMatchCard({ match }: { match: any }) {
              <span className="text-white font-bold text-sm uppercase">
                {match.home_participant?.name || match.match_name}
              </span>
-             {match.home_participant?.members && (
-               <span className="text-blue-300 text-[10px] mt-1 line-clamp-2 max-w-[90%]">
-                 {Array.isArray(match.home_participant.members)
-                   ? match.home_participant.members.join(", ")
-                   : (() => {
-                       try {
-                         const parsed = JSON.parse(match.home_participant.members);
-                         return Array.isArray(parsed) ? parsed.join(", ") : String(parsed);
-                       } catch (e) {
-                         return String(match.home_participant.members);
-                       }
-                     })()}
-               </span>
-             )}
            </div>
         ) : (
           <div className="flex items-center justify-between w-full z-10 relative">
@@ -248,7 +234,7 @@ function EventGroup({ eventName, cardImage, matches }: { eventName: string, card
 
 export default function SchedulePageClient({ initialMatches }: { initialMatches: any[] }) {
   const [activeTab, setActiveTab] = useState<"ALL" | "sport" | "arts">("ALL");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Derive unique dates
@@ -271,13 +257,6 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
     return sorted;
   }, [initialMatches]);
 
-  // Set initial selected date if not set
-  useMemo(() => {
-    if (!selectedDate && uniqueDates.length > 0) {
-      setSelectedDate(uniqueDates[0]);
-    }
-  }, [uniqueDates, selectedDate]);
-
   const filteredMatches = useMemo(() => {
     let result = initialMatches;
     
@@ -287,9 +266,9 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
     }
     
     // 2. Filter by Date
-    if (selectedDate) {
-      result = result.filter(m => {
-        if (!m.scheduled_at) return false;
+    if (selectedDate && selectedDate !== "ALL") {
+     result = result.filter(m => {
+      if (!m.scheduled_at) return false;
         const d = new Date(m.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
         return d === selectedDate;
       });
@@ -345,89 +324,112 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 relative z-10">
         
-        {/* --- Redesigned Compact Hero Section --- */}
-        <div className="relative bg-[#091340]/60 p-6 md:p-10 rounded-3xl border border-blue-800/30 overflow-hidden shadow-2xl backdrop-blur-md mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-yellow-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+        {/* --- Hero Section (Teks Baru, Maskot Posisi Lama) --- */}
+        <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 mt-10 mb-16 px-2 md:px-0">
           
-          {/* Left: Titles & Mascots */}
-          <div className="relative z-10 flex items-center gap-6 w-full md:w-auto">
+          {/* Kiri: Maskot Cowok & Judul */}
+          <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6 md:gap-10 w-full md:w-auto">
             <div className="hidden sm:block shrink-0">
-               <img src="/maskot/Cowok%20Suka.png" alt="Mascot" className="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-2xl" />
+               <img src="/maskot/Cowok%20Suka.png" alt="Mascot" className="w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 object-contain drop-shadow-2xl" />
             </div>
             <div className="text-center sm:text-left flex-1">
-              <h1 className="text-5xl md:text-[80px] font-display font-normal uppercase tracking-wide leading-[0.9] text-white drop-shadow-md">
+              <h1 className="text-5xl md:text-[65px] lg:text-[80px] font-display font-black uppercase tracking-wide leading-[1.05] text-white drop-shadow-lg">
                 MATCH & EVENT <br className="hidden md:block"/>
                 <span className="text-yellow-400">SCHEDULES</span>
               </h1>
-              <p className="text-blue-200 text-sm md:text-base mt-3 font-medium tracking-wide bg-blue-900/40 w-fit sm:mx-0 mx-auto px-4 py-1.5 rounded-full border border-blue-400/20">
-                Pantau jadwal & skor pertandingan secara real-time.
+              <p className="text-blue-100 text-sm md:text-base mt-4 font-bold tracking-wide uppercase">
+                Pantau jadwal dari seluruh kompetisi olahraga dan seni
               </p>
             </div>
           </div>
           
-          {/* Right: Secondary Mascot */}
+          {/* Kanan: Maskot Cewek */}
           <div className="hidden md:block relative z-10 shrink-0">
-             <img src="/maskot/Cewek%20Semangat.png" alt="Mascot" className="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-2xl scale-x-[-1]" />
+             <img src="/maskot/Cewek%20Semangat.png" alt="Mascot" className="w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 object-contain drop-shadow-2xl scale-x-[-1]" />
           </div>
         </div>
 
-        {/* --- Toolbar: Search, Tabs, Dates (Sticky) --- */}
-        <div className="sticky top-20 md:top-24 z-40 bg-[#06125C]/85 backdrop-blur-xl border border-blue-600/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-2xl p-4 flex  │ flex-col xl:flex-row gap-4 items-center justify-between mb-10 transition-all">
-          {/* Search Input */}
-          <div className="relative w-full xl:w-[350px] shrink-0 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 group-focus-within:text-yellow-400 transition-colors" size={18} />
-            <input 
-              type="text"
-              placeholder="Cari tim, kategori, venue..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-[#091340]/80 border border-blue-800/80 text-white rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all placeholder:text-blue-500 shadow-inner"
-            />
-          </div>
-
-          <div className="flex flex-col lg:flex-row items-center gap-4 w-full xl:w-auto justify-end overflow-hidden">
+       {/* --- Toolbar: Tabs, Search, & Dates (Sesuai Referensi) --- */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-12 relative z-20 px-2 md:px-0 w-full">
+          
+          {/* Kontrol Kiri: Tabs Kategori & Search */}
+          {/* Tambahan shrink-0 agar tab dan search tidak mengecil saat tanggal memanjang */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto shrink-0">
             {/* Tabs */}
-            <div className="flex bg-[#091340] p-1.5 rounded-xl border border-blue-800/50 shrink-0 w-full lg:w-auto overflow-x-auto scrollbar-hide shadow-inner">
+            <div className="flex bg-[#11194C] p-1.5 rounded-full shadow-lg w-full sm:w-auto shrink-0 border border-blue-800/40">
               {(["ALL", "sport", "arts"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "flex-1 lg:flex-none px-6 py-2 text-xs md:text-sm font-bold uppercase transition-all rounded-lg whitespace-nowrap",
-                    activeTab === tab ? "bg-yellow-400 text-black shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"
+                    "flex-1 sm:flex-none px-6 py-2.5 text-xs md:text-sm font-bold uppercase transition-all rounded-full whitespace-nowrap",
+                    activeTab === tab ? "bg-yellow-400 text-black shadow-md" : "text-white hover:text-yellow-200 hover:bg-white/5"
                   )}
                 >
-                  {tab === "sport" ? "SPORTS" : tab === "arts" ? "ARTS" : "SEMUA KATEGORI"}
+                  {tab === "sport" ? "SPORTS" : tab === "arts" ? "ARTS" : "ALL"}
                 </button>
               ))}
             </div>
 
-            {/* Divider */}
-            <div className="hidden lg:block w-px h-10 bg-blue-800/50 mx-2" />
-
-            {/* Date Selector */}
-            <div className="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide shrink-0 px-2">
-              <Calendar className="text-blue-400 hidden lg:block mr-2 shrink-0" size={18} />
-              {uniqueDates.map(date => {
-                const isToday = date === new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-                return (
-                  <button
-                    key={date}
-                    onClick={() => setSelectedDate(date)}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all border",
-                      selectedDate === date 
-                        ? "bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.5)]" 
-                        : "bg-[#091340]/50 text-blue-300 border-blue-800/50 hover:border-blue-500 hover:bg-blue-900/30"
-                    )}
-                  >
-                    {date} {isToday && <span className="text-yellow-400 ml-1">(Hari ini)</span>}
-                  </button>
-                );
-              })}
+            {/* Input Search (Bentuk Pill senada) */}
+            <div className="relative w-full sm:w-64 lg:w-72 shrink-0 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-yellow-400 transition-colors" size={18} />
+              <input 
+                type="text"
+                placeholder="Cari tim, kategori, venue..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-[#11194C] border border-blue-800/40 text-white rounded-full pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all placeholder:text-blue-300 shadow-lg"
+              />
             </div>
+          </div>
+
+          {/* Kontrol Kanan: Tanggal */}
+          {/* PERBAIKAN: flex-1 dan min-w-0 ditambahkan agar bisa di-scroll dan tidak tembus ke kanan */}
+          <div 
+            className="flex items-center gap-3 overflow-x-auto w-full flex-1 min-w-0 pb-3 xl:pb-2
+            [&::-webkit-scrollbar]:h-[3px] 
+            [&::-webkit-scrollbar-track]:bg-[#091340]/50 
+            [&::-webkit-scrollbar-track]:rounded-full
+            [&::-webkit-scrollbar-thumb]:bg-blue-600 
+            hover:[&::-webkit-scrollbar-thumb]:bg-blue-400
+            [&::-webkit-scrollbar-thumb]:rounded-full"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#f7f4f4 transparent' }}
+          >
+            <button
+              onClick={() => setSelectedDate("ALL")}
+              className={cn(
+                "px-6 py-3 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all shadow-lg shrink-0 border border-blue-800/40",
+                selectedDate === "ALL" 
+                  ? "bg-yellow-400 text-black border-yellow-400" 
+                  : "bg-[#11194C] text-white hover:bg-[#1A266B]"
+              )}
+            >
+              Semua
+            </button>
+
+            {uniqueDates.map(date => {
+              const isToday = date === new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+              return (
+                <button
+                  key={date}
+                  onClick={() => setSelectedDate(date)}
+                  className={cn(
+                    "px-6 py-3 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all shadow-lg shrink-0 border border-blue-800/40",
+                    selectedDate === date 
+                      ? "bg-yellow-400 text-black border-yellow-400" 
+                      : "bg-[#11194C] text-white hover:bg-[#1A266B]"
+                  )}
+                >
+                  {date} 
+                  {isToday && (
+                    <span className={selectedDate === date ? "text-black/70 ml-1" : "text-yellow-400 ml-1"}>
+                      (Hari ini)
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

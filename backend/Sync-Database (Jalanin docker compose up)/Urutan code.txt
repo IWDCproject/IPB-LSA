@@ -1,0 +1,18 @@
+// HANYA UNTUK TABLE 
+Export 
+docker compose exec directus npx directus schema snapshot ./snapshots/schema.yaml
+
+
+Import 
+docker compose exec directus npx directus schema apply ./snapshots/schema.yaml
+
+//ISI TABLE 
+Export 
+docker compose exec postgres pg_dump -U directus -d directus > ./snapshots/seed-data.sql
+
+
+Import 
+cat ./snapshots/seed-data.sql | docker compose exec -T postgres psql -U directus -d directus
+
+
+
