@@ -1,17 +1,43 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
-import { getNewsByEvent } from "@/lib/directus";
+import { getNewsByEvent, getNewsCountByEvent } from "@/lib/directus";
 import { TAB_ENTER } from "./Animations";
 import type { AnimPhase } from "./UseTabTransition";
 
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 const PAGE_SIZE = 12;
-const BLUE   = "#0D26C2";
 const YELLOW = "#FFC936";
 
-// ─── Pagination (unchanged) ────────────────────────────────────────────────────
+// ─── Skeleton debounce thresholds ─────────────────────────────────────────────
+// 1. Show delay  — if data arrives before this, skeleton never appears at all.
+// 2. Min display — once skeleton is visible, keep it for at least this long
+//                  to avoid a flash.
+const SKELETON_SHOW_DELAY_MS  = 200;
+const SKELETON_MIN_DISPLAY_MS = 200;
+
+// ─── Responsive columns ────────────────────────────────────────────────────────
+
+function getColumns(width: number, isMobile: boolean): number {
+  if (isMobile || width < 768) return 2;
+  if (width < 1280)            return 3;
+  return 4;
+}
+
+function useColumns(isMobile: boolean): number {
+  const [columns, setColumns] = useState(() =>
+    typeof window !== "undefined" ? getColumns(window.innerWidth, isMobile) : 4
+  );
+  useEffect(() => {
+    const handler = () => setColumns(getColumns(window.innerWidth, isMobile));
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [isMobile]);
+  return columns;
+}
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
 
 function PaginationButton({
   label, active, disabled, onClick,
@@ -19,7 +45,6 @@ function PaginationButton({
   label: React.ReactNode; active?: boolean; disabled?: boolean; onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-
   const bg     = active ? YELLOW : hovered && !disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)";
   const color  = active ? "#06125C" : disabled ? "rgba(255,255,255,0.25)" : "#fff";
   const border = active ? `1px solid ${YELLOW}` : "1px solid rgba(255,255,255,0.15)";
@@ -47,7 +72,6 @@ function Pagination({ page, totalPages, onPageChange }: {
   page: number; totalPages: number; onPageChange: (p: number) => void;
 }) {
   if (totalPages <= 1) return null;
-
   const pages: (number | "…")[] = [];
   if (totalPages <= 7) {
     for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -58,7 +82,6 @@ function Pagination({ page, totalPages, onPageChange }: {
     if (page < totalPages - 2) pages.push("…");
     pages.push(totalPages);
   }
-
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 40 }}>
       <PaginationButton
@@ -80,16 +103,16 @@ function Pagination({ page, totalPages, onPageChange }: {
   );
 }
 
-// ─── Placeholder Card (fills last row) ────────────────────────────────────────
+// ─── Placeholder Card ─────────────────────────────────────────────────────────
 
-function NewsPlaceholder() {
+function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <div style={{
       position: "relative", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", borderRadius: 8,
       boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.15)",
-      background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(4px)",
-      padding: "40px", height: "100%", minHeight: 380, overflow: "hidden",
+      background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(8px)",
+      padding: "40px", height: "100%", overflow: "hidden",
     }}>
       <div style={{
         position: "absolute", inset: 0,
@@ -110,17 +133,91 @@ function NewsPlaceholder() {
   );
 }
 
-// ─── Empty State ───────────────────────────────────────────────────────────────
+// ─── Card Slot ────────────────────────────────────────────────────────────────
+// CSS grid stacking (grid-area:1/1) keeps both layers in normal flow so slot
+// height = max(skeleton, card) — no clipping, no position:absolute games.
+//
+// showSkeleton = false (fast path): card slides in directly, no skeleton layer.
+// showSkeleton = true             : skeleton animates in, crossfades to card.
 
-function EmptyState() {
+interface SlotProps {
+  index:        number;
+  item:         any | null;
+  isPlaceholder: boolean;
+  ready:        boolean;
+  showSkeleton: boolean;
+  isMobile:     boolean;
+  dur:          number;
+  ease:         string;
+  base:         number;
+  stagger:      number;
+}
+
+function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, dur, ease, base, stagger }: SlotProps) {
+  // cardShowing lags one rAF behind ready (skeleton path only).
+  // This ensures the card first paints at opacity:0, then the transition fires —
+  // giving a real crossfade instead of an instant jump that flashes the background.
+  const [cardShowing, setCardShowing] = useState(false);
+
+  useEffect(() => {
+    if (!ready || !showSkeleton) return;
+    const raf = requestAnimationFrame(() => setCardShowing(true));
+    return () => cancelAnimationFrame(raf);
+  }, [ready, showSkeleton]);
+
+  // On the fast path (no skeleton) the card is immediately visible; the parent
+  // slide-up keyframe animation handles the visual entry.
+  const cardOpacity    = showSkeleton ? (cardShowing ? 1 : 0) : (ready ? 1 : 0);
+  const cardInteract   = showSkeleton ? cardShowing : ready;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", gap: 12 }}>
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-        <path d="M4 4h16v16H4zM4 9h16M9 4v16" />
-      </svg>
-      <span style={{ ...JK, fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.3)" }}>
-        No news yet for this event
-      </span>
+    <div
+      style={{
+        opacity: 0,
+        animation: `anim-slide-up-soft ${dur}ms ${ease} ${base + index * stagger}ms forwards`,
+        display: "grid",
+        height: "100%",
+      }}
+    >
+      {/* Skeleton layer — only mounted when showSkeleton=true */}
+      {showSkeleton && (
+        <div
+          style={{
+            gridArea:      "1/1",
+            opacity:       cardShowing ? 0 : 1,
+            // Delay visibility:hidden until after the opacity fade completes
+            // so the skeleton doesn't disappear before the card is fully visible.
+            visibility:    cardShowing ? "hidden" : "visible",
+            transition:    "opacity 0.3s ease, visibility 0s linear 0.3s",
+            pointerEvents: "none",
+            zIndex:        cardShowing ? 0 : 1,
+          }}
+        >
+          <NewsCardSkeleton isMobile={isMobile} />
+        </div>
+      )}
+
+      {/* Real card layer */}
+      <div
+        style={{
+          gridArea:      "1/1",
+          opacity:       cardOpacity,
+          // Always keep transition present so the browser has a "from" state
+          // when opacity changes from 0→1 (avoids instant jump).
+          transition:    showSkeleton ? "opacity 0.3s ease" : "none",
+          pointerEvents: cardInteract ? "auto" : "none",
+          zIndex:        cardInteract ? 1 : 0,
+          height:        "100%",
+        }}
+      >
+        {ready && (
+          isPlaceholder
+            ? <NewsPlaceholder isMobile={isMobile} />
+            : item
+              ? <NewsCard item={item} isMobile={isMobile} />
+              : null
+        )}
+      </div>
     </div>
   );
 }
@@ -133,126 +230,176 @@ interface Props {
   phase:    AnimPhase;
 }
 
-
 export default function NewsTab({ event, isMobile, phase }: Props) {
-  const [page,         setPage]         = useState(1);
-  const [items,        setItems]        = useState<any[]>([]);
-  const [totalPages,   setTotalPages]   = useState(0);
-  const [contentState, setContentState] = useState<"loading" | "loaded" | "empty">("loading");
-  // Increments every time fresh content arrives. Used as a React `key` on the
-  // content wrapper so the CSS animation resets and replays on each load —
-  // correct trigger point because by the time the fetch resolves, `phase` is
-  // already "idle" and would never fire the animation.
-  const [contentKey, setContentKey] = useState(0);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [columns, setColumns] = useState(1);
+  const [page,            setPage]            = useState(1);
+  const [items,           setItems]           = useState<any[] | null>(null);
+  const [totalPages,      setTotalPages]      = useState(0);
+  const [totalSlots,      setTotalSlots]      = useState(PAGE_SIZE);
+  const [ready,           setReady]           = useState(false);
+  // skeletonVisible: true only once the show-delay fires. If data arrives
+  // before the delay, this stays false and skeleton is never rendered at all.
+  const [skeletonVisible, setSkeletonVisible] = useState(false);
+  const [animKey,         setAnimKey]         = useState(0);
 
-  // Detect column count from rendered grid
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [lockedHeight, setLockedHeight] = useState<number | null>(null);
+
+  const COLUMNS = useColumns(isMobile);
+  const GAP     = isMobile ? 12 : 20;
+
   useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid || isMobile) return;
-    const update = () => {
-      const cols = window.getComputedStyle(grid).gridTemplateColumns.split(" ").length;
-      setColumns(cols);
+    setItems(null);
+    setReady(false);
+    setSkeletonVisible(false);
+    setTotalSlots(PAGE_SIZE);
+    setAnimKey(k => k + 1);
+
+    let cancelled        = false;
+    let skeletonShownAt: number | null = null;
+    let resolvedItems:   any[] | null  = null;
+    let resolvedCount                  = false;
+    let minDisplayTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // Called once both fetches have landed. Decides whether to flip ready
+    // immediately or wait out the skeleton minimum display time.
+    const tryCommit = () => {
+      if (!resolvedItems || !resolvedCount) return;
+
+      if (skeletonShownAt === null) {
+        // Fast path — data arrived before show delay fired.
+        // Skeleton was never shown; go straight to cards.
+        clearTimeout(showTimer);
+        if (!cancelled) setReady(true);
+      } else {
+        // Skeleton is (or was) visible — enforce minimum display time.
+        const elapsed   = Date.now() - skeletonShownAt;
+        const remaining = SKELETON_MIN_DISPLAY_MS - elapsed;
+        if (remaining <= 0) {
+          if (!cancelled) setReady(true);
+        } else {
+          minDisplayTimer = setTimeout(() => {
+            if (!cancelled) setReady(true);
+          }, remaining);
+        }
+      }
     };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(grid);
-    return () => ro.disconnect();
-  }, [isMobile, contentState]);
 
-  useEffect(() => {
-    let cancelled = false;
-    // Only show skeleton on first load (no existing items). On pagination,
-    // keep old items visible until new ones arrive — no layout shift.
-    if (items.length === 0) setContentState("loading");
+    // ── Show delay ────────────────────────────────────────────────────────
+    // If this fires before data arrives, show the skeleton. If data is already
+    // here by now, tryCommit will have cleared this timer already (fast path).
+    const showTimer = setTimeout(() => {
+      if (cancelled || resolvedItems) return; // data already committed
+      skeletonShownAt = Date.now();
+      setSkeletonVisible(true);
+    }, SKELETON_SHOW_DELAY_MS);
 
-    getNewsByEvent(event.slug, page, PAGE_SIZE).then((res) => {
+    // ── Count fetch ───────────────────────────────────────────────────────
+    getNewsCountByEvent(event.slug, page, PAGE_SIZE).then(({ pageCount, totalPages: tp }) => {
       if (cancelled) return;
-      setItems(res.items);
-      setTotalPages(res.totalPages);
-      setContentState(res.items.length === 0 ? "empty" : "loaded");
-      // Bump key → React unmounts+remounts the content wrapper → CSS animation replays.
-      setContentKey(k => k + 1);
+      const isLastPage   = page === tp;
+      const remainder    = pageCount % COLUMNS;
+      const placeholders = remainder !== 0 && isLastPage ? COLUMNS - remainder : 0;
+      setTotalSlots(pageCount + placeholders);
+      setTotalPages(tp);
+      resolvedCount = true;
+      tryCommit();
     });
 
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // ── Items fetch ───────────────────────────────────────────────────────
+    getNewsByEvent(event.slug, page, PAGE_SIZE).then(({ items: newItems }) => {
+      if (cancelled) return;
+      setItems(newItems);
+      resolvedItems = newItems;
+      tryCommit();
+    });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(showTimer);
+      if (minDisplayTimer) clearTimeout(minDisplayTimer);
+    };
   }, [event.slug, page]);
 
+  useLayoutEffect(() => {
+    if (!ready)                return;
+    if (lockedHeight === null) return;
+    if (!innerRef.current)     return;
+    setLockedHeight(innerRef.current.offsetHeight);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
   const handlePageChange = (p: number) => {
-    setPage(p);
+    if (outerRef.current) setLockedHeight(outerRef.current.offsetHeight);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    setPage(p);
   };
 
-  // ─── Skeleton ─────────────────────────────────────────────────────────────
-  if (contentState === "loading") {
-    return (
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))",
-        gap: 20, alignItems: "stretch", padding: 2,
-      }}>
-        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-          <NewsCardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
+  const handleTransitionEnd = () => setLockedHeight(null);
 
-  if (contentState === "empty") return <EmptyState />;
+  const DUR     = TAB_ENTER.duration;
+  const EASE    = TAB_ENTER.easing;
+  const BASE    = TAB_ENTER.baseDelay;
+  const STAGGER = TAB_ENTER.stagger;
 
-  const remainder        = items.length % columns;
-  const isLastPage       = page === totalPages;
-  const placeholderCount = !isMobile && remainder !== 0 && isLastPage ? columns - remainder : 0;
+  const isEmpty    = ready && items !== null && items.length === 0;
+  const showGrid   = skeletonVisible || ready; // don't render anything until needed
 
-  // Card stagger config — kept modest so the last card doesn't wait too long.
-  // 12 cards × 35ms = 420ms total spread, each card slides up individually.
-  const CARD_STAGGER_MS = 35;
-  const CARD_DURATION   = TAB_ENTER.duration; // 280ms
-  const CARD_EASING     = TAB_ENTER.easing;
-
-  // `key={contentKey}` unmounts+remounts this entire subtree on each fresh
-  // load, resetting all CSS animation-delay timers back to 0 automatically.
   return (
-    <div key={contentKey}>
-      <div
-        ref={gridRef}
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: 20, alignItems: "stretch", padding: 2,
-        }}
-      >
-        {items.map((item, i) => (
-          <div
-            key={item.id}
-            style={{
-              opacity:   0,
-              animation: `anim-slide-up ${CARD_DURATION}ms ${CARD_EASING} ${i * CARD_STAGGER_MS}ms forwards`,
-            }}
-          >
-            <NewsCard item={item} />
-          </div>
-        ))}
-        {Array.from({ length: placeholderCount }).map((_, i) => (
-          <div
-            key={`p-${i}`}
-            style={{
-              opacity:   0,
-              animation: `anim-slide-up ${CARD_DURATION}ms ${CARD_EASING} ${(items.length + i) * CARD_STAGGER_MS}ms forwards`,
-            }}
-          >
-            <NewsPlaceholder />
-          </div>
-        ))}
-      </div>
+    <div
+      ref={outerRef}
+      onTransitionEnd={handleTransitionEnd}
+      style={{
+        height:     lockedHeight !== null ? lockedHeight : undefined,
+        overflow:   lockedHeight !== null ? "hidden"     : undefined,
+        transition: lockedHeight !== null ? "height 0.4s ease" : undefined,
+      }}
+    >
+      <div ref={innerRef}>
 
-      <div style={{
-        opacity:   0,
-        animation: `anim-fade-in ${CARD_DURATION}ms ${CARD_EASING} ${items.length * CARD_STAGGER_MS + 60}ms forwards`,
-      }}>
-        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+        {isEmpty && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
+            <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
+          </div>
+        )}
+
+        {!isEmpty && showGrid && (
+          <>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
+              gap: GAP, alignItems: "stretch", padding: 2,
+            }}>
+              {Array.from({ length: totalSlots }).map((_, i) => {
+                const isPlaceholder = ready && items !== null && i >= items.length;
+                const item          = ready && items !== null && !isPlaceholder ? items[i] : null;
+
+                return (
+                  <CardSlot
+                    key={`${animKey}-${i}`}
+                    index={i}
+                    item={item}
+                    isPlaceholder={isPlaceholder}
+                    ready={ready}
+                    showSkeleton={skeletonVisible}
+                    isMobile={isMobile}
+                    dur={DUR} ease={EASE} base={BASE} stagger={STAGGER}
+                  />
+                );
+              })}
+            </div>
+
+            {ready && (
+              <div style={{
+                opacity: 0,
+                animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
+              }}>
+                <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+              </div>
+            )}
+          </>
+        )}
+
       </div>
     </div>
   );

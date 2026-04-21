@@ -196,59 +196,65 @@ export default function EventPageClient({ events: rawEvents }: { events: EventLi
 
   return (
     <>
-      <style>{PAGE_KEYFRAMES}</style>
+      <style dangerouslySetInnerHTML={{ __html: PAGE_KEYFRAMES }} />
       <main ref={mainRef} style={{
         position: "relative",
         minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
         background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
-        opacity: 0,
-        animation: "epc-fade-in 0.4s ease 0ms forwards",
       }}>
         {/* batik */}
-        <div style={{
-          position: "absolute", 
-          top: -100, left: 0, right: 0,
-          height: 1200, 
-          backgroundImage: "url(/Batik_Pattern_dark.svg)",
-          opacity: 0.4, 
-          pointerEvents: "none",
-          backgroundSize: "1400px auto", 
-          backgroundRepeat: "repeat-x",
-          backgroundPosition: "top center",
-          transform: "scaleY(-1)", 
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
-          maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
-          zIndex: 0,
-        }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", zIndex: 0, opacity: 0, animation: "epc-fade-in 0.4s ease 0ms forwards" }}>
+          <div style={{
+            position: "absolute", 
+            top: -100, left: 0, right: 0,
+            height: 1200, 
+            backgroundImage: "url(/Batik_Pattern_dark.svg)",
+            opacity: 0.4, 
+            pointerEvents: "none",
+            backgroundSize: "1400px auto", 
+            backgroundRepeat: "repeat-x",
+            backgroundPosition: "top center",
+            transform: "scaleY(-1)", 
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+            maskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
+          }} />
+        </div>
 
         {/* 2. MIDDLE LAYER: Image Crossfade sits on top of the batik */}
-        <BgCrossfade cycleEvents={cycleEvents} />
+        <div style={{ opacity: 0, animation: "epc-fade-in 0.4s ease 0ms forwards" }}>
+          <BgCrossfade cycleEvents={cycleEvents} />
+        </div>
 
         {/* 3. TOP LAYER: Content (Header, Table, etc) */}
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <EventsHeader
-            filter={filter}
-            search={search}
-            onFilterChange={handleFilter}
-            onSearchChange={handleSearch}
-            isMobile={isMobile}
-          />
-
-          <div style={{ padding: isMobile ? `0 20px 24px` : `0 clamp(20px, 8.33%, 160px) 34px` }}>
-            <EventsTable
-              events={paginated}
-              total={filtered.length}
-              page={page}
-              perPage={PER_PAGE}
-              onPageChange={setPage}
-              loading={loading}
+        <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", opacity: 0, animation: "epc-fade-in 0.4s ease 0ms forwards" }}>
+          {/* Fills exactly 100% of the visible screen below the navbar */}
+          <div style={{ flex: "1 0 auto", minHeight: "calc(100vh - 64px)" }}>
+            <EventsHeader
+              filter={filter}
+              search={search}
+              onFilterChange={handleFilter}
+              onSearchChange={handleSearch}
               isMobile={isMobile}
-              containerWidth={containerWidth}
             />
-          </div>
 
-          <div style={{ opacity: 0, animation: "epc-marquee-up 0.5s ease 900ms forwards" }}>
-            <UniversityMarquee />
+            <div style={{ padding: isMobile ? `0 20px 24px` : `0 clamp(20px, 8.33%, 160px) 34px` }}>
+              <EventsTable
+                events={paginated}
+                total={filtered.length}
+                page={page}
+                perPage={PER_PAGE}
+                onPageChange={setPage}
+                loading={loading}
+                isMobile={isMobile}
+                containerWidth={containerWidth}
+              />
+            </div>
+
+            <div style={{ opacity: 0, animation: "epc-marquee-up 0.5s ease 900ms forwards" }}>
+              <UniversityMarquee />
+            </div>
           </div>
 
           <div style={{ height: 120 }} />

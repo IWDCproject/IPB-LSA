@@ -1,7 +1,14 @@
 import { createDirectus, rest, readItems, aggregate } from '@directus/sdk';
 
+// Live data (scores, match state) — always fresh
 const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL)
   .with(rest({ onRequest: (options) => ({ ...options, cache: "no-store" }) }));
+
+// Stable data (news, participants, events) — revalidate every 60 s so the
+// Next.js fetch cache actually works and pages don't refetch from scratch on
+// every navigation. Drop to 0 during local dev if you want no-store behaviour.
+const directusCached = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL)
+  .with(rest({ onRequest: (options) => ({ ...options, next: { revalidate: 60 } }) }));
 
 export default directus;
 
@@ -105,7 +112,7 @@ export const getMatches = async () => {
 
 export const getEventsForListing = async () => {
   try {
-    return await directus.request(readItems('events', {
+    return await directusCached.request(readItems('events', {
       filter: { is_published: { _eq: true } },
       fields: ['*', 'user_created.organisation_name', 'card_image.*', 'banner_image.*'],
       sort: ['start_date'],
@@ -158,8 +165,43 @@ export const getEventDetail = async (slug) => {
 };
 
 /**
- * Paginated news fetch for the News tab.
- * Returns items for the requested page plus total count for pagination UI.
+ * Cheap aggregate-only fetch for the News tab skeleton.
+ * Returns the number of items on the requested page so the skeleton can render
+ * the exact right number of cards before the full items response arrives.
+ * Fire this in parallel with getNewsByEvent — because it's a single aggregate
+ * query with no field loading it almost always resolves first, letting the
+ * skeleton correct its card count before the baton handoff happens.
+ */
+export const getNewsCountByEvent = async (eventSlug, page = 1, pageSize = 6) => {
+  const filter = {
+    event_id: { slug: { _eq: eventSlug } },
+    is_published: { _eq: true },
+  };
+
+  try {
+    const countResult = await directusCached.request(aggregate('news', {
+      aggregate: { count: '*' },
+      query: { filter },
+    }));
+
+    const total      = Number(countResult?.[0]?.count ?? 0);
+    const totalPages = Math.ceil(total / pageSize);
+    const offset     = (page - 1) * pageSize;
+
+    return {
+      pageCount: Math.min(pageSize, Math.max(0, total - offset)), // cards on this page
+      total,
+      totalPages,
+    };
+  } catch (e) {
+    return { pageCount: pageSize, total: 0, totalPages: 0 };
+  }
+};
+
+/**
+ * Paginated news fetch for the News tab (items only — no aggregate).
+ * Pair with getNewsCountByEvent which fires in parallel and handles pagination
+ * metadata so this function stays lean and avoids a redundant count query.
  */
 export const getNewsByEvent = async (eventSlug, page = 1, pageSize = 6) => {
   const filter = {
@@ -168,29 +210,17 @@ export const getNewsByEvent = async (eventSlug, page = 1, pageSize = 6) => {
   };
 
   try {
-    const [items, countResult] = await Promise.all([
-      directus.request(readItems('news', {
-        filter,
-        fields: NEWS_FIELDS,
-        sort: ['-published_at'],
-        limit: pageSize,
-        offset: (page - 1) * pageSize,
-      })),
-      directus.request(aggregate('news', {
-        aggregate: { count: '*' },
-        query: { filter },
-      })),
-    ]);
+    const items = await directusCached.request(readItems('news', {
+      filter,
+      fields: NEWS_FIELDS,
+      sort: ['-published_at'],
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }));
 
-    const total = Number(countResult?.[0]?.count ?? 0);
-
-    return {
-      items: items.map(mapNews),
-      total,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return { items: items.map(mapNews) };
   } catch (e) {
-    return { items: [], total: 0, totalPages: 0 };
+    return { items: [] };
   }
 };
 
@@ -206,7 +236,7 @@ export const getStats = async () => {
 };
 
 export const getNews = async ({ limit = 5 } = {}) => {
-  const items = await directus.request(readItems('news', {
+  const items = await directusCached.request(readItems('news', {
     filter: { is_published: { _eq: true } },
     fields: NEWS_FIELDS,
     sort: ['-published_at'],
@@ -219,4 +249,54 @@ export const getYouTubeID = (url) => {
   if (!url) return null;
   const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
   return (match && match[2].length === 11) ? match[2] : null;
+};
+
+const PARTICIPANT_FIELDS = [
+  '*',
+  'institution_id.*',
+  'institution_id.logo.*',
+  'competition_category_id.id',
+  'competition_category_id.name',
+  'competition_category_id.display_order',
+];
+ 
+export const getParticipantsByEvent = async (eventSlug) => {
+  try {
+    const [categories, rawParticipants] = await Promise.all([
+      // All competition categories for this event, ordered for display
+      directusCached.request(readItems('competition_categories', {
+        filter: { event_id: { slug: { _eq: eventSlug } } },
+        fields: ['id', 'name', 'display_order'],
+        sort: ['display_order', 'name'],
+        limit: -1,
+      })),
+      // All participants linked to this event via their category
+      directusCached.request(readItems('participants', {
+        filter: {
+          competition_category_id: {
+            event_id: { slug: { _eq: eventSlug } },
+          },
+        },
+        fields: PARTICIPANT_FIELDS,
+        sort: ['name'],
+        limit: -1,
+      })),
+    ]);
+ 
+    const participants = rawParticipants.map(mapParticipant);
+ 
+    // Group participants under their category
+    return categories.map(cat => ({
+      category: cat,
+      participants: participants.filter(p => {
+        const catId =
+          typeof p.competition_category_id === 'object'
+            ? p.competition_category_id?.id
+            : p.competition_category_id;
+        return catId === cat.id;
+      }),
+    }));
+  } catch (e) {
+    return [];
+  }
 };

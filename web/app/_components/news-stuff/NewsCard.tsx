@@ -292,7 +292,9 @@ const styles = {
     lineHeight:      1.1,
     color:           "#fff",
     display:         "-webkit-box",
-    overflow:        "visible",
+    // FIX: was "visible" — that silently breaks -webkit-line-clamp, allowing
+    // text to spill out of the card regardless of WebkitLineClamp value.
+    overflow:        "hidden",
     filter:          "drop-shadow(0 2px 8px rgba(0,0,0,0.6))",
     WebkitLineClamp: 2,
     WebkitBoxOrient: "vertical",

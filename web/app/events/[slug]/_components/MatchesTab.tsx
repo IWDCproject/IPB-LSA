@@ -431,8 +431,8 @@ const DESKTOP_GRID: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "160px 1fr auto 1fr 160px",
   alignItems: "center",
-  gap: "0 16px",
-  padding: "14px 0",
+  gap: "0 40px",
+  padding: "7px 0",
 };
 
 function TimeVenueCell({ match, isLive }: { match: any; isLive: boolean }) {
@@ -536,7 +536,7 @@ function MobileMatchRow({ match }: { match: any }) {
   return (
     <div style={{
       background:   "#F8F9FB",
-      borderRadius: 10,
+      borderRadius: 12,
       border:       "1px solid #ECEEF2",
       padding:      "12px 14px",
       display: "flex", flexDirection: "column", gap: 8,
@@ -673,7 +673,7 @@ function FilterBar({ active, onChange, counts }: {
                 ...JK, fontSize: 10, fontWeight: 700,
                 color:        isActive ? "#444" : "#bbb",
                 background:   isActive ? "#f0f0f0" : "#f5f5f5",
-                borderRadius: 10, padding: "1px 6px",
+                borderRadius: 12, padding: "1px 6px",
               }}>
                 {counts[value]}
               </span>
@@ -766,6 +766,8 @@ export default function MatchesTab({ event, isMobile, phase }: Props) {
             </div>
           );
         })()}
+        {/* spacer di bawah biar ga mepet */}
+        <div style={{ height: 20 }} />
       </div>
     </div>
   );
