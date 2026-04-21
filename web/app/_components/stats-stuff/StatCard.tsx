@@ -50,7 +50,7 @@ export default function StatCard({
           background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.15) 100%)",
           backdropFilter: "blur(4px)",
           WebkitBackdropFilter: "blur(4px)",
-          padding: "18px 22px 22px",
+          padding: "clamp(10px, 2.5vw, 18px) clamp(12px, 3.5vw, 22px) clamp(12px, 3vw, 22px)",
           display: "flex",
           flexDirection: "column",
           gap: "4px",
@@ -58,7 +58,7 @@ export default function StatCard({
       >
         <span
           style={{
-            fontSize: "2.9rem",
+            fontSize: "clamp(1.4rem, 5.5vw, 2.9rem)",
             fontWeight: 900,
             color: "#ffffff",
             lineHeight: 1,
@@ -69,7 +69,7 @@ export default function StatCard({
         </span>
         <span
           style={{
-            fontSize: "1rem",
+            fontSize: "clamp(0.75rem, 2.2vw, 1rem)",
             fontWeight: 400,
             color: "#ffffff",
             letterSpacing: "0.07em",
