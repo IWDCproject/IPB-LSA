@@ -19,11 +19,23 @@ export default function CurtainWrapper({ events, matches, stats, news }) {
   const [heroPaused, setHeroPaused] = useState(false);
 
   const viewportH = useRef(0);
+  const [vh, setVh] = useState(0);
+
   useEffect(() => {
-    viewportH.current = window.innerHeight;
-    const onResize = () => { viewportH.current = window.innerHeight; };
-    window.addEventListener("resize", onResize, { passive: true });
-    return () => window.removeEventListener("resize", onResize);
+    const update = () => {
+      // visualViewport tracks the actual visible area (excludes mobile browser chrome).
+      // window.innerHeight can differ from CSS 100vh on mobile, causing parallax overshoot.
+      const h = window.visualViewport?.height ?? window.innerHeight;
+      viewportH.current = h;
+      setVh(h);
+    };
+    update();
+    window.visualViewport?.addEventListener("resize", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    return () => {
+      window.visualViewport?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   const { scrollYProgress: heroProgress } = useScroll({
@@ -57,8 +69,10 @@ export default function CurtainWrapper({ events, matches, stats, news }) {
     return () => io.disconnect();
   }, []);
 
-  const sectionH  = `calc(100vh - ${HEADER_HEIGHT}px)`;
-  const parallaxH = `calc((100vh - ${HEADER_HEIGHT}px) * ${1 + PARALLAX_SPEED})`;
+  // Use measured vh so inline styles and the JS parallax math use identical values.
+  // 100svh fallback (not 100vh) is stable on mobile — doesn't shift when the browser toolbar appears.
+  const sectionH  = vh ? `${vh - HEADER_HEIGHT}px`                         : `calc(100svh - ${HEADER_HEIGHT}px)`;
+  const parallaxH = vh ? `${(vh - HEADER_HEIGHT) * (1 + PARALLAX_SPEED)}px` : `calc((100svh - ${HEADER_HEIGHT}px) * ${1 + PARALLAX_SPEED})`;
 
   return (
     <>

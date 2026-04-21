@@ -73,8 +73,8 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-      <div className="flex items-center justify-between gap-4 py-1.5 px-4 min-[900px]:py-2 min-[900px]:px-[clamp(40px,8.33vw,160px)]">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 relative">
+      <div className="flex items-center justify-between gap-4 h-[65px] px-4 min-[900px]:px-[clamp(40px,8.33vw,160px)]">
         
         {/* Logo */}
         <Link href="/" className="shrink min-w-0 flex items-center">
@@ -111,9 +111,9 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile dropdown — absolute so it overlays and never affects document flow or scroll calculations */}
       <div
-        className={`min-[900px]:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-64" : "max-h-0"}`}
+        className={`min-[900px]:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-md overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-64" : "max-h-0"}`}
       >
         <nav className="flex flex-col border-t border-gray-100 px-4 py-2">
           {links.map(({ href, label }) => {
