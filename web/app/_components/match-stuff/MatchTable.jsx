@@ -432,100 +432,89 @@ function MobileScoreBadge({ match }) {
   return null;
 }
 
+// ─── Mobile row (card-style, layout from MatchesTab) ─────────────────────────
+
+function StatusLabel({ match }) {
+  const isLive     = match.status === "live";
+  const isFinished = match.status === "finished";
+  const round      = match.round?.trim();
+  if (round)       return <span style={{ ...JK, fontSize: 11, fontWeight: 700, color: isLive ? "#D97706" : "#9CA3AF" }}>{round}</span>;
+  if (isLive)      return <span style={{ ...JK, fontSize: 11, fontWeight: 800, color: "#D97706" }}>Ongoing</span>;
+  if (isFinished)  return <span style={{ ...JK, fontSize: 11, fontWeight: 700, color: "#9CA3AF" }}>Finished</span>;
+  return <span style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#9CA3AF" }}>Upcoming</span>;
+}
+
 function MobileMatchRow({ match }) {
   const isH2H  = match.competition_category?.format_id?.match_type === "head_to_head";
   const isOpen = match.competition_category?.format_id?.match_type === "open";
   const isLive = match.status === "live";
-
-  const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
-  const category  = match.competition_category?.name ?? "";
-  const status    = isLive ? "Ongoing" : "Upcoming";
-
-  // participants label — one line for open/solo, two names for h2h
-  const home = match.home_participant;
-  const away = match.away_participant;
-
-  // open: first 3 names joined
-  const openEntries = isOpen
-    ? [...(match.participants ?? [])]
-        .sort((a, b) => a.position - b.position)
-        .map((j) => j.participant_id?.name)
-        .filter(Boolean)
-    : [];
-
+  const home   = match.home_participant;
+  const away   = match.away_participant;
   const truncate = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+  const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
 
   return (
-    <div style={{ padding: "10px 0", display: "flex", flexDirection: "column", gap: 6 }}>
-
-      {/* ── Participants row ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-
-        {/* Left: logo + name(s) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-          {isOpen ? (
-            // stacked logos for open
-            <div style={{ display: "flex", flexShrink: 0 }}>
-              {[...match.participants ?? []].slice(0, 3).map((j, i) => {
-                const inst = j.participant_id?.institution;
-                return inst?.logo_url ? (
-                  <img key={i} src={inst.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px solid #e5e7eb", marginLeft: i > 0 ? -8 : 0, objectFit: "contain", opacity: LOGO_OPACITIES[i] ?? 0.3 }} />
-                ) : (
-                  <div key={i} style={{ width: 28, height: 28, borderRadius: "50%", background: inst?.color ?? "#334155", border: "1.5px solid #e5e7eb", marginLeft: i > 0 ? -8 : 0, opacity: LOGO_OPACITIES[i] ?? 0.3 }} />
-                );
-              })}
-            </div>
-          ) : (
-            <Logo inst={home?.institution} size={28} />
+    <div style={{
+      background: "#F8F9FB", borderRadius: 12, border: "1px solid #ECEEF2",
+      padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8,
+      marginBottom: 8,
+    }}>
+      {/* Top: time+venue (left) | category+status (right) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div>
+          <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: isLive ? "#D97706" : "#676767" }} suppressHydrationWarning>
+            {timeLabel}
+          </span>
+          {match.venue && (
+            <span style={{ ...JK, fontSize: 11, color: "#aaa" }}>{" · "}{match.venue}</span>
           )}
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#444" }}>
+            {match.competition_category?.name ?? ""}
+          </div>
+          <div style={{ marginTop: 1 }}><StatusLabel match={match} /></div>
+        </div>
+      </div>
 
-          <div style={{ minWidth: 0 }}>
-            {isOpen ? (
-              <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 600, color: "#111" }}>
-                {openEntries.slice(0, 3).join(", ")}{openEntries.length > 3 ? " +" + (openEntries.length - 3) : ""}
+      {/* Participants + score */}
+      {isOpen ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}><OpenParticipants match={match} /></div>
+          <div style={{ flexShrink: 0 }}><MobileScoreBadge match={match} /></div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Home */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+            <Logo inst={home?.institution} size={28} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111", lineHeight: 1.2 }}>
+                {home?.name ?? "?"}
               </div>
-            ) : isH2H ? (
-              <>
-                <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: "#111" }}>{home?.name ?? "?"}</div>
-                <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#999" }}>
-                  {home?.institution?.name ?? ""}{away ? ` · ${away.institution?.name ?? ""}` : ""}
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: "#111" }}>{home?.name ?? "?"}</div>
-                <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#999" }}>{home?.institution?.name ?? ""}</div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Centre: score badge */}
-        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>
-          <MobileScoreBadge match={match} />
-        </div>
-
-        {/* Right: away participant (h2h only) */}
-        {isH2H && away && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111", whiteSpace: "nowrap" }}>{away.name}</div>
+              <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#aaa" }}>
+                {home?.institution?.name ?? ""}
+              </div>
             </div>
-            <Logo inst={away.institution} size={28} />
           </div>
-        )}
-      </div>
-
-      {/* ── Meta row: time · venue — category · status ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ ...JK, fontSize: 11, color: "#aaa", fontWeight: 500 }}>
-          <span style={{ fontWeight: 700, color: isLive ? "#CA8A04" : "#aaa" }} suppressHydrationWarning>{timeLabel}</span>
-          {match.venue ? ` · ${match.venue}` : ""}
-        </span>
-        <span style={{ ...JK, fontSize: 11, color: "#aaa", fontWeight: 500, textAlign: "right" }}>
-          {category} · {status}
-        </span>
-      </div>
+          {/* Score */}
+          <div style={{ flexShrink: 0 }}><MobileScoreBadge match={match} /></div>
+          {/* Away (h2h only) */}
+          {isH2H && away && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
+              <div style={{ minWidth: 0, textAlign: "right" }}>
+                <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111", lineHeight: 1.2 }}>
+                  {away.name}
+                </div>
+                <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#aaa" }}>
+                  {away.institution?.name ?? ""}
+                </div>
+              </div>
+              <Logo inst={away.institution} size={28} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

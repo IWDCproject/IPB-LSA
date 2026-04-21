@@ -132,12 +132,10 @@ export default function MatchSection({ matches: rawMatches }) {
   
   const cardMatches  = liveMatches.slice(0, visibleCount);
 
-  // RESTORED MOBILE VARIABLES
-  const MOBILE_CARD_VW  = 0.38;
-  const MOBILE_CARD_REF = 140;
-  const mobileCardPx    = cw * MOBILE_CARD_VW;
-  const mobileCardScale = Math.min(1, mobileCardPx / MOBILE_CARD_REF);
-  const mobileCardH     = Math.round(260 * mobileCardScale);
+  // Mobile card sizing — width drives everything; height follows the MatchCard 350:280 ratio
+  const MOBILE_CARD_VW = 0.7;
+  const mobileCardPx   = cw * MOBILE_CARD_VW;
+  const mobileCardH    = Math.round(mobileCardPx * 0.8);
 
   // CTA Background Logic
   const ctaBgInfo = useMemo(() => {
@@ -186,7 +184,6 @@ export default function MatchSection({ matches: rawMatches }) {
               className="match-scroll"
               style={{
                 ...anim(1),
-                "--s": mobileCardScale,
                 display: "flex",
                 flexDirection: "row",
                 gap: CARD_GAP,
@@ -202,8 +199,8 @@ export default function MatchSection({ matches: rawMatches }) {
                 <div
                   key={match.id}
                   style={{
-                    flex: "0 0 38vw",
-                    width: "38vw",
+                    flex: `0 0 ${mobileCardPx}px`,
+                    width: `${mobileCardPx}px`,
                     height: mobileCardH,
                     scrollSnapAlign: "start",
                     borderRadius: 10,
