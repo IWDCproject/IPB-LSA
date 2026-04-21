@@ -385,6 +385,10 @@ export default function EventTimeline({ events: rawEvents }) {
     introStarted.current = true;
 
     nodeRefs.current.forEach((n) => n && gsap.set(n, { opacity: 0 }));
+
+    const gsapTargets = [ctaRef.current, mascotRef.current].filter(Boolean);
+    if (gsapTargets.length) gsap.set(gsapTargets, { opacity: 0, y: 40 });
+
     gsap.set([ctaRef.current, mascotRef.current], { opacity: 0, y: 40 });
 
     gsap.to(progressRef.current, { v: 1, duration: 2.2, ease: "power2.inOut" });
@@ -402,8 +406,8 @@ export default function EventTimeline({ events: rawEvents }) {
     });
 
     gsap.timeline()
-      .to(ctaRef.current,    { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 0.8)
-      .to(mascotRef.current, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 1.0);
+      .to(ctaRef.current,    ctaRef.current    ? { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" } : {}, 0.8)
+      .to(mascotRef.current, mascotRef.current ? { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" } : {}, 1.0);
 
     startLoop();
   }, [events, startLoop]);

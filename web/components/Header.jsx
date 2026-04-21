@@ -63,6 +63,7 @@ function NavLink({ href, label, active }) {
 
 export default function Header() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const links =[
     { href: "/",         label: "Beranda"  },
@@ -73,33 +74,60 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-      {/* Replaced ResizeObserver with pure Tailwind CSS responsive utilities */}
-      <div className="flex items-center justify-between gap-4 py-2 px-5 min-[900px]:px-[clamp(40px,8.33vw,160px)]">
+      <div className="flex items-center justify-between gap-4 py-1.5 px-4 min-[900px]:py-2 min-[900px]:px-[clamp(40px,8.33vw,160px)]">
         
-        {/* Logo Fix: shrink, min-w-0 wrapper with an object-contain max-w-full image */}
+        {/* Logo */}
         <Link href="/" className="shrink min-w-0 flex items-center">
           <Image 
             src="/ipb-logo.png" 
             alt="IPB University" 
             height={64} 
             width={200} 
-            className="h-12 w-auto max-w-full object-contain" 
+            className="h-9 min-[900px]:h-12 w-auto max-w-full object-contain" 
             priority
           />
         </Link>
-        
-        <nav className="flex items-center gap-4 min-[900px]:gap-5 lg:gap-8">
+
+        {/* Desktop nav */}
+        <nav className="hidden min-[900px]:flex items-center gap-5 lg:gap-8">
           {links.map(({ href, label }) => {
-            // Precise active handling. Exact match for "/", prefix match for the rest.
             const active = href === "/" ? pathname === href : pathname?.startsWith(href);
-            
             return (
-              <NavLink
+              <NavLink key={href} href={href} label={label} active={active} />
+            );
+          })}
+        </nav>
+
+        {/* Hamburger — mobile only */}
+        <button
+          className="min-[900px]:hidden flex flex-col justify-center items-center w-9 h-9 gap-[5px] shrink-0"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+        >
+          <span className={`block h-0.5 w-5 bg-gray-700 transition-transform duration-300 origin-center ${menuOpen ? "translate-y-[7px] rotate-45" : ""}`} />
+          <span className={`block h-0.5 w-5 bg-gray-700 transition-opacity duration-300 ${menuOpen ? "opacity-0" : ""}`} />
+          <span className={`block h-0.5 w-5 bg-gray-700 transition-transform duration-300 origin-center ${menuOpen ? "-translate-y-[7px] -rotate-45" : ""}`} />
+        </button>
+      </div>
+
+      {/* Mobile dropdown */}
+      <div
+        className={`min-[900px]:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-64" : "max-h-0"}`}
+      >
+        <nav className="flex flex-col border-t border-gray-100 px-4 py-2">
+          {links.map(({ href, label }) => {
+            const active = href === "/" ? pathname === href : pathname?.startsWith(href);
+            return (
+              <Link
                 key={href}
                 href={href}
-                label={label}
-                active={active}
-              />
+                onClick={() => setMenuOpen(false)}
+                className={`font-bold tracking-widest uppercase py-3 text-[11px] border-b border-gray-100 last:border-0 transition-colors
+                  ${active ? "text-blue-900" : "text-gray-500"}`}
+              >
+                {label}
+              </Link>
             );
           })}
         </nav>
