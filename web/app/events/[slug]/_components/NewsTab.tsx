@@ -125,7 +125,7 @@ function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" style={{ marginBottom: 12 }}>
           <path d="M12 5v14M5 12h14" />
         </svg>
-        <span style={{ ...JK, fontSize: "11px", fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+        <span style={{ ...JK, fontSize: "11px", fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.12em", textAlign: "center" }}>
           Coming Soon
         </span>
       </div>
