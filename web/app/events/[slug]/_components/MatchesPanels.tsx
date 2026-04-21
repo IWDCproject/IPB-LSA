@@ -175,14 +175,224 @@ function ScoreCell({ match }: { match: any }) {
 
 // ─── Participant cells ─────────────────────────────────────────────────────────
 
-function Logo({ inst, size = 32 }: { inst: any; size?: number }) {
+function Logo({ inst, size = 32, isLoser = false }: { inst: any; size?: number; isLoser?: boolean }) {
+  const dimFilter = isLoser ? "saturate(0) opacity(0.65)" : undefined;
   if (!inst?.logo_url) {
-    return <div style={{ width: size, height: size, borderRadius: "50%", background: inst?.color ?? "#334155", flexShrink: 0 }} />;
+    return <div style={{ width: size, height: size, borderRadius: "50%", background: inst?.color ?? "#334155", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }} />;
   }
-  return <img src={inst.logo_url} alt={inst?.name ?? ""} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0 }} />;
+  return <img src={inst.logo_url} alt={inst?.name ?? ""} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }} />;
+}
+
+// ─── Mobile-only components (mirrors MatchesTab) ───────────────────────────────
+
+function UndecidedLogo({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+      <circle cx="16" cy="16" r="14.5" stroke="#D1D5DB" strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="16" y="21" textAnchor="middle" fontSize="13" fontWeight="700" fontFamily="'Plus Jakarta Sans', sans-serif" fill="#D1D5DB">?</text>
+    </svg>
+  );
+}
+
+function UndecidedParticipant({ size = 32, align = "left" }: { size?: number; align?: "left" | "right" }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: align === "right" ? "flex-end" : "flex-start" }}>
+      {align === "right" && (
+        <div style={{ minWidth: 0, textAlign: "right" }}>
+          <div style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#D1D5DB", lineHeight: 1.2 }}>Undecided</div>
+          <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#D1D5DB", marginTop: 2 }}>To Be Determined</div>
+        </div>
+      )}
+      <UndecidedLogo size={size} />
+      {align === "left" && (
+        <div style={{ minWidth: 0 }}>
+          <div style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#D1D5DB", lineHeight: 1.2 }}>Undecided</div>
+          <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#D1D5DB", marginTop: 2 }}>To Be Determined</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusLabel({ match }: { match: any }) {
+  const isLive     = match.status === "live";
+  const isFinished = match.status === "finished";
+  const round      = (match.round as string | null | undefined)?.trim();
+  if (round) return <span style={{ ...JK, fontSize: 11, fontWeight: 700, color: isLive ? "#D97706" : "#9CA3AF" }}>{round}</span>;
+  if (isLive) return <span style={{ ...JK, fontSize: 11, fontWeight: 800, color: "#D97706" }}>Ongoing</span>;
+  if (isFinished) {
+    const winner = resolveWinnerName(match);
+    return <span style={{ ...JK, fontSize: 11, fontWeight: 700, color: "#9CA3AF" }}>{winner ? `${winner} Win` : "Finished"}</span>;
+  }
+  return <span style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#9CA3AF" }}>Upcoming</span>;
+}
+
+function MobileScoreCell({ match }: { match: any }) {
+  const engine     = getEngine(match.competition_category?.format_id);
+  const live       = match.live_state ?? {};
+  const isLive     = match.status === "live";
+  const isUpcoming = match.status === "upcoming";
+
+  if (isUpcoming) return <MiddleBadge match={match} />;
+
+  const numPill = (bg: string, color: string): React.CSSProperties => ({
+    ...JK, fontSize: 14, fontWeight: 900, color,
+    background: bg, borderRadius: 6,
+    minWidth: 26, height: 26,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    padding: "0 5px",
+  });
+
+  if (engine?.type === "score_sets") {
+    if (isLive) {
+      const setScore = live?.setScore ?? [0, 0];
+      const setLog   = live?.setLog   ?? [];
+      const detail   = setLog.map((s: any) => `${s.home}-${s.away}`).join(" | ");
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={numPill("#FFC936", "#111")}>{setScore[0]}</span>
+            <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#CA8A04" }}>vs</span>
+            <span style={numPill("#FFC936", "#111")}>{setScore[1]}</span>
+          </div>
+          {detail && <div style={{ ...JK, ...truncateMobile, fontSize: 9, fontWeight: 600, color: "#CA8A04", maxWidth: 68, textAlign: "right" }}>{detail}</div>}
+        </div>
+      );
+    } else {
+      const setLog   = live?.setLog ?? [];
+      const homeSets = setLog.filter((s: any) => s.home > s.away).length;
+      const awaySets = setLog.filter((s: any) => s.away > s.home).length;
+      const detail   = setLog.map((s: any) => `${s.home}-${s.away}`).join(" | ");
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={numPill("#f3f4f6", "#111")}>{homeSets}</span>
+            <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#aaa" }}>vs</span>
+            <span style={numPill("#f3f4f6", "#111")}>{awaySets}</span>
+          </div>
+          {detail && <div style={{ ...JK, ...truncateMobile, fontSize: 9, fontWeight: 600, color: "#9CA3AF", maxWidth: 68, textAlign: "right" }}>{detail}</div>}
+        </div>
+      );
+    }
+  }
+
+  // Fallback to regular ScoreCell for other engine types
+  return <ScoreCell match={match} />;
+}
+
+function MobileMatchRow({ match }: { match: any }) {
+  const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
+  const isOpen     = match.competition_category?.format_id?.match_type === "open";
+  const isLive     = match.status === "live";
+  const isFinished = match.status === "finished";
+  const home       = match.home_participant;
+  const away       = match.away_participant;
+  const live       = match.live_state ?? {};
+
+  const winnerId    = match.winner ?? live.winner;
+  const homeIsLoser = isFinished && isH2H && !!winnerId && home?.id !== winnerId;
+  const awayIsLoser = isFinished && isH2H && !!winnerId && away?.id !== winnerId;
+
+  const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
+  const metaTop: React.CSSProperties    = { ...JK, fontSize: 11, fontWeight: 700, color: isLive ? "#D97706" : "#555" };
+  const metaBottom: React.CSSProperties = { ...JK, fontSize: 10, fontWeight: 500, color: "#aaa", marginTop: 1 };
+
+  return (
+    <div style={{
+      background:    "#F8F9FB",
+      borderRadius:  12,
+      border:        "1px solid #ECEEF2",
+      padding:       "10px 12px",
+      display:       "flex",
+      flexDirection: "column",
+      gap:           8,
+    }}>
+      {/* Meta row: time/venue ←→ category/round */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ ...metaTop }} suppressHydrationWarning>{timeLabel}</div>
+          {match.venue && <div style={{ ...metaBottom, ...truncateMobile, maxWidth: 140 }}>{match.venue}</div>}
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ ...JK, fontSize: 11, fontWeight: 700, color: "#555", ...truncateMobile, maxWidth: 150 }}>
+            {match.competition_category?.name ?? ""}
+          </div>
+          <div style={{ ...metaBottom, marginTop: 1 }}><StatusLabel match={match} /></div>
+        </div>
+      </div>
+
+      {/* Participants + Score */}
+      {isOpen ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}><OpenParticipants match={match} /></div>
+          <div style={{ flexShrink: 0 }}><MobileScoreCell match={match} /></div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              {home ? <Logo inst={home.institution} size={26} isLoser={homeIsLoser} /> : <UndecidedLogo size={26} />}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ ...JK, ...truncateMobile, fontSize: 12, fontWeight: 700, color: home ? (homeIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
+                  {home?.name ?? "To Be Determined"}
+                </div>
+                <div style={{ ...JK, ...truncateMobile, fontSize: 10, fontWeight: 500, color: homeIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
+                  {home ? (home.institution?.name ?? "") : "Undecided"}
+                </div>
+              </div>
+            </div>
+            {isH2H && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                {away ? <Logo inst={away.institution} size={26} isLoser={awayIsLoser} /> : <UndecidedLogo size={26} />}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ ...JK, ...truncateMobile, fontSize: 12, fontWeight: 700, color: away ? (awayIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
+                    {away?.name ?? "To Be Determined"}
+                  </div>
+                  <div style={{ ...JK, ...truncateMobile, fontSize: 10, fontWeight: 500, color: awayIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
+                    {away ? (away.institution?.name ?? "") : "Undecided"}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <MobileScoreCell match={match} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const truncate: React.CSSProperties = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+
+// webkit-box truncate — used by mobile rows (allows 2-line clamp)
+const truncateMobile: React.CSSProperties = {
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
+
+function fmtTime(iso: string | null | undefined): string {
+  if (!iso) return "?";
+  return new Date(iso).toLocaleTimeString("id-ID", {
+    hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta",
+  });
+}
+
+function resolveWinnerName(match: any): string | null {
+  const live     = match.live_state ?? {};
+  const winnerId = match.winner ?? live.winner;
+  if (!winnerId) return null;
+  if (match.home_participant?.id === winnerId) return match.home_participant.name;
+  if (match.away_participant?.id === winnerId) return match.away_participant.name;
+  for (const entry of match.participants ?? []) {
+    if (entry.participant_id?.id === winnerId) return entry.participant_id.name;
+  }
+  if (typeof live.winner === "string" && !live.winner.includes("-")) return live.winner;
+  return null;
+}
 
 function ParticipantInfo({ inst, name, align = "left" }: { inst: any; name: string; align?: "left" | "right" }) {
   return (
@@ -318,6 +528,7 @@ const ROW_GRID: React.CSSProperties = {
   gridTemplateColumns: "1fr auto 1fr",
   alignItems: "center",
   padding: "10px 0",
+  overflow: "hidden",
 };
 
 function CompactMatchRow({ match }: { match: any }) {
@@ -409,20 +620,25 @@ export function UpcomingMatchesPanel({
   const groups    = Array.from(groupByDate(displayed).entries());
   const remainder = upcoming.length - limit;
 
+  const cardStyle: React.CSSProperties = isMobile
+    ? { ...CARD, flex: "unset", minHeight: "unset" }
+    : CARD;
+
   return (
-    <div style={CARD}>
+    <div style={cardStyle}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C" }}>Upcoming Matches</span>
         <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{upcoming.length} total</span>
       </div>
 
-      <div ref={contentRef} style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
+      <div ref={contentRef} style={isMobile ? {} : { flex: 1, overflow: "hidden", minHeight: 0 }}>
         {groups.map(([date, rows], gi) => (
           <div key={date}>
             <DateHeader label={date} />
             {rows.map((m: any, ri: number) => (
-              <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}>
-                <CompactMatchRow match={m} />
+              <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}
+                style={isMobile ? { marginBottom: 6 } : undefined}>
+                {isMobile ? <MobileMatchRow match={m} /> : <CompactMatchRow match={m} />}
               </div>
             ))}
           </div>
@@ -459,20 +675,25 @@ export function LatestResultsPanel({
   const groups    = Array.from(groupByDate(displayed).entries());
   const remainder = finished.length - limit;
 
+  const cardStyle: React.CSSProperties = isMobile
+    ? { ...CARD, flex: "unset", minHeight: "unset" }
+    : CARD;
+
   return (
-    <div style={CARD}>
+    <div style={cardStyle}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C" }}>Latest Results</span>
         <span style={{ ...JK, fontSize: 10, color: "#aaa" }}>{finished.length} total</span>
       </div>
 
-      <div ref={contentRef} style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
+      <div ref={contentRef} style={isMobile ? {} : { flex: 1, overflow: "hidden", minHeight: 0 }}>
         {groups.map(([date, rows], gi) => (
           <div key={date}>
             <DateHeader label={date} />
             {rows.map((m: any, ri: number) => (
-              <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}>
-                <CompactMatchRow match={m} />
+              <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}
+                style={isMobile ? { marginBottom: 6 } : undefined}>
+                {isMobile ? <MobileMatchRow match={m} /> : <CompactMatchRow match={m} />}
               </div>
             ))}
           </div>

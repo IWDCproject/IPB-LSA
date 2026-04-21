@@ -9,7 +9,6 @@ import LatestStoriesSection from "./LatestStoriesSection";
 import { staggerSlideUp, TAB_ENTER, PAGE_ENTER } from "./Animations";
 import type { AnimPhase } from "./UseTabTransition";
 
-const PANEL_GAP     = 16;
 const DATE_H        = 32;
 const OVERHEAD_BASE = 57;
 const FOOTER_H      = 20;
@@ -86,6 +85,7 @@ function useRightColumnLayout(
   anchorHeight: number,
   countdownH:   number,
   isMobile:     boolean,
+  panelGap:     number,
   getRowH:      (m: any) => number,
 ) {
   return useMemo(() => {
@@ -96,7 +96,7 @@ function useRightColumnLayout(
     const hasResults  = finished.length > 0;
     if (!hasUpcoming && !hasResults) return FALLBACK;
 
-    const cdGap      = countdownH > 0 ? PANEL_GAP : 0;
+    const cdGap      = countdownH > 0 ? panelGap : 0;
     const totalAvail = anchorHeight - countdownH - cdGap;
 
     if (!hasUpcoming) {
@@ -111,7 +111,7 @@ function useRightColumnLayout(
       return { upcomingH: Math.max(totalAvail, contentH), resultsH: 0, upcomingLimit: limit, resultsLimit: 0 };
     }
 
-    const bothAvail = totalAvail - PANEL_GAP;
+    const bothAvail = totalAvail - panelGap;
     const upNat  = OVERHEAD_BASE + naturalRowH(upcoming, getRowH);
     const resNat = OVERHEAD_BASE + naturalRowH(finished, getRowH);
     const p60    = Math.round(bothAvail * 0.6);
@@ -162,7 +162,7 @@ function useRightColumnLayout(
     }
 
     return { upcomingH: upH, resultsH: resH, upcomingLimit: upLimit, resultsLimit: resLimit };
-  }, [upcoming, finished, anchorHeight, countdownH, isMobile, getRowH]);
+  }, [upcoming, finished, anchorHeight, countdownH, isMobile, panelGap, getRowH]);
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -187,6 +187,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
   const upFirstRowRef  = useRef<HTMLDivElement>(null);
   const resFirstRowRef = useRef<HTMLDivElement>(null);
 
+  const PANEL_GAP = isMobile ? 4 : 8;
   const upcoming      = (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live");
   const finished      = (event.matches ?? []).filter((m: any) => m.status === "finished");
   const showCountdown = !!(event.is_registration_open && event.registration_end_date);
@@ -251,6 +252,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
     anchorHeight,
     showCountdown && !isMobile ? countdownHeight : 0,
     isMobile,
+    PANEL_GAP,
     getRowH,
   );
 
@@ -347,13 +349,15 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
               style={{
                 ...(measured && upcomingH > 0
                   ? { height: upcomingH, display: "flex", flexDirection: "column" }
-                  : { flex: hasResults ? 3 : 1, display: "flex", flexDirection: "column", minHeight: 0 }),
+                  : isMobile
+                    ? { display: "flex", flexDirection: "column" }
+                    : { flex: hasResults ? 3 : 1, display: "flex", flexDirection: "column", minHeight: 0 }),
                 ...panelStyle(!isMobile && showCountdown ? s3 : s2),
               }}
             >
               <UpcomingMatchesPanel
                 upcoming={upcoming}
-                limit={measured ? upcomingLimit : 3}
+                limit={isMobile ? Math.min(upcoming.length, 5) : (measured ? upcomingLimit : 3)}
                 isMobile={isMobile}
                 contentRef={upContentRef}
                 firstRowRef={upFirstRowRef}
@@ -366,13 +370,15 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
               style={{
                 ...(measured && resultsH > 0
                   ? { height: resultsH, display: "flex", flexDirection: "column" }
-                  : { flex: 2, display: "flex", flexDirection: "column", minHeight: 0 }),
+                  : isMobile
+                    ? { display: "flex", flexDirection: "column" }
+                    : { flex: 2, display: "flex", flexDirection: "column", minHeight: 0 }),
                 ...panelStyle(!isMobile && showCountdown ? s4 : s3),
               }}
             >
               <LatestResultsPanel
                 finished={finished}
-                limit={measured ? resultsLimit : 3}
+                limit={isMobile ? Math.min(finished.length, 5) : (measured ? resultsLimit : 3)}
                 isMobile={isMobile}
                 contentRef={resContentRef}
                 firstRowRef={resFirstRowRef}
