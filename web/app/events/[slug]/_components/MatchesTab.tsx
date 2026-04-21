@@ -14,7 +14,12 @@ const ROW_KEYFRAMES = `
     to   { opacity: 1; transform: translateY(0);   }
   }
 `;
-const truncate: React.CSSProperties = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+const truncate: React.CSSProperties = {
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
 
 function fmtTime(iso: string | null | undefined): string {
   if (!iso) return "?";
@@ -93,48 +98,48 @@ function SolidLiveBadge() {
   );
 }
 
-function ScoreSetsLive({ live }: { live: any }) {
+function ScoreSetsLive({ live, compact = false }: { live: any; compact?: boolean }) {
   const setScore = live?.setScore ?? [0, 0];
   const setLog   = live?.setLog   ?? [];
 
   const NumPill = ({ n }: { n: number }) => (
-    <div style={{ ...JK, fontSize: 14, fontWeight: 900, color: "#111", background: "#FFC936", borderRadius: 6, minWidth: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>
+    <div style={{ ...JK, fontSize: compact ? 12 : 14, fontWeight: 900, color: "#111", background: "#FFC936", borderRadius: 6, minWidth: compact ? 26 : 32, height: compact ? 26 : 32, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>
       {String(n).padStart(2, "0")}
     </div>
   );
 
   const SetPill = ({ s, i }: { s: any; i: number }) => (
-    <div style={{ background: "#FFF8D6", border: "1px solid #FFC936", borderRadius: 6, padding: "4px 8px", textAlign: "center", minWidth: 50 }}>
-      <div style={{ ...JK, fontSize: 10, fontWeight: 700, color: "#CA8A04", marginBottom: 2 }}>Set {i + 1}</div>
-      <div style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#111" }}>
+    <div style={{ background: "#FFF8D6", border: "1px solid #FFC936", borderRadius: 6, padding: compact ? "3px 5px" : "4px 8px", textAlign: "center", minWidth: compact ? 38 : 50 }}>
+      <div style={{ ...JK, fontSize: 9, fontWeight: 700, color: "#CA8A04", marginBottom: 2 }}>Set {i + 1}</div>
+      <div style={{ ...JK, fontSize: compact ? 11 : 12, fontWeight: 800, color: "#111" }}>
         <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>{s.home}</span>
-        {" - "}
+        <span style={{ fontWeight: 800, color: "#676767"}}>{" : "} </span>
         <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>{s.away}</span>
       </div>
     </div>
   );
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: compact ? 4 : 6 }}>
       <NumPill n={setScore[0]} />
       {setLog.length === 0
-        ? <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#CA8A04" }}>-</span>
+        ? <span style={{ ...JK, fontSize: compact ? 12 : 14, fontWeight: 800, color: "#CA8A04" }}>vs</span>
         : setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)}
       <NumPill n={setScore[1]} />
     </div>
   );
 }
 
-function ScoreSetsFinished({ live }: { live: any }) {
+function ScoreSetsFinished({ live, compact = false }: { live: any; compact?: boolean }) {
   const setLog = live?.setLog ?? [];
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: compact ? 4 : 6, flexWrap: "wrap" }}>
       {setLog.map((s: any, i: number) => (
-        <div key={i} style={{ background: "#f3f4f6", borderRadius: 6, padding: "4px 8px", textAlign: "center", minWidth: 50 }}>
-          <div style={{ ...JK, fontSize: 10, fontWeight: 600, color: "#676767", marginBottom: 2 }}>Set {i + 1}</div>
-          <div style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#111" }}>
+        <div key={i} style={{ background: "#f3f4f6", borderRadius: 6, padding: compact ? "3px 5px" : "4px 8px", textAlign: "center", minWidth: compact ? 38 : 50 }}>
+          <div style={{ ...JK, fontSize: 9, fontWeight: 600, color: "#676767", marginBottom: 2 }}>Set {i + 1}</div>
+          <div style={{ ...JK, fontSize: compact ? 11 : 12, fontWeight: 800, color: "#111" }}>
             <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>{s.home}</span>
-            {" - "}
+            <span style={{ fontWeight: 800, color: "#676767"}}>{" : "} </span>
             <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>{s.away}</span>
           </div>
         </div>
@@ -171,12 +176,12 @@ function MiddleBadge({ match }: { match: any }) {
   const isH2H = match.competition_category?.format_id?.match_type === "head_to_head";
   return (
     <div style={{ ...JK, fontSize: 13, fontWeight: 800, color: "#aaa", background: "#f3f4f6", borderRadius: 6, padding: "4px 16px", whiteSpace: "nowrap", minWidth: 50, textAlign: "center" }}>
-      {isH2H ? "vs" : "---"}
+      {isH2H ? "vs" : "--"}
     </div>
   );
 }
 
-function ScoreCell({ match }: { match: any }) {
+function ScoreCell({ match, compact = false }: { match: any; compact?: boolean }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
@@ -197,7 +202,7 @@ function ScoreCell({ match }: { match: any }) {
       );
     }
     case "score_sets":
-      return isLive ? <ScoreSetsLive live={live} /> : <ScoreSetsFinished live={live} />;
+      return isLive ? <ScoreSetsLive live={live} compact={compact} /> : <ScoreSetsFinished live={live} compact={compact} />;
     case "judge_scores":
     case "finish_time":
     case "manual_pick":
@@ -208,6 +213,69 @@ function ScoreCell({ match }: { match: any }) {
     default:
       return null;
   }
+}
+
+/** Mobile-only score display for score_sets engine:
+ *  - Big set-count numbers (home sets won vs away sets won)
+ *  - Tiny detail line: "21-18 | 18-21 | 21-16"
+ *  - Falls back to compact ScoreCell for all other engine types
+ */
+function MobileScoreCell({ match }: { match: any }) {
+  const engine     = getEngine(match.competition_category?.format_id);
+  const live       = match.live_state ?? {};
+  const isLive     = match.status === "live";
+  const isUpcoming = match.status === "upcoming";
+
+  if (isUpcoming) return <MiddleBadge match={match} />;
+
+  // Shared pill style — matches compact NumPill sizing used across all other score cells
+  const numPill = (bg: string, color: string): React.CSSProperties => ({
+    ...JK, fontSize: 14, fontWeight: 900, color,
+    background: bg, borderRadius: 6,
+    minWidth: 26, height: 26,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    padding: "0 5px",
+  });
+
+  if (engine?.type === "score_sets") {
+    if (isLive) {
+      const setScore = live?.setScore ?? [0, 0];
+      const setLog   = live?.setLog   ?? [];
+      const detail   = setLog.map((s: any) => `${s.home}-${s.away}`).join(" | ");
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={numPill("#FFC936", "#111")}>{setScore[0]}</span>
+            <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#CA8A04" }}>vs</span>
+            <span style={numPill("#FFC936", "#111")}>{setScore[1]}</span>
+          </div>
+          {detail && (
+            <div style={{ ...JK, ...truncate, fontSize: 9, fontWeight: 600, color: "#CA8A04", maxWidth: 68, textAlign: "right" }}>{detail}</div>
+          )}
+        </div>
+      );
+    } else {
+      const setLog   = live?.setLog ?? [];
+      const homeSets = setLog.filter((s: any) => s.home > s.away).length;
+      const awaySets = setLog.filter((s: any) => s.away > s.home).length;
+      const detail   = setLog.map((s: any) => `${s.home}-${s.away}`).join(" | ");
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={numPill("#f3f4f6", "#111")}>{homeSets}</span>
+            <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#aaa" }}>vs</span>
+            <span style={numPill("#f3f4f6", "#111")}>{awaySets}</span>
+          </div>
+          {detail && (
+            <div style={{ ...JK, ...truncate, fontSize: 9, fontWeight: 600, color: "#9CA3AF", maxWidth: 68, textAlign: "right" }}>{detail}</div>
+          )}
+        </div>
+      );
+    }
+  }
+
+  // All other engine types: use existing compact ScoreCell
+  return <ScoreCell match={match} compact />;
 }
 
 // ─── Participant components — copied straight from MatchesPanels ───────────────
@@ -526,70 +594,93 @@ function MobileMatchRow({ match }: { match: any }) {
   const away       = match.away_participant;
   const live       = match.live_state ?? {};
 
-  // Derive loser for H2H finished matches
   const winnerId    = match.winner ?? live.winner;
   const homeIsLoser = isFinished && isH2H && !!winnerId && home?.id !== winnerId;
   const awayIsLoser = isFinished && isH2H && !!winnerId && away?.id !== winnerId;
 
   const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
 
+  // Shared label styles — same structure for both left (time/venue) and right (category/round)
+  const metaTop: React.CSSProperties    = { ...JK, fontSize: 11, fontWeight: 700, color: isLive ? "#D97706" : "#555" };
+  const metaBottom: React.CSSProperties = { ...JK, fontSize: 10, fontWeight: 500, color: "#aaa", marginTop: 1 };
+
   return (
     <div style={{
       background:   "#F8F9FB",
       borderRadius: 12,
       border:       "1px solid #ECEEF2",
-      padding:      "12px 14px",
-      display: "flex", flexDirection: "column", gap: 8,
+      padding:      "10px 12px",
+      display:      "flex",
+      flexDirection:"column",
+      gap:          8,
     }}>
-      {/* Time · venue — category · status */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+
+      {/* ── Meta row: time/venue ←→ category/round ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        {/* Left: time stacked above venue */}
         <div>
-          <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: isLive ? "#D97706" : "#676767" }} suppressHydrationWarning>
-            {timeLabel}
-          </span>
+          <div style={{ ...metaTop }} suppressHydrationWarning>{timeLabel}</div>
           {match.venue && (
-            <span style={{ ...JK, fontSize: 11, color: "#aaa" }}>{" · "}{match.venue}</span>
+            <div style={{ ...metaBottom, ...truncate, maxWidth: 140 }}>{match.venue}</div>
           )}
         </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#444" }}>{match.competition_category?.name ?? ""}</div>
-          <div style={{ marginTop: 1 }}><StatusLabel match={match} /></div>
+        {/* Right: category stacked above round/status — mirrors left layout */}
+        <div style={{ textAlign: "right" }}>
+          <div style={{ ...JK, fontSize: 11, fontWeight: 700, color: "#555", ...truncate, maxWidth: 150 }}>
+            {match.competition_category?.name ?? ""}
+          </div>
+          <div style={{ ...metaBottom, marginTop: 1 }}><StatusLabel match={match} /></div>
         </div>
       </div>
 
-      {/* Participants + score */}
+      {/* ── Participants (vertical) + Score (right column) ── */}
       {isOpen ? (
+        // Open format: participant list left, score right
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}><OpenParticipants match={match} /></div>
-          <ScoreCell match={match} />
+          <div style={{ flexShrink: 0 }}><MobileScoreCell match={match} /></div>
         </div>
       ) : (
+        // H2H / single participant: stacked rows left, score right
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-            {home ? <Logo inst={home.institution} size={28} isLoser={homeIsLoser} /> : <UndecidedLogo size={28} />}
-            <div style={{ minWidth: 0 }}>
-              <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: home ? (homeIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
-                {home?.name ?? "To Be Determined"}
-              </div>
-              <div style={{ ...JK, ...truncate, fontSize: 11, color: homeIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
-                {home ? (home.institution?.name ?? "") : "Undecided"}
+
+          {/* Left: home on top, away below */}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+
+            {/* Home row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              {home ? <Logo inst={home.institution} size={26} isLoser={homeIsLoser} /> : <UndecidedLogo size={26} />}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ ...JK, ...truncate, fontSize: 12, fontWeight: 700, color: home ? (homeIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
+                  {home?.name ?? "To Be Determined"}
+                </div>
+                <div style={{ ...JK, ...truncate, fontSize: 10, fontWeight: 500, color: homeIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
+                  {home ? (home.institution?.name ?? "") : "Undecided"}
+                </div>
               </div>
             </div>
+
+            {/* Away row — only for H2H */}
+            {isH2H && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                {away ? <Logo inst={away.institution} size={26} isLoser={awayIsLoser} /> : <UndecidedLogo size={26} />}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ ...JK, ...truncate, fontSize: 12, fontWeight: 700, color: away ? (awayIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
+                    {away?.name ?? "To Be Determined"}
+                  </div>
+                  <div style={{ ...JK, ...truncate, fontSize: 10, fontWeight: 500, color: awayIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
+                    {away ? (away.institution?.name ?? "") : "Undecided"}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div style={{ flexShrink: 0 }}><ScoreCell match={match} /></div>
-          {isH2H && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
-              <div style={{ minWidth: 0, textAlign: "right" }}>
-                <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: away ? (awayIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
-                  {away?.name ?? "To Be Determined"}
-                </div>
-                <div style={{ ...JK, ...truncate, fontSize: 11, color: awayIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
-                  {away ? (away.institution?.name ?? "") : "Undecided"}
-                </div>
-              </div>
-              {away ? <Logo inst={away.institution} size={28} isLoser={awayIsLoser} /> : <UndecidedLogo size={28} />}
-            </div>
-          )}
+
+          {/* Right: score badge — centered vertically against both rows */}
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <MobileScoreCell match={match} />
+          </div>
+
         </div>
       )}
     </div>
@@ -638,10 +729,11 @@ const FILTERS: { value: FilterValue; label: string }[] = [
   { value: "finished", label: "Results"  },
 ];
 
-function FilterBar({ active, onChange, counts }: {
-  active:   FilterValue;
-  onChange: (v: FilterValue) => void;
-  counts:   Record<FilterValue, number>;
+function FilterBar({ active, onChange, counts, isMobile = false }: {
+  active:    FilterValue;
+  onChange:  (v: FilterValue) => void;
+  counts:    Record<FilterValue, number>;
+  isMobile?: boolean;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
@@ -655,14 +747,14 @@ function FilterBar({ active, onChange, counts }: {
               ...JK,
               background: "none",
               border:     "none",
-              padding:    "0 0 0 16px",
-              fontSize:   13,
+              padding:    `0 0 0 ${isMobile ? 10 : 16}px`,
+              fontSize:   isMobile ? 12 : 13,
               fontWeight: isActive ? 800 : 600,
               color:      isActive ? "#171717" : "#676767",
               cursor:     "pointer",
               display:    "flex",
               alignItems: "center",
-              gap:        5,
+              gap:        4,
               transition: "color 0.15s",
               whiteSpace: "nowrap",
             }}
@@ -673,7 +765,7 @@ function FilterBar({ active, onChange, counts }: {
                 ...JK, fontSize: 10, fontWeight: 700,
                 color:        isActive ? "#444" : "#bbb",
                 background:   isActive ? "#f0f0f0" : "#f5f5f5",
-                borderRadius: 12, padding: "1px 6px",
+                borderRadius: 12, padding: "1px 5px",
               }}>
                 {counts[value]}
               </span>
@@ -681,6 +773,76 @@ function FilterBar({ active, onChange, counts }: {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** Mobile-only: single button showing active filter, taps open an overlay dropdown. */
+function MobileFilterDropdown({ active, onChange, counts }: {
+  active:   FilterValue;
+  onChange: (v: FilterValue) => void;
+  counts:   Record<FilterValue, number>;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = FILTERS.find(f => f.value === active)!;
+
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          ...JK, display: "flex", alignItems: "center", gap: 5,
+          background: "#f0f0f0", border: "none", borderRadius: 8,
+          padding: "5px 10px", fontSize: 12, fontWeight: 800, color: "#171717", cursor: "pointer",
+        }}
+      >
+        {current.label}
+        {counts[active] > 0 && (
+          <span style={{ ...JK, fontSize: 10, fontWeight: 700, color: "#444", background: "#ddd", borderRadius: 10, padding: "1px 5px" }}>
+            {counts[active]}
+          </span>
+        )}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
+          <path d={open ? "M2 6.5L5 3.5L8 6.5" : "M2 3.5L5 6.5L8 3.5"} stroke="#555" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <>
+          {/* Invisible backdrop to close on outside tap */}
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+          {/* Dropdown panel */}
+          <div style={{
+            position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 20,
+            background: "#fff", borderRadius: 10, border: "1px solid #ECEEF2",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: "4px 0", minWidth: 150,
+          }}>
+            {FILTERS.map(({ value, label }) => {
+              const isActive = active === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => { onChange(value); setOpen(false); }}
+                  style={{
+                    ...JK, display: "flex", alignItems: "center", justifyContent: "space-between",
+                    width: "100%", background: isActive ? "#f8f8f8" : "none", border: "none",
+                    padding: "9px 14px", fontSize: 13, fontWeight: isActive ? 800 : 600,
+                    color: isActive ? "#171717" : "#444", cursor: "pointer",
+                  }}
+                >
+                  {label}
+                  {counts[value] > 0 && (
+                    <span style={{ ...JK, fontSize: 10, fontWeight: 700, color: isActive ? "#444" : "#bbb", background: isActive ? "#f0f0f0" : "#f5f5f5", borderRadius: 12, padding: "1px 6px" }}>
+                      {counts[value]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -728,7 +890,10 @@ export default function MatchesTab({ event, isMobile, phase }: Props) {
           <span style={{ ...JK, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#06125C" }}>
             Matches
           </span>
-          <FilterBar active={filter} onChange={setFilter} counts={counts} />
+          {isMobile
+            ? <MobileFilterDropdown active={filter} onChange={setFilter} counts={counts} />
+            : <FilterBar active={filter} onChange={setFilter} counts={counts} />
+          }
         </div>
 
         {/* ── Rows ── */}
