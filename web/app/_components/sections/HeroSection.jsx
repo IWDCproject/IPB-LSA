@@ -355,7 +355,7 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
 										
 										{/* ADDED paddingBottom: "20px" here so the notch isn't clipped */}
 										<div ref={mobileScrollRef} className="match-scroll" style={{
-												"--s": mobileCardScale, display: "flex", gap: "8px", overflowX: "auto", scrollSnapType: "x mandatory",
+												"--s": mobileCardScale, display: "flex", gap: "3px", overflowX: "auto", scrollSnapType: "x mandatory",
 												scrollPaddingLeft: "24px", WebkitOverflowScrolling: "touch", paddingLeft: "24px", paddingBottom: "20px",
 												...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }),
 										}}>
