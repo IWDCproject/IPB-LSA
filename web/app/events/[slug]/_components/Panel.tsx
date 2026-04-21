@@ -2,7 +2,7 @@ const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 
 export function PanelCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: "24px 28px", ...style }}>
+    <div style={{ background: "#fff", borderRadius: 12, padding: "16px 20px", ...style }}>
       {children}
     </div>
   );

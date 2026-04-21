@@ -14,7 +14,7 @@ const CARD: React.CSSProperties = {
   minHeight:      0,
 };
 
-export default function AboutPanel({ event }: { event: any }) {
+export default function AboutPanel({ event, isMobile }: { event: any; isMobile: boolean }) {
   const contacts = Array.isArray(event.contact_person) ? event.contact_person :[];
 
   return (
@@ -25,7 +25,7 @@ export default function AboutPanel({ event }: { event: any }) {
         {event.description && (
           <p style={{
             ...JK,
-            fontSize:   14,
+            fontSize:   isMobile ? 12 : 14,
             color:      "#374151",
             lineHeight: 1.75,
             margin:     0,

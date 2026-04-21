@@ -276,7 +276,11 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
       <div
         style={{
           display:             "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "3fr 2fr",
+          // minmax(0,1fr) on mobile: the 0 minimum stops the grid cell from inflating
+          // to fit the min-content of deeply-nested children (e.g. the scrollable
+          // timeline rail). Without this, `1fr` = `minmax(auto,1fr)` and the cell
+          // expands to accommodate any child's minWidth, defeating overflow/scroll.
+          gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "3fr 2fr",
           gap:                 PANEL_GAP,
           alignItems:          "stretch",
         }}
@@ -325,7 +329,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
               ...panelStyle(isMobile && showCountdown ? s1 : s0),
             }}
           >
-            <AboutPanel event={event} />
+            <AboutPanel event={event} isMobile={isMobile} />
           </div>
 
           <div style={panelStyle(isMobile && showCountdown ? staggerSlideUp(tier.stagger * 2, tier) : s1)}>
