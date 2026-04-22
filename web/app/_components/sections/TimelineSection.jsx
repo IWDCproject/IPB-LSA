@@ -56,6 +56,38 @@ function formatDateLabel(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "2-digit" }).toUpperCase();
 }
 
+const MONTHS_FULL  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function ordinal(n) {
+  const v = n % 100;
+  return n + (["th","st","nd","rd"][(v - 20) % 10] || ["th","st","nd","rd"][v] || "th");
+}
+function fmtRegDate(dateStr) { // "15th April"
+  const d = new Date(dateStr);
+  return `${ordinal(d.getDate())} ${MONTHS_FULL[d.getMonth()]}`;
+}
+function fmtShort(dateStr) { // "15 Apr"
+  const d = new Date(dateStr);
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+function getSubLabel(ev, isOngoing, isFinished) {
+  if (isOngoing) {
+    const end = ev.end_date ? fmtRegDate(ev.end_date) : null;
+    return end ? `Ends at\n${end}` : "Ongoing";
+  }
+  if (isFinished) {
+    const at = ev.end_date ?? ev.start_date;
+    return at ? `Ended at\n${fmtShort(at)}` : "Ended";
+  }
+  // upcoming
+  const regCloses = ev.registration_end_date ? new Date(ev.registration_end_date) : null;
+  if (regCloses && regCloses > new Date()) {
+    return `Regist until\n${fmtRegDate(ev.registration_end_date)}`;
+  }
+  return "Coming Soon";
+}
+
 const bez = (p0, p1, t) => {
   const mt = 1 - t, mt2 = mt * mt, t2 = t * t;
   return {
@@ -209,21 +241,41 @@ function PlaceholderCard() {
   );
 }
 
-// Active events first, then upcoming, then null-padded to MAX_SLOTS.
+// Slot PRIORITY:  ongoing > upcoming > finished (backfill only).
+// Display ORDER on path: finished (past) → ongoing (present) → upcoming (future).
 function shapeEvents(rawEvents) {
   const src = rawEvents ?? [];
+  const now = new Date();
 
-  const isActive   = (ev) => ev.status === "active" || ev.status === "live";
-  const active     = src.filter(isActive);
-  const upcoming   = src.filter((ev) => !isActive(ev));
-  const filled     = [...active, ...upcoming].slice(0, MAX_SLOTS);
-  const padded     = [...filled, ...Array(MAX_SLOTS - filled.length).fill(null)];
+  const isActive = (ev) => ev.status === "active" || ev.status === "live";
+
+  // Treat an event as finished if the status string says so OR its end/start date
+  // is already in the past — this covers any status value the CMS might use.
+  const isFinished = (ev) => {
+    const s = (ev.status ?? "").toLowerCase();
+    if (["finished", "ended", "past", "done", "complete", "completed"].includes(s)) return true;
+    const endDate = ev.end_date ? new Date(ev.end_date) : ev.start_date ? new Date(ev.start_date) : null;
+    return !isActive(ev) && endDate !== null && endDate < now;
+  };
+
+  const active   = src.filter(isActive);
+  const upcoming = src.filter((ev) => !isActive(ev) && !isFinished(ev));
+  const finished = src.filter(isFinished);
+
+  // Ongoing claims its slots first; remaining slots go to upcoming, then finished
+  const remaining      = Math.max(0, MAX_SLOTS - active.length);
+  const pickedUpcoming = upcoming.slice(0, remaining);
+  const pickedFinished = finished.slice(0, Math.max(0, remaining - pickedUpcoming.length));
+
+  // Chronological order on the path: past → present → future
+  const filled = [...pickedFinished, ...active, ...pickedUpcoming].slice(0, MAX_SLOTS);
+  const padded = [...filled, ...Array(MAX_SLOTS - filled.length).fill(null)];
 
   const lastActiveIdx = padded.reduce((acc, ev, i) => (ev && isActive(ev) ? i : acc), -1);
 
   return padded.map((ev, i) => {
-    const slotLayout  = SLOT_LAYOUTS[i];
-    const evIsActive  = lastActiveIdx !== -1 && i <= lastActiveIdx;
+    const slotLayout = SLOT_LAYOUTS[i];
+    const evIsActive = lastActiveIdx !== -1 && i <= lastActiveIdx;
 
     if (!ev) {
       return {
@@ -232,9 +284,11 @@ function shapeEvents(rawEvents) {
         isActive: false,
         slot: { ...slotLayout, ...getSlotColors(false) },
         label: "TBA",
-        subLabel: "Coming\nSoon",
+        subLabel: "Coming Soon",
       };
     }
+
+    const evIsFinished = isFinished(ev);
 
     return {
       ...ev,
@@ -242,9 +296,7 @@ function shapeEvents(rawEvents) {
       slot: { ...slotLayout, ...getSlotColors(evIsActive) },
       isActive: evIsActive,
       label: evIsActive ? "ONGOING" : (ev.start_date ? formatDateLabel(ev.start_date) : "TBA"),
-      subLabel: ev.registration_closes
-        ? `Regist Until\n${ev.registration_closes}`
-        : `Date\n${ev.start_date ?? "TBA"}`,
+      subLabel: getSubLabel(ev, evIsActive, evIsFinished),
     };
   });
 }
