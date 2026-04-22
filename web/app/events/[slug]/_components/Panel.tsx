@@ -10,7 +10,7 @@ export function PanelCard({ children, style }: { children: React.ReactNode; styl
 
 export function PanelTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ ...JK, fontSize: 16, fontWeight: 800, color: "#06125C", marginBottom: 14 }}>
+    <div style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C", marginBottom: 14 }}>
       {children}
     </div>
   );

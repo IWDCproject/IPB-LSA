@@ -45,13 +45,13 @@ export default function CountdownPanel({ deadline, registrationUrl }: { deadline
   return (
     <PanelCard>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-        <div style={{ ...JK, fontSize: "20px", fontWeight: 800, color: "#06125C" }}>
+        <div style={{ ...JK, fontSize: "14px", fontWeight: 800, color: "#06125C" }}>
           Register Countdown
         </div>
-        <span style={{ ...JK, fontSize: 14, fontWeight: 700, color: "#9CA3AF" }}>Why Wait?</span>
+        <span style={{ ...JK, fontSize: 12, fontWeight: 700, color: "#9CA3AF" }}>Why Wait?</span>
       </div>
       
-      <div style={{ ...JK, fontSize: "14px", fontWeight: 500, color: "#6B7280", marginBottom: 24 }}>
+      <div style={{ ...JK, fontSize: "12px", fontWeight: 500, color: "#6B7280", marginBottom: 24 }}>
         Regist until {fmtDeadline(deadline)}
       </div>
 
@@ -70,7 +70,7 @@ export default function CountdownPanel({ deadline, registrationUrl }: { deadline
                   {String(u.value).padStart(2, "0")}
                 </div>
               </div>
-              <div style={{ ...JK, fontSize: 14, fontWeight: 500, color: "#6B7280" }}>{u.label}</div>
+              <div style={{ ...JK, fontSize: 12, fontWeight: 500, color: "#6B7280" }}>{u.label}</div>
             </div>
             {i < units.length - 1 && <SquareDotSeparator />}
           </Fragment>
