@@ -42,7 +42,7 @@ function NewsPlaceholder() {
           filter: "blur(1.5px)",
         }}
       />
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", textAlign: "center" }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" style={{ marginBottom: 12 }}>
           <path d="M12 5v14M5 12h14" />
         </svg>
@@ -70,13 +70,9 @@ export default function LatestStoriesSection({
   
   // Logic for placeholders:
   // 1. Desktop: Always fill up to 4 items.
-  // 2. Mobile: If 1 or 3 items, add 1 placeholder to balance the 2-column grid.
+  // 2. Mobile: Single column — no placeholders needed to balance grid.
   let placeholderCount = 0;
-  if (isMobile) {
-    if (displayNews.length === 1 || displayNews.length === 3) {
-      placeholderCount = 1;
-    }
-  } else {
+  if (!isMobile) {
     placeholderCount = Math.max(0, 4 - displayNews.length);
   }
 
@@ -84,39 +80,54 @@ export default function LatestStoriesSection({
 
   return (
     <div style={{ paddingBottom: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 30, marginTop: 60 }}>
+      {/* Header row — on mobile: title + line only (no CTA button) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20, marginTop: 60 }}>
         <span style={{ ...JK, fontSize: 22, fontWeight: 800, color: "#fff", whiteSpace: "nowrap" }}>
           Latest Stories
         </span>
-        <div style={{ flex: 1, height: 2, background: "rgba(255,255,255,0.2)" }} />
-        <Button
-          variant="header-outline"
-          size="sm"
-          onClick={() => onTabChange?.("news")} 
-          showShadow={false}
-        >
-          Read More News!
-        </Button>
+        <div style={{ marginTop: 3, flex: 1, height: 2, background: "linear-gradient(to right, rgba(255,255,255,0.7), rgba(255,255,255,0.3))" }} />
+        {!isMobile && (
+          <Button
+            variant="header-outline"
+            size="sm"
+            onClick={() => onTabChange?.("news")}
+            showShadow={false}
+          >
+            Read More News!
+          </Button>
+        )}
       </div>
 
       <div
         style={{
           display: "grid",
-          // FIXED: Use explicit column counts instead of auto-fill to prevent wrapping
-          gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
-          gap: isMobile ? 12 : 20,
+          gridTemplateColumns: isMobile ? "repeat(1, 1fr)" : "repeat(4, 1fr)",
+          gap: isMobile ? 10 : 20,
           alignItems: "stretch",
         }}
       >
         {displayNews.map((item) => (
-          <NewsCard key={item.id} item={item} />
+          <NewsCard key={item.id} item={item} isMobile={isMobile} />
         ))}
 
-        {/* Placeholders are now rendered for both mobile and desktop based on the count logic above */}
         {placeholders.map((_, i) => (
           <NewsPlaceholder key={`p-${i}`} />
         ))}
       </div>
+
+      {/* CTA button below cards — mobile only */}
+      {isMobile && (
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
+          <Button
+            variant="header-outline"
+            size="sm"
+            onClick={() => onTabChange?.("news")}
+            showShadow={false}
+          >
+            Read More News!
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
