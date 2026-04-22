@@ -114,21 +114,19 @@ function DesktopSkeletonRow({ index, cellPad }: { index: number; cellPad: string
 function MobileSkeletonRow({ index }: { index: number }) {
   return (
     <div style={{
-      display: "flex", alignItems: "stretch", gap: 12,
-      padding: "10px 12px", borderBottom: "1px solid #f5f5f5",
+      background: "#fff", border: "1px solid #ECEEF2", borderRadius: 10, overflow: "hidden",
       opacity: 0, animation: `evt-fade-up 0.4s ease ${index * 60}ms forwards`,
     }}>
-      <div style={{ width: 72, flexShrink: 0, borderRadius: 4, background: SHIMMER_BG, backgroundSize: "600px 100%", animation: "evt-shimmer 1.4s ease infinite", minHeight: 48 }} />
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 7 }}>
-        <SkeletonCell width="70%" height={13} />
-        <div style={{ display: "flex", gap: 8 }}>
+      {/* Banner */}
+      <div style={{ width: "100%", height: 80, background: SHIMMER_BG, backgroundSize: "600px 100%", animation: "evt-shimmer 1.4s ease infinite" }} />
+      {/* Body */}
+      <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+        <SkeletonCell width="75%" height={13} />
+        <SkeletonCell width="50%" height={11} />
+        <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
           <SkeletonCell width={46} height={18} radius={4} />
-          <SkeletonCell width={90} height={13} />
+          <SkeletonCell width={90} height={11} radius={3} />
         </div>
-      </div>
-      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center", gap: 8 }}>
-        <SkeletonCell width={62} height={20} radius={4} />
-        <SkeletonCell width={72} height={28} radius={6} />
       </div>
     </div>
   );
@@ -195,12 +193,12 @@ function CategoryChip({ ev }: { ev: EventListing }) {
 }
 
 function CtaButton({ ev, small = false }: { ev: EventListing; small?: boolean }) {
-  if (ev.status === "finished" || ev.status === "cancelled") return null;
+  if (ev.status === "cancelled") return null;
   // Always navigate to the event detail page — no external registration redirect.
   const href = `/events/${safeSlug(ev.slug)}`;
   return (
     <Button
-      variant={ev.status === "active" ? "primary" : "secondary"}
+      variant={"secondary"}
       size="sm"
       href={href}
       fixedWidth={small ? "80px" : BTN_WIDTH}
@@ -274,17 +272,25 @@ function DesktopEventRow({ ev, isLast, index, cellPad, thumbW, thumbH }: {
   );
 }
 
-//  Mobile card row (div) 
+//  Mobile card row
 
-function MobileEventRow({ ev, isLast, index }: { ev: EventListing; isLast: boolean; index: number }) {
-  const router  = useRouter();
+function MobileEventRow({ ev, index }: { ev: EventListing; isLast: boolean; index: number }) {
+  const router   = useRouter();
   const [pressed, setPressed] = useState(false);
-  const imgUrl  = ev.card_image?.id ? getAssetUrl(ev.card_image) : null;
 
-  // Guard: skip malformed rows rather than crash
+  // Prefer banner for the wide card image, fall back to card_image
+  const bannerUrl = ev.banner_image?.id ? getAssetUrl(ev.banner_image) : null;
+  const cardUrl   = ev.card_image?.id   ? getAssetUrl(ev.card_image)   : null;
+  const imgUrl    = bannerUrl ?? cardUrl;
+
   if (!ev?.id || !ev?.name || !ev?.status) return null;
 
-  const truncate: React.CSSProperties = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+  const truncate1: React.CSSProperties = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+  const truncate2: React.CSSProperties = {
+    display: "-webkit-box", WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical", overflow: "hidden",
+  } as React.CSSProperties;
+  const badge = STATUS_BADGES[getBadgeKey(ev)];
 
   return (
     <div
@@ -293,43 +299,55 @@ function MobileEventRow({ ev, isLast, index }: { ev: EventListing; isLast: boole
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
       style={{
-        display: "flex", alignItems: "stretch", gap: 12,
-        padding: "10px 12px",
-        borderBottom: isLast ? "none" : "1px solid #f5f5f5",
-        cursor: "pointer",
-        background: pressed ? "rgba(13,38,194,0.03)" : "transparent",
-        transition: "background 0.15s",
-        opacity: 0,
-        animation: `evt-row-in 0.45s cubic-bezier(0.22,1,0.36,1) ${index * 55}ms forwards`,
+        background:    pressed ? "#F0F2FF" : "#fff",
+        border:        "1px solid #ECEEF2",
+        borderRadius:  10,
+        overflow:      "hidden",
+        cursor:        "pointer",
+        transition:    "background 0.15s",
+        opacity:       0,
+        animation:     `evt-row-in 0.45s cubic-bezier(0.22,1,0.36,1) ${index * 55}ms forwards`,
+        display:       "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Thumbnail — height stretches to match sibling */}
-      <div style={{ width: 100, flexShrink: 0, borderRadius: 4, overflow: "hidden", background: "#e8eaf6", minHeight: 48, alignSelf: "stretch" }}>
-        {imgUrl && <img src={imgUrl} alt={ev.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+      {/* Banner image with status badge overlaid top-right */}
+      <div style={{ position: "relative", width: "100%", height: 80, background: "#e8eaf6", flexShrink: 0 }}>
+        {imgUrl && (
+          <img src={imgUrl} alt={ev.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        )}
+        {/* Dark scrim so badge is readable over any image */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, transparent 60%)" }} />
+        <span style={{
+          position: "absolute", top: 8, right: 8,
+          ...JK, fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
+          padding: "3px 8px", borderRadius: 4,
+          background: badge.bg, color: badge.color,
+          textTransform: "uppercase", whiteSpace: "nowrap",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+        }}>
+          {badge.label}
+        </span>
       </div>
 
-      {/* Main info */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...JK, ...truncate, fontWeight: 700, fontSize: 13, color: "#111", lineHeight: 1.3 }}>
+      {/* Body */}
+      <div style={{ padding: "10px 12px 12px" }}>
+        <div style={{ ...JK, ...truncate2, fontSize: 13, fontWeight: 700, color: "#111", lineHeight: 1.35, marginBottom: 6 }}>
           {ev.name}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <CategoryChip ev={ev} />
-          <span style={{ ...JK, fontSize: 11, color: "#888" }}>
-            {formatDate(ev.start_date, ev.end_date)}
-          </span>
+          {ev.start_date && (
+            <span style={{ ...JK, ...truncate1, fontSize: 10, fontWeight: 500, color: "#aaa" }}>
+              {formatDate(ev.start_date, ev.end_date)}
+            </span>
+          )}
         </div>
         {ev.location && (
-          <div style={{ ...JK, ...truncate, fontSize: 11, color: "#aaa", marginTop: 3 }}>
-            {ev.location}
+          <div style={{ ...JK, ...truncate1, fontSize: 10, fontWeight: 500, color: "#aaa", marginTop: 4 }}>
+            📍 {ev.location}
           </div>
         )}
-      </div>
-
-      {/* Status + CTA */}
-      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center", gap: 6 }}>
-        <StatusBadge ev={ev} />
-        <CtaButton ev={ev} small />
       </div>
     </div>
   );
@@ -424,17 +442,24 @@ export default function EventsTable({
         {/*  MOBILE layout  */}
         {isMobile && (
           <>
-            {loading && Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-              <MobileSkeletonRow key={`msk-${i}`} index={i} />
-            ))}
-            {!loading && sortedEvents.length === 0 && (
-              <div style={{ ...JK, textAlign: "center", padding: "48px 16px", color: "#bbb", fontSize: 14 }}>
-                No events found.
-              </div>
-            )}
-            {!loading && sortedEvents.map((ev, i) => (
-              <MobileEventRow key={ev.id} ev={ev} isLast={i === sortedEvents.length - 1} index={i} />
-            ))}
+            <div style={{ padding: "14px 16px 10px" }}>
+              <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C" }}>
+                Event Listing
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(1, 1fr)", gap: 8, padding: "12px 12px 4px" }}>
+              {loading && Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                <MobileSkeletonRow key={`msk-${i}`} index={i} />
+              ))}
+              {!loading && sortedEvents.length === 0 && (
+                <div style={{ ...JK, textAlign: "center", padding: "48px 16px", color: "#bbb", fontSize: 14 }}>
+                  No events found.
+                </div>
+              )}
+              {!loading && sortedEvents.map((ev, i) => (
+                <MobileEventRow key={ev.id} ev={ev} isLast={i === sortedEvents.length - 1} index={i} />
+              ))}
+            </div>
           </>
         )}
 
