@@ -57,11 +57,12 @@ const styles = {
   } as React.CSSProperties,
 
   heading: {
-    margin:     0,
-    fontFamily: "'Bebas Neue', sans-serif",
-    lineHeight: 1,
-    color:      "#111111",
-    filter:     "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
+    margin:        0,
+    fontFamily:    "'Bebas Neue', sans-serif",
+    lineHeight:    1,
+    paddingBottom: "0.2em",
+    color:         "#111111",
+    filter:        "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
   } as React.CSSProperties,
 
   // -- desktop grid --
@@ -81,22 +82,23 @@ const styles = {
   } as React.CSSProperties,
 
   // -- mobile layout --
+  // All spacing uses clamp() so tiny phones aren't over-spaced
   mobileLayout: {
     display:       "flex",
     flexDirection: "column",
-    gap:           12,
+    gap:           "clamp(6px, 2vw, 12px)",
   } as React.CSSProperties,
 
   mobileMainCell: {
     width:  "100%",
-    height: 280,
+    height: "clamp(200px, 52vw, 280px)",
   },
 
   mobileSmallGrid: {
     display:             "grid",
     gridTemplateColumns: "1fr 1fr",
-    gridTemplateRows:    "160px 160px",
-    gap:                 12,
+    gridTemplateRows:    "clamp(120px, 32vw, 160px) clamp(120px, 32vw, 160px)",
+    gap:                 "clamp(6px, 2vw, 12px)",
   },
 
   mobileSmallCell: {
@@ -106,7 +108,7 @@ const styles = {
   buttonWrap: {
     display:        "flex",
     justifyContent: "flex-end",
-    marginTop:      20,
+    marginTop:      "clamp(10px, 3vw, 20px)",
   },
 } as const;
 
@@ -167,7 +169,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
       style={{
         ...styles.section,
         minHeight: isMobile ? "auto" : "100vh",
-        padding:   isMobile ? "60px 0" : "0",
+        padding:   isMobile ? "clamp(28px, 6vw, 60px) 0" : "0",
       }}
     >
       <div
@@ -175,7 +177,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
           ...styles.inner,
           paddingLeft:   pad,
           paddingRight:  pad,
-          paddingBottom: isMobile ? 60 : Math.min(100, Math.max(40, cw * 0.052)),
+          paddingBottom: isMobile ? "clamp(28px, 6vw, 60px)" : Math.min(100, Math.max(40, cw * 0.052)),
         }}
       >
 
@@ -193,7 +195,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
           style={{
             ...styles.heading,
             fontSize:     isMobile ? "clamp(1.8rem, 7vw, 2.5rem)" : "calc(64px * var(--s))",
-            marginBottom: isMobile ? 12 : 17,
+            marginBottom: isMobile ? "clamp(6px, 2vw, 12px)" : 17,
           }}
         >
           Latest Stories

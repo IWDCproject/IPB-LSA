@@ -21,7 +21,7 @@ interface SectionStats {
 type AnimFn = (slot: number) => React.CSSProperties;
 
 interface StatCardsProps    { stats: SectionStats | null; anim: AnimFn; }
-interface CTAProps           { centered?: boolean; fontSize?: string; anim: AnimFn; }
+interface CTAProps           { centered?: boolean; fontSize?: string; ctaGap?: number; anim: AnimFn; }
 interface Stage1LayoutProps  { stats: SectionStats | null; anim: AnimFn; }
 interface Stage2LayoutProps  { stats: SectionStats | null; scale: number; anim: AnimFn; }
 interface Stage3LayoutProps  { stats: SectionStats | null; cw: number; scale: number; anim: AnimFn; }
@@ -101,8 +101,8 @@ function StatCards({ stats, anim }: StatCardsProps) {
   );
 }
 
-function CTA({ centered = false, fontSize = "4rem", anim }: CTAProps) {
-  const ctaStyle = { ...S.ctaBase, alignItems: centered ? "center" : "flex-end", ...(centered ? {} : { flex: 1 }) };
+function CTA({ centered = false, fontSize = "4rem", ctaGap, anim }: CTAProps) {
+  const ctaStyle = { ...S.ctaBase, alignItems: centered ? "center" : "flex-end", ...(centered ? {} : { flex: 1 }), ...(ctaGap !== undefined ? { gap: ctaGap } : {}) };
   const headingStyle = { ...S.headingBase, textAlign: centered ? "center" : "right", fontSize } as const;
 
   return (
@@ -162,7 +162,7 @@ function Stage3Layout({ stats, cw, anim }: Stage3LayoutProps) {
   const c12ImgH = 80;   // same reasoning
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 36, width: "100%" }}>
       {/* 2-row card grid */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: S3_PAD, paddingRight: S3_PAD, boxSizing: "border-box", width: "100%" }}>
         {/* Row 1: Participants full-width */}
@@ -182,7 +182,7 @@ function Stage3Layout({ stats, cw, anim }: Stage3LayoutProps) {
           </div>
         </div>
       </div>
-      <CTA centered fontSize="clamp(1.8rem, 7vw, 3rem)" anim={anim} />
+      <CTA centered fontSize="clamp(1.8rem, 7vw, 3rem)" ctaGap={12} anim={anim} />
     </div>
   );
 }
@@ -232,7 +232,7 @@ export default function StatSection({ stats }: StatSectionProps) {
   }), [stage]);
 
   const innerStyle = useMemo((): React.CSSProperties => ({
-    display: "flex", flexDirection: "column", gap: stage === 3 ? 20 : 100, width: "100%",
+    display: "flex", flexDirection: "column", gap: stage === 3 ? 48 : 100, width: "100%",
   }), [stage]);
 
   return (

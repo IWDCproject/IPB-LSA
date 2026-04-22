@@ -11,7 +11,7 @@ const BASE = {
   mainTitle:    35,
   mainTag:      20,
   mainArrow:    28,
-  mainPad:      45,
+  mainPad:      30,
   mainStroke:   3,
 
   mainCompactTitle: 20,
@@ -290,10 +290,9 @@ const styles = {
     fontSize:        fontSize,
     fontWeight:      "700",
     lineHeight:      1.1,
+    paddingBottom:   "0.2em",
     color:           "#fff",
     display:         "-webkit-box",
-    // FIX: was "visible" — that silently breaks -webkit-line-clamp, allowing
-    // text to spill out of the card regardless of WebkitLineClamp value.
     overflow:        "hidden",
     filter:          "drop-shadow(0 2px 8px rgba(0,0,0,0.6))",
     WebkitLineClamp: 2,
