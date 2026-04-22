@@ -365,6 +365,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
                 isMobile={isMobile}
                 contentRef={upContentRef}
                 firstRowRef={upFirstRowRef}
+                onTabChange={() => onTabChange("matches")}
               />
             </div>
           )}
@@ -386,6 +387,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
                 isMobile={isMobile}
                 contentRef={resContentRef}
                 firstRowRef={resFirstRowRef}
+                onTabChange={() => onTabChange("matches")}
               />
             </div>
           )}

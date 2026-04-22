@@ -603,6 +603,7 @@ export interface MatchPanelProps {
   isMobile:      boolean;
   contentRef?:   React.RefObject<HTMLDivElement>;
   firstRowRef?:  React.RefObject<HTMLDivElement>; // measures a single row's true offsetHeight
+  onTabChange?:  (tab: "matches") => void;
 }
 
 // ─── Panels ───────────────────────────────────────────────────────────────────
@@ -613,6 +614,7 @@ export function UpcomingMatchesPanel({
   isMobile,
   contentRef,
   firstRowRef,
+  onTabChange,
 }: MatchPanelProps & { upcoming: any[] }) {
   if (!upcoming.length) return null;
 
@@ -646,15 +648,20 @@ export function UpcomingMatchesPanel({
       </div>
 
       {remainder > 0 && (
-        <div style={{
-          ...JK,
-          fontSize:      10,
-          fontWeight:    600,
-          color:         "#c8c8c8",
-          textAlign:     "center",
-          paddingTop:    6,
-          letterSpacing: "0.02em",
-        }}>
+        <div
+          onClick={() => onTabChange?.("matches")}
+          style={{
+            ...JK,
+            fontSize:      10,
+            fontWeight:    600,
+            color:         onTabChange ? "#0D26C2" : "#c8c8c8",
+            textAlign:     "center",
+            paddingTop:    6,
+            letterSpacing: "0.02em",
+            cursor:        onTabChange ? "pointer" : "default",
+            textDecoration: onTabChange ? "underline" : "none",
+          }}
+        >
           +{remainder} more match{remainder !== 1 ? "es" : ""}
         </div>
       )}
@@ -668,6 +675,7 @@ export function LatestResultsPanel({
   isMobile,
   contentRef,
   firstRowRef,
+  onTabChange,
 }: MatchPanelProps & { finished: any[] }) {
   if (!finished.length) return null;
 
@@ -701,15 +709,20 @@ export function LatestResultsPanel({
       </div>
 
       {remainder > 0 && (
-        <div style={{
-          ...JK,
-          fontSize:      10,
-          fontWeight:    600,
-          color:         "#c8c8c8",
-          textAlign:     "center",
-          paddingTop:    6,
-          letterSpacing: "0.02em",
-        }}>
+        <div
+          onClick={() => onTabChange?.("matches")}
+          style={{
+            ...JK,
+            fontSize:      10,
+            fontWeight:    600,
+            color:         onTabChange ? "#0D26C2" : "#c8c8c8",
+            textAlign:     "center",
+            paddingTop:    6,
+            letterSpacing: "0.02em",
+            cursor:        onTabChange ? "pointer" : "default",
+            textDecoration: onTabChange ? "underline" : "none",
+          }}
+        >
           +{remainder} more result{remainder !== 1 ? "s" : ""}
         </div>
       )}
