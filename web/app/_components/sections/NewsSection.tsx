@@ -70,7 +70,7 @@ const styles = {
     display:             "grid",
     gridTemplateColumns: "2fr 1fr 1fr",
     gridTemplateRows:    `${Math.min(260, Math.max(160, cw * 0.135))}px ${Math.min(260, Math.max(160, cw * 0.135))}px`,
-    gap:                 "12px",
+    gap:                 "6px",
   }),
 
   mainCell: {
@@ -86,7 +86,7 @@ const styles = {
   mobileLayout: {
     display:       "flex",
     flexDirection: "column",
-    gap:           "clamp(6px, 2vw, 12px)",
+    gap:           "clamp(2px, 2vw, 4px)",
   } as React.CSSProperties,
 
   mobileMainCell: {
@@ -98,7 +98,7 @@ const styles = {
     display:             "grid",
     gridTemplateColumns: "1fr 1fr",
     gridTemplateRows:    "clamp(120px, 32vw, 160px) clamp(120px, 32vw, 160px)",
-    gap:                 "clamp(6px, 2vw, 12px)",
+    gap:                 "clamp(2px, 2vw, 4px)",
   },
 
   mobileSmallCell: {

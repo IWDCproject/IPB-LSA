@@ -14,8 +14,8 @@ const BASE = {
   mainPad:      30,
   mainStroke:   3,
 
-  mainCompactTitle: 20,
-  mainCompactTag:   14,
+  mainCompactTitle: 14,
+  mainCompactTag:   12,
   mainCompactArrow: 20,
   mainCompactPad:   20,
   mainCompactStroke: 2,
@@ -26,10 +26,10 @@ const BASE = {
   smallPad:     30,
   smallStroke:  2,
 
-  smallCompactTitle: 14,
+  smallCompactTitle: 12,
   smallCompactTag:   10,
   smallCompactArrow: 16,
-  smallCompactPad:   14,
+  smallCompactPad:   12,
   smallCompactStroke: 2,
 };
 
@@ -226,7 +226,7 @@ const styles = {
     position:     "relative",
     width:        "100%",
     height:       "100%",
-    borderRadius: compact ? "6px" : "12px",
+    borderRadius: compact ? "4px" : "6px",
     cursor:       "pointer",
     boxShadow:    "0 0 0 0px #F5C400, 0 4px 4px rgba(0,0,0,0.25)",
   }),
@@ -238,7 +238,7 @@ const styles = {
     backgroundImage:    `url(${thumbnail_url})`,
     backgroundSize:     "cover",
     backgroundPosition: "center",
-    borderRadius:       compact ? "6px" : "12px",
+    borderRadius:       compact ? "4px" : "6px",
     overflow:           "hidden",
   }),
 
@@ -297,5 +297,6 @@ const styles = {
     filter:          "drop-shadow(0 2px 8px rgba(0,0,0,0.6))",
     WebkitLineClamp: 2,
     WebkitBoxOrient: "vertical",
+    textWrap       : "balance",
   }),
 };

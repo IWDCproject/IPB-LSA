@@ -246,7 +246,7 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
 
   const COLUMNS = useColumns(isMobile);
-  const GAP     = isMobile ? 8 : 20;
+  const GAP     = isMobile ? 8 : 12;
 
   useEffect(() => {
     setItems(null);
