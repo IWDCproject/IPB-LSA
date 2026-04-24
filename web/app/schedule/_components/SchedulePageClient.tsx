@@ -176,6 +176,32 @@ function EventGroup({ eventName, cardImage, matches }: { eventName: string, card
   const [isOpen, setIsOpen] = useState(false);
   const imageUrl = getAssetUrl(cardImage);
 
+  const liveMatches = matches.filter(m => m.status === 'live');
+  const finishedMatches = matches.filter(m => m.status === 'finished');
+  const upcomingMatches = matches.filter(m => m.status !== 'live' && m.status !== 'finished');
+
+  const renderGroup = (title: string, groupMatches: any[], dotColor: string) => {
+    if (groupMatches.length === 0) return null;
+    return (
+      <div className="mb-10 last:mb-4">
+        <div className="flex items-center gap-3 mb-4 px-1">
+          <div className={cn("w-3 h-3 rounded-full", dotColor)} />
+          <h3 className="text-white font-black text-xl uppercase tracking-wider drop-shadow-md">{title}</h3>
+          <span className="bg-[#1D3282] text-white text-xs font-bold px-3 py-1 rounded-full border border-blue-600/30 shadow-inner">
+            {groupMatches.length}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-1">
+          <AnimatePresence mode="popLayout">
+            {groupMatches.map(match => (
+              <CompactMatchCard key={match.id} match={match} />
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <motion.div layout className="flex flex-col gap-3 mb-8">
       <button 
@@ -216,13 +242,10 @@ function EventGroup({ eventName, cardImage, matches }: { eventName: string, card
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            {/* CSS Grid for compact match display */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-2 pb-4 px-1">
-              <AnimatePresence mode="popLayout">
-                {matches.map(match => (
-                  <CompactMatchCard key={match.id} match={match} />
-                ))}
-              </AnimatePresence>
+            <div className="pt-2 pb-4">
+              {renderGroup("Live", liveMatches, "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]")}
+              {renderGroup("Upcoming", upcomingMatches, "bg-blue-400")}
+              {renderGroup("Finished", finishedMatches, "bg-emerald-500")}
             </div>
           </motion.div>
         )}
@@ -232,7 +255,7 @@ function EventGroup({ eventName, cardImage, matches }: { eventName: string, card
 }
 
 
-export default function SchedulePageClient({ initialMatches }: { initialMatches: any[] }) {
+export default function SchedulePageClient({ initialMatches, initialNews = [] }: { initialMatches: any[], initialNews?: any[] }) {
   const [activeTab, setActiveTab] = useState<"ALL" | "sport" | "arts">("ALL");
   const [selectedDate, setSelectedDate] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -473,6 +496,64 @@ export default function SchedulePageClient({ initialMatches }: { initialMatches:
         </div>
 
       </div>
+
+      {/* --- Floating Sidebar: News Widget --- */}
+      <aside className="hidden xl:flex absolute right-4 2xl:right-8 top-32 flex-col gap-6 w-[280px] 2xl:w-[340px] z-40">
+        <div className="bg-[#091340]/90 backdrop-blur-xl rounded-2xl border border-blue-800/40 p-4 2xl:p-5 shadow-2xl">
+           <h2 className="text-xl 2xl:text-2xl font-black text-white uppercase tracking-wider mb-2">
+             BERITA
+           </h2>
+
+           <div className="flex flex-col gap-0">
+             {initialNews.map((item, idx) => (
+               <div key={idx} className="group">
+                 <a href={`/news/${item.slug}`} className="flex items-center gap-3 2xl:gap-4 py-3 2xl:py-4">
+                   {/* Thumbnail */}
+                   <div className="w-16 h-16 2xl:w-20 2xl:h-20 shrink-0 bg-[#11194C] rounded-xl overflow-hidden border border-blue-800/30 group-hover:border-yellow-400/50 transition-colors relative">
+                     {item.thumbnail_url ? (
+                       <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                     ) : (
+                       <div className="w-full h-full bg-blue-900/30 flex items-center justify-center">
+                         <div className="w-8 h-8 bg-blue-800/50 rounded-full" />
+                       </div>
+                     )}
+                   </div>
+                   
+                   {/* Text */}
+                   <div className="flex flex-col justify-center gap-1 flex-1">
+                     {item.event_id?.name && (
+                       <span className="text-[9px] 2xl:text-[10px] font-bold text-gray-400 uppercase tracking-wider line-clamp-1">
+                         {item.event_id.name}
+                       </span>
+                     )}
+                     <h4 className="text-xs 2xl:text-sm font-bold text-white leading-snug line-clamp-2 group-hover:text-blue-200 transition-colors">
+                       {item.title}
+                     </h4>
+                     <span className="text-[10px] 2xl:text-[11px] text-gray-400 font-medium">
+                       {item.published_at ? new Date(item.published_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+                     </span>
+                   </div>
+                 </a>
+                 {/* Separator line between items, except the last one */}
+                 {idx < initialNews.length - 1 && (
+                   <div className="w-full h-[1px] bg-white/10" />
+                 )}
+               </div>
+             ))}
+             {initialNews.length === 0 && (
+               <p className="text-blue-300 text-sm text-center py-8">Belum ada berita terbaru</p>
+             )}
+           </div>
+           
+           {initialNews.length > 0 && (
+              <div className="mt-2 pt-4 border-t border-white/10 text-center">
+                <a href="/news" className="text-[10px] 2xl:text-xs font-bold text-yellow-400 hover:text-yellow-300 uppercase tracking-wider flex items-center justify-center gap-2">
+                  LIHAT SEMUA BERITA
+                </a>
+              </div>
+           )}
+        </div>
+      </aside>
     </div>
   );
 }
