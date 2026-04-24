@@ -14,7 +14,7 @@ const SCALE_START        = 1600;
 const SCALE_FLOOR        = 0.875;
 const DESKTOP_CARD_MIN_W = 180;
 const DESKTOP_SLOTS_MAX  = 8;
-const MOBILE_CARD_VW     = 0.29;
+const MOBILE_CARD_VW     = 0.32;
 const MOBILE_CARD_REF    = 80;
 
 // Shared Timeline Colors
@@ -331,7 +331,7 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
             </div>
 
             <div className="absolute z-10" style={{ top: isMobile ? "48px" : "clamp(48px, 4.17vw, 80px)", left: isMobile ? "24px" : "clamp(40px, 8.33vw, 160px)", right: isMobile ? "24px" : undefined, maxWidth: isMobile ? "480px" : "calc(512px * var(--s))" }}>
-                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "11px" : "calc(12px * var(--s))", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#FFC936", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", ...infoAnimStyle(0) }}>
+                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "12px" : "calc(12px * var(--s))", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#FFC936", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", ...infoAnimStyle(0) }}>
                     {displayEvent?.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
                 </p>
                 <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: isMobile ? "clamp(2rem, 10vw, 3.5rem)" : "calc(80px * var(--s))", lineHeight: 1, textWrap: "balance", color: "#fff", textTransform: "uppercase", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))", ...infoAnimStyle(1) }}>
@@ -348,14 +348,14 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
             </div>
 
             {isMobile ? (
-								<div className="absolute z-10" style={{ bottom: "88px", left: 0, right: 0 }}>
-										<p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
+								<div className="absolute z-10" style={{ bottom: "60px", left: 0, right: 0 }}>
+										<p style={{ paddingLeft: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "12px", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "12px", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
 												{">>>"} Featured Events
 										</p>
 										
 										{/* ADDED paddingBottom: "20px" here so the notch isn't clipped */}
 										<div ref={mobileScrollRef} className="match-scroll" style={{
-												"--s": mobileCardScale, display: "flex", gap: "8px", overflowX: "auto", scrollSnapType: "x mandatory",
+												"--s": mobileCardScale, display: "flex", gap: "3px", overflowX: "auto", scrollSnapType: "x mandatory",
 												scrollPaddingLeft: "24px", WebkitOverflowScrolling: "touch", paddingLeft: "24px", paddingBottom: "20px",
 												...(mounted ? { animation: "hero-cards-intro 0.7s cubic-bezier(0.22, 1, 0.36, 1) 560ms both" } : { opacity: 0 }),
 										}}>
@@ -416,7 +416,7 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
 										</div>
 								</div>
             ) : (
-                <div className="absolute z-10" style={{ bottom: "clamp(30px, 2.75vw, 52px)", left: "clamp(40px, 8.33vw, 160px)", right: "clamp(40px, 8.33vw, 160px)", paddingBottom: "clamp(32px, 3.125vw, 60px)" }}>
+                <div className="absolute z-10" style={{ bottom: "40px", left: "clamp(40px, 8.33vw, 160px)", right: "clamp(40px, 8.33vw, 160px)", paddingBottom: "clamp(32px, 3.125vw, 60px)" }}>
                     <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "calc(14px * var(--s))", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#fff", marginBottom: "calc(20px * var(--s))", ...(mounted ? introStyle(480) : { opacity: 0 }) }}>
                         {">>>"} Featured Events
                     </p>
@@ -478,7 +478,7 @@ export default function HeroSection({ paused = false, events: rawEvents =[] }) {
                 </div>
             )}
 
-            <div className="absolute z-10 left-0 right-0" style={{ bottom: isMobile ? "6px" : "calc(24px * var(--s))", ...(mounted ? { animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both" } : { opacity: 0 }) }}>
+            <div className="absolute z-10 left-0 right-0" style={{ bottom: isMobile ? "12px" : "calc(0px * var(--s))", ...(mounted ? { animation: "hero-marquee-intro 0.6s cubic-bezier(0.22, 1, 0.36, 1) 680ms both" } : { opacity: 0 }) }}>
                 <UniversityMarquee />
             </div>
         </section>

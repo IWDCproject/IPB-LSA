@@ -9,10 +9,6 @@ const CONFIG = {
   logoHeight: 35,
   logoOpacity: 0.8,
   copies: 4,
-  fade: {
-    start: 150,
-    end: 200,
-  },
 };
 
 interface Unis {
@@ -45,12 +41,42 @@ export default function UniversityMarquee() {
 
   const isMobile = cw < 1024;
 
-  // fade edges match section margins: clamp(40px, 8.33vw, 160px)
-  const fadeStart  = isMobile ? 24  : Math.round(Math.min(160, Math.max(40, cw * 0.0833)));
-  const fadeEnd    = isMobile ? 48  : Math.round(Math.min(200, Math.max(60, cw * 0.1042)));
-  const logoHeight = CONFIG.logoHeight;
-  const fontSize   = 10.4;
-  const itemGap    = CONFIG.itemGap;
+  // ─── Fade edges: smooth clamp on both mobile and desktop ─────────────────
+  // Desktop: clamp(40px, 8.33vw, 160px) — unchanged
+  // Mobile:  clamp(16px, 6vw, 40px)     — tighter so content isn't over-masked
+  const fadeStart = isMobile
+    ? Math.round(Math.min(40,  Math.max(16, cw * 0.06)))
+    : Math.round(Math.min(160, Math.max(40, cw * 0.0833)));
+  const fadeEnd = isMobile
+    ? Math.round(Math.min(56,  Math.max(24, cw * 0.085)))
+    : Math.round(Math.min(200, Math.max(60, cw * 0.1042)));
+
+  // ─── Token values: desktop unchanged, mobile uses CSS clamp() ────────────
+  // logoHeight  — desktop: 35px fixed | mobile: clamp(28px, 7vw, 35px)
+  //   375px → 7vw = 26px → clamped to 28px
+  //   500px → 7vw = 35px → hits max, stays there until desktop takes over
+  const logoHeight: number | string = isMobile
+    ? "clamp(28px, 7vw, 35px)"
+    : CONFIG.logoHeight;
+
+  // fontSize    — desktop: 10.4px fixed | mobile: clamp(9px, 2.4vw, 10.4px)
+  //   375px → 2.4vw = 9px (hits min)
+  //   433px → 2.4vw = 10.4px → hits max
+  const fontSize: number | string = isMobile
+    ? "clamp(9px, 2.4vw, 10.4px)"
+    : 10.4;
+
+  // itemGap (marginInline) — desktop: 12px | mobile: clamp(10px, 2.5vw, 12px)
+  //   375px → 9.4px → clamped to 10px
+  //   480px → 12px  → hits max
+  const itemGap: number | string = isMobile
+    ? "clamp(10px, 2.5vw, 12px)"
+    : CONFIG.itemGap;
+
+  // logo↔text gap (flex gap) — desktop: 12px | mobile: clamp(10px, 2.5vw, 12px)
+  const logoTextGap: number | string = isMobile
+    ? "clamp(10px, 2.5vw, 12px)"
+    : 12;
 
   const mask = `linear-gradient(to right,
     transparent ${fadeStart}px,
@@ -62,8 +88,9 @@ export default function UniversityMarquee() {
   return (
     <div
       ref={wrapRef}
-      className="w-full overflow-hidden py-4"
+      className="w-full overflow-hidden"
       style={{
+        paddingBlock:    isMobile ? "clamp(2px, 1vw, 6px)" : "16px",
         maskImage:       mask,
         WebkitMaskImage: mask,
       }}
@@ -85,8 +112,11 @@ export default function UniversityMarquee() {
         {ITEMS.map((uni, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 shrink-0"
-            style={{ marginInline: itemGap }}
+            className="flex items-center shrink-0"
+            style={{
+              gap:          logoTextGap,
+              marginInline: itemGap,
+            }}
           >
             <img
               src={uni.logo}

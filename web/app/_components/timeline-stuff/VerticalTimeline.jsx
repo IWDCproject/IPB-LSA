@@ -280,14 +280,14 @@ export default function VerticalTimeline({ events }) {
         <p style={{
           fontFamily: 'Plus Jakarta Sans',
           color:      '#fff',
-          fontSize:   'clamp(11px, 3vw, 14px)',
+          fontSize:   'clamp(12px, 3vw, 14px)',
           marginTop:  4,
           lineHeight: 1.2,
           fontWeight: 500,
         }}>
           Don&apos;t miss your registration period!
         </p>
-        <div style={{ marginTop: '1vh' }}>
+        <div style={{ marginTop: '2vh' }}>
           <Button href="/events" variant="primary" size="sm">SEE EVENTS</Button>
         </div>
       </div>
@@ -305,7 +305,7 @@ export default function VerticalTimeline({ events }) {
           left:         '50%',
           transform:    'translateX(-50%)',
           top: 0, bottom: 0,
-          width:        2,
+          width:        3,
           background:   LINE_COLOR_BASE,
           borderRadius: 999,
         }} />
@@ -318,12 +318,12 @@ export default function VerticalTimeline({ events }) {
             left:         '50%',
             transform:    'translateX(-50%)',
             top: 0, bottom: 0,
-            width:        2,
+            width:        3,
             borderRadius: 999,
             background: `linear-gradient(to bottom,
               ${LINE_COLOR_ACTIVE} 0%,
-              ${LINE_COLOR_ACTIVE} ${((activeIdx + 0.5) / events.length) * 100}%,
-              rgba(255,255,255,0.6) ${((activeIdx + 1.2) / events.length) * 100}%,
+              ${LINE_COLOR_ACTIVE} ${((activeIdx + 1) / events.length) * 100}%,
+              rgba(255,255,255,0.6) ${((activeIdx + 2) / events.length) * 100}%,
               rgba(255,255,255,0.08) 100%
             )`,
           }}
@@ -447,7 +447,7 @@ export default function VerticalTimeline({ events }) {
                   >
                     <span style={{
                       fontFamily: "'Bebas Neue', cursive",
-                      fontSize:   'clamp(14px, 4vw, 20px)',
+                      fontSize:   'clamp(28px, 7.5vw, 36px)',
                       color:      isActive || isPast ? LINE_COLOR_ACTIVE : '#fff',
                       textShadow: `0 0 14px ${dotGlow}`,
                       lineHeight: 1,
@@ -456,18 +456,16 @@ export default function VerticalTimeline({ events }) {
                       {ev.label}
                     </span>
                     <span style={{
-                      fontSize:   'clamp(9px, 2.2vw, 11px)',
+                      fontSize:   'clamp(15px, 4vw, 18px)',
                       color:      'rgba(255,255,255,0.65)',
                       lineHeight: 1.35,
                       display:    'block',
                       marginTop:  2,
                     }}>
-                      {ev.subLabel.split('\n').map((ln, j) => (
-                        <span key={j} style={{ display: 'block' }}>{ln}</span>
-                      ))}
+                      {ev.subLabel.split('\n').join(' ')}
                     </span>
                     <span style={{
-                      fontSize:  'clamp(8px, 2vw, 10px)',
+                      fontSize:  'clamp(12px, 3vw, 14px)',
                       color:     'rgba(255,255,255,0.38)',
                       display:   'block',
                       marginTop: 3,

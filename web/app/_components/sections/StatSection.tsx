@@ -21,7 +21,7 @@ interface SectionStats {
 type AnimFn = (slot: number) => React.CSSProperties;
 
 interface StatCardsProps    { stats: SectionStats | null; anim: AnimFn; }
-interface CTAProps           { centered?: boolean; fontSize?: string; anim: AnimFn; }
+interface CTAProps           { centered?: boolean; fontSize?: string; ctaGap?: number; anim: AnimFn; }
 interface Stage1LayoutProps  { stats: SectionStats | null; anim: AnimFn; }
 interface Stage2LayoutProps  { stats: SectionStats | null; scale: number; anim: AnimFn; }
 interface Stage3LayoutProps  { stats: SectionStats | null; cw: number; scale: number; anim: AnimFn; }
@@ -101,8 +101,8 @@ function StatCards({ stats, anim }: StatCardsProps) {
   );
 }
 
-function CTA({ centered = false, fontSize = "4rem", anim }: CTAProps) {
-  const ctaStyle = { ...S.ctaBase, alignItems: centered ? "center" : "flex-end", ...(centered ? {} : { flex: 1 }) };
+function CTA({ centered = false, fontSize = "4rem", ctaGap, anim }: CTAProps) {
+  const ctaStyle = { ...S.ctaBase, alignItems: centered ? "center" : "flex-end", ...(centered ? {} : { flex: 1 }), ...(ctaGap !== undefined ? { gap: ctaGap } : {}) };
   const headingStyle = { ...S.headingBase, textAlign: centered ? "center" : "right", fontSize } as const;
 
   return (
@@ -147,26 +147,42 @@ function Stage2Layout({ stats, scale, anim }: Stage2LayoutProps) {
   );
 }
 
-function Stage3Layout({ stats, cw, scale, anim }: Stage3LayoutProps) {
-  const cardsOuterStyle = useMemo((): React.CSSProperties => ({
-    position: "relative", width: "100%", height: CARD_H * scale, flexShrink: 0, overflow: "hidden",
-  }), [scale]);
+function Stage3Layout({ stats, cw, anim }: Stage3LayoutProps) {
+  // Compute pixel-exact widths from measured container — no scale() transform.
+  const availW  = cw - S3_PAD * 2;
 
-  const cardsInnerStyle = useMemo((): React.CSSProperties => ({
-    position: "absolute", top: 0, left: (cw - S3_NAT_W * scale) / 2, width: S3_NAT_W,
-    display: "flex", flexDirection: "row", gap: CARD_GAP,
-    transform: `scale(${scale})`, transformOrigin: "top left",
-  }), [cw, scale]);
+  // Row 1 — Participants: stretches full available width, image height capped small.
+  const c0W     = availW;
+  const c0ImgH  = 90;   // hard cap — proportional scaling (≈182px) ate too much vertical space
+
+  // Row 2 — Universities (3 parts) + Official Events (2 parts).
+  // Both share the same image height so the row aligns cleanly.
+  const c1W     = Math.round((availW - CARD_GAP) * 0.6);
+  const c2W     = availW - CARD_GAP - c1W;
+  const c12ImgH = 80;   // same reasoning
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: S3_GAP, paddingLeft: S3_PAD, paddingRight: S3_PAD, boxSizing: "border-box", width: "100%" }}>
-      <div style={cardsOuterStyle}>
-        <div style={cardsInnerStyle}>
-          <StatCards stats={stats} anim={anim} />
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 36, width: "100%" }}>
+      {/* 2-row card grid */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: S3_PAD, paddingRight: S3_PAD, boxSizing: "border-box", width: "100%" }}>
+        {/* Row 1: Participants full-width */}
+        <div style={anim(0)}>
+          <StatCard image_url={universitiesImg.src} width={c0W} height={c0ImgH}
+            main_stat={`${stats?.participantsCount ?? 0}+`} label_stat="Participants" />
+        </div>
+        {/* Row 2: Universities + Official Events, 3:2 */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={anim(1)}>
+            <StatCard image_url={athletesImg.src} width={c1W} height={c12ImgH}
+              main_stat={`${stats?.institutionsCount ?? 0}+`} label_stat="Universities" />
+          </div>
+          <div style={anim(2)}>
+            <StatCard image_url={eventsImg.src} width={c2W} height={c12ImgH}
+              main_stat={`${stats?.eventsCount ?? 0}+`} label_stat="Official Events" />
+          </div>
         </div>
       </div>
-      {/* CTA is outside the scale transform — renders at full natural size */}
-      <CTA centered fontSize="clamp(1.8rem, 7vw, 3rem)" anim={anim} />
+      <CTA centered fontSize="clamp(1.8rem, 7vw, 3rem)" ctaGap={12} anim={anim} />
     </div>
   );
 }
@@ -207,7 +223,7 @@ export default function StatSection({ stats }: StatSectionProps) {
   }, [cw]);
 
   const sectionStyle = useMemo((): React.CSSProperties => ({
-    padding:    stage === 3 ? "50px 0 0px 0" : "150px 0 0px 0",
+    padding:    stage === 3 ? "20px 0 20px 0" : "150px 0 0px 0",
     minHeight:  stage === 3 ? "auto" : "80vh",
     position: "relative", zIndex: 2, color: "white", overflow: "visible",
     display: "flex", alignItems: "flex-start", justifyContent: "flex-start",
@@ -216,7 +232,7 @@ export default function StatSection({ stats }: StatSectionProps) {
   }), [stage]);
 
   const innerStyle = useMemo((): React.CSSProperties => ({
-    display: "flex", flexDirection: "column", gap: stage === 3 ? 32 : 100, width: "100%",
+    display: "flex", flexDirection: "column", gap: stage === 3 ? 48 : 100, width: "100%",
   }), [stage]);
 
   return (

@@ -227,12 +227,16 @@ export const getNewsByEvent = async (eventSlug, page = 1, pageSize = 6) => {
 export const getEvents = async () => getEventsForListing();
 
 export const getStats = async () => {
-  const [e, i, p] = await Promise.all([
-    directus.request(readItems('events')),
-    directus.request(readItems('institutions')),
-    directus.request(readItems('participants')),
-  ]);
-  return { eventsCount: e.length, institutionsCount: i.length, participantsCount: p.length };
+  try {
+    const [e, i, p] = await Promise.all([
+      directus.request(readItems('events')),
+      directus.request(readItems('institutions')),
+      directus.request(readItems('participants')),
+    ]);
+    return { eventsCount: e.length, institutionsCount: i.length, participantsCount: p.length };
+  } catch (e) {
+    return { eventsCount: 0, institutionsCount: 0, participantsCount: 0 };
+  }
 };
 
 export const getNews = async ({ limit = 5 } = {}) => {
