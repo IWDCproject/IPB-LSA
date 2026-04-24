@@ -304,3 +304,107 @@ export const getParticipantsByEvent = async (eventSlug) => {
     return [];
   }
 };
+/**
+ * Fetches all published events that have at least one published news article,
+ * along with up to 6 of their latest news items each.
+ *
+ * Directus event statuses are expected to be "upcoming" | "ongoing" | "concluded".
+ * If your collection uses different values adjust the STATUS_MAP below.
+ */
+const STATUS_MAP = {
+  upcoming:  'upcoming',
+  ongoing:   'ongoing',
+  active:    'ongoing',   // alias — remove if unused
+  concluded: 'concluded',
+  finished:  'concluded', // alias — remove if unused
+  past:      'concluded', // alias — remove if unused
+};
+
+export const getEventsWithRecentNews = async () => {
+  try {
+    const events = await directusCached.request(readItems('events', {
+      filter: { is_published: { _eq: true } },
+      fields: ['id', 'name', 'slug', 'status', 'start_date', 'banner_image.*'],
+      sort: ['start_date'],
+      limit: -1,
+    }));
+
+    const eventsWithNews = await Promise.all(
+      events.map(async (event) => {
+        const items = await directusCached.request(readItems('news', {
+          filter: {
+            event_id:     { slug: { _eq: event.slug } },
+            is_published: { _eq: true },
+          },
+          fields: NEWS_FIELDS,
+          sort:  ['-published_at'],
+          limit: 6,
+        }));
+
+        return {
+          id:           event.id,
+          name:         event.name,
+          slug:         event.slug,
+          banner_image: event.banner_image ?? null,
+          banner_url:   getAssetUrl(event.banner_image),
+          // Normalise status to the three values NewsPageClient understands
+          status:       STATUS_MAP[event.status] ?? 'concluded',
+          news:         items.map(mapNews),
+        };
+      })
+    );
+
+    // Only return events that actually have news
+    return eventsWithNews.filter((e) => e.news.length > 0);
+  } catch (e) {
+    return [];
+  }
+};
+
+/**
+ * Fetches paginated, filtered news for the "Semua Berita" tab.
+ *
+ * @param {object} opts
+ * @param {number}   opts.page      - 1-based page number (default 1)
+ * @param {number}   opts.pageSize  - Items per page (default 24)
+ * @param {object}   opts.filter    - Directus filter object (built by AllNewsTab)
+ * @param {string}   opts.sort      - Directus sort string e.g. "-published_at"
+ *
+ * @returns {{ items: NewsItem[], total: number, totalPages: number }}
+ */
+export const getAllNewsFiltered = async ({
+  page     = 1,
+  pageSize = 24,
+  filter   = {},
+  sort     = '-published_at',
+} = {}) => {
+  // Extend the base NEWS_FIELDS with event status + slug so the Semua Berita
+  // tab can show status badges and the event filter works correctly.
+  const FULL_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug', 'event_id.status'];
+ 
+  try {
+    const [items, countResult] = await Promise.all([
+      directusCached.request(readItems('news', {
+        filter,
+        fields: FULL_FIELDS,
+        sort: [sort],
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      })),
+      directusCached.request(aggregate('news', {
+        aggregate: { count: '*' },
+        query: { filter },
+      })),
+    ]);
+ 
+    const total = Number(countResult?.[0]?.count ?? 0);
+ 
+    return {
+      items:      items.map(mapNews),
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  } catch (e) {
+    return { items: [], total: 0, totalPages: 0 };
+  }
+};
