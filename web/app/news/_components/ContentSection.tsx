@@ -83,7 +83,7 @@ const KEYFRAMES = `
     border: none;
     background: transparent;
     margin-right: -15px; /* Overlap amount */
-    transition: all 0.2s ease;
+    transition: all 0.1s ease-out;
     outline: none;
 		z-index: -1;
   }
@@ -99,7 +99,7 @@ const KEYFRAMES = `
     /* THE TRICK: Perspective makes the top narrower than bottom */
     transform: perspective(100px) rotateX(25deg) translateY(10px);
     transform-origin: bottom;
-    transition: all 0.2s ease;
+    transition: all 0.1s ease-out;
   }
 
   /* 4. Active Tab Styling */
@@ -127,7 +127,7 @@ const KEYFRAMES = `
     z-index: 1;
     pointer-events: none;
 		transform: translateY(10px);
-    transition: transform 0.2s ease, color 0.2s ease;
+    transition: transform 0.1s ease-out, color 0.1s ease-out;
   }
 
   .nbt-active .nbt-content {
@@ -174,7 +174,7 @@ function StatusPill({ status }: { status: EventStatus }) {
       {cfg.dot && (
         <span style={{
           width: 5, height: 5, borderRadius: "50%", background: "#fff", flexShrink: 0,
-          animation: "news-livepulse 1.3s ease-in-out infinite",
+          animation: "news-livepulse 1.3s ease-out infinite",
         }} />
       )}
       {cfg.label}
@@ -206,7 +206,7 @@ function FilterTabs({ active, onChange }: { active: FilterTab; onChange: (t: Fil
               background: isActive ? YELLOW : "rgba(255,255,255,0.05)",
               color: isActive ? NAVY : "rgba(255,255,255,0.55)",
               fontSize: 12, fontWeight: 800, letterSpacing: "0.05em",
-              cursor: "pointer", transition: "all 0.2s ease", whiteSpace: "nowrap",
+              cursor: "pointer", transition: "all 0.2s ease-out", whiteSpace: "nowrap",
             }}
           >{label}</button>
         );
