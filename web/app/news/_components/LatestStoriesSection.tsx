@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import HomepageNewsCard from "@/app/_components/news-stuff/HomepageNewsCard";
 import Button from "@/components/Button";
 import UniversityMarquee from "@/components/UniversityMarquee";
@@ -23,6 +24,47 @@ interface Props {
   cw:         number;
   isMobile:   boolean;
   pad:        number;
+}
+
+// ─── Hover card wrapper ────────────────────────────────────────────────────────
+
+function HoverCard({
+  children,
+  style,
+  onClick,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+  onClick?: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        borderRadius: 10,
+        overflow: "hidden",
+        position: "relative",
+        cursor: onClick ? "pointer" : "default",
+        ...style,
+      }}
+    >
+      {children}
+
+      {/* Border overlay — sits above the card image so it's always visible */}
+      <div style={{
+        position: "absolute", inset: 0,
+        borderRadius: 10,
+        border: `2px solid ${hovered ? "#FFD43B" : "rgba(255,255,255,0.55)"}`,
+        transition: "border-color 0.18s ease",
+        pointerEvents: "none",
+        zIndex: 10,
+      }} />
+    </div>
+  );
 }
 
 // ─── Ghost card ───────────────────────────────────────────────────────────────
@@ -75,16 +117,19 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
       gap: 6,
     }}>
       {/* Main slot — always 2 rows tall */}
-      <div style={{ gridRow: "1 / 3", overflow: "hidden", borderRadius: 10 }}>
+      <div style={{ gridRow: "1 / 3" }}>
         {main ? (
-          <div style={{ height: "100%", cursor: "pointer" }} onClick={() => router.push(`/news/${main.slug}`)}>
+          <HoverCard
+            style={{ height: "100%" }}
+            onClick={() => router.push(`/news/${main.slug}`)}
+          >
             <HomepageNewsCard
               thumbnail_url={main.thumbnail_url}
               tag={main.event_id?.name ?? null}
               title={main.title}
               isMain
             />
-          </div>
+          </HoverCard>
         ) : (
           <LatestGhost />
         )}
@@ -93,9 +138,9 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
       {/* 4 small slots */}
       {smallSlots.map((item, i) =>
         item ? (
-          <div
+          <HoverCard
             key={item.id}
-            style={{ minHeight: 0, cursor: "pointer", overflow: "hidden", borderRadius: 10 }}
+            style={{ minHeight: 0 }}
             onClick={() => router.push(`/news/${item.slug}`)}
           >
             <HomepageNewsCard
@@ -103,7 +148,7 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
               tag={item.event_id?.name ?? null}
               title={item.title}
             />
-          </div>
+          </HoverCard>
         ) : (
           <LatestGhost key={`ghost-${i}`} />
         )
@@ -122,11 +167,14 @@ function MobileStack({ news }: { news: NewsItem[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "clamp(3px, 2vw, 5px)" }}>
       {/* Main */}
-      <div style={{ width: "100%", height: "clamp(200px, 52vw, 280px)", overflow: "hidden", borderRadius: 10 }}>
+      <div style={{ width: "100%", height: "clamp(200px, 52vw, 280px)" }}>
         {main ? (
-          <div style={{ height: "100%", cursor: "pointer" }} onClick={() => router.push(`/news/${main.slug}`)}>
+          <HoverCard
+            style={{ height: "100%" }}
+            onClick={() => router.push(`/news/${main.slug}`)}
+          >
             <HomepageNewsCard thumbnail_url={main.thumbnail_url} tag={main.event_id?.name ?? null} title={main.title} isMain compact />
-          </div>
+          </HoverCard>
         ) : (
           <LatestGhost />
         )}
@@ -140,13 +188,13 @@ function MobileStack({ news }: { news: NewsItem[] }) {
       }}>
         {smallSlots.map((item, i) =>
           item ? (
-            <div
+            <HoverCard
               key={item.id}
-              style={{ minHeight: 0, cursor: "pointer", overflow: "hidden", borderRadius: 10 }}
+              style={{ minHeight: 0 }}
               onClick={() => router.push(`/news/${item.slug}`)}
             >
               <HomepageNewsCard thumbnail_url={item.thumbnail_url} tag={item.event_id?.name ?? null} title={item.title} compact />
-            </div>
+            </HoverCard>
           ) : (
             <LatestGhost key={`ghost-${i}`} />
           )
@@ -183,7 +231,7 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
         <div style={{
           display: "flex", alignItems: "flex-end", justifyContent: "space-between",
           marginBottom: isMobile ? 18 : 24, gap: 12, flexWrap: "wrap",
-          animation: "np-up 0.5s ease 0.1s both",
+          animation: "np-up 0.5s ease 0.05s both",
         }}>
           <div>
             <div style={{
@@ -202,7 +250,7 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
         </div>
 
         {/* Grid */}
-        <div style={{ animation: "np-up 0.55s ease 0.22s both" }}>
+        <div style={{ animation: "np-up 0.55s ease 0.2s both" }}>
           {isMobile
             ? <MobileStack news={latestNews} />
             : <DesktopGrid news={latestNews} cw={cw} />
@@ -212,7 +260,7 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
         
       </div>
       {/* University marquee */}
-      <div style={{ position: "relative", zIndex: 2 }}>
+      <div style={{ position: "relative", zIndex: 2, animation: "np-in 0.6s ease 0.4s both" }}>
         <UniversityMarquee />
       </div>
       {/* spacer dikit buat tabs notch */}

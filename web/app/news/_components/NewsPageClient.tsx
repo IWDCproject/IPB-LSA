@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useLayoutEffect, useMemo } from "react";
 import LatestStoriesSection from "./LatestStoriesSection";
 import ContentSection from "./ContentSection";
 import Footer from "@/components/Footer";
+import { useBlurImages } from "@/hooks/useBlurImages";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,8 +41,8 @@ interface Props {
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 function useContainerWidth(ref: React.RefObject<HTMLElement>): number {
-  const [width, setWidth] = useState(1280);
-  useEffect(() => {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
@@ -72,28 +73,52 @@ export default function NewsPageClient({ latestNews, events }: Props) {
   const isMobile = cw < 1024;
   const pad      = isMobile ? 20 : desktopPad(cw);
 
+  // Register latestNews thumbnails with the shared blur worker —
+  // mirrors what NewsSection does on the homepage so HomepageNewsCard
+  // receives blur bitmaps and renders with the same blurred background.
+  const blurManifest = useMemo(() =>
+    latestNews
+      .map((item, i) =>
+        item.thumbnail_url
+          ? {
+              url:           item.thumbnail_url,
+              type:          "newscard" as const,
+              width:         i === 0 ? 800 : 400,
+              height:        i === 0 ? 600 : 300,
+              naturalWidth:  item.thumbnail_width,
+              naturalHeight: item.thumbnail_height,
+            }
+          : null
+      )
+      .filter(Boolean),
+    [latestNews]
+  );
+
+  useBlurImages(blurManifest);
+
+  // Don't render content until the real container width is known —
+  // prevents the one-frame flash where row heights are calculated from the
+  // stale useState default.
+  if (cw === 0) return <div ref={rootRef} style={{ overflowX: "hidden" }} />;
+
   return (
     <div ref={rootRef} style={{ overflowX: "hidden" }}>
       <style dangerouslySetInnerHTML={{ __html: NP_CSS }} />
 
       {/* ── 1. Latest Stories ─────────────────────────────────────────── */}
-      <div style={{ opacity: 0, animation: "np-up 0.55s ease 0.05s both" }}>
-        <LatestStoriesSection
-          latestNews={latestNews}
-          cw={cw}
-          isMobile={isMobile}
-          pad={pad}
-        />
-      </div>
+      <LatestStoriesSection
+        latestNews={latestNews}
+        cw={cw}
+        isMobile={isMobile}
+        pad={pad}
+      />
 
       {/* ── 2. Content section (By Event | Semua Berita tabs) ─────────── */}
-      <div style={{ opacity: 0, animation: "np-up 0.55s ease 0.2s both" }}>
-        <ContentSection
-          events={events}
-          isMobile={isMobile}
-          pad={pad}
-        />
-      </div>
+      <ContentSection
+        events={events}
+        isMobile={isMobile}
+        pad={pad}
+      />
       <Footer />
     </div>
   );

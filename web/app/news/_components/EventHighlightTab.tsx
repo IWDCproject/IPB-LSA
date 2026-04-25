@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NewsCard from "@/components/NewsCard";
@@ -55,10 +55,10 @@ interface Props {
 
 const STATUS_ORDER: Record<EventStatus, number> = { ongoing: 0, upcoming: 1, concluded: 2 };
 
-const STATUS_CONFIG: Record<EventStatus, { label: string; bg: string; color: string; dot?: boolean }> = {
-  ongoing:   { label: "Ongoing",   bg: "#dc2626",               color: "#fff",                   dot: true },
-  upcoming:  { label: "Upcoming",  bg: "rgba(255,201,54,0.18)", color: YELLOW                             },
-  concluded: { label: "Concluded", bg: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)"            },
+const STATUS_CONFIG: Record<EventStatus, { label: string; bg: string; border: string; color: string }> = {
+  ongoing:   { label: "Ongoing",   bg: "rgba(255,201,54,0.2)",  border: "rgba(255,201,54,1)",  color: "rgba(255,201,54,1)"  },
+  upcoming:  { label: "Upcoming",  bg: "rgba(219,219,219,0.2)", border: "rgba(219,219,219,1)", color: "rgba(219,219,219,1)" },
+  concluded: { label: "Concluded", bg: "rgba(107,114,128,0.2)", border: "rgba(107,114,128,1)", color: "rgba(107,114,128,1)" },
 };
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
@@ -76,19 +76,17 @@ const MOB_CARD_H = 260;
 // ─── Status pill ──────────────────────────────────────────────────────────────
 
 function StatusPill({ status }: { status: EventStatus }) {
-  const { label, bg, color, dot } = STATUS_CONFIG[status];
+  const { label, bg, border, color } = STATUS_CONFIG[status];
   return (
     <span style={{
-      ...JK, display: "inline-flex", alignItems: "center", gap: 5,
-      fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-      padding: "4px 10px", borderRadius: 4, background: bg, color, whiteSpace: "nowrap",
+      ...JK, display: "inline-block",
+      padding: "4px 12px", borderRadius: 8,
+      background: bg,
+      border: `1.8px solid ${border}`,
+      color, fontSize: 11, fontWeight: 800,
+      textTransform: "uppercase", letterSpacing: "0.06em",
+      whiteSpace: "nowrap",
     }}>
-      {dot && (
-        <span style={{
-          width: 5, height: 5, borderRadius: "50%", background: "#fff", flexShrink: 0,
-          animation: "news-livepulse 1.3s ease-out infinite",
-        }} />
-      )}
       {label}
     </span>
   );
@@ -183,46 +181,65 @@ function EventNewsDesktopGrid({ news }: { news: NewsItem[] }) {
 
 // ─── Mobile horizontal scroll ─────────────────────────────────────────────────
 
-function EventNewsMobileScroll({ news, eventSlug }: { news: NewsItem[]; eventSlug: string }) {
-  const router = useRouter();
+const MOB_FADE_W = 24;
+
+function EventNewsMobileScroll({ news, pad }: { news: NewsItem[]; pad: number }) {
+  const router    = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const applyMask = (el: HTMLDivElement) => {
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const leftW  = Math.min(scrollLeft, MOB_FADE_W);
+    const rightW = Math.min(Math.max(0, scrollWidth - clientWidth - scrollLeft), MOB_FADE_W);
+    const mask = `linear-gradient(to right, rgba(0,0,0,0.5), black ${leftW}px, black calc(100% - ${rightW}px), rgba(0,0,0,0.5))`;
+    el.style.webkitMaskImage = mask;
+    (el.style as any).maskImage = mask;
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => applyMask(el);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    applyMask(el);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) setTimeout(() => applyMask(el), 50);
+  }, [news]);
+
   if (!news.length) {
     return (
-      <div style={{ ...JK, fontSize: 13, color: "rgba(255,255,255,0.3)", padding: "24px 0" }}>
+      <div style={{ ...JK, fontSize: 13, color: "rgba(255,255,255,0.3)", padding: "24px 0", paddingLeft: pad }}>
         No articles yet.
       </div>
     );
   }
 
   return (
-    <>
+    <div style={{ position: "relative" }}>
       <style dangerouslySetInnerHTML={{ __html: HIDE_SCROLLBAR }} />
-      <div className="nhscroll" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8 }}>
+      <div
+        ref={scrollRef}
+        className="nhscroll"
+        style={{
+          display: "flex", gap: 8, overflowX: "auto",
+          paddingBottom: 8, paddingLeft: pad, paddingRight: pad,
+        }}
+      >
         {news.map(item => (
           <div
             key={item.id}
             onClick={() => router.push(`/news/${item.slug}`)}
-            style={{ flexShrink: 0, width: MOB_CARD_W, cursor: "pointer", borderRadius: 8 }}
+            style={{ flexShrink: 0, width: MOB_CARD_W, cursor: "pointer", borderRadius: 8, overflow: "hidden" }}
           >
             <NewsCard item={item} isMobile />
           </div>
         ))}
-        <Link
-          href={`/events/${eventSlug}?tab=news`}
-          style={{
-            flexShrink: 0, width: 120, height: MOB_CARD_H, textDecoration: "none",
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
-            borderRadius: 8, border: "1.5px dashed rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.03)",
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={YELLOW} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-          </svg>
-          <span style={{ ...JK, fontSize: 10, fontWeight: 800, color: YELLOW, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "center", lineHeight: 1.4 }}>
-            All<br />News
-          </span>
-        </Link>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -266,40 +283,47 @@ function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; p
   const secDelay = `${SEC_BASE + Math.min(index, 4) * SEC_STAGGER}ms`;
   return (
     <div style={{
-      position: "relative", overflow: "hidden", zIndex: 2,
+      position: "relative", zIndex: 2,
       opacity: 0,
       animation: `np-slide-up ${DUR}ms ${EASE} ${secDelay} both`,
     }}>
+      {/* Banner blur — own overflow:hidden so it never clips the scroll row */}
       {event.banner_url && (
-        <>
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
           <div style={{
             position: "absolute", inset: 0,
             backgroundImage: `url(${event.banner_url})`,
             backgroundSize: "cover", backgroundPosition: "center",
             filter: "blur(8px)", transform: "scale(1.12)",
-            opacity: 0.65, pointerEvents: "none",
+            opacity: 0.65,
           }} />
           <div style={{
             position: "absolute", inset: 0,
             background: "linear-gradient(160deg, rgba(13,38,194,0.45) 0%, rgba(6,18,92,0.60) 100%)",
-            pointerEvents: "none",
           }} />
           <div style={{
-            position: "absolute", inset: 0, top: 0,
-            background: "linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, transparent 50%)",
-            pointerEvents: "none",
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)",
           }} />
-        </>
+        </div>
       )}
+
       <div style={{
         position: "relative", zIndex: 1,
-        paddingLeft: pad, paddingRight: pad,
         paddingTop: isMobile ? 28 : 40, paddingBottom: isMobile ? 32 : 48,
       }}>
-        <SectionHead event={event} isMobile={isMobile} />
+        {/* Section head always has horizontal padding */}
+        <div style={{ paddingLeft: pad, paddingRight: pad }}>
+          <SectionHead event={event} isMobile={isMobile} />
+        </div>
+
         {isMobile
-          ? <EventNewsMobileScroll news={event.news} eventSlug={event.slug} />
-          : <EventNewsDesktopGrid  news={event.news} />
+          ? <EventNewsMobileScroll news={event.news} pad={pad} />
+          : (
+            <div style={{ paddingLeft: pad, paddingRight: pad }}>
+              <EventNewsDesktopGrid news={event.news} />
+            </div>
+          )
         }
       </div>
     </div>
