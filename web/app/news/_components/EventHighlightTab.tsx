@@ -325,6 +325,9 @@ function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; p
             </div>
           )
         }
+
+        {/* Spacer */}
+        <div style={{ height: 30 }} />
       </div>
     </div>
   );
