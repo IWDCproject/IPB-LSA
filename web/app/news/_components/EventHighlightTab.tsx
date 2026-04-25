@@ -56,16 +56,16 @@ interface Props {
 const STATUS_ORDER: Record<EventStatus, number> = { ongoing: 0, upcoming: 1, concluded: 2 };
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; bg: string; border: string; color: string }> = {
-  ongoing:   { label: "Ongoing",   bg: "rgba(255,201,54,0.2)",  border: "rgba(255,201,54,1)",  color: "rgba(255,201,54,1)"  },
-  upcoming:  { label: "Upcoming",  bg: "rgba(219,219,219,0.2)", border: "rgba(219,219,219,1)", color: "rgba(219,219,219,1)" },
-  concluded: { label: "Concluded", bg: "rgba(107,114,128,0.2)", border: "rgba(107,114,128,1)", color: "rgba(107,114,128,1)" },
+  ongoing:   { label: "Berlangsung", bg: "rgba(255,201,54,0.2)",  border: "rgba(255,201,54,1)",  color: "rgba(255,201,54,1)"  },
+  upcoming:  { label: "Mendatang",   bg: "rgba(219,219,219,0.2)", border: "rgba(219,219,219,1)", color: "rgba(219,219,219,1)" },
+  concluded: { label: "Selesai",     bg: "rgba(107,114,128,0.2)", border: "rgba(107,114,128,1)", color: "rgba(107,114,128,1)" },
 };
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: "all",       label: "All"       },
-  { key: "upcoming",  label: "Upcoming"  },
-  { key: "ongoing",   label: "Ongoing"   },
-  { key: "concluded", label: "Concluded" },
+  { key: "all",       label: "Semua"       },
+  { key: "ongoing",   label: "Berlangsung" },
+  { key: "upcoming",  label: "Mendatang"   },
+  { key: "concluded", label: "Selesai"     },
 ];
 
 const LIVE_PULSE_CSS = `@keyframes news-livepulse { 0%,100%{opacity:1} 50%{opacity:.2} }`;
@@ -94,20 +94,27 @@ function StatusPill({ status }: { status: EventStatus }) {
 
 // ─── Filter tabs ──────────────────────────────────────────────────────────────
 
-function FilterTabs({ active, onChange }: { active: FilterTab; onChange: (t: FilterTab) => void }) {
+function FilterTabs({ active, onChange, isMobile }: { active: FilterTab; onChange: (t: FilterTab) => void; isMobile?: boolean }) {
   return (
-    <div style={{ display: "flex", gap: 6 }}>
+    <div style={{ display: "flex", gap: isMobile ? 4 : 6, width: isMobile ? "100%" : undefined }}>
       {FILTER_TABS.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
           style={{
-            ...JK, padding: "7px 16px", borderRadius: 999,
+            ...JK,
+            // flex: "1 1 auto" — basis:auto means each button first claims its
+            // natural text width, then leftover space is shared equally.
+            // flex:1 shorthand sets basis:0 which makes all widths identical.
+            ...(isMobile ? { flex: "1 1 auto", padding: "7px clamp(4px, 2vw, 12px)" } : { padding: "7px 16px" }),
+            borderRadius: 8,
             border: "1.5px solid rgba(255,255,255,0.7)",
             background: active === key ? "#fff" : "rgba(255,255,255,0.1)",
             color: active === key ? BLUE : "#fff",
-            fontSize: 13, fontWeight: 700,
+            fontSize: isMobile ? "clamp(10px, 3vw, 13px)" : 13,
+            fontWeight: 700,
             cursor: "pointer", transition: "background 0.2s, color 0.2s", whiteSpace: "nowrap",
+            textAlign: "center",
           }}
         >{label}</button>
       ))}
@@ -390,11 +397,11 @@ export default function EventHighlightTab({ events, isMobile, pad }: Props) {
             </p>
           </div>
           <div style={{
-            overflowX: "auto", paddingBottom: 2,
+            ...(isMobile ? { width: "100%" } : { overflowX: "auto", paddingBottom: 2 }),
             opacity: 0,
             animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + STAGGER * 2}ms both`,
           }}>
-            <FilterTabs active={activeFilter} onChange={setActiveFilter} />
+            <FilterTabs active={activeFilter} onChange={setActiveFilter} isMobile={isMobile} />
           </div>
         </div>
       </div>
