@@ -117,14 +117,33 @@ function FilterTabs({ active, onChange }: { active: FilterTab; onChange: (t: Fil
   );
 }
 
-// ─── Ghost card ───────────────────────────────────────────────────────────────
+// ─── Placeholder card ─────────────────────────────────────────────────────────
 
-function GhostCard() {
+function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <div style={{
-      borderRadius: 8, border: "1px dashed rgba(255,255,255,0.07)",
-      background: "rgba(255,255,255,0.02)", minHeight: 280,
-    }} />
+      position: "relative", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", borderRadius: 8,
+      boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.15)",
+      background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(8px)",
+      padding: "40px", height: "100%", overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: "url(/Batik_Pattern_white.svg)",
+        backgroundSize: "cover", backgroundRepeat: "no-repeat",
+        backgroundPosition: "center", opacity: 0.15,
+        pointerEvents: "none", zIndex: 0, filter: "blur(1.5px)",
+      }} />
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" style={{ marginBottom: 12 }}>
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        <span style={{ ...JK, fontSize: "11px", fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.12em", textAlign: "center" }}>
+          Coming Soon
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -136,7 +155,7 @@ function EventNewsDesktopGrid({ news }: { news: NewsItem[] }) {
   const ghosts    = Math.max(0, DESK_COLS - displayed.length);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${DESK_COLS}, 1fr)`, gap: 12, alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${DESK_COLS}, 1fr)`, gap: 12, alignItems: "stretch" }}>
       {displayed.map((item, i) => (
         <div
           key={item.id}
@@ -155,7 +174,7 @@ function EventNewsDesktopGrid({ news }: { news: NewsItem[] }) {
           opacity: 0,
           animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + (displayed.length + i) * STAGGER}ms both`,
         }}>
-          <GhostCard />
+          <NewsPlaceholder />
         </div>
       ))}
     </div>
