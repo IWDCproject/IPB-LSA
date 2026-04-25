@@ -253,16 +253,16 @@ function SectionHead({ event, isMobile }: { event: EventWithNews; isMobile: bool
       gap: isMobile ? 10 : 0, marginBottom: isMobile ? 14 : 18,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 3, height: 28, background: YELLOW, borderRadius: 2, flexShrink: 0 }} />
-        <h3 style={{ margin: 0, ...BB, fontSize: isMobile ? 22 : 28, color: "#fff", lineHeight: 1 }}>
+        {/* <div style={{ width: 3, height: 28, flexShrink: 0 }} /> */}
+        <h2 style={{ margin: 0, ...BB, fontSize: isMobile ? 22 : 28, color: "#fff", lineHeight: 1 }}>
           {event.name}
-        </h3>
+        </h2>
         <StatusPill status={event.status} />
       </div>
       <Link
         href={`/events/${event.slug}?tab=news`}
         style={{
-          ...JK, fontSize: 12, fontWeight: 800, color: YELLOW,
+          ...JK, fontSize: 12, fontWeight: 800, color: "#fff",
           textDecoration: "none", letterSpacing: "0.05em",
           display: "flex", alignItems: "center", gap: 5,
           opacity: 0.85, transition: "opacity 0.2s",
@@ -294,7 +294,7 @@ function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; p
             position: "absolute", inset: 0,
             backgroundImage: `url(${event.banner_url})`,
             backgroundSize: "cover", backgroundPosition: "center",
-            filter: "blur(8px)", transform: "scale(1.12)",
+            filter: "blur(10px)", transform: "scale(1.12)",
             opacity: 0.65,
           }} />
           <div style={{
@@ -303,7 +303,7 @@ function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; p
           }} />
           <div style={{
             position: "absolute", inset: 0,
-            background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)",
+            background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 70%)",
           }} />
         </div>
       )}
