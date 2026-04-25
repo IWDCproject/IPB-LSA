@@ -295,24 +295,6 @@ function EventDropdown({
   );
 }
 
-// ─── Active filter chip ───────────────────────────────────────────────────────
-
-function Chip({ label, color, onRemove }: { label: string; color?: string; onRemove: () => void }) {
-  return (
-    <span style={{
-      ...JK, display: "inline-flex", alignItems: "center", gap: 6,
-      fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99,
-      background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-      color: color ?? "rgba(255,255,255,0.7)", whiteSpace: "nowrap",
-    }}>
-      {label}
-      <button onClick={onRemove} style={{
-        background: "none", border: "none", cursor: "pointer",
-        padding: 0, display: "flex", color: "rgba(255,255,255,0.5)", lineHeight: 1,
-      }}>×</button>
-    </span>
-  );
-}
 
 // ─── Event inline chip (in filter row) ───────────────────────────────────────
 
@@ -328,6 +310,7 @@ function EventChip({ label, onRemove }: { label: string; onRemove: () => void })
       <button onClick={onRemove} style={{
         background: "none", border: "none", cursor: "pointer",
         padding: 0, display: "flex", color: `${BLUE}99`, lineHeight: 1, fontSize: 14,
+        justifyContent: "center", alignItems: "center",
       }}>×</button>
     </span>
   );
@@ -612,7 +595,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
           {/* STATUS row */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap",
             justifyContent: isMobile ? "flex-start" : "flex-end",
             opacity: 0, animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + STAGGER * 3}ms both`,
           }}>
@@ -649,7 +632,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
           {/* EVENT row */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
+            display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap",
             justifyContent: isMobile ? "flex-start" : "flex-end",
             opacity: 0, animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + STAGGER * 4}ms both`,
             position: "relative", zIndex: 10,
@@ -687,7 +670,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
           {/* URUTKAN row */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 6,
+            display: "flex", alignItems: "center", gap: 4,
             justifyContent: isMobile ? "flex-start" : "flex-end",
             opacity: 0, animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + STAGGER * 5}ms both`,
           }}>
