@@ -183,6 +183,7 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
         <div style={{
           display: "flex", alignItems: "flex-end", justifyContent: "space-between",
           marginBottom: isMobile ? 18 : 24, gap: 12, flexWrap: "wrap",
+          animation: "np-up 0.5s ease 0.1s both",
         }}>
           <div>
             <div style={{
@@ -201,10 +202,12 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
         </div>
 
         {/* Grid */}
-        {isMobile
-          ? <MobileStack news={latestNews} />
-          : <DesktopGrid news={latestNews} cw={cw} />
-        }
+        <div style={{ animation: "np-up 0.55s ease 0.22s both" }}>
+          {isMobile
+            ? <MobileStack news={latestNews} />
+            : <DesktopGrid news={latestNews} cw={cw} />
+          }
+        </div>
 
         
       </div>

@@ -56,6 +56,14 @@ function desktopPad(cw: number) {
   return Math.min(160, Math.max(40, cw * 0.0833));
 }
 
+// ─── Global animation keyframes (referenced by all child components) ──────────
+
+const NP_CSS = `
+  @keyframes np-up       { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+  @keyframes np-in       { from { opacity: 0; }                              to { opacity: 1; }                  }
+  @keyframes np-slide-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+`;
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function NewsPageClient({ latestNews, events }: Props) {
@@ -66,20 +74,26 @@ export default function NewsPageClient({ latestNews, events }: Props) {
 
   return (
     <div ref={rootRef} style={{ overflowX: "hidden" }}>
-      {/* ── 1. Latest Stories (blue gradient) ─────────────────────────── */}
-      <LatestStoriesSection
-        latestNews={latestNews}
-        cw={cw}
-        isMobile={isMobile}
-        pad={pad}
-      />
+      <style dangerouslySetInnerHTML={{ __html: NP_CSS }} />
+
+      {/* ── 1. Latest Stories ─────────────────────────────────────────── */}
+      <div style={{ opacity: 0, animation: "np-up 0.55s ease 0.05s both" }}>
+        <LatestStoriesSection
+          latestNews={latestNews}
+          cw={cw}
+          isMobile={isMobile}
+          pad={pad}
+        />
+      </div>
 
       {/* ── 2. Content section (By Event | Semua Berita tabs) ─────────── */}
-      <ContentSection
-        events={events}
-        isMobile={isMobile}
-        pad={pad}
-      />
+      <div style={{ opacity: 0, animation: "np-up 0.55s ease 0.2s both" }}>
+        <ContentSection
+          events={events}
+          isMobile={isMobile}
+          pad={pad}
+        />
+      </div>
       <Footer />
     </div>
   );

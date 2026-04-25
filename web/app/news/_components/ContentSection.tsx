@@ -200,23 +200,26 @@ export default function ContentSection({ events, isMobile, pad }: Props) {
           transition: lockedH ? "none" : undefined,
         }}
       >
-        {activeTab === "byEvent" && (
-          <EventHighlightTab
-            events={events}
-            isMobile={isMobile}
-            pad={pad}
-          />
-        )}
+        {/* key remounts on every switch → triggers np-in animation */}
+        <div key={activeTab} style={{ animation: "np-in 0.35s ease both" }}>
+          {activeTab === "byEvent" && (
+            <EventHighlightTab
+              events={events}
+              isMobile={isMobile}
+              pad={pad}
+            />
+          )}
 
-        {activeTab === "allNews" && (
-          <div style={{
-            paddingLeft: pad, paddingRight: pad,
-            paddingTop: isMobile ? 32 : 44,
-            paddingBottom: 60,
-          }}>
-            <AllNewsTab events={eventOptions} isMobile={isMobile} />
-          </div>
-        )}
+          {activeTab === "allNews" && (
+            <div style={{
+              paddingLeft: pad, paddingRight: pad,
+              paddingTop: isMobile ? 32 : 44,
+              paddingBottom: 60,
+            }}>
+              <AllNewsTab events={eventOptions} isMobile={isMobile} />
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

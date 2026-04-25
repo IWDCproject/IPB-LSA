@@ -12,6 +12,15 @@ const BLUE   = "#0D26C2";
 
 const HIDE_SCROLLBAR = `.nhscroll::-webkit-scrollbar{display:none}.nhscroll{-ms-overflow-style:none;scrollbar-width:none}`;
 
+// ─── Animation constants ───────────────────────────────────────────────────────
+const DUR     = 420;
+const EASE    = "cubic-bezier(0.22, 1, 0.36, 1)";
+const BASE    = 40;   // ms base delay for first element
+const STAGGER = 28;   // ms between cards inside a section
+// Section-level stagger (each event section is large, use wider spacing)
+const SEC_BASE    = 60;
+const SEC_STAGGER = 90; // ms between sections (capped at 4 max delay)
+
 type EventStatus = "upcoming" | "ongoing" | "concluded";
 type FilterTab   = "all" | EventStatus;
 
@@ -128,12 +137,27 @@ function EventNewsDesktopGrid({ news }: { news: NewsItem[] }) {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${DESK_COLS}, 1fr)`, gap: 12, alignItems: "start" }}>
-      {displayed.map(item => (
-        <div key={item.id} onClick={() => router.push(`/news/${item.slug}`)} style={{ cursor: "pointer", borderRadius: 8 }}>
+      {displayed.map((item, i) => (
+        <div
+          key={item.id}
+          onClick={() => router.push(`/news/${item.slug}`)}
+          style={{
+            cursor: "pointer", borderRadius: 8,
+            opacity: 0,
+            animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + i * STAGGER}ms both`,
+          }}
+        >
           <NewsCard item={item} />
         </div>
       ))}
-      {Array.from({ length: ghosts }).map((_, i) => <GhostCard key={i} />)}
+      {Array.from({ length: ghosts }).map((_, i) => (
+        <div key={`ghost-${i}`} style={{
+          opacity: 0,
+          animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + (displayed.length + i) * STAGGER}ms both`,
+        }}>
+          <GhostCard />
+        </div>
+      ))}
     </div>
   );
 }
@@ -219,9 +243,14 @@ function SectionHead({ event, isMobile }: { event: EventWithNews; isMobile: bool
 
 // ─── Event section ────────────────────────────────────────────────────────────
 
-function EventSection({ event, pad, isMobile }: { event: EventWithNews; pad: number; isMobile: boolean }) {
+function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; pad: number; isMobile: boolean; index: number }) {
+  const secDelay = `${SEC_BASE + Math.min(index, 4) * SEC_STAGGER}ms`;
   return (
-    <div style={{ position: "relative", overflow: "hidden", zIndex: 2 }}>
+    <div style={{
+      position: "relative", overflow: "hidden", zIndex: 2,
+      opacity: 0,
+      animation: `np-slide-up ${DUR}ms ${EASE} ${secDelay} both`,
+    }}>
       {event.banner_url && (
         <>
           <div style={{
@@ -298,7 +327,10 @@ export default function EventHighlightTab({ events, isMobile, pad }: Props) {
           justifyContent: "space-between", flexDirection: isMobile ? "column" : "row",
           gap: isMobile ? 14 : 0,
         }}>
-          <div>
+          <div style={{
+            opacity: 0,
+            animation: `np-slide-up ${DUR}ms ${EASE} ${BASE}ms both`,
+          }}>
             <div style={{ ...BB, fontSize: isMobile ? "clamp(1.8rem, 7vw, 2.4rem)" : "clamp(2rem, 3.5vw, 3rem)", color: "#fff", lineHeight: 1 }}>
               By Event
             </div>
@@ -306,7 +338,11 @@ export default function EventHighlightTab({ events, isMobile, pad }: Props) {
               News grouped by competition
             </p>
           </div>
-          <div style={{ overflowX: "auto", paddingBottom: 2 }}>
+          <div style={{
+            overflowX: "auto", paddingBottom: 2,
+            opacity: 0,
+            animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + STAGGER * 2}ms both`,
+          }}>
             <FilterTabs active={activeFilter} onChange={setActiveFilter} />
           </div>
         </div>
@@ -314,13 +350,13 @@ export default function EventHighlightTab({ events, isMobile, pad }: Props) {
 
       {/* Content */}
       {filtered.length === 0 ? (
-        <div style={{ position: "relative", zIndex: 2 }}>
+        <div style={{ position: "relative", zIndex: 2, animation: "np-in 0.3s ease both" }}>
           <EmptyState filter={activeFilter} />
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {filtered.map(event => (
-            <EventSection key={event.id} event={event} pad={pad} isMobile={isMobile} />
+        <div key={activeFilter} style={{ display: "flex", flexDirection: "column" }}>
+          {filtered.map((event, i) => (
+            <EventSection key={event.id} event={event} pad={pad} isMobile={isMobile} index={i} />
           ))}
         </div>
       )}
