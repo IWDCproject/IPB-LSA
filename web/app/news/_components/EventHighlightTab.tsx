@@ -265,6 +265,11 @@ function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; p
             background: "linear-gradient(160deg, rgba(13,38,194,0.45) 0%, rgba(6,18,92,0.60) 100%)",
             pointerEvents: "none",
           }} />
+          <div style={{
+            position: "absolute", inset: 0, top: 0,
+            background: "linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, transparent 50%)",
+            pointerEvents: "none",
+          }} />
         </>
       )}
       <div style={{
