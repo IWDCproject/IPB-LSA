@@ -13,7 +13,6 @@ const PAGE_SIZE = 24;
 
 type EventStatus = "upcoming" | "ongoing" | "concluded";
 type SortValue   = "-published_at" | "published_at";
-type ViewMode    = "grid" | "list";
 
 export interface EventOption {
   id:     string;
@@ -206,15 +205,15 @@ function Chip({ label, color, onRemove }: { label: string; color?: string; onRem
 function EventChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span style={{
-      ...JK, display: "inline-flex", alignItems: "center", gap: 5,
-      fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 6,
-      background: `${YELLOW}1a`, border: `1.5px solid ${YELLOW}`,
-      color: YELLOW, whiteSpace: "nowrap",
+      ...JK, display: "inline-flex", alignItems: "center", gap: 6,
+      fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 999,
+      background: "#fff", border: "1.5px solid rgba(255,255,255,0.7)",
+      color: BLUE, whiteSpace: "nowrap",
     }}>
       {label}
       <button onClick={onRemove} style={{
         background: "none", border: "none", cursor: "pointer",
-        padding: 0, display: "flex", color: `${YELLOW}bb`, lineHeight: 1, fontSize: 14,
+        padding: 0, display: "flex", color: `${BLUE}99`, lineHeight: 1, fontSize: 14,
       }}>×</button>
     </span>
   );
@@ -227,54 +226,8 @@ function RowLabel({ children }: { children: React.ReactNode }) {
     <span style={{
       ...JK, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
       color: "rgba(255,255,255,0.35)", textTransform: "uppercase",
-      whiteSpace: "nowrap", minWidth: 52, textAlign: "right",
+      whiteSpace: "nowrap", minWidth: 60, textAlign: "right",
     }}>{children}</span>
-  );
-}
-
-// ─── List card ────────────────────────────────────────────────────────────────
-
-function NewsListCard({ item }: { item: NewsItem }) {
-  const router = useRouter();
-  const [hov, setHov] = useState(false);
-  return (
-    <div
-      onClick={() => router.push(`/news/${item.slug}`)}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{
-        display: "flex", gap: 16, padding: "14px 16px", borderRadius: 8, cursor: "pointer",
-        background: hov ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
-        border: hov ? `1px solid ${YELLOW}40` : "1px solid rgba(255,255,255,0.08)",
-        transition: "all 0.2s ease",
-      }}
-    >
-      {item.thumbnail_url && (
-        <div style={{
-          width: 96, height: 64, flexShrink: 0, borderRadius: 6, overflow: "hidden",
-          backgroundImage: `url(${item.thumbnail_url})`,
-          backgroundSize: "cover", backgroundPosition: "center",
-        }} />
-      )}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 4 }}>
-        {item.event_id?.name && (
-          <span style={{ ...JK, fontSize: 10, fontWeight: 800, color: YELLOW, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            {item.event_id.name}
-          </span>
-        )}
-        <div style={{
-          ...JK, fontSize: 14, fontWeight: 700, color: "#fff", lineHeight: 1.35,
-          overflow: "hidden", display: "-webkit-box",
-          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-        } as React.CSSProperties}>
-          {item.title}
-        </div>
-        <span style={{ ...JK, fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>
-          {item.published_at
-            ? new Date(item.published_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
-            : "—"}
-        </span>
-      </div>
-    </div>
   );
 }
 
@@ -288,7 +241,6 @@ export default function AllNewsTab({ events, isMobile }: Props) {
   const [activeStatuses,   setActiveStatuses]   = useState<Set<EventStatus>>(new Set());
   const [activeEventSlugs, setActiveEventSlugs] = useState<Set<string>>(new Set());
   const [sort,             setSort]             = useState<SortValue>("-published_at");
-  const [viewMode,         setViewMode]         = useState<ViewMode>("grid");
   const [showEventDrop,    setShowEventDrop]    = useState(false);
   const [page,             setPage]             = useState(1);
 
@@ -360,15 +312,20 @@ export default function AllNewsTab({ events, isMobile }: Props) {
     });
   }, []);
 
-  const clearAll = useCallback(() => {
-    setSearchInput("");
-    setActiveStatuses(new Set());
-    setActiveEventSlugs(new Set());
-    setSort("-published_at");
-  }, []);
-
-  const hasFilters = activeStatuses.size > 0 || activeEventSlugs.size > 0 || !!debouncedSearch;
   const cols = isMobile ? 2 : 4;
+
+  // ─── Shared pill style (matches EventDetailHeader) ────────────────────────
+  const pillBase: React.CSSProperties = {
+    ...JK,
+    padding: "7px 16px",
+    borderRadius: 999,
+    border: "1.5px solid rgba(255,255,255,0.7)",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    transition: "background 0.2s, color 0.2s",
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -378,7 +335,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
       <div style={{
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
-        alignItems: isMobile ? "stretch" : "flex-start",
+        alignItems: isMobile ? "stretch" : "stretch",
         justifyContent: "space-between",
         gap: isMobile ? 20 : 32,
         marginBottom: 20,
@@ -394,15 +351,14 @@ export default function AllNewsTab({ events, isMobile }: Props) {
             Semua Berita
           </div>
 
-          {/* Result count */}
-					{items !== null && !loading && (
-							<div style={{ ...JK, margin: "6px 0 0", fontSize: "clamp(12px, 1.4vw, 14px)", color: "rgba(255,255,255,0.7)", filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))", fontWeight: 600, marginBottom:"20px"}}>
-							Menampilkan {Math.min(page * PAGE_SIZE, total)} dari {total} artikel yang cocok
-							</div>
-					)}
+          {items !== null && !loading && (
+            <div style={{ ...JK, margin: "6px 0 14px", fontSize: "clamp(12px, 1.4vw, 14px)", color: "rgba(255,255,255,0.7)", filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))", fontWeight: 600 }}>
+              Menampilkan {Math.min(page * PAGE_SIZE, total)} dari {total} artikel yang cocok
+            </div>
+          )}
 
           {/* Search bar */}
-          <div style={{ position: "relative", display: "flex", alignItems: "center", marginTop: 14 }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", marginTop: items !== null && !loading ? 0 : 14 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
               style={{ position: "absolute", left: 11, pointerEvents: "none" }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -433,84 +389,70 @@ export default function AllNewsTab({ events, isMobile }: Props) {
           </div>
         </div>
 
-        {/* Right: filter panel */}
+        {/* Right: filter panel — labels anchored RIGHT, buttons grow LEFT */}
         <div style={{
           display: "flex", flexDirection: "column",
-          gap: 8,
+          justifyContent: "space-between",
           alignItems: isMobile ? "flex-start" : "flex-end",
           flexShrink: 0,
         }}>
 
           {/* STATUS row */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: isMobile ? "flex-start" : "flex-end" }}>
-            <RowLabel>Status</RowLabel>
-
-            {/* Semua = clear all statuses */}
-            <button
-              onClick={() => setActiveStatuses(new Set())}
-              style={{
-                ...JK, padding: "5px 14px", borderRadius: 99, fontSize: 11, fontWeight: 800,
-                cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.2s",
-                border: activeStatuses.size === 0
-                  ? "1.5px solid rgba(255,255,255,0.55)"
-                  : "1.5px solid rgba(255,255,255,0.15)",
-                background: activeStatuses.size === 0 ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)",
-                color: activeStatuses.size === 0 ? "#fff" : "rgba(255,255,255,0.4)",
-              }}
-            >Semua</button>
-
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            flexWrap: "wrap",
+            justifyContent: isMobile ? "flex-start" : "flex-end",
+          }}>
             {STATUS_OPTIONS.map(s => {
               const isActive = activeStatuses.has(s.key);
               return (
                 <button
                   key={s.key} onClick={() => toggleStatus(s.key)}
                   style={{
-                    ...JK, display: "flex", alignItems: "center", gap: 5,
-                    padding: "5px 14px", borderRadius: 99, fontSize: 11, fontWeight: 800,
-                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.2s",
-                    border: isActive ? `1.5px solid ${s.color}` : "1.5px solid rgba(255,255,255,0.12)",
-                    background: isActive ? `${s.color}22` : "rgba(255,255,255,0.04)",
-                    color: isActive ? s.color : "rgba(255,255,255,0.5)",
+                    ...pillBase,
+                    display: "flex", alignItems: "center", gap: 5,
+                    background: isActive ? "#fff" : "rgba(255,255,255,0.1)",
+                    color:      isActive ? BLUE  : "#fff",
                   }}
                 >
-                  {s.symbol && <span style={{ fontSize: 8 }}>{s.symbol}</span>}
+                  {s.symbol && (
+                    <span style={{ fontSize: 8, color: isActive ? s.color : "rgba(255,255,255,0.4)" }}>
+                      {s.symbol}
+                    </span>
+                  )}
                   {s.label}
                 </button>
               );
             })}
+            {/* Semua — rightmost before label */}
+            <button
+              onClick={() => setActiveStatuses(new Set())}
+              style={{
+                ...pillBase,
+                background: activeStatuses.size === 0 ? "#fff" : "rgba(255,255,255,0.1)",
+                color:      activeStatuses.size === 0 ? BLUE   : "#fff",
+              }}
+            >Semua</button>
+            <RowLabel>Status</RowLabel>
           </div>
 
-          {/* EVENT row */}
+          {/* EVENT row — chips grow leftward from label */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            flexWrap: "wrap", justifyContent: isMobile ? "flex-start" : "flex-end",
-            position: "relative",
+            display: "flex", alignItems: "center",
+            gap: 6, flexWrap: "wrap",
+            justifyContent: isMobile ? "flex-start" : "flex-end",
           }}>
-            <RowLabel>Event</RowLabel>
-
-            {/* Inline chips for selected events */}
-            {Array.from(activeEventSlugs).map(slug => {
-              const ev = events.find(e => e.slug === slug);
-              return (
-                <EventChip
-                  key={slug}
-                  label={ev?.name ?? slug}
-                  onRemove={() => toggleEvent(slug)}
-                />
-              );
-            })}
-
             {/* Add event button */}
             <div style={{ position: "relative" }}>
               <button
                 onClick={() => setShowEventDrop(v => !v)}
                 style={{
-                  ...JK, display: "flex", alignItems: "center", gap: 5,
-                  padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 700,
-                  cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.2s",
-                  border: "1.5px dashed rgba(255,255,255,0.25)",
-                  background: showEventDrop ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
-                  color: "rgba(255,255,255,0.55)",
+                  ...JK, display: "flex", alignItems: "center", gap: 6,
+                  padding: "7px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700,
+                  cursor: "pointer", whiteSpace: "nowrap", transition: "background 0.2s, color 0.2s",
+                  border: "1.5px solid rgba(255,255,255,0.7)",
+                  background: showEventDrop ? "#fff" : "rgba(255,255,255,0.1)",
+                  color: showEventDrop ? BLUE : "#fff",
                 }}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -528,89 +470,48 @@ export default function AllNewsTab({ events, isMobile }: Props) {
                 />
               )}
             </div>
+
+            {/* Inline chips for selected events */}
+            {Array.from(activeEventSlugs).map(slug => {
+              const ev = events.find(e => e.slug === slug);
+              return (
+                <EventChip
+                  key={slug}
+                  label={ev?.name ?? slug}
+                  onRemove={() => toggleEvent(slug)}
+                />
+              );
+            })}
+
+            <RowLabel>Event</RowLabel>
           </div>
 
-          {/* Sort + View row */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* URUTKAN row */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            justifyContent: isMobile ? "flex-start" : "flex-end",
+          }}>
+            {([ ["-published_at", "Terbaru"], ["published_at", "Terlama"] ] as [SortValue, string][]).map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setSort(val)}
+                style={{
+                  ...pillBase,
+                  background: sort === val ? "#fff" : "rgba(255,255,255,0.1)",
+                  color:      sort === val ? BLUE  : "#fff",
+                }}
+              >{label}</button>
+            ))}
             <RowLabel>Urutkan</RowLabel>
-            <select
-              value={sort}
-              onChange={e => setSort(e.target.value as SortValue)}
-              style={{
-                ...JK, padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700,
-                border: "1.5px solid rgba(255,255,255,0.15)",
-                background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)",
-                cursor: "pointer", outline: "none",
-              }}
-            >
-              <option value="-published_at">Terbaru</option>
-              <option value="published_at">Terlama</option>
-            </select>
-
-            {/* View toggle */}
-            <div style={{ display: "flex", border: "1.5px solid rgba(255,255,255,0.15)", borderRadius: 6, overflow: "hidden" }}>
-              {(["grid", "list"] as ViewMode[]).map(mode => (
-                <button
-                  key={mode} onClick={() => setViewMode(mode)}
-                  style={{
-                    padding: "5px 10px",
-                    background: viewMode === mode ? "rgba(255,255,255,0.12)" : "transparent",
-                    border: "none", cursor: "pointer",
-                    color: viewMode === mode ? "#fff" : "rgba(255,255,255,0.4)",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {mode === "grid" ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                    </svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
-                      <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
           </div>
 
         </div>
       </div>
 
-      {/* ── Active chips ─────────────────────────────────────────────────── */}
-      {hasFilters && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12, alignItems: "center" }}>
-          <span style={{ ...JK, fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>
-            Filter aktif:
-          </span>
-          {Array.from(activeStatuses).map(s => {
-            const cfg = STATUS_OPTIONS.find(o => o.key === s)!;
-            return <Chip key={s} label={cfg.label} color={cfg.color} onRemove={() => toggleStatus(s)} />;
-          })}
-          {Array.from(activeEventSlugs).map(slug => {
-            const ev = events.find(e => e.slug === slug);
-            return <Chip key={slug} label={ev?.name ?? slug} onRemove={() => toggleEvent(slug)} />;
-          })}
-          {debouncedSearch && (
-            <Chip label={`"${debouncedSearch}"`} onRemove={() => setSearchInput("")} />
-          )}
-          <button
-            onClick={clearAll}
-            style={{
-              ...JK, background: "none", border: "none", cursor: "pointer",
-              fontSize: 11, fontWeight: 800, color: "#dc2626",
-              letterSpacing: "0.04em", padding: "2px 4px",
-            }}
-          >Hapus semua</button>
-        </div>
-      )}
-
       {/* ── Divider ──────────────────────────────────────────────────────── */}
       <div style={{ height: 1, background: "rgba(255,255,255,0.08)", marginBottom: 20 }} />
 
-      {/* ── Grid / List ──────────────────────────────────────────────────── */}
+      {/* ── Card grid ────────────────────────────────────────────────────── */}
       {loading && (
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12, padding: 2 }}>
           {Array.from({ length: PAGE_SIZE / 2 }).map((_, i) => (
@@ -632,23 +533,17 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
       {!loading && items !== null && items.length > 0 && (
         <>
-          {viewMode === "grid" ? (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gap: isMobile ? 8 : 12, padding: 2,
-            }}>
-              {items.map(item => (
-                <div key={item.id} onClick={() => router.push(`/news/${item.slug}`)} style={{ cursor: "pointer", borderRadius: 8 }}>
-                  <NewsCard item={item} isMobile={isMobile} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {items.map(item => <NewsListCard key={item.id} item={item} />)}
-            </div>
-          )}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gap: isMobile ? 8 : 12, padding: 2,
+          }}>
+            {items.map(item => (
+              <div key={item.id} onClick={() => router.push(`/news/${item.slug}`)} style={{ cursor: "pointer", borderRadius: 8 }}>
+                <NewsCard item={item} isMobile={isMobile} />
+              </div>
+            ))}
+          </div>
 
           <Pagination page={page} totalPages={totalPages} onPageChange={p => {
             window.scrollTo({ top: 0, behavior: "smooth" });
