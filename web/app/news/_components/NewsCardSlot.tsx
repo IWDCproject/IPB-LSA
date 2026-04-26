@@ -2,29 +2,8 @@
 
 import { useState, useEffect } from "react";
 import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
-
-// ─── Types (subset used here) ─────────────────────────────────────────────────
-
-interface NewsItem {
-  id:            string;
-  title:         string;
-  slug:          string;
-  excerpt:       string | null;
-  thumbnail_url: string | null;
-  category:      string;
-  published_at:  string;
-  event_id:      { name: string; slug?: string } | null;
-}
-
-// ─── Constants (subset used here) ────────────────────────────────────────────
-
-const JK      = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const YELLOW  = "#FFC936";
-const NAVY    = "#06125C";
-const DUR     = 420;
-const EASE    = "cubic-bezier(0.22, 1, 0.36, 1)";
-const BASE    = 40;
-const STAGGER = 28;
+import { JK, YELLOW, NAVY, DUR, EASE, BASE, STAGGER } from "./_newsConstants";
+import type { NewsItem } from "./_newsTypes";
 
 // ─── Placeholder card — fills empty grid slots in the last row ────────────────
 

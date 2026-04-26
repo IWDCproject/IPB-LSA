@@ -4,52 +4,20 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NewsCard from "@/components/NewsCard";
+import { NewsPlaceholder } from "./NewsCardSlot";
+import { JK, BB, YELLOW, BLUE, DUR, EASE, BASE, STAGGER } from "./_newsConstants";
+import type { EventStatus, NewsItem, EventWithNews } from "./_newsTypes";
 
-const JK     = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const BB     = { fontFamily: "'Bebas Neue', sans-serif"        } as const;
-const YELLOW = "#FFC936";
-const BLUE   = "#0D26C2";
+export type { EventWithNews };
 
 const HIDE_SCROLLBAR = `.nhscroll::-webkit-scrollbar{display:none}.nhscroll{-ms-overflow-style:none;scrollbar-width:none}`;
 
 // ─── Animation constants ───────────────────────────────────────────────────────
-const DUR     = 420;
-const EASE    = "cubic-bezier(0.22, 1, 0.36, 1)";
-const BASE    = 40;   // ms base delay for first element
-const STAGGER = 28;   // ms between cards inside a section
 // Section-level stagger (each event section is large, use wider spacing)
 const SEC_BASE    = 60;
 const SEC_STAGGER = 90; // ms between sections (capped at 4 max delay)
 
-type EventStatus = "upcoming" | "ongoing" | "concluded";
-type FilterTab   = "all" | EventStatus;
-
-export interface EventWithNews {
-  id:           string;
-  name:         string;
-  slug:         string;
-  status:       EventStatus;
-  banner_image: { id: string } | null;
-  banner_url:   string | null;
-  news:         NewsItem[];
-}
-
-interface NewsItem {
-  id:            string;
-  title:         string;
-  slug:          string;
-  excerpt:       string | null;
-  thumbnail_url: string | null;
-  category:      string;
-  published_at:  string;
-  event_id:      { name: string; slug?: string } | null;
-}
-
-interface Props {
-  events:   EventWithNews[];
-  isMobile: boolean;
-  pad:      number;
-}
+type FilterTab = "all" | EventStatus;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,6 +40,12 @@ const LIVE_PULSE_CSS = `@keyframes news-livepulse { 0%,100%{opacity:1} 50%{opaci
 const DESK_COLS  = 4;
 const MOB_CARD_W = 220;
 const MOB_CARD_H = 260;
+
+interface Props {
+  events:   EventWithNews[];
+  isMobile: boolean;
+  pad:      number;
+}
 
 // ─── Status pill ──────────────────────────────────────────────────────────────
 
@@ -118,36 +92,6 @@ function FilterTabs({ active, onChange, isMobile }: { active: FilterTab; onChang
           }}
         >{label}</button>
       ))}
-    </div>
-  );
-}
-
-// ─── Placeholder card ─────────────────────────────────────────────────────────
-
-function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
-  return (
-    <div style={{
-      position: "relative", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", borderRadius: 8,
-      boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.15)",
-      background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(8px)",
-      padding: "40px", height: "100%", overflow: "hidden",
-    }}>
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "url(/Batik_Pattern_white.svg)",
-        backgroundSize: "cover", backgroundRepeat: "no-repeat",
-        backgroundPosition: "center", opacity: 0.15,
-        pointerEvents: "none", zIndex: 0, filter: "blur(1.5px)",
-      }} />
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" style={{ marginBottom: 12 }}>
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        <span style={{ ...JK, fontSize: "11px", fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.12em", textAlign: "center" }}>
-          Coming Soon
-        </span>
-      </div>
     </div>
   );
 }
@@ -200,7 +144,7 @@ function EventNewsMobileScroll({ news, pad }: { news: NewsItem[]; pad: number })
     const rightW = Math.min(Math.max(0, scrollWidth - clientWidth - scrollLeft), MOB_FADE_W);
     const mask = `linear-gradient(to right, rgba(0,0,0,0.5), black ${leftW}px, black calc(100% - ${rightW}px), rgba(0,0,0,0.5))`;
     el.style.webkitMaskImage = mask;
-    (el.style as any).maskImage = mask;
+    (el.style as React.CSSProperties & { maskImage?: string }).maskImage = mask;
   };
 
   useEffect(() => {

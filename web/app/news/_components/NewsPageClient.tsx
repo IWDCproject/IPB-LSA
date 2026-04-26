@@ -5,42 +5,11 @@ import LatestStoriesSection from "./LatestStoriesSection";
 import ContentSection from "./ContentSection";
 import Footer from "@/components/Footer";
 import { useBlurImages } from "@/hooks/useBlurImages";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type EventStatus = "upcoming" | "ongoing" | "concluded";
-
-interface NewsItem {
-  id:               string;
-  title:            string;
-  slug:             string;
-  excerpt:          string | null;
-  thumbnail_url:    string | null;
-  thumbnail_width:  number | null;
-  thumbnail_height: number | null;
-  category:         string;
-  published_at:     string;
-  event_id:         { name: string; slug?: string } | null;
-}
-
-interface EventWithNews {
-  id:           string;
-  name:         string;
-  slug:         string;
-  status:       EventStatus;
-  banner_image: { id: string } | null;
-  banner_url:   string | null;
-  news:         NewsItem[];
-}
-
-interface Props {
-  latestNews: NewsItem[];
-  events:     EventWithNews[];
-}
+import type { NewsItem, EventWithNews } from "./_newsTypes";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
-function useContainerWidth(ref: React.RefObject<HTMLElement>): number {
+function useContainerWidth(ref: React.RefObject<HTMLElement | null>): number {
   const [width, setWidth] = useState(0);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -65,11 +34,18 @@ const NP_CSS = `
   @keyframes np-slide-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 `;
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface Props {
+  latestNews: NewsItem[];
+  events:     EventWithNews[];
+}
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function NewsPageClient({ latestNews, events }: Props) {
-  const rootRef  = useRef<HTMLDivElement>(null!);
-  const cw       = useContainerWidth(rootRef as React.RefObject<HTMLElement>);
+  const rootRef  = useRef<HTMLDivElement | null>(null);
+  const cw       = useContainerWidth(rootRef);
   const isMobile = cw < 1024;
   const pad      = isMobile ? 20 : desktopPad(cw);
 
@@ -90,7 +66,7 @@ export default function NewsPageClient({ latestNews, events }: Props) {
             }
           : null
       )
-      .filter(Boolean),
+      .filter((x): x is NonNullable<typeof x> => x !== null),
     [latestNews]
   );
 
