@@ -1,4 +1,5 @@
-const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
+import React from "react";
+import { JK } from "../shared/tokens";
 
 export function PanelCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (

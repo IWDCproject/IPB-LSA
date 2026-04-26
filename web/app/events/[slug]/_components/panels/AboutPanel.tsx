@@ -1,21 +1,21 @@
 "use client";
+import React from "react";
 import { PanelTitle } from "./Panel";
+import { JK } from "../shared/tokens";
+import type { MappedEvent } from "../../_types";
 
-const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-
-// Added flex: 1 so it absorbs the stretch from the OverviewTab grid
 const CARD: React.CSSProperties = {
-  background:     "#fff",
-  borderRadius:   12,
-  padding:        "16px 20px",
-  display:        "flex",
-  flexDirection:  "column",
-  flex:           1,
-  minHeight:      0,
+  background:    "#fff",
+  borderRadius:  12,
+  padding:       "16px 20px",
+  display:       "flex",
+  flexDirection: "column",
+  flex:          1,
+  minHeight:     0,
 };
 
-export default function AboutPanel({ event, isMobile }: { event: any; isMobile: boolean }) {
-  const contacts = Array.isArray(event.contact_person) ? event.contact_person :[];
+export default function AboutPanel({ event, isMobile }: { event: MappedEvent; isMobile: boolean }) {
+  const contacts = Array.isArray(event.contact_person) ? event.contact_person : [];
 
   return (
     <div style={CARD}>
@@ -47,7 +47,7 @@ export default function AboutPanel({ event, isMobile }: { event: any; isMobile: 
             }}>
               Contact Person
             </div>
-            {contacts.map((c: any, i: number) => (
+            {contacts.map((c, i) => (
               <div key={i} style={{ ...JK, fontSize: 13, color: "#374151", marginBottom: 4 }}>
                 – {c.name}: <span style={{ color: "#0D26C2" }}>{c.contact}</span>
               </div>

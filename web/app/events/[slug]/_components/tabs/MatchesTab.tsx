@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { staggerSlideUp, TAB_ENTER } from "./Animations";
-import type { AnimPhase } from "./UseTabTransition";
-
-// ─── Shared ────────────────────────────────────────────────────────────────────
-
-const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
+import { staggerSlideUp, TAB_ENTER } from "../shared/Animations";
+import type { AnimPhase } from "../shared/UseTabTransition";
+import type { MappedEvent, MappedMatch, TabKey } from "../../_types";
+import { JK } from "../shared/tokens";
+import {
+  getEngine, fmtDateLong as fmtDate, fmtTime, groupByDateLong as groupByDate, resolveWinnerName,
+} from "../match/scoreUtils";
+import { MiddleBadge, ScoreCell } from "../match/ScoreBadges";
 
 const ROW_KEYFRAMES = `
   @keyframes match-row-in {
@@ -21,59 +23,8 @@ const truncate: React.CSSProperties = {
   overflow: "hidden",
 };
 
-function fmtTime(iso: string | null | undefined): string {
-  if (!iso) return "?";
-  return new Date(iso).toLocaleTimeString("id-ID", {
-    hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta",
-  });
-}
-
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "No Date";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
-}
-
-function getEngine(fmt: any) { return fmt?.modules?.[0] ?? null; }
-
-function calcAvg(scores: number[] = [], method = "avg"): number {
-  if (!scores.length) return 0;
-  if (method === "drop_extremes" && scores.length > 2) {
-    const sorted = [...scores].sort((a, b) => a - b).slice(1, -1);
-    return sorted.reduce((a, b) => a + b, 0) / sorted.length;
-  }
-  const sum = scores.reduce((a, b) => a + b, 0);
-  return method === "sum" ? sum : sum / scores.length;
-}
-
-/**
- * Resolve winner display name — `match.winner` / `live.winner` may be a
- * raw participant UUID in the DB.  We look it up against home / away /
- * open participants so the UI always shows the human-readable name.
- */
-function resolveWinnerName(match: any): string | null {
-  const live     = match.live_state ?? {};
-  const winnerId = match.winner ?? live.winner;
-  if (!winnerId) return null;
-
-  if (match.home_participant?.id === winnerId) return match.home_participant.name;
-  if (match.away_participant?.id === winnerId) return match.away_participant.name;
-
-  for (const entry of match.participants ?? []) {
-    if (entry.participant_id?.id === winnerId) return entry.participant_id.name;
-  }
-
-  // manual_pick may store the name directly (no hyphens → not a UUID)
-  if (typeof live.winner === "string" && !live.winner.includes("-")) return live.winner;
-
-  return null;
-}
-
-// ─── Sort & group ──────────────────────────────────────────────────────────────
-
-/** Newest-first: future dates at top, past at bottom.  Within a day, time is ascending. */
-function sortNewestFirst(matches: any[]): any[] {
+/** Newest-first sort: future dates at top, past at bottom. */
+function sortNewestFirst(matches: MappedMatch[]): MappedMatch[] {
   return [...matches].sort((a, b) => {
     const ta = a.scheduled_at ? new Date(a.scheduled_at).getTime() : 0;
     const tb = b.scheduled_at ? new Date(b.scheduled_at).getTime() : 0;
@@ -81,146 +32,12 @@ function sortNewestFirst(matches: any[]): any[] {
   });
 }
 
-function groupByDate(matches: any[]): Map<string, any[]> {
-  return matches.reduce((map, m) => {
-    const key = fmtDate(m.scheduled_at);
-    return map.set(key, [...(map.get(key) ?? []), m]);
-  }, new Map<string, any[]>());
-}
-
-// ─── Score / badge components — copied straight from MatchesPanels ─────────────
-
-function SolidLiveBadge() {
-  return (
-    <div style={{ ...JK, fontSize: 13, fontWeight: 800, color: "#111", background: "#FFC936", borderRadius: 6, padding: "4px 16px", flexShrink: 0 }}>
-      Live
-    </div>
-  );
-}
-
-function ScoreSetsLive({ live, compact = false }: { live: any; compact?: boolean }) {
-  const setScore = live?.setScore ?? [0, 0];
-  const setLog   = live?.setLog   ?? [];
-
-  const NumPill = ({ n }: { n: number }) => (
-    <div style={{ ...JK, fontSize: compact ? 12 : 14, fontWeight: 900, color: "#111", background: "#FFC936", borderRadius: 6, minWidth: compact ? 26 : 32, height: compact ? 26 : 32, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>
-      {String(n).padStart(2, "0")}
-    </div>
-  );
-
-  const SetPill = ({ s, i }: { s: any; i: number }) => (
-    <div style={{ background: "#FFF8D6", border: "1px solid #FFC936", borderRadius: 6, padding: compact ? "3px 5px" : "4px 8px", textAlign: "center", minWidth: compact ? 38 : 50 }}>
-      <div style={{ ...JK, fontSize: 9, fontWeight: 700, color: "#CA8A04", marginBottom: 2 }}>Set {i + 1}</div>
-      <div style={{ ...JK, fontSize: compact ? 11 : 12, fontWeight: 800, color: "#111" }}>
-        <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>{s.home}</span>
-        <span style={{ fontWeight: 800, color: "#676767"}}>{" : "} </span>
-        <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>{s.away}</span>
-      </div>
-    </div>
-  );
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: compact ? 4 : 6 }}>
-      <NumPill n={setScore[0]} />
-      {setLog.length === 0
-        ? <span style={{ ...JK, fontSize: compact ? 12 : 14, fontWeight: 800, color: "#CA8A04" }}>vs</span>
-        : setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)}
-      <NumPill n={setScore[1]} />
-    </div>
-  );
-}
-
-function ScoreSetsFinished({ live, compact = false }: { live: any; compact?: boolean }) {
-  const setLog = live?.setLog ?? [];
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: compact ? 4 : 6, flexWrap: "wrap" }}>
-      {setLog.map((s: any, i: number) => (
-        <div key={i} style={{ background: "#f3f4f6", borderRadius: 6, padding: compact ? "3px 5px" : "4px 8px", textAlign: "center", minWidth: compact ? 38 : 50 }}>
-          <div style={{ ...JK, fontSize: 9, fontWeight: 600, color: "#676767", marginBottom: 2 }}>Set {i + 1}</div>
-          <div style={{ ...JK, fontSize: compact ? 11 : 12, fontWeight: 800, color: "#111" }}>
-            <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>{s.home}</span>
-            <span style={{ fontWeight: 800, color: "#676767"}}>{" : "} </span>
-            <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>{s.away}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function JudgeScoreBadge({ live, engine }: { live: any; engine: any }) {
-  const scores = live?.judgeScores ?? [];
-  const method = engine?.config?.method ?? "avg";
-  const result = calcAvg(scores, method).toFixed(2).replace(".", ",");
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111" }}>Avg:</span>
-      <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111", background: "#f3f4f6", borderRadius: 6, padding: "4px 10px" }}>
-        {result}
-      </span>
-    </div>
-  );
-}
-
-function ManualPickBadge({ match }: { match: any }) {
-  const winner = resolveWinnerName(match);
-  if (!winner) return null;
-  return (
-    <div style={{ ...JK, fontSize: 13, fontWeight: 800, color: "#111", background: "#f3f4f6", borderRadius: 6, padding: "4px 16px" }}>
-      {winner} Wins
-    </div>
-  );
-}
-
-function MiddleBadge({ match }: { match: any }) {
-  const isH2H = match.competition_category?.format_id?.match_type === "head_to_head";
-  return (
-    <div style={{ ...JK, fontSize: 13, fontWeight: 800, color: "#aaa", background: "#f3f4f6", borderRadius: 6, padding: "4px 16px", whiteSpace: "nowrap", minWidth: 50, textAlign: "center" }}>
-      {isH2H ? "vs" : "--"}
-    </div>
-  );
-}
-
-function ScoreCell({ match, compact = false }: { match: any; compact?: boolean }) {
-  const engine     = getEngine(match.competition_category?.format_id);
-  const live       = match.live_state ?? {};
-  const isLive     = match.status === "live";
-  const isUpcoming = match.status === "upcoming";
-
-  if (isUpcoming) return <MiddleBadge match={match} />;
-
-  switch (engine?.type) {
-    case "score_timed": {
-      const h = live.homeScore ?? 0;
-      const a = live.awayScore ?? 0;
-      return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: isLive ? "#FFF8D6" : "#f3f4f6", border: isLive ? "1px solid #FFC936" : "1px solid transparent", borderRadius: 6, padding: "4px 16px" }}>
-          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111" }}>{String(h).padStart(2, "0")}</span>
-          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: isLive ? "#CA8A04" : "#aaa" }}>-</span>
-          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111" }}>{String(a).padStart(2, "0")}</span>
-        </div>
-      );
-    }
-    case "score_sets":
-      return isLive ? <ScoreSetsLive live={live} compact={compact} /> : <ScoreSetsFinished live={live} compact={compact} />;
-    case "judge_scores":
-    case "finish_time":
-    case "manual_pick":
-      if (isLive) return <SolidLiveBadge />;
-      if (engine?.type === "judge_scores") return <JudgeScoreBadge live={live} engine={engine} />;
-      if (engine?.type === "manual_pick")  return <ManualPickBadge match={match} />;
-      return null;
-    default:
-      return null;
-  }
-}
-
 /** Mobile-only score display for score_sets engine:
  *  - Big set-count numbers (home sets won vs away sets won)
  *  - Tiny detail line: "21-18 | 18-21 | 21-16"
  *  - Falls back to compact ScoreCell for all other engine types
  */
-function MobileScoreCell({ match }: { match: any }) {
+function MobileScoreCell({ match }: { match: MappedMatch }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
@@ -359,7 +176,7 @@ function ParticipantInfo({ inst, name, align = "left", dimmed = false }: {
   );
 }
 
-function OpenParticipants({ match }: { match: any }) {
+function OpenParticipants({ match }: { match: MappedMatch }) {
   const entries = [...(match?.participants ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((j: any) => j.participant_id);
@@ -415,7 +232,7 @@ function OpenParticipants({ match }: { match: any }) {
   );
 }
 
-function HomeCell({ match, isLoser = false }: { match: any; isLoser?: boolean }) {
+function HomeCell({ match, isLoser = false }: { match: MappedMatch; isLoser?: boolean }) {
   const isOpen      = match.competition_category?.format_id?.match_type === "open";
   const participant = match.home_participant;
   if (isOpen) return <OpenParticipants match={match} />;
@@ -428,7 +245,7 @@ function HomeCell({ match, isLoser = false }: { match: any; isLoser?: boolean })
   );
 }
 
-function AwayCell({ match, isLoser = false }: { match: any; isLoser?: boolean }) {
+function AwayCell({ match, isLoser = false }: { match: MappedMatch; isLoser?: boolean }) {
   const isH2H       = match.competition_category?.format_id?.match_type === "head_to_head";
   const participant = match.away_participant;
   if (!isH2H) return <div />;
@@ -465,7 +282,7 @@ function PodiumRow({ live }: { live: any }) {
 
 // ─── Status label ──────────────────────────────────────────────────────────────
 
-function StatusLabel({ match }: { match: any }) {
+function StatusLabel({ match }: { match: MappedMatch }) {
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
   const round      = (match.round as string | null | undefined)?.trim();
@@ -503,7 +320,7 @@ const DESKTOP_GRID: React.CSSProperties = {
   padding: "7px 0",
 };
 
-function TimeVenueCell({ match, isLive }: { match: any; isLive: boolean }) {
+function TimeVenueCell({ match, isLive }: { match: MappedMatch; isLive: boolean }) {
   const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
   return (
     <div style={{ minWidth: 0 }}>
@@ -519,7 +336,7 @@ function TimeVenueCell({ match, isLive }: { match: any; isLive: boolean }) {
   );
 }
 
-function MetaCell({ match }: { match: any }) {
+function MetaCell({ match }: { match: MappedMatch }) {
   return (
     <div style={{ textAlign: "right", minWidth: 0 }}>
       <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 800, color: "#444" }}>
@@ -532,7 +349,7 @@ function MetaCell({ match }: { match: any }) {
   );
 }
 
-function DesktopMatchRow({ match }: { match: any }) {
+function DesktopMatchRow({ match }: { match: MappedMatch }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
@@ -585,7 +402,7 @@ function DesktopMatchRow({ match }: { match: any }) {
 
 // ─── Mobile row ────────────────────────────────────────────────────────────────
 
-function MobileMatchRow({ match }: { match: any }) {
+function MobileMatchRow({ match }: { match: MappedMatch }) {
   const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
   const isOpen     = match.competition_category?.format_id?.match_type === "open";
   const isLive     = match.status === "live";
@@ -850,13 +667,16 @@ function MobileFilterDropdown({ active, onChange, counts }: {
 // ─── MatchesTab ────────────────────────────────────────────────────────────────
 
 interface Props {
-  event:    any;
+  event:    MappedEvent;
   isMobile: boolean;
   phase:    AnimPhase;
+
+  lastUpdated?: Date | null;  
+  isPolling?:   boolean;      
 }
 
-export default function MatchesTab({ event, isMobile, phase }: Props) {
-  const allMatches: any[] = event.matches ?? [];
+export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPolling }: Props) {
+  const allMatches: MappedMatch[] = event.matches ?? [];
   const [filter, setFilter] = useState<FilterValue>("all");
 
   const counts = useMemo<Record<FilterValue, number>>(() => ({
@@ -896,6 +716,17 @@ export default function MatchesTab({ event, isMobile, phase }: Props) {
           }
         </div>
 
+        {/* ── Live update indicator ── */}
+        {(lastUpdated || isPolling) && (
+          <div style={{ ...JK, fontSize: 11, color: "rgba(0,0,0,0.35)", marginBottom: 8, textAlign: "right" }}>
+            {isPolling
+              ? "Updating…"
+              : lastUpdated
+                ? `Updated ${Math.round((Date.now() - lastUpdated.getTime()) / 1000)}s ago`
+                : null}
+          </div>
+        )}
+
         {/* ── Rows ── */}
         {sorted.length === 0 ? (
           <EmptyState />
@@ -908,7 +739,7 @@ export default function MatchesTab({ event, isMobile, phase }: Props) {
               {groups.map(([date, rows]) => (
                 <div key={date}>
                   <DateHeader label={date} count={rows.length} />
-                  {rows.map((match: any) => {
+                  {rows.map((match: MappedMatch) => {
                     const delay = Math.min(rowIdx++, 8) * 40;
                     return (
                       <div
