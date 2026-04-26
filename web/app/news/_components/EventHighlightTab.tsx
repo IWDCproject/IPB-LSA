@@ -233,14 +233,17 @@ function EventNewsMobileScroll({ news, pad }: { news: NewsItem[]; pad: number })
         className="nhscroll"
         style={{
           display: "flex", gap: 8, overflowX: "auto",
-          paddingBottom: 8, paddingLeft: pad, paddingRight: pad,
+          paddingTop: 4,
+          paddingBottom: 12, 
+          paddingLeft: pad, 
+          paddingRight: pad,
         }}
       >
         {news.map(item => (
           <div
             key={item.id}
             onClick={() => router.push(`/news/${item.slug}`)}
-            style={{ flexShrink: 0, width: MOB_CARD_W, cursor: "pointer", borderRadius: 8, overflow: "hidden" }}
+            style={{ flexShrink: 0, width: MOB_CARD_W, cursor: "pointer", borderRadius: 8 }}
           >
             <NewsCard item={item} isMobile />
           </div>
