@@ -1,48 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { JK, YELLOW, BLUE, NAVY, DUR, EASE, BASE, STAGGER, DROPDOWN_KEYFRAMES, STATUS_OPTIONS } from "./_newsConstants";
 
-// ─── Types (subset used here) ─────────────────────────────────────────────────
-
-export type EventStatus = "upcoming" | "ongoing" | "concluded";
-export type SortValue   = "-published_at" | "published_at";
-
-export interface EventOption {
-  id:     string;
-  name:   string;
-  slug:   string;
-  status: EventStatus;
-}
-
-// ─── Constants (subset used here) ────────────────────────────────────────────
-
-const JK     = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const YELLOW = "#FFC936";
-const BLUE   = "#0D26C2";
-const NAVY   = "#06125C";
-const DUR    = 420;
-const EASE   = "cubic-bezier(0.22, 1, 0.36, 1)";
-const BASE   = 40;
-const STAGGER = 28;
-
-const STATUS_OPTIONS: { key: EventStatus; label: string; color: string; symbol?: string }[] = [
-  { key: "ongoing",   label: "Berlangsung", color: "#dc2626", symbol: "●" },
-  { key: "upcoming",  label: "Akan Datang", color: YELLOW,    symbol: "◆" },
-  { key: "concluded", label: "Selesai",     color: "rgba(255,255,255,0.5)" },
-];
+export type { EventStatus, SortValue, EventOption } from "./_newsTypes";
+import type { EventStatus, SortValue, EventOption } from "./_newsTypes";
 
 // ─── Keyframes — injected once, scoped to this system ─────────────────────────
-
-const KEYFRAMES = `
-  @keyframes mob-panel-in {
-    from { opacity: 0; transform: scaleY(0.88) translateY(-6px); }
-    to   { opacity: 1; transform: scaleY(1)    translateY(0);    }
-  }
-  @keyframes mob-item-in {
-    from { opacity: 0; transform: translateY(-5px); }
-    to   { opacity: 1; transform: translateY(0);    }
-  }
-`;
+// (DROPDOWN_KEYFRAMES imported from _newsConstants)
 
 // ─── Filter drop button ───────────────────────────────────────────────────────
 
@@ -213,7 +178,7 @@ export function MobileFilterBar({
 
   return (
     <div ref={containerRef} style={{ position: "relative", zIndex: 20 }}>
-      <style>{KEYFRAMES}</style>
+      <style>{DROPDOWN_KEYFRAMES}</style>
 
       {/* Button row */}
       <div style={{

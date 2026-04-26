@@ -4,29 +4,14 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react
 import { useRouter } from "next/navigation";
 import { CardSlot, Pagination } from "./NewsCardSlot";
 import { MobileFilterBar } from "./MobileFilterBar";
+import { JK, BB, YELLOW, BLUE, NAVY, DUR, EASE, BASE, STAGGER, STATUS_OPTIONS, DROPDOWN_KEYFRAMES } from "./_newsConstants";
+import { buildNewsFilter, STATUS_RAW_MAP } from "./_newsQueries";
+import { useDebounce } from "@/hooks/useDebounce";
+import type { EventStatus, SortValue, EventOption, NewsItem } from "./_newsTypes";
+
+export type { EventStatus, SortValue, EventOption, NewsItem } from "./_newsTypes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type EventStatus = "upcoming" | "ongoing" | "concluded";
-export type SortValue   = "-published_at" | "published_at";
-
-export interface EventOption {
-  id:     string;
-  name:   string;
-  slug:   string;
-  status: EventStatus;
-}
-
-export interface NewsItem {
-  id:            string;
-  title:         string;
-  slug:          string;
-  excerpt:       string | null;
-  thumbnail_url: string | null;
-  category:      string;
-  published_at:  string;
-  event_id:      { name: string; slug?: string } | null;
-}
 
 interface Props {
   events:   EventOption[];
@@ -35,42 +20,10 @@ interface Props {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const JK     = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const BB     = { fontFamily: "'Bebas Neue', sans-serif"        } as const;
-const YELLOW = "#FFC936";
-const BLUE   = "#0D26C2";
-const NAVY   = "#06125C";
 const PAGE_SIZE = 24;
 
-const DUR                     = 420;
-const EASE                    = "cubic-bezier(0.22, 1, 0.36, 1)";
-const BASE                    = 40;
-const STAGGER                 = 28;
 const SKELETON_SHOW_DELAY_MS  = 200;
 const SKELETON_MIN_DISPLAY_MS = 200;
-
-const STATUS_OPTIONS: { key: EventStatus; label: string; color: string; symbol?: string }[] = [
-  { key: "ongoing",   label: "Berlangsung", color: "#dc2626", symbol: "●" },
-  { key: "upcoming",  label: "Akan Datang", color: YELLOW,    symbol: "◆" },
-  { key: "concluded", label: "Selesai",     color: "rgba(255,255,255,0.5)" },
-];
-
-const STATUS_RAW_MAP: Record<EventStatus, string[]> = {
-  ongoing:   ["ongoing", "active"],
-  upcoming:  ["upcoming"],
-  concluded: ["concluded", "finished", "past"],
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [dv, setDv] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDv(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return dv;
-}
 
 // ─── Desktop filter atoms (only used here, not worth their own file) ──────────
 
@@ -101,17 +54,6 @@ function EventChip({ label, onRemove }: { label: string; onRemove: () => void })
     </span>
   );
 }
-
-const DROPDOWN_KEYFRAMES = `
-  @keyframes mob-panel-in {
-    from { opacity: 0; transform: scaleY(0.88) translateY(-6px); }
-    to   { opacity: 1; transform: scaleY(1)    translateY(0);    }
-  }
-  @keyframes mob-item-in {
-    from { opacity: 0; transform: translateY(-5px); }
-    to   { opacity: 1; transform: translateY(0);    }
-  }
-`;
 
 function EventDropdown({
   events, selected, onToggle, onClear, onClose,
@@ -241,6 +183,9 @@ export default function AllNewsTab({ events, isMobile }: Props) {
   const debouncedSearch = useDebounce(searchInput, 350);
 
   // ── Fetch — with skeleton show-delay + minimum display logic ──────────────
+  // The `cancelled` flag guards against stale updates from rapid filter
+  // changes.  The skeleton show/min-display timers are intentionally kept as
+  // they are — they implement the perceived-performance UX contract.
   useEffect(() => {
     let cancelled        = false;
     let skeletonShownAt: number | null = null;
@@ -253,10 +198,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
     const rawStatuses = Array.from(activeStatuses).flatMap(s => STATUS_RAW_MAP[s]);
     const eventSlugs  = Array.from(activeEventSlugs);
-    const filter: any = { is_published: { _eq: true } };
-    if (debouncedSearch) filter.title     = { _icontains: debouncedSearch };
-    if (rawStatuses.length) filter.event_id = { ...(filter.event_id ?? {}), status: { _in: rawStatuses } };
-    if (eventSlugs.length)  filter.event_id = { ...(filter.event_id ?? {}), slug:   { _in: eventSlugs  } };
+    const filter      = buildNewsFilter({ debouncedSearch, rawStatuses, eventSlugs });
 
     const commit = (result: { items: NewsItem[]; total: number; totalPages: number }) => {
       setItems(result.items);
@@ -283,6 +225,10 @@ export default function AllNewsTab({ events, isMobile }: Props) {
       setSkeletonVisible(true);
     }, SKELETON_SHOW_DELAY_MS);
 
+    // Dynamic import is intentional: it keeps the directus SDK out of the
+    // initial JS bundle for this route, deferring the load until the first
+    // filter interaction.  The module is cached by the bundler after the
+    // first resolution, so subsequent calls resolve synchronously.
     import("@/lib/directus").then(async ({ getAllNewsFiltered }) => {
       if (cancelled) return;
       try {
@@ -322,14 +268,15 @@ export default function AllNewsTab({ events, isMobile }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // Reset page on filter change
+  // Reset page on filter change (page is intentionally excluded from the dep
+  // array — we only want to react to *filter* changes, not page changes).
   const prevFilters = useRef({ debouncedSearch, activeStatuses, activeEventSlugs, sort });
   useEffect(() => {
     const prev = prevFilters.current;
     if (
-      prev.debouncedSearch !== debouncedSearch ||
-      prev.sort !== sort ||
-      prev.activeStatuses !== activeStatuses ||
+      prev.debouncedSearch  !== debouncedSearch  ||
+      prev.sort             !== sort             ||
+      prev.activeStatuses   !== activeStatuses   ||
       prev.activeEventSlugs !== activeEventSlugs
     ) {
       setPage(1);

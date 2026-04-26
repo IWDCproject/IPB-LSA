@@ -1,12 +1,15 @@
+// @ts-check
 import { createDirectus, rest, readItems, aggregate } from '@directus/sdk';
+
+// ─── Directus clients ─────────────────────────────────────────────────────────
 
 // Live data (scores, match state) — always fresh
 const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL)
   .with(rest({ onRequest: (options) => ({ ...options, cache: "no-store" }) }));
 
 // Stable data (news, participants, events) — revalidate every 60 s so the
-// Next.js fetch cache actually works and pages don't refetch from scratch on
-// every navigation. Drop to 0 during local dev if you want no-store behaviour.
+// Next.js fetch cache works and pages don't refetch on every navigation.
+// Set to 0 during local dev if you want no-store behaviour.
 const directusCached = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL)
   .with(rest({ onRequest: (options) => ({ ...options, next: { revalidate: 60 } }) }));
 
@@ -29,7 +32,7 @@ const mapParticipant = (p) => {
     try {
       parsedMembers = JSON.parse(p.members);
     } catch (e) {
-      // If it fails to parse, just leave it as is
+      // leave as-is if JSON.parse fails
     }
   }
 
@@ -164,14 +167,11 @@ export const getEventDetail = async (slug) => {
   } catch (e) { return null; }
 };
 
-/**
- * Cheap aggregate-only fetch for the News tab skeleton.
- * Returns the number of items on the requested page so the skeleton can render
- * the exact right number of cards before the full items response arrives.
- * Fire this in parallel with getNewsByEvent — because it's a single aggregate
- * query with no field loading it almost always resolves first, letting the
- * skeleton correct its card count before the baton handoff happens.
- */
+// Cheap aggregate-only fetch for the News tab skeleton.
+// Returns the number of items on the requested page so the skeleton can render
+// the exact right number of cards before the full items response arrives.
+// Fire this in parallel with getNewsByEvent — the aggregate resolves first,
+// letting the skeleton correct its card count before the baton handoff happens.
 export const getNewsCountByEvent = async (eventSlug, page = 1, pageSize = 6) => {
   const filter = {
     event_id: { slug: { _eq: eventSlug } },
@@ -198,11 +198,9 @@ export const getNewsCountByEvent = async (eventSlug, page = 1, pageSize = 6) => 
   }
 };
 
-/**
- * Paginated news fetch for the News tab (items only — no aggregate).
- * Pair with getNewsCountByEvent which fires in parallel and handles pagination
- * metadata so this function stays lean and avoids a redundant count query.
- */
+// Paginated news fetch for the News tab (items only — no aggregate).
+// Pair with getNewsCountByEvent which fires in parallel and handles pagination
+// metadata, so this function stays lean and avoids a redundant count query.
 export const getNewsByEvent = async (eventSlug, page = 1, pageSize = 6) => {
   const filter = {
     event_id: { slug: { _eq: eventSlug } },
@@ -263,18 +261,16 @@ const PARTICIPANT_FIELDS = [
   'competition_category_id.name',
   'competition_category_id.display_order',
 ];
- 
+
 export const getParticipantsByEvent = async (eventSlug) => {
   try {
     const [categories, rawParticipants] = await Promise.all([
-      // All competition categories for this event, ordered for display
       directusCached.request(readItems('competition_categories', {
         filter: { event_id: { slug: { _eq: eventSlug } } },
         fields: ['id', 'name', 'display_order'],
         sort: ['display_order', 'name'],
         limit: -1,
       })),
-      // All participants linked to this event via their category
       directusCached.request(readItems('participants', {
         filter: {
           competition_category_id: {
@@ -286,10 +282,9 @@ export const getParticipantsByEvent = async (eventSlug) => {
         limit: -1,
       })),
     ]);
- 
+
     const participants = rawParticipants.map(mapParticipant);
- 
-    // Group participants under their category
+
     return categories.map(cat => ({
       category: cat,
       participants: participants.filter(p => {
@@ -304,20 +299,17 @@ export const getParticipantsByEvent = async (eventSlug) => {
     return [];
   }
 };
-/**
- * Fetches all published events that have at least one published news article,
- * along with up to 6 of their latest news items each.
- *
- * Directus event statuses are expected to be "upcoming" | "ongoing" | "concluded".
- * If your collection uses different values adjust the STATUS_MAP below.
- */
-const STATUS_MAP = {
+
+// Maps raw Directus event status strings (including legacy aliases) to the
+// three canonical values the frontend understands: "upcoming" | "ongoing" | "concluded".
+// The inverse — canonical → raw — lives in _newsQueries.ts as STATUS_RAW_MAP.
+export const STATUS_MAP = {
   upcoming:  'upcoming',
   ongoing:   'ongoing',
-  active:    'ongoing',   // alias — remove if unused
+  active:    'ongoing',   // alias — remove if unused in Directus
   concluded: 'concluded',
-  finished:  'concluded', // alias — remove if unused
-  past:      'concluded', // alias — remove if unused
+  finished:  'concluded', // alias — remove if unused in Directus
+  past:      'concluded', // alias — remove if unused in Directus
 };
 
 export const getEventsWithRecentNews = async () => {
@@ -347,31 +339,21 @@ export const getEventsWithRecentNews = async () => {
           slug:         event.slug,
           banner_image: event.banner_image ?? null,
           banner_url:   getAssetUrl(event.banner_image),
-          // Normalise status to the three values NewsPageClient understands
           status:       STATUS_MAP[event.status] ?? 'concluded',
           news:         items.map(mapNews),
         };
       })
     );
 
-    // Only return events that actually have news
     return eventsWithNews.filter((e) => e.news.length > 0);
   } catch (e) {
     return [];
   }
 };
 
-/**
- * Fetches paginated, filtered news for the "Semua Berita" tab.
- *
- * @param {object} opts
- * @param {number}   opts.page      - 1-based page number (default 1)
- * @param {number}   opts.pageSize  - Items per page (default 24)
- * @param {object}   opts.filter    - Directus filter object (built by AllNewsTab)
- * @param {string}   opts.sort      - Directus sort string e.g. "-published_at"
- *
- * @returns {{ items: NewsItem[], total: number, totalPages: number }}
- */
+// Fetches paginated, filtered news for the "Semua Berita" tab.
+// Build the filter argument with buildNewsFilter() from _newsQueries.ts
+// rather than constructing the raw object in the calling component.
 export const getAllNewsFiltered = async ({
   page     = 1,
   pageSize = 24,
@@ -381,7 +363,7 @@ export const getAllNewsFiltered = async ({
   // Extend the base NEWS_FIELDS with event status + slug so the Semua Berita
   // tab can show status badges and the event filter works correctly.
   const FULL_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug', 'event_id.status'];
- 
+
   try {
     const [items, countResult] = await Promise.all([
       directusCached.request(readItems('news', {
@@ -396,9 +378,9 @@ export const getAllNewsFiltered = async ({
         query: { filter },
       })),
     ]);
- 
+
     const total = Number(countResult?.[0]?.count ?? 0);
- 
+
     return {
       items:      items.map(mapNews),
       total,

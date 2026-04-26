@@ -5,12 +5,9 @@ import { useState } from "react";
 import HomepageNewsCard from "@/app/_components/news-stuff/HomepageNewsCard";
 import Button from "@/components/Button";
 import UniversityMarquee from "@/components/UniversityMarquee";
+import { BB, JK, BLUE, NAVY } from "./_newsConstants";
 
-const BB   = { fontFamily: "'Bebas Neue', sans-serif"        } as const;
-const JK   = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const BLUE = "#0D26C2";
-const NAVY = "#06125C";
-
+// Local subset type — intentionally narrow, documents what this component uses
 interface NewsItem {
   id:            string;
   title:         string;

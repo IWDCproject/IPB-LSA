@@ -1,13 +1,10 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import AllNewsTab, { type EventOption } from "./AllNewsTab";
+import AllNewsTab from "./AllNewsTab";
 import EventHighlightTab, { type EventWithNews } from "./EventHighlightTab";
-
-const JK     = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const YELLOW = "#FFC936";
-const BLUE   = "#0D26C2";
-const NAVY   = "#06125C";
+import { JK, YELLOW, BLUE, NAVY } from "./_newsConstants";
+import type { EventOption } from "./_newsTypes";
 
 type ContentTab = "byEvent" | "allNews";
 
