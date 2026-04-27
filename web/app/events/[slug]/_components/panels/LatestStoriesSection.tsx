@@ -47,7 +47,7 @@ export default function LatestStoriesSection({
       <div style={{
         display:             "grid",
         gridTemplateColumns: isMobile ? "repeat(1, 1fr)" : "repeat(4, 1fr)",
-        gap:                 isMobile ? 10 : 20,
+        gap:                 8,
         alignItems:          "stretch",
       }}>
         {displayNews.map((item) => (

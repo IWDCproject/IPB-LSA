@@ -535,10 +535,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
           {/* Empty state */}
           {ready && items !== null && items.length === 0 && (
             <div style={{ textAlign: "center", padding: "80px 20px", animation: "np-in 0.4s ease both" }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" style={{ marginBottom: 12 }}>
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <p style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)", margin: 0 }}>
+              <p style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)", margin: 0, fontWeight: 600 }}>
                 Tidak ada artikel yang cocok dengan filter ini.
               </p>
             </div>

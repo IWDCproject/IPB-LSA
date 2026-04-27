@@ -143,7 +143,6 @@ const mapMatch = (m: any): MappedMatch => {
 const NEWS_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug'];
 
 const mapNews = (n: any): MappedNews => {
-  console.log('mapNews event_id:', JSON.stringify(n.event_id));
   return {
     ...n,
     thumbnail_url:    getAssetUrl(n.thumbnail),

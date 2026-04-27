@@ -22,7 +22,7 @@ const SKELETON_MIN_DISPLAY_MS = 200;
 // ─── Responsive columns ────────────────────────────────────────────────────────
 
 function getColumns(width: number, isMobile: boolean): number {
-  if (isMobile || width < 768) return 2;
+  if (isMobile || width < 768) return 1;
   if (width < 1280)            return 3;
   return 4;
 }
@@ -148,7 +148,6 @@ function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, d
         opacity: 0,
         animation: `anim-slide-up-soft ${dur}ms ${ease} ${base + index * stagger}ms forwards`,
         display: "grid",
-        height: "100%",
       }}
     >
       {/* Skeleton layer — only mounted when showSkeleton=true */}
@@ -165,7 +164,7 @@ function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, d
             zIndex:        cardShowing ? 0 : 1,
           }}
         >
-          <NewsCardSkeleton />
+          <NewsCardSkeleton isMobile={isMobile} />
         </div>
       )}
 
@@ -218,7 +217,7 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
 
   const COLUMNS = useColumns(isMobile);
-  const GAP     = isMobile ? 8 : 12;
+  const GAP     = 8;
 
   useEffect(() => {
     setItems(null);
