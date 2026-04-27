@@ -132,7 +132,7 @@ export default function EventDetailClient({ event }: { event: MappedEvent }) {
               position: "absolute", inset: 0,
               backgroundImage: `url(${bannerUrl})`,
               backgroundSize: "cover", backgroundPosition: "center",
-              filter: "blur(3px)", transform: "scale(1.05)",
+              filter: "blur(8px)", transform: "scale(1.05)",
             }} />
             <div style={{ position: "absolute", inset: 0, background: TINT_COLOR, pointerEvents: "none" }} />
           </div>

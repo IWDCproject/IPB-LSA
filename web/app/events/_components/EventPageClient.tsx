@@ -121,7 +121,7 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: EventListing[] }) {
         position: "absolute", inset: 0,
         backgroundImage: imgA ? `url(${imgA})` : undefined,
         backgroundSize: "cover", backgroundPosition: "center",
-        filter: "blur(3px)", transform: "scale(1.05)",
+        filter: "blur(8px)", transform: "scale(1.05)",
         opacity: front === "a" ? 1 : 0,
         transition: `opacity ${FADE_MS}ms ease-in-out`,
       }} />
@@ -129,7 +129,7 @@ function BgCrossfade({ cycleEvents }: { cycleEvents: EventListing[] }) {
         position: "absolute", inset: 0,
         backgroundImage: imgB ? `url(${imgB})` : undefined,
         backgroundSize: "cover", backgroundPosition: "center",
-        filter: "blur(3px)", transform: "scale(1.05)",
+        filter: "blur(8px)", transform: "scale(1.05)",
         opacity: front === "b" ? 1 : 0,
         transition: `opacity ${FADE_MS}ms ease-in-out`,
       }} />
