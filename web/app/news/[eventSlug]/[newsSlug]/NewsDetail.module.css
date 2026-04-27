@@ -11,6 +11,55 @@
   margin: 0 auto;
 }
 
+/* ── Intro animations ────────────────────────────────────────────────────── */
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Default: elements are invisible until [data-ready] fires */
+.article .header,
+.article .heroWrap,
+.article .body {
+  opacity: 0;
+}
+
+/* Once JS marks the article as ready, run the staggered sequence */
+.article[data-ready="true"] .header {
+  animation: fadeSlideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
+.article[data-ready="true"] .heroWrap {
+  animation: scaleReveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+}
+
+.article[data-ready="true"] .body {
+  animation: fadeSlideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both;
+}
+
 /* ── Header ─────────────────────────────────────────────────────────────── */
 
 .header {
@@ -44,13 +93,13 @@
 .eventLink {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0D26C2;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease-out;
 }
 
 .eventLink::before {
@@ -97,7 +146,7 @@
 .author {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   color: #374151;
 }
 
@@ -295,5 +344,26 @@
 
   .title {
     font-size: clamp(20px, 6vw, 28px);
+  }
+
+  /* Stack byline vertically and left-align event link on mobile */
+  .byline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bylineRight {
+    margin-left: 0;
+  }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .article .header,
+  .article .heroWrap,
+  .article .body {
+    opacity: 1;
+    animation: none !important;
   }
 }

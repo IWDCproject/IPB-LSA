@@ -2,10 +2,10 @@ import { notFound }      from 'next/navigation';
 import type { Metadata } from 'next';
 import Image             from 'next/image';
 import { getNewsBySlug } from '@/lib/directus';
-import Button            from '@/components/Button';
 import Footer            from '@/components/Footer';
 import styles            from './NewsDetail.module.css';
 import EventLink         from './_components/EventLink';
+import AnimatedArticle   from './_components/AnimatedArticle';
 
 
 interface Props {
@@ -59,7 +59,7 @@ export default async function NewsDetailPage({ params }: Props) {
   return (
     <>
       <main className={styles.page}>
-        <article className={styles.article}>
+        <AnimatedArticle>
 
           <header className={styles.header}>
             <h1 className={styles.title}>{news.title}</h1>
@@ -111,7 +111,7 @@ export default async function NewsDetailPage({ params }: Props) {
             dangerouslySetInnerHTML={{ __html: news.content ?? '' }}
           />
 
-        </article>
+        </AnimatedArticle>
       </main>
       <Footer />
     </>
