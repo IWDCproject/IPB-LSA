@@ -155,11 +155,12 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
     }
   }, [isHovered]);
 
-  const badge = item.event_id?.name ?? item.category;
+  const badge     = item.event_id?.name ?? item.category;
+  const eventSlug = item.event_id?.slug ?? '';
 
   return (
     <Link
-      href={`/news/${item.slug}`}
+      href={`/news/${eventSlug}/${item.slug}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{

@@ -140,18 +140,19 @@ const mapMatch = (m: any): MappedMatch => {
   };
 };
 
-const NEWS_FIELDS = ['*', 'thumbnail.*', 'event_id.name'];
+const NEWS_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug'];
 
-const mapNews = (n: any): MappedNews => ({
-  ...n,
-  thumbnail_url:    getAssetUrl(n.thumbnail),
-  thumbnail_width:  n.thumbnail?.width  ?? null,
-  thumbnail_height: n.thumbnail?.height ?? null,
-  category:         n.category          ?? null,
-  // Guard against Directus returning a bare ID string when the relation isn't
-  // populated (shouldn't happen given NEWS_FIELDS, but be defensive).
-  event_id: typeof n.event_id === 'object' && n.event_id !== null ? n.event_id : null,
-});
+const mapNews = (n: any): MappedNews => {
+  console.log('mapNews event_id:', JSON.stringify(n.event_id));
+  return {
+    ...n,
+    thumbnail_url:    getAssetUrl(n.thumbnail),
+    thumbnail_width:  n.thumbnail?.width  ?? null,
+    thumbnail_height: n.thumbnail?.height ?? null,
+    category:         n.category          ?? null,
+    event_id: typeof n.event_id === 'object' && n.event_id !== null ? n.event_id : null,
+  };
+};
 
 // ─── Exported data functions ──────────────────────────────────────────────────
 
@@ -284,6 +285,25 @@ export const getNewsByEvent = async (
   } catch {
     return { items: [], error: true };
   }
+};
+
+export const getNewsBySlug = async (
+  eventSlug: string,
+  newsSlug: string,
+): Promise<MappedNews | null> => {
+  try {
+    const items = await directusCached.request(readItems('news', {
+      filter: {
+        slug:         { _eq: newsSlug },
+        event_id:     { slug: { _eq: eventSlug } },
+        is_published: { _eq: true },
+      },
+      fields: ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug', 'author_id.organisation_name'],
+      limit: 1,
+    }));
+    const item = (items as any[])[0];
+    return item ? mapNews(item) : null;
+  } catch { return null; }
 };
 
 // ─── Participants ─────────────────────────────────────────────────────────────

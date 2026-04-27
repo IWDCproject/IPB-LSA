@@ -13,7 +13,7 @@ interface NewsItem {
   title:         string;
   slug:          string;
   thumbnail_url: string | null;
-  event_id:      { name: string } | null;
+  event_id:      { name: string; slug?: string } | null;
 }
 
 interface Props {
@@ -118,7 +118,7 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
         {main ? (
           <HoverCard
             style={{ height: "100%" }}
-            onClick={() => router.push(`/news/${main.slug}`)}
+            onClick={() => router.push(`/news/${main.event_id?.slug}/${main.slug}`)}
           >
             <HomepageNewsCard
               thumbnail_url={main.thumbnail_url}
@@ -138,7 +138,7 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
           <HoverCard
             key={item.id}
             style={{ minHeight: 0 }}
-            onClick={() => router.push(`/news/${item.slug}`)}
+            onClick={() => router.push(`/news/${item.event_id?.slug}/${item.slug}`)}
           >
             <HomepageNewsCard
               thumbnail_url={item.thumbnail_url}
@@ -168,7 +168,7 @@ function MobileStack({ news }: { news: NewsItem[] }) {
         {main ? (
           <HoverCard
             style={{ height: "100%" }}
-            onClick={() => router.push(`/news/${main.slug}`)}
+            onClick={() => router.push(`/news/${main.event_id?.slug}/${main.slug}`)}
           >
             <HomepageNewsCard thumbnail_url={main.thumbnail_url} tag={main.event_id?.name ?? null} title={main.title} isMain compact />
           </HoverCard>
@@ -188,7 +188,7 @@ function MobileStack({ news }: { news: NewsItem[] }) {
             <HoverCard
               key={item.id}
               style={{ minHeight: 0 }}
-              onClick={() => router.push(`/news/${item.slug}`)}
+              onClick={() => router.push(`/news/${item.event_id?.slug}/${item.slug}`)}
             >
               <HomepageNewsCard thumbnail_url={item.thumbnail_url} tag={item.event_id?.name ?? null} title={item.title} compact />
             </HoverCard>

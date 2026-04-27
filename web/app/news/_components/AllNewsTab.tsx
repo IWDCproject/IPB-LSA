@@ -564,7 +564,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
                       ready={ready}
                       showSkeleton={skeletonVisible}
                       isMobile={isMobile}
-                      onClick={item ? () => router.push(`/news/${item.slug}`) : undefined}
+                      onClick={item ? () => router.push(`/news/${item.event_id?.slug}/${item.slug}`) : undefined}
                     />
                   );
                 })}
