@@ -117,9 +117,28 @@ function makeMask(W, H, stops, dir = "down") {
   return oc;
 }
 
-function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas) {
-  const tmp  = new OffscreenCanvas(W, H);
+// ---------------------------------------------------------------------------
+// applyLayer
+//
+// Draws a single blurred+masked layer onto destCtx.
+//
+// PERF: accepts an optional `tmp` OffscreenCanvas to reuse across calls.
+// When provided, the canvas is cleared and its compositing mode is reset
+// at the top of each call so it is safe to share between layers.
+// Callers that process many layers (eventcard=4, newscard=4, hero=9) save
+// N-1 OffscreenCanvas allocations and the associated GC churn.
+// ---------------------------------------------------------------------------
+function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas, tmp) {
+  // Reuse the provided canvas if available, otherwise allocate a fresh one.
+  const ownCanvas = !tmp;
+  if (ownCanvas) tmp = new OffscreenCanvas(W, H);
+
   const tctx = tmp.getContext("2d");
+
+  // Reset state before reuse — a reused canvas retains the previous call's
+  // destination-in composite mode and its pixel content without this.
+  tctx.globalCompositeOperation = "source-over";
+  tctx.clearRect(0, 0, W, H);
 
   const bw = blurredBitmap.width;
   const bh = blurredBitmap.height;
@@ -132,13 +151,19 @@ function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas) {
   destCtx.drawImage(tmp, 0, 0);
 }
 
+// ---------------------------------------------------------------------------
+// compositeLayers
+//
+// PERF: one shared tmp canvas for all N layers instead of N allocations.
+// ---------------------------------------------------------------------------
 async function compositeLayers(layers, blurMap, canW, canH, maskDir) {
   const result = new OffscreenCanvas(canW, canH);
   const rctx   = result.getContext("2d");
+  const tmp    = new OffscreenCanvas(canW, canH); // shared across all layers
 
   for (const { blurPx, stops } of layers) {
     const mask = makeMask(canW, canH, stops, maskDir);
-    applyLayer(rctx, canW, canH, blurMap[blurPx], mask);
+    applyLayer(rctx, canW, canH, blurMap[blurPx], mask, tmp);
   }
 
   Object.values(blurMap).forEach((b) => b.close());
@@ -183,41 +208,46 @@ async function processHero(img) {
   const allLayers      = [...HERO_BOTTOM_LAYERS, ...HERO_LEFT_LAYERS, ...HERO_RIGHT_LAYERS];
   const { canW, canH } = insideDims(nw, nh, W, H);
 
-  const scaledUrl = `${url}&width=${W}&fit=inside`;
-
-  const [sharpBlob, blurMap] = await Promise.all([
-    fetch(scaledUrl).then((r) => r.blob()),
+  // PERF: Route the sharp image through /api/blur (blur=0.3 = API minimum,
+  // visually identical to unblurred) instead of fetching directly from Directus.
+  // This gives the sharp image the same server-side disk cache as the blur
+  // layers — cold loads hit Directus once per image per server restart, warm
+  // loads serve from disk in microseconds.
+  //
+  // Both calls use identical canW/canH params so the API returns the same
+  // pixel dimensions for both, eliminating the need for a browser-side resize
+  // step (which previously added a full createImageBitmap decode + scale).
+  const [sharpBitmap, blurMap] = await Promise.all([
+    fetchBlurred(url, 0.3, canW, canH, ttl),
     fetchBlurMap(url, allLayers, canW, canH, ttl),
   ]);
 
-  // Re-derive canvas size from the bitmap the API actually returned.
-  // If natural dims were wrong the API may return a different size; using its
-  // real dimensions keeps the gradient coordinate-space honest.
-  const { canW: realW, canH: realH } = canvasDimsFromBlurMap(blurMap);
-
-  const sharp = await createImageBitmap(sharpBlob, {
-    resizeWidth:   realW,
-    resizeHeight:  realH,
-    resizeQuality: "high",
-  });
+  // Both sharpBitmap and blurMap were requested with the same w/h params so
+  // they have identical dimensions — read realW/realH directly from the bitmap.
+  // This also guards against wrong naturalWidth/naturalHeight (same as the
+  // canvasDimsFromBlurMap approach used in other processors).
+  const realW = sharpBitmap.width;
+  const realH = sharpBitmap.height;
 
   const result = new OffscreenCanvas(realW, realH);
   const rctx   = result.getContext("2d");
+  // PERF: one shared tmp canvas reused across all 9 hero applyLayer calls.
+  const tmp    = new OffscreenCanvas(realW, realH);
 
   for (const { blurPx, stops } of HERO_BOTTOM_LAYERS) {
-    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "up"));
+    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "up"), tmp);
   }
   for (const { blurPx, stops } of HERO_LEFT_LAYERS) {
-    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "right"));
+    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "right"), tmp);
   }
   for (const { blurPx, stops } of HERO_RIGHT_LAYERS) {
-    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "left"));
+    applyLayer(rctx, realW, realH, blurMap[blurPx], makeMask(realW, realH, stops, "left"), tmp);
   }
 
   Object.values(blurMap).forEach((b) => b.close());
 
   const blurred = await createImageBitmap(result);
-  return { id: img.id, url, type: "hero", sharp, blurred };
+  return { id: img.id, url, type: "hero", sharp: sharpBitmap, blurred };
 }
 
 async function processEventcard(img) {
