@@ -706,26 +706,27 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
       }}>
 
         {/* ── Title + filters in one row ── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span style={{ ...JK, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#06125C" }}>
-            Matches
-          </span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ ...JK, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#06125C" }}>
+              Matches
+            </span>
+            {/* ── Live update indicator ── */}
+            {(lastUpdated || isPolling) && (
+              <div style={{ ...JK, fontSize: 11, color: "rgba(0,0,0,0.35)" }}>
+                {isPolling
+                  ? "Updated at --:--"
+                  : lastUpdated
+                    ? `Updated at ${lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
+                    : null}
+              </div>
+            )}
+          </div>
           {isMobile
             ? <MobileFilterDropdown active={filter} onChange={setFilter} counts={counts} />
             : <FilterBar active={filter} onChange={setFilter} counts={counts} />
           }
         </div>
-
-        {/* ── Live update indicator ── */}
-        {(lastUpdated || isPolling) && (
-          <div style={{ ...JK, fontSize: 11, color: "rgba(0,0,0,0.35)", marginBottom: 8, textAlign: "right" }}>
-            {isPolling
-              ? "Updating…"
-              : lastUpdated
-                ? `Updated ${Math.round((Date.now() - lastUpdated.getTime()) / 1000)}s ago`
-                : null}
-          </div>
-        )}
 
         {/* ── Rows ── */}
         {sorted.length === 0 ? (

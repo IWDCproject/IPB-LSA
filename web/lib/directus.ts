@@ -166,6 +166,18 @@ export const getMatches = async (): Promise<MappedMatch[]> => {
   } catch { return []; }
 };
 
+export const getMatchesByEvent = async (slug: string): Promise<MappedMatch[]> => {
+  try {
+    const res = await directus.request(readItems('matches', {
+      filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
+      fields: MATCH_FIELDS,
+      sort:   ['status', 'scheduled_at'],
+      limit:  -1,
+    }));
+    return (res as any[]).map(mapMatch);
+  } catch { return []; }
+};
+
 export const getEventsForListing = async () => {
   try {
     return await directusCached.request(readItems('events', {
