@@ -218,11 +218,12 @@ export async function GET(req) {
 
   const validation = validateUrl(url);
   if (!validation.ok) return new Response(validation.msg, { status: 403 });
+  const safeUrl = validation.url ?? new URL(url).toString();
 
   // Dev mode: skip disk cache but still enforce all security checks above.
   if (IS_DEV) {
     try {
-      const buf = await runSharp(url, blur, w, h);
+      const buf = await runSharp(safeUrl, blur, w, h);
       return new Response(buf, { headers: { "Content-Type": "image/webp" } });
     } catch (err) {
       console.error("[blur] dev error:", err);
@@ -230,7 +231,7 @@ export async function GET(req) {
     }
   }
 
-  const filename = cacheFilename(url, blur, w, h);
+  const filename = cacheFilename(safeUrl, blur, w, h);
   const filePath = path.join(CACHE_DIR, filename);
   const cached   = await readCacheSafe(filePath, ttl);
 
@@ -265,7 +266,7 @@ export async function GET(req) {
     }
   }
 
-  const promise = runSharp(url, blur, w, h);
+  const promise = runSharp(safeUrl, blur, w, h);
   IN_FLIGHT.set(key, promise);
   try {
     const buf = await promise;
