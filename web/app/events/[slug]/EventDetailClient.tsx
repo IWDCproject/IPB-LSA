@@ -1,6 +1,7 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { useRef, useState, useEffect } from "react";
 import EventDetailHeader from "./_components/EventDetailHeader";
 import OverviewTab       from "./_components/tabs/OverviewTab";

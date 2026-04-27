@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { useState } from "react";
 import HomepageNewsCard from "@/app/_components/news-stuff/HomepageNewsCard";
 import Button from "@/components/Button";

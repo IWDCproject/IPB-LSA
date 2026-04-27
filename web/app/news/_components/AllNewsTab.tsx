@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { CardSlot, Pagination } from "./NewsCardSlot";
 import { MobileFilterBar } from "./MobileFilterBar";
 import { JK, BB, YELLOW, BLUE, NAVY, DUR, EASE, BASE, STAGGER, STATUS_OPTIONS, DROPDOWN_KEYFRAMES } from "./_newsConstants";

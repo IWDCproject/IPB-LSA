@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import Link from "next/link";
 import NewsCard from "@/components/NewsCard";
 import { NewsPlaceholder } from "./NewsCardSlot";

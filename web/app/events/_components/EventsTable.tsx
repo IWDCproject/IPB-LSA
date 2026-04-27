@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { useState } from "react";
 import { getAssetUrl } from "@/lib/directus";
 import Button from "@/components/Button";
