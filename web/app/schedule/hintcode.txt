@@ -189,7 +189,7 @@ function EventGroup({ eventName, cardImage, matches }: { eventName: string, card
           <div 
             className="absolute right-0 top-0 bottom-0 w-1/2 opacity-[0.08] filter brightness-0 invert pointer-events-none transition-opacity group-hover:opacity-[0.15]"
             style={{
-              backgroundImage: `url(${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767'}/assets/${imageUrl})`,
+              backgroundImage: `url(${process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:7777'}/assets/${imageUrl})`,
               backgroundPosition: 'right center',
               backgroundSize: 'contain',
               backgroundRepeat: 'no-repeat',

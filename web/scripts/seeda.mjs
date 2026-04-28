@@ -15,7 +15,7 @@ import {
 // CONFIGURATION
 // ==========================================
 const ADMIN_TOKEN = 'ECH98IbvMYhkTbPM2sYWKsjeib3Bpgo2';
-const client = createDirectus('http://localhost:6767').with(rest()).with(staticToken(ADMIN_TOKEN));
+const client = createDirectus('http://localhost:7777').with(rest()).with(staticToken(ADMIN_TOKEN));
 
 // ==========================================
 // UTILITIES & GENERATORS

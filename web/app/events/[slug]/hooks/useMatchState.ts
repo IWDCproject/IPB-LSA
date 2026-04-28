@@ -3,10 +3,28 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { MappedMatch } from "../_types";
 
-/** How often to re-fetch live match data (ms). */
-const POLL_INTERVAL_MS = 10_000;
-/** Stop polling after this many consecutive failures. */
-const MAX_RETRIES = 5;
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+/** REST fallback poll interval (ms). Only used when WS is unavailable. */
+const POLL_INTERVAL_MS   = 10_000;
+/** Max consecutive REST failures before giving up. */
+const POLL_MAX_RETRIES   = 5;
+/** Max WS reconnect attempts before falling back to REST polling. */
+const WS_MAX_RECONNECTS  = 5;
+/** Base delay for WS reconnect backoff (doubles each attempt, capped at 30s). */
+const WS_BASE_DELAY_MS   = 1_000;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Convert http(s):// → ws(s):// so we never need a second env var. */
+function getWsUrl(): string {
+  const base  = process.env.NEXT_PUBLIC_DIRECTUS_URL ?? "http://localhost:7777";
+  const token = process.env.NEXT_PUBLIC_DIRECTUS_TOKEN ?? "";
+  const ws    = base.replace(/^http/, "ws") + "/websocket";
+  return token ? `${ws}?access_token=${token}` : ws;
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface UseMatchStateResult {
   matches:     MappedMatch[];
@@ -14,22 +32,30 @@ interface UseMatchStateResult {
   isPolling:   boolean;
 }
 
+/** Minimal shape of a WS update — only the fields we subscribe to. */
+interface WsMatchUpdate {
+  id:          string;
+  live_state?: MappedMatch["live_state"];
+  status?:     string;
+}
+
 /**
  * Keeps match data fresh for the current event.
  *
- * TODAY — polling via REST:
- *   Re-fetches /api/events/[slug]/matches every POLL_INTERVAL_MS.
- *   Only polls when the browser tab is visible to avoid wasted requests.
- *   Stops polling after MAX_RETRIES consecutive failures (exponential backoff
- *   logged per attempt; polling resumes when tab becomes visible again).
+ * PRIMARY — Directus WebSocket:
+ *   Subscribes to `matches` for this event slug, fields [id, live_state, status].
+ *   On `init`: merges initial live_state/status into the server-rendered matches.
+ *   On `update`: patches only the changed matches by ID — no remapping needed.
+ *   Handles Directus heartbeat (ping → pong).
+ *   Reconnects with exponential backoff on disconnect.
  *
- * LATER — WebSocket swap:
- *   Replace the useEffect body with a socket.io / native WebSocket
- *   subscription. The returned `matches` shape never changes, so none of
- *   MatchesTab, MatchesPanels, or EventDetailClient need to know.
+ * FALLBACK — REST polling:
+ *   Activated after WS_MAX_RECONNECTS consecutive failures.
+ *   Polls /api/events/[slug]/matches every POLL_INTERVAL_MS.
+ *   Restores WS attempt when tab becomes visible again after a fallback period.
  *
- * @param slug          - event slug used to build the API URL
- * @param initialMatches - server-rendered matches passed from EventDetailClient
+ * @param slug           - event slug (used for WS filter + REST URL)
+ * @param initialMatches - server-rendered matches from EventDetailClient
  */
 export function useMatchState(
   slug:           string,
@@ -39,83 +65,200 @@ export function useMatchState(
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isPolling,   setIsPolling]   = useState(false);
 
-  const abortRef      = useRef<AbortController | null>(null);
-  const isMounted     = useRef(true);
-  const retryCount    = useRef(0);
+  const isMounted = useRef(true);
 
-  // Track mounted state so we never call setState after unmount.
   useEffect(() => {
     isMounted.current = true;
     return () => { isMounted.current = false; };
   }, []);
 
-  const fetchMatches = useCallback(async () => {
-    // Stop retrying after MAX_RETRIES consecutive failures.
-    if (retryCount.current >= MAX_RETRIES) return;
+  // ─── Shared merge: patch live_state + status into existing mapped matches ──
+  // We subscribe to only [id, live_state, status] — never the full row —
+  // so the static participant/category data from the server render is preserved.
+  const applyUpdates = useCallback((updates: WsMatchUpdate[]) => {
+    if (!isMounted.current || !updates.length) return;
+    setMatches(prev => prev.map(m => {
+      const u = updates.find(x => x.id === m.id);
+      if (!u) return m;
+      return {
+        ...m,
+        ...(u.status     !== undefined && { status:     u.status }),
+        ...(u.live_state !== undefined && { live_state: u.live_state }),
+      };
+    }));
+    setLastUpdated(new Date());
+  }, []);
 
-    // Cancel any in-flight request before starting a new one.
-    abortRef.current?.abort();
+  // ─── REST fallback ─────────────────────────────────────────────────────────
+  const pollRetries = useRef(0);
+  const pollAbort   = useRef<AbortController | null>(null);
+
+  const fetchOnce = useCallback(async () => {
+    if (pollRetries.current >= POLL_MAX_RETRIES) return;
+    pollAbort.current?.abort();
     const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
+    pollAbort.current = ctrl;
     try {
       if (isMounted.current) setIsPolling(true);
       const res = await fetch(`/api/events/${slug}/matches`, {
         signal: ctrl.signal,
-        // Bypass Next.js cache so we always get fresh data.
-        cache: "no-store",
+        cache:  "no-store",
       });
-      if (!res.ok) {
-        // Server returned an error (e.g. 500) — treat as a failure.
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: MappedMatch[] = await res.json();
-
-      // Success — reset retry counter and update state.
-      retryCount.current = 0;
+      pollRetries.current = 0;
       if (isMounted.current) {
         setMatches(data);
         setLastUpdated(new Date());
       }
     } catch (err) {
-      if ((err as Error).name === "AbortError") return; // expected — ignore
-      retryCount.current += 1;
-      const backoffSec = Math.min(2 ** retryCount.current, 60);
-      console.warn(
-        `[useMatchState] fetch failed (attempt ${retryCount.current}/${MAX_RETRIES}, ` +
-        `next poll in ~${POLL_INTERVAL_MS / 1000}s, backoff noted: ${backoffSec}s):`,
-        err,
-      );
+      if ((err as Error).name === "AbortError") return;
+      pollRetries.current++;
+      console.warn(`[useMatchState] REST poll failed (${pollRetries.current}/${POLL_MAX_RETRIES}):`, err);
     } finally {
-      // Guard against setState after unmount (e.g. if abort fires mid-finally).
       if (isMounted.current) setIsPolling(false);
     }
   }, [slug]);
 
+  // ─── Main effect: WebSocket with REST fallback ─────────────────────────────
   useEffect(() => {
-    // ── Don't poll if the page is hidden (saves requests on background tabs) ──
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Tab became visible — reset retry counter so we try again even if
-        // we previously hit MAX_RETRIES (network may have recovered).
-        retryCount.current = 0;
-        void fetchMatches();
+    let ws:              WebSocket | null = null;
+    let reconnectCount                    = 0;
+    let reconnectTimer:  ReturnType<typeof setTimeout> | null = null;
+    let pollInterval:    ReturnType<typeof setInterval> | null = null;
+    let usingFallback                     = false;
+
+    // ── REST fallback ────────────────────────────────────────────────────────
+    const startFallback = () => {
+      if (usingFallback) return;
+      usingFallback = true;
+      console.warn("[useMatchState] WS unavailable after max retries — falling back to REST polling");
+      void fetchOnce();
+      pollInterval = setInterval(() => {
+        if (document.visibilityState === "visible") void fetchOnce();
+      }, POLL_INTERVAL_MS);
+    };
+
+    const stopFallback = () => {
+      if (!usingFallback) return;
+      usingFallback = false;
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      pollAbort.current?.abort();
+      pollRetries.current = 0;
+      setIsPolling(false);
+    };
+
+    // ── WebSocket ────────────────────────────────────────────────────────────
+    const log = (...args: unknown[]) => console.log("[WS]", ...args);
+
+    const sendSubscribe = () => {
+      const msg = {
+        type:       "subscribe",
+        collection: "matches",
+        uid:        `matches-${slug}`,
+        query: {
+          filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
+          fields: ["id", "live_state", "status"],
+        },
+      };
+      log("→ SEND subscribe", msg);
+      ws!.send(JSON.stringify(msg));
+    };
+
+    const connect = () => {
+      if (!isMounted.current) return;
+      const url = getWsUrl();
+      log(`connecting (attempt ${reconnectCount + 1}) → ${url}`);
+      try {
+        ws = new WebSocket(url);
+      } catch (err) {
+        log("WebSocket constructor threw:", err);
+        handleDisconnect();
+        return;
+      }
+
+      ws.onopen = () => {
+        log("onopen — readyState:", ws?.readyState);
+        reconnectCount = 0;
+        stopFallback();
+        // Optimistic subscribe. If Directus needs auth first it will send
+        // { type:"auth", status:"required" } via onmessage, which re-subscribes
+        // after auth.ok. Same uid → Directus deduplicates.
+        sendSubscribe();
+      };
+
+      ws.onmessage = (ev: MessageEvent) => {
+        let msg: Record<string, unknown>;
+        try { msg = JSON.parse(ev.data as string); } catch { return; }
+
+        // auth is done via URL token — ignore any stray auth frames
+        if (msg.type === "auth") return;
+
+        if (msg.type === "ping") {
+          ws!.send(JSON.stringify({ type: "pong" }));
+          return;
+        }
+
+        if (
+          msg.type === "subscription" &&
+          (msg.event === "init" || msg.event === "update")
+        ) {
+          const raw     = msg.data;
+          const updates = (Array.isArray(raw) ? raw : [raw]) as WsMatchUpdate[];
+          applyUpdates(updates);
+        }
+      };
+
+      ws.onerror = (ev) => {
+        log("onerror — event:", ev);
+        ws?.close();
+      };
+
+      ws.onclose = (ev) => {
+        log(`onclose — code: ${ev.code}, reason: "${ev.reason}", wasClean: ${ev.wasClean}`);
+        handleDisconnect();
+      };
+    };
+
+    const handleDisconnect = () => {
+      if (!isMounted.current) return;
+      ws = null;
+      if (reconnectCount >= WS_MAX_RECONNECTS) {
+        startFallback();
+        return;
+      }
+      const delay = Math.min(WS_BASE_DELAY_MS * 2 ** reconnectCount, 30_000);
+      reconnectCount++;
+      log(`reconnecting in ${delay}ms (${reconnectCount}/${WS_MAX_RECONNECTS})`);
+      reconnectTimer = setTimeout(connect, delay);
+    };
+
+    // ── Visibility: restore WS when tab comes back into focus ────────────────
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      if (usingFallback) {
+        // Try WS again — network may have recovered.
+        pollRetries.current = 0;
+        reconnectCount      = 0;
+        stopFallback();
+        connect();
+      } else if (!ws || ws.readyState === WebSocket.CLOSED) {
+        reconnectCount = 0;
+        connect();
       }
     };
-    document.addEventListener("visibilitychange", onVisibilityChange);
 
-    // Initial fetch + interval
-    void fetchMatches();
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") void fetchMatches();
-    }, POLL_INTERVAL_MS);
+    document.addEventListener("visibilitychange", onVisibility);
+    connect();
 
     return () => {
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      abortRef.current?.abort();
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (pollInterval)   clearInterval(pollInterval);
+      pollAbort.current?.abort();
+      ws?.close();
     };
-  }, [fetchMatches]);
+  }, [slug, fetchOnce, applyUpdates]);
 
   return { matches, lastUpdated, isPolling };
 }

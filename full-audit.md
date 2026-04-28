@@ -85,7 +85,7 @@
 **⚠️ Required action:** Add Directus origin to `next.config.js`:
 ```js
 images: {
-  remotePatterns: [{ protocol: "http", hostname: "localhost", port: "6767" }]
+  remotePatterns: [{ protocol: "http", hostname: "localhost", port: "7777" }]
 }
 ```
 Replace with your production Directus hostname for production builds.

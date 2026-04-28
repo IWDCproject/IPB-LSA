@@ -37,7 +37,7 @@ export const getAssetUrl = (
   const id = typeof asset === 'object' ? asset.id : asset;
   if (!id || id === 'null') return null;
   if (typeof id === 'string' && id.startsWith('http')) return id;
-  const base = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767';
+  const base = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:7777';
   const params = new URLSearchParams();
   if (typeof asset === 'object' && asset.uploaded_on) {
     params.set('v', String(new Date(asset.uploaded_on).getTime()));

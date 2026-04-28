@@ -22,7 +22,7 @@ services:
     build: 
       context: .
     ports:
-      - "6767:8055"
+      - "7777:8055"
     networks:
       - app-network
     depends_on:
