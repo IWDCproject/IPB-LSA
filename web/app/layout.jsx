@@ -1,6 +1,5 @@
 import "./globals.css";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import SmoothScroller from "./_components/SmoothScroller";
 import BlurProvider from "@/components/BlurProvider";
 import NextTopLoader from "nextjs-toploader";
@@ -22,7 +21,6 @@ export default function RootLayout({ children }) {
           <SmoothScroller>
             <Header />
             <main>{children}</main>
-            {/* <Footer /> */}
           </SmoothScroller>
         </BlurProvider>
       </body>
