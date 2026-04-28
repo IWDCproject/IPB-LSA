@@ -40,32 +40,42 @@ function useDigitStyles() {
 // When `char` changes: the old char slides out downward, the new one enters from top.
 // Uses a generation counter so React remounts the spans and CSS animations restart.
 
-export function AnimatedDigit({ char }: { char: string }) {
+export function AnimatedDigit({ char, delay = 0 }: { char: string; delay?: number }) {
   useDigitStyles();
 
   const [state, setState] = useState<{ cur: string; prev: string | null; gen: number }>({
     cur: char, prev: null, gen: 0,
   });
 
-  const prevRef  = useRef(char);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevRef = useRef(char);
+  const staggerTimerRef = useRef<any>(null);
+  const animTimerRef = useRef<any>(null);
 
   useEffect(() => {
     if (char === prevRef.current) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
+
+    if (staggerTimerRef.current) clearTimeout(staggerTimerRef.current);
+    if (animTimerRef.current) clearTimeout(animTimerRef.current);
 
     const from = prevRef.current;
     prevRef.current = char;
 
-    setState(s => ({ cur: char, prev: from, gen: s.gen + 1 }));
+    // The stagger: wait 'delay'ms before starting the slot animation
+    staggerTimerRef.current = setTimeout(() => {
+      setState(s => ({ cur: char, prev: from, gen: s.gen + 1 }));
 
-    // Clear the exiting ghost after animation finishes
-    timerRef.current = setTimeout(
-      () => setState(s => ({ ...s, prev: null })),
-      360,
-    );
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [char]);
+      animTimerRef.current = setTimeout(() => {
+        setState(s => ({ ...s, prev: null }));
+      }, 360);
+    }, delay);
+
+    return () => {
+      clearTimeout(staggerTimerRef.current);
+      clearTimeout(animTimerRef.current);
+    };
+  }, [char, delay]);
+
+
 
   const { cur, prev, gen } = state;
   const isAnimating = prev !== null;
@@ -126,22 +136,25 @@ export function AnimatedDigit({ char }: { char: string }) {
 }
 
 // ─── AnimatedScore ─────────────────────────────────────────────────────────────
-// Splits a string into individual characters and animates each independently.
-// Digits animate with the slot effect; non-digit chars (colon, comma, dot) are
-// wrapped in AnimatedDigit too but won't animate since they rarely change.
-//
-// `key={i}` is intentional — stable keys let React preserve each digit's state
-// across re-renders so digit[0] always maps to the tens place, etc.
 
 export function AnimatedScore({ value }: { value: string }) {
+  // Pad with figure space (\u2007) to keep character indices stable
+  const chars = value.padStart(4, "\u2007").split("");
+  
   return (
     <span style={{ display: "inline-flex", alignItems: "center" }}>
-      {value.split("").map((char, i) => (
-        <AnimatedDigit key={i} char={char} />
+      {chars.map((char, i) => (
+        <AnimatedDigit 
+          key={i} 
+          char={char} 
+          delay={i * 50} // 50ms stagger between characters
+        />
       ))}
     </span>
   );
 }
+
+
 
 // ─── ScoreCellWrapper ──────────────────────────────────────────────────────────
 // Fades + scales in whenever the score engine TYPE or match STATUS changes —
@@ -274,22 +287,244 @@ export function ScoreSetsFinished({ live, compact = false }: SetScoreProps) {
   );
 }
 
-// ─── Judge / manual pick badges ───────────────────────────────────────────────
+// ─── Judge score cells ────────────────────────────────────────────────────────
+//
+// Renders one pill per judge, matching the Set pill visual language.
+//
+// Live state:
+//   • Not yet submitted  → yellow border, transparent bg, "--"
+//   • Score submitted    → yellow fill (#FFC936), actual score
+//
+// Finished state:
+//   • All cells use the neutral grey bg (#f3f4f6), same as set finished pills.
+//
+// judgeCount comes from engine.config.num_judges if set; otherwise we fall back
+// to however many scores are already in the array (handles configs that don't
+// declare the count explicitly).
 
-export function JudgeScoreBadge({ live, engine }: { live: any; engine: any }) {
+interface JudgeCellsProps {
+  live:     any;
+  engine:   any;
+  isLive:   boolean;
+  compact?: boolean;
+}
+
+function JudgeCells({ live, engine, isLive, compact = false }: JudgeCellsProps) {
+  const scores: number[]  = live?.judgeScores ?? [];
+  const judgeCount: number = engine?.config?.num_judges ?? scores.length;
+
+  if (judgeCount === 0) return null;
+
+  return (
+    <>
+      {Array.from({ length: judgeCount }, (_, i) => {
+        const raw      = scores[i];
+        const hasScore = raw !== undefined && raw !== null;
+        // Pad with figure space (\u2007) so length is always 4.
+        // This ensures AnimatedScore animates per-digit rather than sliding the whole string.
+        const label    = hasScore
+          ? raw.toFixed(1).replace(".", ",").padStart(4, "\u2007")
+          : "--,-";
+
+        if (isLive) {
+          // Pending: yellow-border outline pill  |  Scored: solid yellow fill pill
+          // CSS transitions animate the fill and label colour so the cell morphs
+          // rather than hard-cutting on the next poll tick.
+          // label is "--,-" when pending and "X,X" when scored, so AnimatedScore
+          // runs the slot animation on every character as the value changes.
+          return (
+            <div
+              key={i}
+              style={{
+                background:   hasScore ? "#FFC936" : "transparent",
+                border:       "1px solid #FFC936",
+                borderRadius: 6,
+                padding:      compact ? "3px 5px" : "4px 8px",
+                textAlign:    "center",
+                minWidth:     compact ? 38 : 50,
+                transition:   "background 300ms ease",
+              }}
+            >
+              <div style={{
+                ...JK,
+                fontSize:     9,
+                fontWeight:   700,
+                color:        hasScore ? "#92400E" : "#CA8A04",
+                marginBottom: 2,
+                transition:   "color 300ms ease",
+              }}>
+                Jud. {i + 1}
+              </div>
+              <div style={{
+                ...JK,
+                fontSize:   compact ? 11 : 12,
+                fontWeight: 800,
+                color:      "#111",
+                display:    "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <AnimatedScore value={label} />
+              </div>
+            </div>
+          );
+        }
+
+        // Finished state — neutral grey, same as ScoreSetsFinished pills
+        return (
+          <div
+            key={i}
+            style={{
+              background:   "#f3f4f6",
+              borderRadius: 6,
+              padding:      compact ? "3px 5px" : "4px 8px",
+              textAlign:    "center",
+              minWidth:     compact ? 38 : 50,
+            }}
+          >
+            <div style={{
+              ...JK,
+              fontSize:     9,
+              fontWeight:   600,
+              color:        "#676767",
+              marginBottom: 2,
+            }}>
+              Jud. {i + 1}
+            </div>
+            <div style={{
+              ...JK,
+              fontSize:   compact ? 11 : 12,
+              fontWeight: 800,
+              color:      "#111",
+              display:    "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              {hasScore
+                ? <AnimatedScore value={label} />
+                : <span style={{ color: "#aaa" }}>--</span>
+              }
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+// ─── Judge / manual pick badges ───────────────────────────────────────────────
+//
+// JudgeScoreBadge — finished state only.
+// Layout: [Avg pill] [:] [Jud.1 pill] [Jud.2 pill] …
+//
+// On mobile the whole row can wrap: the avg + ":" are kept together via their
+// own inner flex wrapper so ":"  never orphans at the start of a new line.
+// Judge pills then flow naturally after them, wrapping as needed.
+
+export function JudgeScoreBadge({
+  live,
+  engine,
+  compact = false,
+}: {
+  live:     any;
+  engine:   any;
+  compact?: boolean;
+}) {
   const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
-  const result = calcAvg(scores, method).toFixed(2).replace(".", ",");
+  const result = calcAvg(scores, method).toFixed(1).replace(".", ",");
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111" }}>Avg:</span>
-      <div style={{
-        ...JK, fontSize: 14, fontWeight: 800, color: "#111",
-        background: "#f3f4f6", borderRadius: 6, padding: "4px 10px",
-        display: "flex", alignItems: "center",
-      }}>
-        <AnimatedScore value={result} />
+    <div style={{
+      display:    "flex",
+      alignItems: "center",
+      gap:        compact ? 4 : 6,
+      flexWrap:   "wrap",
+      rowGap:     compact ? 4 : 6,
+    }}>
+      {/* Avg pill — kept together with the ":" so they don't split on wrap */}
+      <div style={{ display: "flex", alignItems: "center", gap: compact ? 4 : 6 }}>
+        <div style={{
+          background:   "#f3f4f6",
+          borderRadius: 6,
+          padding:      compact ? "3px 5px" : "4px 8px",
+          textAlign:    "center",
+          minWidth:     compact ? 38 : 50,
+        }}>
+          <div style={{
+            ...JK,
+            fontSize:     9,
+            fontWeight:   600,
+            color:        "#676767",
+            marginBottom: 2,
+          }}>
+            Avg
+          </div>
+          <div style={{
+            ...JK,
+            fontSize:   compact ? 11 : 12,
+            fontWeight: 800,
+            color:      "#111",
+            display:    "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <AnimatedScore value={result} />
+          </div>
+        </div>
+
+        {/* Separator — lives next to the avg pill so they wrap as a unit */}
+        <span style={{
+          ...JK,
+          fontSize:   compact ? 12 : 14,
+          fontWeight: 800,
+          color:      "#aaa",
+          flexShrink: 0,
+        }}>
+          :
+        </span>
       </div>
+
+      {/* Individual judge cells */}
+      <JudgeCells
+        live={live}
+        engine={engine}
+        isLive={false}
+        compact={compact}
+      />
+    </div>
+  );
+}
+
+
+
+// ─── JudgeScoreLive ───────────────────────────────────────────────────────────
+// Live variant — no avg, just the per-judge cells so judges can see their own
+// scores appearing in real time. Wraps the same way as JudgeScoreBadge.
+
+export function JudgeScoreLive({
+  live,
+  engine,
+  compact = false,
+}: {
+  live:     any;
+  engine:   any;
+  compact?: boolean;
+}) {
+  return (
+    <div style={{
+      display:    "flex",
+      alignItems: "center",
+      gap:        compact ? 4 : 6,
+      flexWrap:   "wrap",
+      rowGap:     compact ? 4 : 6,
+    }}>
+      <JudgeCells
+        live={live}
+        engine={engine}
+        isLive={true}
+        compact={compact}
+      />
     </div>
   );
 }
@@ -362,8 +597,13 @@ export function ScoreCell({ match, compact = false }: { match: MappedMatch; comp
       );
 
     case "judge_scores":
-      if (isLive) return <ScoreCellWrapper id={swapKey}><SolidLiveBadge /></ScoreCellWrapper>;
-      return <ScoreCellWrapper id={swapKey}><JudgeScoreBadge live={live} engine={engine} /></ScoreCellWrapper>;
+      return (
+        <ScoreCellWrapper id={swapKey}>
+          {isLive
+            ? <JudgeScoreLive live={live} engine={engine} compact={compact} />
+            : <JudgeScoreBadge live={live} engine={engine} compact={compact} />}
+        </ScoreCellWrapper>
+      );
 
     case "finish_time":
       if (isLive) return <ScoreCellWrapper id={swapKey}><SolidLiveBadge /></ScoreCellWrapper>;

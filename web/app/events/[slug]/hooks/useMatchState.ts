@@ -22,7 +22,7 @@ interface UseMatchStateResult {
   matches:     MappedMatch[];
   lastUpdated: Date | null;
   isPolling:   boolean;
-  wsStatus:    "connected" | "reconnecting" | "polling"; // status koneksi realtime
+  wsStatus:    "connected" | "reconnecting" | "polling";
 }
 
 // Shape minimal update dari WebSocket, cuma field yang kita subscribe
@@ -53,13 +53,15 @@ export function useMatchState(
   const [isPolling,   setIsPolling]   = useState(false);
   const [wsStatus,    setWsStatus]    = useState<"connected" | "reconnecting" | "polling">("reconnecting");
 
+  // isMounted guards React state setters in applyUpdates / fetchOnce so we
+  // never call setState after the component truly unmounts.
   const isMounted = useRef(true);
-
   useEffect(() => {
     isMounted.current = true;
     return () => { isMounted.current = false; };
   }, []);
 
+  // ─── applyUpdates ────────────────────────────────────────────────────────────
   // Patch data match yang berubah berdasarkan ID.
   // Kita cuma subscribe ke [id, live_state, status], jadi data lain (peserta, kategori)
   // tetap dari server render dan ga kena overwrite.
@@ -77,6 +79,7 @@ export function useMatchState(
     setLastUpdated(new Date());
   }, []);
 
+  // ─── fetchOnce ───────────────────────────────────────────────────────────────
   // Polling REST, dipanggil kalau WebSocket udah menyerah
   const pollRetries = useRef(0);
   const pollAbort   = useRef<AbortController | null>(null);
@@ -108,37 +111,39 @@ export function useMatchState(
     }
   }, [slug]);
 
-  // Effect utama: jalanin WebSocket, kalau gagal terus fallback ke polling
+  // ─── Main WS effect ──────────────────────────────────────────────────────────
   useEffect(() => {
-    let ws:              WebSocket | null = null;
-    let reconnectCount                    = 0;
-    let reconnectTimer:  ReturnType<typeof setTimeout> | null = null;
-    let pollInterval:    ReturnType<typeof setInterval> | null = null;
-    let usingFallback                     = false;
+    let cancelled      = false;           // ← local to this invocation; never shared
+    let ws:            WebSocket | null = null;
+    let reconnectCount                  = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval:   ReturnType<typeof setInterval> | null = null;
+    let usingFallback                   = false;
 
-    // Mulai polling REST dan tandai kita lagi di mode fallback
+    // ── Fallback helpers ──────────────────────────────────────────────────────
+
     const startFallback = () => {
-      if (usingFallback) return;
+      if (usingFallback || cancelled) return;
       usingFallback = true;
       setWsStatus("polling");
       console.warn("[useMatchState] WS gagal terus, fallback ke REST polling");
       void fetchOnce();
       pollInterval = setInterval(() => {
-        if (document.visibilityState === "visible") void fetchOnce();
+        if (!cancelled && document.visibilityState === "visible") void fetchOnce();
       }, POLL_INTERVAL_MS);
     };
 
-    // Stop polling dan reset state, dipanggil pas WS berhasil reconnect
     const stopFallback = () => {
       if (!usingFallback) return;
       usingFallback = false;
       if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
       pollAbort.current?.abort();
       pollRetries.current = 0;
-      setIsPolling(false);
+      if (!cancelled) setIsPolling(false);
     };
 
-    // WebSocket stuff di bawah ini
+    // ── WebSocket ─────────────────────────────────────────────────────────────
+
     const log = (...args: unknown[]) => console.log("[WS]", ...args);
 
     const sendSubscribe = () => {
@@ -155,8 +160,23 @@ export function useMatchState(
       ws!.send(JSON.stringify(msg));
     };
 
+    const handleDisconnect = () => {
+      if (cancelled) return;
+      ws = null;
+      if (reconnectCount >= WS_MAX_RECONNECTS) {
+        startFallback();
+        return;
+      }
+      const delay = Math.min(WS_BASE_DELAY_MS * 2 ** reconnectCount, 30_000);
+      reconnectCount++;
+      setWsStatus("reconnecting");
+      log(`reconnecting in ${delay}ms (${reconnectCount}/${WS_MAX_RECONNECTS})`);
+      reconnectTimer = setTimeout(connect, delay);
+    };
+
     const connect = () => {
-      if (!isMounted.current) return;
+      // Guard with `cancelled`, not isMounted.
+      if (cancelled) return;
       const url = getWsUrl();
       log(`connecting (attempt ${reconnectCount + 1}) → ${url}`);
       try {
@@ -168,6 +188,7 @@ export function useMatchState(
       }
 
       ws.onopen = () => {
+        if (cancelled) { ws?.close(); return; }   // stale open after cleanup
         log("onopen — readyState:", ws?.readyState);
         reconnectCount = 0;
         stopFallback();
@@ -176,11 +197,11 @@ export function useMatchState(
       };
 
       ws.onmessage = (ev: MessageEvent) => {
+        if (cancelled) return;
         let msg: Record<string, unknown>;
         try { msg = JSON.parse(ev.data as string); } catch { return; }
 
-        // Auth sudah dihandle via token di URL, frame auth dari Directus diabaikan
-        if (msg.type === "auth") return;
+        if (msg.type === "auth") return;   // handled via token in URL
 
         if (msg.type === "ping") {
           ws!.send(JSON.stringify({ type: "pong" }));
@@ -198,35 +219,22 @@ export function useMatchState(
       };
 
       ws.onerror = (ev) => {
+        if (cancelled) return;
         log("onerror — event:", ev);
         ws?.close();
       };
 
       ws.onclose = (ev) => {
         log(`onclose — code: ${ev.code}, reason: "${ev.reason}", wasClean: ${ev.wasClean}`);
-        handleDisconnect();
+        handleDisconnect();   // no-op if cancelled
       };
     };
 
-    const handleDisconnect = () => {
-      if (!isMounted.current) return;
-      ws = null;
-      if (reconnectCount >= WS_MAX_RECONNECTS) {
-        startFallback();
-        return;
-      }
-      const delay = Math.min(WS_BASE_DELAY_MS * 2 ** reconnectCount, 30_000);
-      reconnectCount++;
-      setWsStatus("reconnecting");
-      log(`reconnecting in ${delay}ms (${reconnectCount}/${WS_MAX_RECONNECTS})`);
-      reconnectTimer = setTimeout(connect, delay);
-    };
+    // ── Visibility handler ────────────────────────────────────────────────────
 
-    // Kalau tab dibuka lagi setelah lama minimize, coba reconnect WS
     const onVisibility = () => {
-      if (document.visibilityState !== "visible") return;
+      if (cancelled || document.visibilityState !== "visible") return;
       if (usingFallback) {
-        // Try WS again — network may have recovered.
         pollRetries.current = 0;
         reconnectCount      = 0;
         stopFallback();
@@ -241,6 +249,7 @@ export function useMatchState(
     connect();
 
     return () => {
+      cancelled = true;                                           // ← poisons all stale callbacks
       document.removeEventListener("visibilitychange", onVisibility);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (pollInterval)   clearInterval(pollInterval);
