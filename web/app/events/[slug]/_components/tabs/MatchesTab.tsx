@@ -8,10 +8,18 @@ import { JK } from "../shared/tokens";
 import { groupByDateLong as groupByDate } from "../match/scoreUtils";
 import { DesktopMatchRow, MobileMatchRow } from "../match/MatchRow";
 
-// Animasi masuk untuk setiap baris pertandingan.
+// Animasi masuk untuk baris pertandingan, panel dropdown, dan item di dalamnya.
 const ROW_KEYFRAMES = `
   @keyframes match-row-in {
     from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+  @keyframes dropdown-panel-in {
+    from { max-height: 0;     opacity: 0; }
+    to   { max-height: 320px; opacity: 1; }
+  }
+  @keyframes dropdown-item-in {
+    from { opacity: 0; transform: translateY(5px); }
     to   { opacity: 1; transform: translateY(0);   }
   }
 `;
@@ -240,21 +248,30 @@ function MobileCombinedFilterDropdown({ activeGroup, onGroupChange, groupCounts,
           {/* Backdrop untuk tutup panel saat tap di luar */}
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
 
+          {/* Panel utama — expand dari kanan atas */}
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 20,
             background: "#fff", borderRadius: 12, border: "1px solid #ECEEF2",
-            boxShadow: "0 8px 28px rgba(0,0,0,0.13)",
+            boxShadow: "0 8px 28px rgba(0,0,0,0.3)",
             display: "flex", gap: 0,
             overflow: "hidden",
+            animation: "dropdown-panel-in 0.22s ease-out forwards",
           }}>
             {/* Kolom Group By */}
             <div style={{ minWidth: 130, borderRight: "1px solid #F3F4F6" }}>
-              <div style={colHeader}>Group by</div>
+              <div style={{ ...colHeader, opacity: 0, animation: "dropdown-item-in 0.2s ease 60ms forwards" }}>
+                Group by
+              </div>
               <div style={{ padding: "0 6px 8px" }}>
-                {GROUP_OPTIONS.map(({ value, label }) => {
+                {GROUP_OPTIONS.map(({ value, label }, i) => {
                   const isActive = activeGroup === value;
+                  const delay = 90 + i * 40;
                   return (
-                    <button key={value} onClick={() => onGroupChange(value)} style={optionBtn(isActive)}>
+                    <button
+                      key={value}
+                      onClick={() => onGroupChange(value)}
+                      style={{ ...optionBtn(isActive), opacity: 0, animation: `dropdown-item-in 0.22s ease ${delay}ms forwards` }}
+                    >
                       {label}
                       {groupCounts[value] > 0 && badge(isActive, groupCounts[value])}
                     </button>
@@ -265,12 +282,19 @@ function MobileCombinedFilterDropdown({ activeGroup, onGroupChange, groupCounts,
 
             {/* Kolom Status */}
             <div style={{ minWidth: 130 }}>
-              <div style={colHeader}>Status</div>
+              <div style={{ ...colHeader, opacity: 0, animation: "dropdown-item-in 0.2s ease 60ms forwards" }}>
+                Status
+              </div>
               <div style={{ padding: "0 6px 8px" }}>
-                {FILTERS.map(({ value, label }) => {
+                {FILTERS.map(({ value, label }, i) => {
                   const isActive = activeFilter === value;
+                  const delay = 90 + i * 40;
                   return (
-                    <button key={value} onClick={() => onFilterChange(value)} style={optionBtn(isActive)}>
+                    <button
+                      key={value}
+                      onClick={() => onFilterChange(value)}
+                      style={{ ...optionBtn(isActive), opacity: 0, animation: `dropdown-item-in 0.22s ease ${delay}ms forwards` }}
+                    >
                       {label}
                       {filterCounts[value] > 0 && badge(isActive, filterCounts[value])}
                     </button>
