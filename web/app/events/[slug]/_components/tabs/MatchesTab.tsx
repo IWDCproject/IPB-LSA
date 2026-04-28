@@ -8,7 +8,7 @@ import type { AnimPhase } from "../shared/UseTabTransition";
 import type { MappedEvent, MappedMatch, TabKey } from "../../_types";
 import { JK } from "../shared/tokens";
 import {
-  getEngine, fmtDateLong as fmtDate, fmtTime, groupByDateLong as groupByDate, resolveWinnerName,
+  getEngine, calcAvg, fmtDateLong as fmtDate, fmtTime, groupByDateLong as groupByDate, resolveWinnerName,
 } from "../match/scoreUtils";
 import { MiddleBadge, ScoreCell, AnimatedScore } from "../match/ScoreBadges";
 
@@ -58,39 +58,84 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
 
   if (engine?.type === "score_sets") {
     if (isLive) {
-      const setScore = live?.setScore ?? [0, 0];
-      const setLog   = live?.setLog   ?? [];
-      const detail   = setLog.map((s: any) => `${s.home}-${s.away}`).join(" | ");
+      const setScore  = live?.setScore ?? [0, 0];
+      const setLog    = live?.setLog   ?? [];
+      const detailArr = setLog.map((s: any) => `${s.home}-${s.away}`);
       return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, maxWidth: 88 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[0])} /></span>
             <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#CA8A04" }}>vs</span>
             <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[1])} /></span>
           </div>
-          {detail && (
-            <div style={{ ...JK, ...truncate, fontSize: 9, fontWeight: 600, color: "#CA8A04", maxWidth: 68, textAlign: "right" }}>{detail}</div>
+          {detailArr.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: "1px 3px", maxWidth: "100%" }}>
+              {detailArr.map((d, i) => (
+                <span key={i} style={{ ...JK, fontSize: 9, fontWeight: 600, color: "#CA8A04", whiteSpace: "nowrap" }}>[{d}]</span>
+              ))}
+            </div>
           )}
         </div>
       );
     } else {
-      const setLog   = live?.setLog ?? [];
-      const homeSets = setLog.filter((s: any) => s.home > s.away).length;
-      const awaySets = setLog.filter((s: any) => s.away > s.home).length;
-      const detail   = setLog.map((s: any) => `${s.home}-${s.away}`).join(" | ");
+      const setLog    = live?.setLog ?? [];
+      const homeSets  = setLog.filter((s: any) => s.home > s.away).length;
+      const awaySets  = setLog.filter((s: any) => s.away > s.home).length;
+      const detailArr = setLog.map((s: any) => `${s.home}-${s.away}`);
       return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, maxWidth: 88 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(homeSets)} /></span>
             <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#aaa" }}>vs</span>
             <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(awaySets)} /></span>
           </div>
-          {detail && (
-            <div style={{ ...JK, ...truncate, fontSize: 9, fontWeight: 600, color: "#9CA3AF", maxWidth: 68, textAlign: "right" }}>{detail}</div>
+          {detailArr.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: "1px 3px", maxWidth: "100%" }}>
+              {detailArr.map((d, i) => (
+                <span key={i} style={{ ...JK, fontSize: 9, fontWeight: 600, color: "#9CA3AF", whiteSpace: "nowrap" }}>[{d}]</span>
+              ))}
+            </div>
           )}
         </div>
       );
     }
+  }
+
+  if (engine?.type === "judge_scores") {
+    const scores: number[]   = live?.judgeScores ?? [];
+    const method             = engine?.config?.method ?? "avg";
+    const judgeCount: number = engine?.config?.num_judges ?? scores.length;
+
+    const submitted = scores.filter((s: any) => s !== undefined && s !== null);
+    const hasAny    = submitted.length > 0;
+    const avgResult = hasAny
+      ? calcAvg(submitted, method).toFixed(1).replace(".", ",")
+      : "--,-";
+
+    // Detail tokens — no animation, "--,-" placeholder for each pending judge
+    const detailArr = judgeCount > 0
+      ? Array.from({ length: judgeCount }, (_, i) => {
+          const raw = scores[i];
+          return (raw !== undefined && raw !== null)
+            ? raw.toFixed(1).replace(".", ",")
+            : "--,-";
+        })
+      : [];
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, maxWidth: 88 }}>
+        <span style={numPill(isLive ? "#FFC936" : "#f3f4f6", "#111")}>
+          &nbsp;Avg:&nbsp;<AnimatedScore value={avgResult} />&nbsp;
+        </span>
+        {detailArr.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: "1px 3px", maxWidth: "100%" }}>
+            {detailArr.map((d, i) => (
+              <span key={i} style={{ ...JK, fontSize: 9, fontWeight: 600, color: isLive ? "#CA8A04" : "#9CA3AF", whiteSpace: "nowrap" }}>[{d}]</span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   }
 
   // All other engine types: use existing compact ScoreCell
@@ -406,7 +451,7 @@ function DesktopMatchRow({ match }: { match: MappedMatch }) {
 
 // ─── Mobile row ────────────────────────────────────────────────────────────────
 
-function MobileMatchRow({ match }: { match: MappedMatch }) {
+export function MobileMatchRow({ match }: { match: MappedMatch }) {
   const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
   const isOpen     = match.competition_category?.format_id?.match_type === "open";
   const isLive     = match.status === "live";
