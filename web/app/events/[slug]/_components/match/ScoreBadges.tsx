@@ -138,8 +138,9 @@ export function AnimatedDigit({ char, delay = 0 }: { char: string; delay?: numbe
 // ─── AnimatedScore ─────────────────────────────────────────────────────────────
 
 export function AnimatedScore({ value }: { value: string }) {
-  // Pad with figure space (\u2007) to keep character indices stable
-  const chars = value.padStart(4, "\u2007").split("");
+  // REMOVE .padStart(4, "\u2007") here. 
+  // Let the string length be determined by the input.
+  const chars = value.split("");
   
   return (
     <span style={{ display: "inline-flex", alignItems: "center" }}>
@@ -147,7 +148,7 @@ export function AnimatedScore({ value }: { value: string }) {
         <AnimatedDigit 
           key={i} 
           char={char} 
-          delay={i * 50} // 50ms stagger between characters
+          delay={i * 50} 
         />
       ))}
     </span>
@@ -320,18 +321,12 @@ function JudgeCells({ live, engine, isLive, compact = false }: JudgeCellsProps) 
       {Array.from({ length: judgeCount }, (_, i) => {
         const raw      = scores[i];
         const hasScore = raw !== undefined && raw !== null;
-        // Pad with figure space (\u2007) so length is always 4.
-        // This ensures AnimatedScore animates per-digit rather than sliding the whole string.
+
         const label    = hasScore
-          ? raw.toFixed(1).replace(".", ",").padStart(4, "\u2007")
+          ? raw.toFixed(1).replace(".", ",") 
           : "--,-";
 
         if (isLive) {
-          // Pending: yellow-border outline pill  |  Scored: solid yellow fill pill
-          // CSS transitions animate the fill and label colour so the cell morphs
-          // rather than hard-cutting on the next poll tick.
-          // label is "--,-" when pending and "X,X" when scored, so AnimatedScore
-          // runs the slot animation on every character as the value changes.
           return (
             <div
               key={i}
