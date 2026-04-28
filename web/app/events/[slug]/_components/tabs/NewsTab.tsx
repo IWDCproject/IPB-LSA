@@ -290,7 +290,7 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
       clearTimeout(showTimer);
       if (minDisplayTimer) clearTimeout(minDisplayTimer);
     };
-  }, [event.slug, page]);
+  }, [event.slug, page, COLUMNS]);
 
   useLayoutEffect(() => {
     if (!ready)                return;

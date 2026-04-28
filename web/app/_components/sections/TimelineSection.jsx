@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { gsap } from "gsap";
 import Button from "@/components/Button";
 import EventCard from "@/components/EventCard";
@@ -518,17 +519,25 @@ export default function EventTimeline({ events: rawEvents }) {
         width: "100%", height: "100%", pointerEvents: "none", zIndex: 1,
       }} />
 
-      <img
+      <div
         ref={mascotRef}
-        src="/maskot/maskot1.png"
-        alt=""
         style={{
           position: "absolute", left: "57%", bottom: "2%",
           width: Math.round(420 * scaleF), transform: "translateX(-50%)",
           pointerEvents: "none", zIndex: 50,
-          filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.5))",
         }}
-      />
+      >
+        <Image
+          src="/maskot/maskot1.png"
+          alt=""
+          width={420}
+          height={560}
+          style={{
+            width: "100%", height: "auto",
+            filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.5))",
+          }}
+        />
+      </div>
 
       <div ref={ctaRef} style={{
         position: "absolute", left: Math.round(160 * scaleF), top: "65%",

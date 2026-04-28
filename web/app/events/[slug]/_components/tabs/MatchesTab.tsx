@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useMemo, useState } from "react";
 import { staggerSlideUp, TAB_ENTER } from "../shared/Animations";
 import type { AnimPhase } from "../shared/UseTabTransition";
@@ -109,9 +111,10 @@ function Logo({ inst, size = 32, isLoser = false }: { inst: any; size?: number; 
     );
   }
   return (
-    <img
+    <Image
       src={inst.logo_url} alt={inst?.name ?? ""}
-      style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }}
+      width={size} height={size}
+      style={{ objectFit: "contain", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }}
     />
   );
 }
@@ -178,7 +181,7 @@ function ParticipantInfo({ inst, name, align = "left", dimmed = false }: {
 
 function OpenParticipants({ match }: { match: MappedMatch }) {
   const entries = [...(match?.participants ?? [])]
-    .sort((a: any, b: any) => a.position - b.position)
+    .sort((a: any, b: any) => (a?.position ?? Infinity) - (b?.position ?? Infinity))
     .map((j: any) => j.participant_id);
 
   const shown    = entries.slice(0, 4);
@@ -195,12 +198,13 @@ function OpenParticipants({ match }: { match: MappedMatch }) {
       <div style={{ display: "flex", paddingRight: 8 }}>
         {shown.map((p: any, i: number) =>
           p?.institution?.logo_url ? (
-            <img
+            <Image
               key={i}
               src={p.institution.logo_url}
               alt={p.institution?.name ?? ""}
+              width={32} height={32}
               style={{
-                width: 32, height: 32, objectFit: "contain", borderRadius: "50%",
+                objectFit: "contain", borderRadius: "50%",
                 background: "#fff", border: "2px solid #fff",
                 marginLeft: i > 0 ? -12 : 0, flexShrink: 0, zIndex: shown.length - i,
               }}

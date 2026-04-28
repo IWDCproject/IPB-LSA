@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { PanelCard, PanelTitle } from "../panels/Panel";
 import { staggerSlideUp, TAB_ENTER } from "../shared/Animations";
 import type { AnimPhase } from "../shared/UseTabTransition";
@@ -211,9 +212,9 @@ function ParticipantCard({ participant, animDelay }: { participant: MappedPartic
           boxShadow: open ? "0 0 0 3px rgba(13,38,194,0.09)" : hovered ? "0 2px 10px rgba(6,18,92,0.09)" : "none",
         }}
       >
-        <div style={{ width: 36, height: 36, borderRadius: 4, flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 4, flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
           {logoUrl ? (
-            <img src={logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <Image src={logoUrl} alt="" fill style={{ objectFit: "contain" }} />
           ) : (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="1.5">
               <rect x="3" y="3" width="18" height="18" rx="3" />

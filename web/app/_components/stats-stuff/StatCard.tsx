@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 interface StatCardProps {
     image_url: string | { src: string };
@@ -31,17 +32,14 @@ export default function StatCard({
       }}
     >
       {/* Top: foto stat*/}
-      <img
-        src={imgSrc}
-        alt={label_stat}
-        style={{
-          width: "100%",
-          height: imgHeight,
-          objectFit: "cover",
-          display: "block",
-          borderRadius: "10px 10px 0 0",
-        }}
-      />
+      <div style={{ position: "relative", width: "100%", height: imgHeight }}>
+        <Image
+          src={imgSrc ?? ""}
+          alt={label_stat}
+          fill
+          style={{ objectFit: "cover", borderRadius: "10px 10px 0 0", display: "block" }}
+        />
+      </div>
 
       {/* Bottom: gradient stat*/}
       <div

@@ -101,9 +101,13 @@ const MATCH_FIELDS = [
 const mapMatch = (m: any): MappedMatch => {
   const cat = m.competition_category_id;
   const fmt = cat?.format_id;
-  const modules: FormatModule[] = typeof fmt?.modules === 'string'
-    ? JSON.parse(fmt.modules)
-    : (fmt?.modules ?? []);
+  let modules: FormatModule[] = [];
+  if (typeof fmt?.modules === 'string') {
+    try { modules = JSON.parse(fmt.modules); }
+    catch (e) { console.error('[mapMatch] Invalid JSON in fmt.modules:', e); }
+  } else {
+    modules = fmt?.modules ?? [];
+  }
 
   const junctionParts: ParticipantJunction[] = (m.participants ?? []).map((j: any) => ({
     ...j,
@@ -163,19 +167,22 @@ export const getMatches = async (): Promise<MappedMatch[]> => {
       sort:   ['status', 'scheduled_at'],
     }));
     return (res as any[]).map(mapMatch);
-  } catch { return []; }
+  } catch (err) {
+    console.error('[getMatches]', err);
+    return [];
+  }
 };
 
 export const getMatchesByEvent = async (slug: string): Promise<MappedMatch[]> => {
-  try {
-    const res = await directus.request(readItems('matches', {
-      filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
-      fields: MATCH_FIELDS,
-      sort:   ['status', 'scheduled_at'],
-      limit:  -1,
-    }));
-    return (res as any[]).map(mapMatch);
-  } catch { return []; }
+  // Intentionally no try-catch — let errors propagate to the API route
+  // so it can return a proper HTTP 500 instead of a silent empty array.e
+  const res = await directus.request(readItems('matches', {
+    filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
+    fields: MATCH_FIELDS,
+    sort:   ['status', 'scheduled_at'],
+    limit:  -1,
+  }));
+  return (res as any[]).map(mapMatch);
 };
 
 export const getEventsForListing = async () => {
@@ -186,7 +193,10 @@ export const getEventsForListing = async () => {
       sort:   ['start_date'],
       limit:  -1,
     }));
-  } catch { return []; }
+  } catch (err) {
+    console.error("[getEventsForListing]", err);
+    return [];
+  }
 };
 
 export const getEventDetail = async (slug: string): Promise<MappedEvent | null> => {
@@ -239,7 +249,10 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
       news:       (rawNews as any[]).map(mapNews),
       participants,
     } as MappedEvent;
-  } catch { return null; }
+  } catch (err) {
+    console.error("[getEventDetail]", err);
+    return null;
+  }
 };
 
 // ─── News ─────────────────────────────────────────────────────────────────────
@@ -269,7 +282,8 @@ export const getNewsCountByEvent = async (
       total,
       totalPages,
     };
-  } catch {
+  } catch (err) {
+    console.error("[getNewsCountByEvent]", err);
     return { pageCount: pageSize, total: 0, totalPages: 0, error: true };
   }
 };
@@ -293,7 +307,8 @@ export const getNewsByEvent = async (
       offset: (page - 1) * pageSize,
     }));
     return { items: (items as any[]).map(mapNews) };
-  } catch {
+  } catch (err) {
+    console.error("[getNewsByEvent]", err);
     return { items: [], error: true };
   }
 };
@@ -314,7 +329,10 @@ export const getNewsBySlug = async (
     }));
     const item = (items as any[])[0];
     return item ? mapNews(item) : null;
-  } catch { return null; }
+  } catch (err) {
+    console.error("[getNewsBySlug]", err);
+    return null;
+  }
 };
 
 // ─── Participants ─────────────────────────────────────────────────────────────
@@ -358,7 +376,8 @@ export const getParticipantsByEvent = async (
         return catId === cat.id;
       }),
     }));
-  } catch {
+  } catch (err) {
+    console.error("[getParticipantsByEvent]", err);
     return [];
   }
 };
@@ -379,7 +398,8 @@ export const getStats = async () => {
       institutionsCount: (i as any[]).length,
       participantsCount: (p as any[]).length,
     };
-  } catch {
+  } catch (err) {
+    console.error("[getStats]", err);
     return { eventsCount: 0, institutionsCount: 0, participantsCount: 0 };
   }
 };
@@ -427,7 +447,10 @@ export const getEventsWithRecentNews = async () => {
     );
 
     return eventsWithNews.filter((e) => e.news.length > 0);
-  } catch { return []; }
+  } catch (err) {
+    console.error('[getEventsWithRecentNews]', err);
+    return [];
+  }
 };
 
 export const getAllNewsFiltered = async ({
@@ -466,7 +489,8 @@ export const getAllNewsFiltered = async ({
       total,
       totalPages: Math.ceil(total / pageSize),
     };
-  } catch {
+  } catch (err) {
+    console.error("[getAllNewsFiltered]", err);
     return { items: [], total: 0, totalPages: 0 };
   }
 };

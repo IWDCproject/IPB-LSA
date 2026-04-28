@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 
 const NAT_W = 1920; // sama dengan semua section lain
 
@@ -118,9 +119,11 @@ export default function UniversityMarquee() {
               marginInline: itemGap,
             }}
           >
-            <img
+            <Image
               src={uni.logo}
               alt={uni.name.join(" ")}
+              width={35}
+              height={35}
               style={{
                 height:  logoHeight,
                 width:   "auto",

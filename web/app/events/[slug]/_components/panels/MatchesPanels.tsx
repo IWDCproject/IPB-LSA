@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Image from "next/image";
 import { PanelTitle, EmptyState } from "./Panel";
 import { JK } from "../shared/tokens";
 import {
@@ -16,7 +17,7 @@ function Logo({ inst, size = 32, isLoser = false }: { inst: any; size?: number; 
   if (!inst?.logo_url) {
     return <div style={{ width: size, height: size, borderRadius: "50%", background: inst?.color ?? "#334155", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }} />;
   }
-  return <img src={inst.logo_url} alt={inst?.name ?? ""} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }} />;
+  return <Image src={inst.logo_url} alt={inst?.name ?? ""} width={size} height={size} style={{ objectFit: "contain", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }} />;
 }
 
 // ─── Mobile-only components (mirrors MatchesTab) ───────────────────────────────
@@ -242,12 +243,13 @@ function OpenParticipants({ match }: { match: MappedMatch }) {
       <div style={{ display: "flex", paddingRight: 8 }}>
         {shown.map((p: any, i: number) =>
           p?.institution?.logo_url ? (
-            <img
+            <Image
               key={i}
               src={p.institution.logo_url}
               alt={p.institution?.name ?? ""}
+              width={32}
+              height={32}
               style={{
-                width: 32, height: 32,
                 objectFit: "contain",
                 borderRadius: "50%",
                 background: "#fff",

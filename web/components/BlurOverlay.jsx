@@ -31,7 +31,7 @@
 //   - @keyframes spin must be present in globals.css:
 //       @keyframes spin { to { transform: rotate(360deg); } }
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 
 export default function BlurOverlay({
   isReady,
@@ -44,7 +44,8 @@ export default function BlurOverlay({
   const lifted     = useRef(false);
   const [mounted, setMounted] = useState(true);
 
-  function lift() {
+  // useCallback so both effects below can list `lift` as a stable dep.
+  const lift = useCallback(() => {
     if (lifted.current) return;
     lifted.current = true;
 
@@ -56,7 +57,7 @@ export default function BlurOverlay({
 
     // Unmount after fade completes — frees DOM node and stops animation
     setTimeout(() => setMounted(false), fadeMs);
-  }
+  }, [fadeMs]);
 
   // Lift when isReady, respecting minMs floor
   useEffect(() => {
@@ -65,13 +66,13 @@ export default function BlurOverlay({
     const remaining = Math.max(0, minMs - elapsed);
     const t = setTimeout(lift, remaining);
     return () => clearTimeout(t);
-  }, [isReady, minMs]);
+  }, [isReady, minMs, lift]);
 
   // Hard cap — always lift eventually regardless of isReady
   useEffect(() => {
     const t = setTimeout(lift, maxMs);
     return () => clearTimeout(t);
-  }, [maxMs]);
+  }, [maxMs, lift]);
 
   if (!mounted) return null;
 
