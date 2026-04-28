@@ -409,12 +409,8 @@ function JudgeCells({ live, engine, isLive, compact = false }: JudgeCellsProps) 
 
 // ─── Judge / manual pick badges ───────────────────────────────────────────────
 //
-// JudgeScoreBadge — finished state only.
-// Layout: [Avg pill] [:] [Jud.1 pill] [Jud.2 pill] …
-//
-// On mobile the whole row can wrap: the avg + ":" are kept together via their
-// own inner flex wrapper so ":"  never orphans at the start of a new line.
-// Judge pills then flow naturally after them, wrapping as needed.
+// JudgeScoreBadge — finished state.
+// Same layout as JudgeScoreLive: avg pill on top, pipe-separated scores below.
 
 export function JudgeScoreBadge({
   live,
@@ -425,68 +421,46 @@ export function JudgeScoreBadge({
   engine:   any;
   compact?: boolean;
 }) {
-  const scores = live?.judgeScores ?? [];
-  const method = engine?.config?.method ?? "avg";
-  const result = calcAvg(scores, method).toFixed(1).replace(".", ",");
+  const scores: number[]   = live?.judgeScores ?? [];
+  const method             = engine?.config?.method ?? "avg";
+  const judgeCount: number = engine?.config?.num_judges ?? scores.length;
+  const result             = calcAvg(scores, method).toFixed(1).replace(".", ",");
+
+  const judgeText = Array.from({ length: judgeCount }, (_, i) => {
+    const raw = scores[i];
+    return (raw !== undefined && raw !== null)
+      ? raw.toFixed(1).replace(".", ",")
+      : "--";
+  }).join(" | ");
 
   return (
-    <div style={{
-      display:    "flex",
-      alignItems: "center",
-      gap:        compact ? 4 : 6,
-      flexWrap:   "wrap",
-      rowGap:     compact ? 4 : 6,
-    }}>
-      {/* Avg pill — kept together with the ":" so they don't split on wrap */}
-      <div style={{ display: "flex", alignItems: "center", gap: compact ? 4 : 6 }}>
-        <div style={{
-          background:   "#f3f4f6",
-          borderRadius: 6,
-          padding:      compact ? "3px 5px" : "4px 8px",
-          textAlign:    "center",
-          minWidth:     compact ? 38 : 50,
-        }}>
-          <div style={{
-            ...JK,
-            fontSize:     9,
-            fontWeight:   600,
-            color:        "#676767",
-            marginBottom: 2,
-          }}>
-            Avg
-          </div>
-          <div style={{
-            ...JK,
-            fontSize:   compact ? 11 : 12,
-            fontWeight: 800,
-            color:      "#111",
-            display:    "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            <AnimatedScore value={result} />
-          </div>
-        </div>
-
-        {/* Separator — lives next to the avg pill so they wrap as a unit */}
-        <span style={{
-          ...JK,
-          fontSize:   compact ? 12 : 14,
-          fontWeight: 800,
-          color:      "#aaa",
-          flexShrink: 0,
-        }}>
-          :
-        </span>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+      {/* Primary avg score — neutral grey finished pill */}
+      <div style={{
+        background:   "#f3f4f6",
+        borderRadius: 6,
+        padding:      compact ? "3px 10px" : "4px 14px",
+        ...JK,
+        fontSize:     compact ? 13 : 15,
+        fontWeight:   900,
+        color:        "#111",
+      }}>
+        <AnimatedScore value={result} />
       </div>
 
-      {/* Individual judge cells */}
-      <JudgeCells
-        live={live}
-        engine={engine}
-        isLive={false}
-        compact={compact}
-      />
+      {/* Individual judge scores as plain text */}
+      {judgeCount > 0 && (
+        <div style={{
+          ...JK,
+          fontSize:      compact ? 9 : 10,
+          fontWeight:    600,
+          color:         "#9ca3af",
+          whiteSpace:    "nowrap",
+          letterSpacing: "0.01em",
+        }}>
+          {judgeText}
+        </div>
+      )}
     </div>
   );
 }
@@ -494,8 +468,13 @@ export function JudgeScoreBadge({
 
 
 // ─── JudgeScoreLive ───────────────────────────────────────────────────────────
-// Live variant — no avg, just the per-judge cells so judges can see their own
-// scores appearing in real time. Wraps the same way as JudgeScoreBadge.
+// Live variant — mirrors the set-based mobile layout exactly:
+//   • Avg shown as the primary score pill (yellow, live-styled)
+//   • Individual judge scores rendered as pipe-separated text below,
+//     the same way set scores appear as "21-17 | 18-21 | 21-15"
+//
+// Avg is computed only from submitted scores so it stays meaningful while
+// judges trickle in. Pending slots show "--" in the text row.
 
 export function JudgeScoreLive({
   live,
@@ -506,20 +485,52 @@ export function JudgeScoreLive({
   engine:   any;
   compact?: boolean;
 }) {
+  const scores: number[]   = live?.judgeScores ?? [];
+  const method             = engine?.config?.method ?? "avg";
+  const judgeCount: number = engine?.config?.num_judges ?? scores.length;
+  const submitted          = scores.filter((s: any) => s !== undefined && s !== null);
+  const hasAny             = submitted.length > 0;
+  const avg                = hasAny
+    ? calcAvg(submitted, method).toFixed(1).replace(".", ",")
+    : "--";
+
+  // "85,0 | 93,5 | 91,5 | 94,5 | 83,0" — pending slots become "--"
+  const judgeText = Array.from({ length: judgeCount }, (_, i) => {
+    const raw = scores[i];
+    return (raw !== undefined && raw !== null)
+      ? raw.toFixed(1).replace(".", ",")
+      : "--";
+  }).join(" | ");
+
   return (
-    <div style={{
-      display:    "flex",
-      alignItems: "center",
-      gap:        compact ? 4 : 6,
-      flexWrap:   "wrap",
-      rowGap:     compact ? 4 : 6,
-    }}>
-      <JudgeCells
-        live={live}
-        engine={engine}
-        isLive={true}
-        compact={compact}
-      />
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+      {/* Primary avg score — yellow live pill */}
+      <div style={{
+        background:   "#FFF8D6",
+        border:       "1px solid #FFC936",
+        borderRadius: 6,
+        padding:      compact ? "3px 10px" : "4px 14px",
+        ...JK,
+        fontSize:     compact ? 13 : 15,
+        fontWeight:   900,
+        color:        "#111",
+      }}>
+        <AnimatedScore value={avg} />
+      </div>
+
+      {/* Individual judge scores as plain text — same pattern as set score text */}
+      {judgeCount > 0 && (
+        <div style={{
+          ...JK,
+          fontSize:      compact ? 9 : 10,
+          fontWeight:    600,
+          color:         "#9ca3af",
+          whiteSpace:    "nowrap",
+          letterSpacing: "0.01em",
+        }}>
+          {judgeText}
+        </div>
+      )}
     </div>
   );
 }
