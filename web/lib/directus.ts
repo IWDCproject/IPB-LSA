@@ -29,15 +29,24 @@ const directusCached = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as st
 
 export default directus;
 
-export const getAssetUrl = (asset: RawAsset | string | null | undefined): string | null => {
+export const getAssetUrl = (
+  asset: RawAsset | string | null | undefined,
+  opts?: { width?: number; height?: number; quality?: number; format?: string },
+): string | null => {
   if (!asset) return null;
   const id = typeof asset === 'object' ? asset.id : asset;
   if (!id || id === 'null') return null;
   if (typeof id === 'string' && id.startsWith('http')) return id;
   const base = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767';
-  const qs = typeof asset === 'object' && asset.uploaded_on
-    ? `?v=${new Date(asset.uploaded_on).getTime()}`
-    : '';
+  const params = new URLSearchParams();
+  if (typeof asset === 'object' && asset.uploaded_on) {
+    params.set('v', String(new Date(asset.uploaded_on).getTime()));
+  }
+  if (opts?.width)   params.set('width',   String(opts.width));
+  if (opts?.height)  params.set('height',  String(opts.height));
+  if (opts?.quality) params.set('quality', String(opts.quality));
+  if (opts?.format)  params.set('format',  opts.format);
+  const qs = params.size > 0 ? `?${params.toString()}` : '';
   return `${base}/assets/${id}${qs}`;
 };
 
@@ -127,6 +136,11 @@ const mapMatch = (m: any): MappedMatch => {
         institution: found?.participant_id?.institution || logEntry.institution || null,
       };
     });
+  }
+
+  // Warn loudly — a null format_id means scoring is silently broken for this match.
+  if (cat && !fmt) {
+    console.warn('[mapMatch] match', m.id, 'has no format_id — scoring will be unavailable for category', cat.id);
   }
 
   const mappedCategory: MappedCompetitionCategory = {
@@ -456,15 +470,13 @@ export const getEventsWithRecentNews = async () => {
 export const getAllNewsFiltered = async ({
   page     = 1,
   pageSize = 24,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filter   = {} as any,
+  filter   = {} as any, // intentional: callers pass DirectusNewsFilter which lacks an index signature
   sort     = '-published_at',
 }: {
   page?:     number;
   pageSize?: number;
   // Intentionally `any` — callers pass a `DirectusNewsFilter` interface that
   // lacks an index signature, which makes it incompatible with a typed Record.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter?:   any;
   sort?:     string;
 } = {}): Promise<{ items: MappedNews[]; total: number; totalPages: number }> => {

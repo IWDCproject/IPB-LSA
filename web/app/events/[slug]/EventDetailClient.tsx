@@ -11,6 +11,7 @@ import ParticipantsTab   from "./_components/tabs/ParticipantsTab";
 import UniversityMarquee from "@/components/UniversityMarquee";
 import Footer            from "@/components/Footer";
 import { getAssetUrl }   from "@/lib/directus";
+import { JK }             from "./_components/shared/tokens";
 import { useTabTransition } from "./_components/shared/UseTabTransition";
 import { KEYFRAMES }        from "./_components/shared/Animations";
 import { ErrorBoundary }    from "./_components/shared/ErrorBoundary";
@@ -48,12 +49,27 @@ export default function EventDetailClient({ event }: { event: MappedEvent }) {
   // ─── Live match data (polls every 10s; easy WebSocket swap later) ─────────
   const { matches, lastUpdated, isPolling } = useMatchState(event.slug, event.matches);
 
+  // ─── Stale data detection ─────────────────────────────────────────────────
+  // If the last successful poll is >60s ago, polling has silently stalled.
+  const [isStale, setIsStale] = useState(false);
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const check = () => setIsStale(Date.now() - lastUpdated.getTime() > 60_000);
+    check();
+    const id = setInterval(check, 5_000);
+    return () => clearInterval(id);
+  }, [lastUpdated]);
+
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setIsMobile(e.contentRect.width < 1024));
+    let timer: ReturnType<typeof setTimeout>;
+    const ro = new ResizeObserver(([e]) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setIsMobile(e.contentRect.width < 1024), 100);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); clearTimeout(timer); };
   }, []);
 
   useEffect(() => {
@@ -149,6 +165,19 @@ export default function EventDetailClient({ event }: { event: MappedEvent }) {
             />
 
             <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>
+              {/* Stale data warning — shown when polling has silently stalled >60s */}
+              {isStale && displayedTab === "matches" && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)",
+                  borderRadius: 8, padding: "10px 16px", marginBottom: 16,
+                }}>
+                  <span style={{ fontSize: 16 }}>⚠️</span>
+                  <span style={{ ...JK, fontSize: 13, fontWeight: 600, color: "#FCA5A5" }}>
+                    Live scores may be outdated — last update was over 60 seconds ago.
+                  </span>
+                </div>
+              )}
               <div>
                 {displayedTab === "overview" && (
                   <ErrorBoundary label="Overview">
