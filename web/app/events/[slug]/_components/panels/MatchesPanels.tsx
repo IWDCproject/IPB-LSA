@@ -9,6 +9,7 @@ import {
 } from "../match/scoreUtils";
 import { MiddleBadge, ScoreCell, AnimatedScore } from "../match/ScoreBadges";
 import type { MappedMatch } from "../../_types";
+import { MobileMatchRow } from "../match/MatchRow";
 
 // ─── Participant cells ─────────────────────────────────────────────────────────
 
@@ -20,8 +21,6 @@ function Logo({ inst, size = 32, isLoser = false }: { inst: any; size?: number; 
   return <Image src={inst.logo_url} alt={inst?.name ?? ""} width={size} height={size} style={{ objectFit: "contain", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }} />;
 }
 
-// ─── Mobile row — imported from MatchesTab (single source of truth) ───────────
-import { MobileMatchRow } from "../tabs/MatchesTab";
 
 const truncate: React.CSSProperties = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 
