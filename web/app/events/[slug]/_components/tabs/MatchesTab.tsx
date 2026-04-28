@@ -10,7 +10,7 @@ import { JK } from "../shared/tokens";
 import {
   getEngine, fmtDateLong as fmtDate, fmtTime, groupByDateLong as groupByDate, resolveWinnerName,
 } from "../match/scoreUtils";
-import { MiddleBadge, ScoreCell } from "../match/ScoreBadges";
+import { MiddleBadge, ScoreCell, AnimatedScore } from "../match/ScoreBadges";
 
 const ROW_KEYFRAMES = `
   @keyframes match-row-in {
@@ -64,9 +64,9 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={numPill("#FFC936", "#111")}>{setScore[0]}</span>
+            <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[0])} /></span>
             <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#CA8A04" }}>vs</span>
-            <span style={numPill("#FFC936", "#111")}>{setScore[1]}</span>
+            <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[1])} /></span>
           </div>
           {detail && (
             <div style={{ ...JK, ...truncate, fontSize: 9, fontWeight: 600, color: "#CA8A04", maxWidth: 68, textAlign: "right" }}>{detail}</div>
@@ -81,9 +81,9 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={numPill("#f3f4f6", "#111")}>{homeSets}</span>
+            <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(homeSets)} /></span>
             <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#aaa" }}>vs</span>
-            <span style={numPill("#f3f4f6", "#111")}>{awaySets}</span>
+            <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(awaySets)} /></span>
           </div>
           {detail && (
             <div style={{ ...JK, ...truncate, fontSize: 9, fontWeight: 600, color: "#9CA3AF", maxWidth: 68, textAlign: "right" }}>{detail}</div>
@@ -675,11 +675,12 @@ interface Props {
   isMobile: boolean;
   phase:    AnimPhase;
 
-  lastUpdated?: Date | null;  
-  isPolling?:   boolean;      
+  lastUpdated?: Date | null;
+  isPolling?:   boolean;
+  wsStatus?:    "connected" | "reconnecting" | "polling";
 }
 
-export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPolling }: Props) {
+export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPolling, wsStatus }: Props) {
   const allMatches: MappedMatch[] = event.matches ?? [];
   const [filter, setFilter] = useState<FilterValue>("all");
 
@@ -715,16 +716,16 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
             <span style={{ ...JK, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#06125C" }}>
               Matches
             </span>
-            {/* ── Live update indicator ── */}
-            {(lastUpdated || isPolling) && (
-              <div style={{ ...JK, fontSize: 11, color: "rgba(0,0,0,0.35)" }}>
-                {isPolling
-                  ? "Updated at --:--"
-                  : lastUpdated
-                    ? `Updated at ${lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
-                    : null}
+            {/* Status koneksi realtime */}
+            {wsStatus === "connected" || wsStatus === "reconnecting" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, ...JK, fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.35)" }}>
+                {wsStatus === "connected" ? "Real-time · WebSocket" : "Connecting WebSocket..."}
               </div>
-            )}
+            ) : lastUpdated ? (
+              <div style={{ ...JK, fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.35)" }}>
+                Last updated {lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            ) : null}
           </div>
           {isMobile
             ? <MobileFilterDropdown active={filter} onChange={setFilter} counts={counts} />

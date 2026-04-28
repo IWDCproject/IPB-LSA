@@ -7,7 +7,7 @@ import {
   getEngine, fmtDateShort as fmtDate, fmtTime, groupByDateShort as groupByDate,
   resolveWinnerName,
 } from "../match/scoreUtils";
-import { MiddleBadge, ScoreCell } from "../match/ScoreBadges";
+import { MiddleBadge, ScoreCell, AnimatedScore } from "../match/ScoreBadges";
 import type { MappedMatch } from "../../_types";
 
 // ─── Participant cells ─────────────────────────────────────────────────────────
@@ -88,9 +88,9 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={numPill("#FFC936", "#111")}>{setScore[0]}</span>
+            <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[0])} /></span>
             <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#CA8A04" }}>vs</span>
-            <span style={numPill("#FFC936", "#111")}>{setScore[1]}</span>
+            <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[1])} /></span>
           </div>
           {detail && <div style={{ ...JK, ...truncateMobile, fontSize: 9, fontWeight: 600, color: "#CA8A04", maxWidth: 68, textAlign: "right" }}>{detail}</div>}
         </div>
@@ -103,9 +103,9 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={numPill("#f3f4f6", "#111")}>{homeSets}</span>
+            <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(homeSets)} /></span>
             <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#aaa" }}>vs</span>
-            <span style={numPill("#f3f4f6", "#111")}>{awaySets}</span>
+            <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(awaySets)} /></span>
           </div>
           {detail && <div style={{ ...JK, ...truncateMobile, fontSize: 9, fontWeight: 600, color: "#9CA3AF", maxWidth: 68, textAlign: "right" }}>{detail}</div>}
         </div>
