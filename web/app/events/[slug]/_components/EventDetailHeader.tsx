@@ -1,12 +1,11 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { staggerSlideUp, staggerFadeIn, PAGE_ENTER } from "./Animations";
+import { staggerSlideUp, staggerFadeIn, PAGE_ENTER } from "./shared/Animations";
 import Button from "@/components/Button";
-import { getYouTubeID } from "@/lib/directus";
-
-const BB = { fontFamily: "'Bebas Neue', sans-serif" }        as const;
-const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
+import { getYouTubeID } from "@/lib/utils";
+import { JK, BB } from "./shared/tokens";
+import type { MappedEvent } from "../_types";
 
 export type TabKey = "overview" | "matches" | "participants" | "news";
 
@@ -17,23 +16,22 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "news",         label: "News" },
 ];
 
+// STATUS_LABEL and STATUS_COLOR use the canonical status values produced by
+// STATUS_MAP in directus.ts: "upcoming" | "ongoing" | "concluded".
 const STATUS_LABEL: Record<string, string> = {
   upcoming:  "Upcoming",
-  active:    "On Going",
-  finished:  "Finished",
-  cancelled: "Cancelled",
+  ongoing:   "On Going",
+  concluded: "Concluded",
 };
 const STATUS_COLOR: Record<string, string> = {
   upcoming:  "rgb(219, 219, 219, 0.2)",
-  active:    "rgb(255, 201, 54, 0.2)",
-  finished:  "rgb(107, 114, 128, 0.2)",
-  cancelled: "rgb(239, 68, 68, 0.2)",
+  ongoing:   "rgb(255, 201, 54, 0.2)",
+  concluded: "rgb(107, 114, 128, 0.2)",
 };
 const STATUS_COLOR_OPAQUE: Record<string, string> = {
   upcoming:  "rgb(219, 219, 219, 1)",
-  active:    "rgb(255, 201, 54, 1)",
-  finished:  "rgb(107, 114, 128, 1)",
-  cancelled: "rgb(239, 68, 68, 1)",
+  ongoing:   "rgb(255, 201, 54, 1)",
+  concluded: "rgb(107, 114, 128, 1)",
 };
 
 function fmtDate(d: string | null) {
@@ -61,12 +59,10 @@ function ScrollRow({
     const update = () => {
       const { scrollLeft, scrollWidth, clientWidth } = el;
       const overflowRight = Math.max(0, scrollWidth - clientWidth - scrollLeft);
-      
-      // Map 0-48px of movement to the fade width
-      // We use a 4px threshold to decide when to kill the mask entirely
+
       const leftFade  = scrollLeft < 4 ? 0 : Math.min(scrollLeft / 48, 1) * 48;
       const rightFade = overflowRight < 4 ? 0 : Math.min(overflowRight / 48, 1) * 48;
-      
+
       let mask = "none";
       if (leftFade > 0 && rightFade > 0) {
         mask = `linear-gradient(to right, transparent 0px, black ${leftFade}px, black calc(100% - ${rightFade}px), transparent 100%)`;
@@ -95,18 +91,16 @@ function ScrollRow({
       ref={ref}
       className={className}
       style={{
-        display:         "flex",
-        alignItems:      "center",
-        gap:             8,
-        flexWrap:        "nowrap",
-        overflowX:       "auto",
-        scrollbarWidth:  "none",
+        display:                 "flex",
+        alignItems:              "center",
+        gap:                     8,
+        flexWrap:                "nowrap",
+        overflowX:               "auto",
+        scrollbarWidth:          "none",
         WebkitOverflowScrolling: "touch",
-        // 1. Add padding to give the 1.5px borders breathing room
-        padding:         "4px 8px", 
-        // 2. Use negative margin to keep the pills flush with your content margins
-        margin:          "-4px -8px", 
-        position:        "relative",
+        padding:                 "4px 8px",
+        margin:                  "-4px -8px",
+        position:                "relative",
         ...style,
       }}
     >
@@ -117,10 +111,10 @@ function ScrollRow({
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface Props {
-  event:        any;
+  event:        MappedEvent;
   activeTab:    TabKey;
   onTabChange:  (t: TabKey) => void;
-  isMobile:     boolean;   // still used for video placement & register ordering
+  isMobile:     boolean;
   spinnerPhase: "hidden" | "showing" | "fading";
 }
 
@@ -136,11 +130,7 @@ export default function EventDetailHeader({
   const PAD      = `${TOP_PAD} ${SIDE_PAD} 36px`;
   const MIN_HERO_HEIGHT = isMobile ? "0px" : "300px";
 
-  // ─── Layout: single-row vs two-row, driven by overflow only ───────────────
-  // A hidden probe renders all tabs + min gap + all action buttons in a
-  // nowrap flex row. If its natural scrollWidth exceeds the container's
-  // clientWidth we fall back to the two-row layout. This applies at every
-  // viewport width — no isMobile gate — so tablets that can fit single-row do.
+  // ─── Layout: single-row vs two-row ─────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const probeRef     = useRef<HTMLDivElement>(null);
   const [needsTwoRows, setNeedsTwoRows] = useState(false);
@@ -167,20 +157,19 @@ export default function EventDetailHeader({
   useEffect(() => {
     const btn = tabsRef.current[activeTab];
     if (!btn || !needsTwoRows) return;
-    
+
     const container = btn.closest(".tab-scroll") as HTMLDivElement;
     if (!container) return;
 
-    const fadeBuffer = 48; 
-    const containerPadding = 8; // Match the padding in ScrollRow
-    const containerWidth = container.clientWidth;
-    const scrollLeft = container.scrollLeft;
-    
-    const btnLeft = btn.offsetLeft - containerPadding;
+    const fadeBuffer       = 48;
+    const containerPadding = 8;
+    const containerWidth   = container.clientWidth;
+    const scrollLeft       = container.scrollLeft;
+
+    const btnLeft  = btn.offsetLeft - containerPadding;
     const btnRight = btnLeft + btn.offsetWidth;
 
     let targetScroll = scrollLeft;
-
     if (btnLeft < scrollLeft + fadeBuffer) {
       targetScroll = btnLeft - (btnLeft < 10 ? 0 : fadeBuffer);
     } else if (btnRight > scrollLeft + containerWidth - fadeBuffer) {
@@ -189,6 +178,25 @@ export default function EventDetailHeader({
 
     container.scrollTo({ left: targetScroll, behavior: "smooth" });
   }, [activeTab, needsTwoRows]);
+
+  // ─── Keyboard navigation for the tab list (← → Home End) ──────────────────
+  // ARIA APG pattern: https://www.w3.org/WAI/ARIA/apg/patterns/tabs/
+  const handleTabKeyDown = (e: React.KeyboardEvent, currentIdx: number) => {
+    let nextIdx: number | null = null;
+
+    if (e.key === "ArrowRight") nextIdx = (currentIdx + 1) % TABS.length;
+    if (e.key === "ArrowLeft")  nextIdx = (currentIdx - 1 + TABS.length) % TABS.length;
+    if (e.key === "Home")       nextIdx = 0;
+    if (e.key === "End")        nextIdx = TABS.length - 1;
+
+    if (nextIdx !== null) {
+      e.preventDefault();
+      const nextKey = TABS[nextIdx].key;
+      onTabChange(nextKey);
+      // Move focus to the newly selected tab button
+      tabsRef.current[nextKey]?.focus();
+    }
+  };
 
   // ─── Meta ─────────────────────────────────────────────────────────────────
   const meta = [
@@ -209,14 +217,26 @@ export default function EventDetailHeader({
     actions: staggerFadeIn( 560, PAGE_ENTER),
   };
 
-  // ─── Shared fragments ─────────────────────────────────────────────────────
+  // ─── Tab pills — shared between single-row and two-row layouts ────────────
+  // role="tablist" + role="tab" satisfies WCAG 2.1 SC 4.1.2.
+  // aria-controls points to the tab panel id rendered by each tab component.
   const tabPills = (
-    <>
+    <div
+      role="tablist"
+      aria-label="Event sections"
+      style={{ display: "flex", alignItems: "center", gap: 8 }}
+    >
       {TABS.map((t, i) => (
         <button
           key={t.key}
+          id={`tab-${t.key}`}
+          role="tab"
+          aria-selected={activeTab === t.key}
+          aria-controls={`tabpanel-${t.key}`}
+          tabIndex={activeTab === t.key ? 0 : -1}
           ref={(el) => { tabsRef.current[t.key] = el; }}
           onClick={() => onTabChange(t.key)}
+          onKeyDown={(e) => handleTabKeyDown(e, i)}
           style={{
             ...JK,
             fontWeight:   700,
@@ -229,28 +249,41 @@ export default function EventDetailHeader({
             cursor:       "pointer",
             transition:   "background 0.2s, color 0.2s",
             flexShrink:   0,
+            outline:      "none",
+            // Visible focus ring for keyboard users; hidden for mouse users
+            // (would ideally be done with :focus-visible in CSS, but inline
+            // styles don't support pseudo-classes — use a className if you
+            // add a global stylesheet later).
             ...staggerSlideUp(360 + i * PAGE_ENTER.stagger, PAGE_ENTER),
           }}
+          // Accessible focus ring via data attr + global CSS (see style tag below)
+          data-tab-btn
         >
           {t.label}
         </button>
       ))}
 
       {spinnerPhase !== "hidden" && (
-        <div style={{
-          marginLeft:     4,
-          width:          24,
-          height:         24,
-          borderRadius:   "50%",
-          border:         "1px solid rgba(255,255,255,0.2)",
-          borderTopColor: "rgba(255,255,255,1)",
-          animation:      "tab-spin 0.7s linear infinite",
-          flexShrink:     0,
-          opacity:        spinnerPhase === "fading" ? 0 : 1,
-          transition:     spinnerPhase === "fading" ? "opacity 500ms ease" : "none",
-        }} />
+        <div
+          aria-hidden
+          role="status"
+          aria-live="polite"
+          aria-label="Loading tab content"
+          style={{
+            marginLeft:     4,
+            width:          24,
+            height:         24,
+            borderRadius:   "50%",
+            border:         "1px solid rgba(255,255,255,0.2)",
+            borderTopColor: "rgba(255,255,255,1)",
+            animation:      "tab-spin 0.7s linear infinite",
+            flexShrink:     0,
+            opacity:        spinnerPhase === "fading" ? 0 : 1,
+            transition:     spinnerPhase === "fading" ? "opacity 500ms ease" : "none",
+          }}
+        />
       )}
-    </>
+    </div>
   );
 
   // Register button comes first on narrow screens so it's visible without
@@ -297,6 +330,10 @@ export default function EventDetailHeader({
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes tab-spin { to { transform: rotate(360deg); } }
         .tab-scroll::-webkit-scrollbar { display: none; }
+        [data-tab-btn]:focus-visible {
+          outline: 2px solid rgba(255,255,255,0.9);
+          outline-offset: 2px;
+        }
       `}} />
 
       {/* ── Status badge ── */}
@@ -365,9 +402,10 @@ export default function EventDetailHeader({
               zIndex:       10,
             }}>
               <iframe
+                title={`${event.name} — YouTube video`}
                 width="100%" height="100%"
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
@@ -389,9 +427,10 @@ export default function EventDetailHeader({
           marginTop:    4,
         }}>
           <iframe
+            title={`${event.name} — YouTube video`}
             width="100%" height="100%"
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
         </div>
@@ -408,21 +447,21 @@ export default function EventDetailHeader({
       </div>
 
       {/* ── Tab row + action buttons ─────────────────────────────────────────
-          Layout is driven purely by overflow detection — no isMobile gate.
-          ∙ Fits?      → single row: tabs left │ elastic spacer │ actions right
-          ∙ Overflows? → two rows: each independently scrollable with dynamic fades
+          Layout driven by overflow detection — no isMobile gate.
+          Fits?      → single row: tabs left │ spacer │ actions right
+          Overflows? → two rows: each independently scrollable with fades
       ──────────────────────────────────────────────────────────────────────── */}
       <div
-          ref={containerRef}
-          style={{
-            marginBottom: -20,
-            marginTop:    isMobile ? 16 : 30,
-            width:        "100%",
-            minWidth:     0,
-            overflow:     "visible",
-            ...s.tabRow,
-          }}
-        >
+        ref={containerRef}
+        style={{
+          marginBottom: -20,
+          marginTop:    isMobile ? 16 : 30,
+          width:        "100%",
+          minWidth:     0,
+          overflow:     "visible",
+          ...s.tabRow,
+        }}
+      >
         {/* Hidden probe — measures natural combined width to decide layout */}
         <div
           ref={probeRef}
@@ -443,14 +482,13 @@ export default function EventDetailHeader({
               {t.label}
             </button>
           ))}
-          {/* Minimum breathing room between the two groups */}
           <div style={{ width: 32, flexShrink: 0 }} />
           {event.guidebook_url                                   && <button style={{ padding: "7px 16px", flexShrink: 0 }}>Guidebook</button>}
           {event.instagram_url                                   && <button style={{ padding: "7px 16px", flexShrink: 0 }}>Instagram</button>}
           {event.is_registration_open && event.registration_url && <button style={{ padding: "7px 16px", flexShrink: 0 }}>Register</button>}
         </div>
 
-        {/* ── Single-row layout — tabs left, actions right ── */}
+        {/* ── Single-row layout ── */}
         {!needsTwoRows && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -463,7 +501,7 @@ export default function EventDetailHeader({
           </div>
         )}
 
-        {/* ── Two-row layout — triggered by overflow ── */}
+        {/* ── Two-row layout ── */}
         {needsTwoRows && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <ScrollRow className="tab-scroll">

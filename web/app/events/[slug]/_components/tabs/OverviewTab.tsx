@@ -1,19 +1,31 @@
 "use client";
 
 import { useState, useLayoutEffect, useRef, useMemo } from "react";
-import AboutPanel from "./AboutPanel";
-import TimelinePanel from "./TimelinePanel";
-import CountdownPanel from "./CountdownPanel";
-import { UpcomingMatchesPanel, LatestResultsPanel } from "./MatchesPanels";
-import LatestStoriesSection from "./LatestStoriesSection";
-import { staggerSlideUp, TAB_ENTER, PAGE_ENTER } from "./Animations";
-import type { AnimPhase } from "./UseTabTransition";
+import AboutPanel from "../panels/AboutPanel";
+import TimelinePanel from "../panels/TimelinePanel";
+import CountdownPanel from "../panels/CountdownPanel";
+import { UpcomingMatchesPanel, LatestResultsPanel } from "../panels/MatchesPanels";
+import LatestStoriesSection from "../panels/LatestStoriesSection";
+import { staggerSlideUp, TAB_ENTER, PAGE_ENTER } from "../shared/Animations";
+import type { AnimPhase } from "../shared/UseTabTransition";
+import type { MappedEvent, TabKey } from "../../_types";
 
+// ─── Layout constants ──────────────────────────────────────────────────────────
+// These pixel values are an invisible contract with MatchesPanels.tsx.
+// Each one must match the actual rendered height of the corresponding element
+// in MatchesPanels. If padding, font size, or line height changes in
+// MatchesPanels, update the matching constant here.
+
+/** Height of the DateHeader component in MatchesPanels (font 13px + padding). */
 const DATE_H        = 32;
+/** PanelCard padding (16px top + 16px bottom) + PanelTitle height (≈25px) = 57px. */
 const OVERHEAD_BASE = 57;
+/** Footer/"show more" row height at the bottom of UpcomingMatchesPanel/LatestResultsPanel. */
 const FOOTER_H      = 20;
 
+/** Default height of a MatchRow in MatchesPanels (no set score). */
 const ROW_H_DEFAULT      = 52;
+/** Height of a MatchRow that shows a set-score breakdown. */
 const ROW_H_SETS_DEFAULT = 64;
 
 // ─── Layout math ──────────────────────────────────────────────────────────────
@@ -168,10 +180,10 @@ function useRightColumnLayout(
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
-  event:    any;
-  isMobile: boolean;
-  phase:    AnimPhase;
-  onTabChange: (t: any) => void; 
+  event:       MappedEvent;
+  isMobile:    boolean;
+  phase:       AnimPhase;
+  onTabChange: (t: TabKey) => void;
 }
 
 export default function OverviewTab({ event, isMobile, phase, onTabChange }: Props) {
@@ -228,15 +240,18 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
     measure();
 
     let rafId = 0;
-    const onResize = () => {
+    // ResizeObserver on the left column fires whenever the column's own width
+    // changes — the window resize listener was redundant and couldn't detect
+    // container-width changes independently of window size.
+    const ro = new ResizeObserver(() => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(measure);
-    };
-    window.addEventListener("resize", onResize);
+    });
+    ro.observe(el);
     document.fonts?.ready.then(measure);
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      ro.disconnect();
       cancelAnimationFrame(rafId);
     };
   }, [isMobile]);

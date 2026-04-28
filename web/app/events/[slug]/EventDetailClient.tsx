@@ -1,18 +1,21 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { useRef, useState, useEffect } from "react";
-import EventDetailHeader, { type TabKey } from "./_components/EventDetailHeader";
-import OverviewTab from "./_components/OverviewTab";
-import NewsTab from "./_components/NewsTab";
-import MatchesTab from "./_components/MatchesTab";
-import ParticipantsTab from "./_components/ParticipantsTab";
-import TabContentShell from "./_components/TabContentShell";
+import EventDetailHeader from "./_components/EventDetailHeader";
+import OverviewTab       from "./_components/tabs/OverviewTab";
+import NewsTab           from "./_components/tabs/NewsTab";
+import MatchesTab        from "./_components/tabs/MatchesTab";
+import ParticipantsTab   from "./_components/tabs/ParticipantsTab";
 import UniversityMarquee from "@/components/UniversityMarquee";
-import Footer from "@/components/Footer";
-import { getAssetUrl } from "@/lib/directus";
-import { useTabTransition } from "./_components/UseTabTransition";
-import { KEYFRAMES } from "./_components/Animations";
+import Footer            from "@/components/Footer";
+import { getAssetUrl }   from "@/lib/directus";
+import { useTabTransition } from "./_components/shared/UseTabTransition";
+import { KEYFRAMES }        from "./_components/shared/Animations";
+import { ErrorBoundary }    from "./_components/shared/ErrorBoundary";
+import { useMatchState }    from "./hooks/useMatchState";
+import type { MappedEvent, TabKey } from "./_types";
 
 const BG_TOP    = "#0D26C2 30%";
 const BG_BOTTOM = "#06125C";
@@ -25,18 +28,25 @@ const LOCAL_KEYFRAMES = `
   @keyframes edc-marquee-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 `;
 
-export default function EventDetailClient({ event }: { event: any }) {
+export default function EventDetailClient({ event }: { event: MappedEvent }) {
   const searchParams = useSearchParams();
+  const router       = useRouter();
   const activeTab    = (searchParams.get("tab") as TabKey) ?? "overview";
   const mainRef      = useRef<HTMLDivElement>(null);
-  const [isMobile,      setIsMobile]      = useState(false);
-  // Spinner: "showing" → visible at full opacity for ≥500ms
-  //          "fading"  → opacity transitioning to 0 over 500ms
-  //          "hidden"  → unmounted
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ─── Spinner: "showing" → visible at full opacity for ≥500ms
+  //              "fading"  → opacity transitioning to 0 over 500ms
+  //              "hidden"  → unmounted
+  // The three-state machine guarantees the spinner is visible for at least
+  // 500ms so fast tab loads don't produce a distracting flash.
   const [spinnerPhase,  setSpinnerPhase]  = useState<"hidden" | "showing" | "fading">("hidden");
   const showTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstTab = useRef(true);
+
+  // ─── Live match data (polls every 10s; easy WebSocket swap later) ─────────
+  const { matches, lastUpdated, isPolling } = useMatchState(event.slug, event.matches);
 
   useEffect(() => {
     const el = mainRef.current;
@@ -46,9 +56,7 @@ export default function EventDetailClient({ event }: { event: any }) {
     return () => ro.disconnect();
   }, []);
 
-  // ─── Spinner: shows on every tab switch, min 500ms visible, 500ms fade ──────
   useEffect(() => {
-    // Skip the very first render — page load has its own entry animation
     if (isFirstTab.current) { isFirstTab.current = false; return; }
 
     if (showTimer.current) clearTimeout(showTimer.current);
@@ -68,37 +76,35 @@ export default function EventDetailClient({ event }: { event: any }) {
   }, [activeTab]);
 
   // ─── Tab transition system ─────────────────────────────────────────────────
-  // `displayedTab` lags behind `activeTab` by EXIT_DURATION ms during exit.
-  // `phase`        is "entering" when the tab first mounts, "idle" after.
-  // `isExiting`    is true during the outgoing fade.
-  const { displayedTab, phase, isExiting } = useTabTransition(activeTab);
+  const { displayedTab, phase } = useTabTransition(activeTab);
 
   const setTab = (t: TabKey) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("tab", t);
-    window.history.pushState(null, "", url.toString());
-    
-    // This replicates "scroll: true" behavior
-    window.scrollTo({ top: 0, behavior: "smooth" }); 
+    // router.push keeps the Next.js router in sync (prefetching, middleware,
+    // scroll restoration) while { scroll: false } lets us do our own smooth
+    // scroll — matching the original UX without bypassing the router.
+    router.push(`?tab=${t}`, { scroll: false });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Merge live match state back into the event object passed to tabs.
+  // All other event fields stay server-fresh; only matches update on the client.
+  const liveEvent: MappedEvent = { ...event, matches };
+
   const bannerUrl = event.banner_image?.id ? getAssetUrl(event.banner_image) : null;
 
   return (
     <>
-      {/* Single keyframe injection point for the whole page.
-          dangerouslySetInnerHTML prevents React from diffing the text content
-          of this <style> tag, which eliminates the SSR hydration mismatch. */}
       <style dangerouslySetInnerHTML={{ __html: LOCAL_KEYFRAMES + KEYFRAMES }} />
 
       <div
         ref={mainRef}
         style={{
-          position: "relative",
-          minHeight: "calc(100vh - 64px)", 
-          display: "flex",
+          position:      "relative",
+          minHeight:     "calc(100vh - 64px)",
+          display:       "flex",
           flexDirection: "column",
-          overflowX: "hidden",            
-          background: `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
+          overflowX:     "hidden",
+          background:    `linear-gradient(to bottom, ${BG_TOP}, ${BG_BOTTOM})`,
         }}
       >
         {/* Batik pattern overlay */}
@@ -126,14 +132,13 @@ export default function EventDetailClient({ event }: { event: any }) {
               position: "absolute", inset: 0,
               backgroundImage: `url(${bannerUrl})`,
               backgroundSize: "cover", backgroundPosition: "center",
-              filter: "blur(3px)", transform: "scale(1.05)",
+              filter: "blur(8px)", transform: "scale(1.05)",
             }} />
             <div style={{ position: "absolute", inset: 0, background: TINT_COLOR, pointerEvents: "none" }} />
           </div>
         )}
 
         <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", opacity: 0, animation: "edc-fade-in 0.4s ease 0ms forwards" }}>
-          {/* Fills exactly 100% of the visible screen below the navbar */}
           <div style={{ flex: "1 0 auto", minHeight: "calc(100vh - 64px)" }}>
             <EventDetailHeader
               event={event}
@@ -144,27 +149,41 @@ export default function EventDetailClient({ event }: { event: any }) {
             />
 
             <div style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}>
-              <TabContentShell isExiting={isExiting}>
+              <div>
                 {displayedTab === "overview" && (
-                  <OverviewTab event={event} isMobile={isMobile} phase={phase} onTabChange={setTab} />
+                  <ErrorBoundary label="Overview">
+                    <OverviewTab event={liveEvent} isMobile={isMobile} phase={phase} onTabChange={setTab} />
+                  </ErrorBoundary>
                 )}
                 {displayedTab === "matches" && (
-                  <MatchesTab event={event} isMobile={isMobile} phase={phase} />
+                  <ErrorBoundary label="Matches">
+                    <MatchesTab
+                      event={liveEvent}
+                      isMobile={isMobile}
+                      phase={phase}
+                      lastUpdated={lastUpdated}
+                      isPolling={isPolling}
+                    />
+                  </ErrorBoundary>
                 )}
                 {displayedTab === "participants" && (
-                  <ParticipantsTab event={event} isMobile={isMobile} phase={phase} />
+                  <ErrorBoundary label="Participants">
+                    <ParticipantsTab event={liveEvent} isMobile={isMobile} phase={phase} />
+                  </ErrorBoundary>
                 )}
                 {displayedTab === "news" && (
-                  <NewsTab event={event} isMobile={isMobile} phase={phase} />
+                  <ErrorBoundary label="News">
+                    <NewsTab event={liveEvent} isMobile={isMobile} phase={phase} />
+                  </ErrorBoundary>
                 )}
-              </TabContentShell>
+              </div>
             </div>
 
             <div style={{ opacity: 0, animation: "edc-marquee-up 0.5s ease 900ms forwards" }}>
               <UniversityMarquee />
             </div>
           </div>
-          
+
           <div style={{ height: 120 }} />
           <Footer />
         </div>

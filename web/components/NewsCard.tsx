@@ -32,7 +32,7 @@ function Bone({ width, height, delay = "0s", radius = 4 }: {
 }
 
 export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
-  const thumbH  = isMobile ? 120 : 200;
+  const thumbH  = isMobile ? 190 : 200;
   const bodyPad = isMobile ? "12px 14px 14px" : "20px 22px 22px";
 
   return (
@@ -138,7 +138,7 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
   const [isHovered, setIsHovered] = useState(false);
   const arrowRef = useRef<SVGSVGElement>(null);
 
-  const thumbH    = isMobile ? 120 : 200;
+  const thumbH    = isMobile ? 190 : 200;
   const bodyPad   = isMobile ? "12px 14px 14px" : "20px 22px 22px";
   const titleSize = isMobile ? 13 : 18;
   const titleMB   = isMobile ? 8 : 12;
@@ -155,11 +155,12 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
     }
   }, [isHovered]);
 
-  const badge = item.event_id?.name ?? item.category;
+  const badge     = item.event_id?.name ?? item.category;
+  const eventSlug = item.event_id?.slug ?? '';
 
   return (
     <Link
-      href={`/news/${item.slug}`}
+      href={`/news/${eventSlug}/${item.slug}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{

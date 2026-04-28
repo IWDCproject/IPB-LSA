@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+
 // Slot animation config
 const STAGGER = 18;
 const DUR     = "0.5s";

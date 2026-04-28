@@ -1,12 +1,8 @@
+"use client";
+
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { PanelCard, PanelTitle } from "./Panel";
-
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const JK         = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const ACCENT     = "#FFC936";
-const DOT_GRAY   = "#D1D5DB";
-const TEXT_DARK  = "#06125C";
-const TEXT_MUTED = "#6B7280";
+import { JK, ACCENT, DOT_GRAY, TEXT_DARK, TEXT_MUTED } from "../shared/tokens";
 
 // ─── Shared geometry ───────────────────────────────────────────────────────────
 const DOT_SIZE  = 14;

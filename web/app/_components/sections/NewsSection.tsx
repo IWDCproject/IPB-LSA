@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useBlurImages } from "@/hooks/useBlurImages";
-import NewsCard from "../news-stuff/NewsCard";
+import NewsCard from "../news-stuff/HomepageNewsCard";
 import Button   from "@/components/Button";
 
 

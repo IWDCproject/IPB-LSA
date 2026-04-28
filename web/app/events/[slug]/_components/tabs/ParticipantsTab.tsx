@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { PanelCard, PanelTitle } from "./Panel";
-import { staggerSlideUp, TAB_ENTER } from "./Animations";
-import type { AnimPhase } from "./UseTabTransition";
+import { PanelCard, PanelTitle } from "../panels/Panel";
+import { staggerSlideUp, TAB_ENTER } from "../shared/Animations";
+import type { AnimPhase } from "../shared/UseTabTransition";
 import { getParticipantsByEvent } from "@/lib/directus";
-
-const JK     = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-const NAVY   = "#06125C";
-const MUTED  = "#6B7280";
-const BORDER = "#E5E7EB";
+import { JK, NAVY, MUTED, BORDER_GRAY as BORDER } from "../shared/tokens";
+import type { MappedEvent, CategoryWithParticipants, MappedParticipant } from "../../_types";
 
 const GROUP_STAGGER    = 80;   // ms between consecutive group entrances
 const GROUP_HEADER_DUR = 80;   // ms before this group's cards start (on initial load)
@@ -18,7 +15,7 @@ const CARD_STAGGER     = 40;   // ms between individual cards
 const CLOSE_DELAY      = 120;  // ms cursor has to cross the gap to the dropdown
 
 interface Props {
-  event:    any;
+  event:    MappedEvent;
   isMobile: boolean;
   phase:    AnimPhase;
 }
@@ -109,7 +106,7 @@ function MemberDropdown({
           <div style={{ ...JK, fontSize: 10, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
             Members · {members.length}
           </div>
-          {members.map((m: any, i: number) => {
+          {members.map((m, i) => {
             const name = typeof m === "string" ? m : (m.name ?? "—");
             const role = typeof m === "object" ? (m.role ?? m.position ?? null) : null;
             return (
@@ -137,7 +134,7 @@ function MemberDropdown({
 
 // ─── Participant card ─────────────────────────────────────────────────────────
 
-function ParticipantCard({ participant, animDelay }: { participant: any; animDelay: number }) {
+function ParticipantCard({ participant, animDelay }: { participant: MappedParticipant; animDelay: number }) {
   const [open,    setOpen]        = useState(false);
 	const [isClosing, setIsClosing] = useState(false);
   const [hovered, setHovered]     = useState(false);
@@ -266,7 +263,7 @@ function ParticipantCard({ participant, animDelay }: { participant: any; animDel
 function CategoryGroup({
   group, isMobile, isLast, groupDelay,
 }: {
-  group: any; isMobile: boolean; isLast: boolean; groupDelay: number;
+  group: CategoryWithParticipants; isMobile: boolean; isLast: boolean; groupDelay: number;
 }) {
   const [open,    setOpen]    = useState(true);
   const [animKey, setAnimKey] = useState(0);
@@ -275,7 +272,7 @@ function CategoryGroup({
 
   const participants = group.participants ?? [];
   const count        = participants.length;
-  const hasTeams     = participants.some((p: any) => Array.isArray(p.members) && p.members.length > 1);
+  const hasTeams     = participants.some((p: MappedParticipant) => Array.isArray(p.members) && p.members.length > 1);
   const unitLabel    = hasTeams ? (count === 1 ? "Team" : "Teams") : (count === 1 ? "Individual" : "Individuals");
 
   // Initial load: cards wait for the group header to animate in first.
@@ -324,7 +321,7 @@ function CategoryGroup({
             {participants.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", ...JK, fontSize: 13, color: "#9CA3AF", padding: "12px 0" }}>No participants yet.</div>
             ) : (
-              participants.map((p: any, i: number) => (
+              participants.map((p: MappedParticipant, i: number) => (
                 <div key={`${animKey}-${p.id}`} style={{ minWidth: 0 }}>
                   <ParticipantCard participant={p} animDelay={cardBaseDelay + i * CARD_STAGGER} />
                 </div>
@@ -340,7 +337,7 @@ function CategoryGroup({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ParticipantsTab({ event, isMobile, phase }: Props) {
-  const [groups, setGroups] = useState<any[] | null>(null);
+  const [groups, setGroups] = useState<CategoryWithParticipants[] | null>(null);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {

@@ -14,8 +14,9 @@ export function useTabTransition<T extends string>(activeTab: T) {
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    // First render: mark as entering, then settle to idle
-    // (long enough for PAGE_ENTER animations to finish)
+    // First render: mark as entering, then settle to idle.
+    // The isFirstRender guard prevents the initial page load from incorrectly
+    // triggering a tab-swap effect that would reset the entering phase mid-animation.
     if (isFirstRender.current) {
       isFirstRender.current = false;
       setPhase("entering");
@@ -34,7 +35,6 @@ export function useTabTransition<T extends string>(activeTab: T) {
     setPhase("entering");
 
     // Settle to idle once TAB_ENTER animations have finished
-    // (400ms duration + 30ms baseDelay + a few stagger steps @ 50ms)
     enterTimer.current = setTimeout(() => setPhase("idle"), 800);
 
     return () => {
@@ -43,7 +43,5 @@ export function useTabTransition<T extends string>(activeTab: T) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // isExiting is always false — kept in the return value so call-sites
-  // don't need to change, but TabContentShell no longer does anything with it.
-  return { displayedTab, phase, isExiting: false as const };
+  return { displayedTab, phase };
 }

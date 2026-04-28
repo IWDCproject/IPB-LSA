@@ -21,7 +21,9 @@ function Bone({ width, height, delay = "0s", radius = 4 }: {
   );
 }
 
-export function NewsCardSkeleton() {
+export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
+  const thumbH  = isMobile ? 190 : 200;
+  const bodyPad = isMobile ? "12px 14px 14px" : "20px 22px 22px";
   return (
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
@@ -43,7 +45,7 @@ export function NewsCardSkeleton() {
       }}>
 
         {/* Image — height 200, #E5E7EB is the real card's backgroundColor fallback */}
-        <div style={{ height: 200, background: "#E5E7EB", flexShrink: 0, position: "relative", overflow: "hidden" }}>
+        <div style={{ height: thumbH, background: "#E5E7EB", flexShrink: 0, position: "relative", overflow: "hidden" }}>
           <div style={{
             position: "absolute", inset: 0,
             background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)",
@@ -52,7 +54,7 @@ export function NewsCardSkeleton() {
         </div>
 
         {/* Body — exact same padding as the real card */}
-        <div style={{ padding: "20px 22px 22px", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: bodyPad, flex: 1, display: "flex", flexDirection: "column" }}>
 
           {/* Date row — fontSize 12, marginBottom 8 */}
           <Bone width="30%" height={12} delay="0s" />

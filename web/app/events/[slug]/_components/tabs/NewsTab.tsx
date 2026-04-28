@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
-import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
+import NewsCard from "@/components/NewsCard";
+import { NewsCardSkeleton } from "../shared/NewsCardSkeleton";
 import { getNewsByEvent, getNewsCountByEvent } from "@/lib/directus";
-import { TAB_ENTER } from "./Animations";
-import type { AnimPhase } from "./UseTabTransition";
+import { TAB_ENTER } from "../shared/Animations";
+import type { AnimPhase } from "../shared/UseTabTransition";
+import { NewsPlaceholder } from "../shared/NewsPlaceholder";
+import { JK, YELLOW } from "../shared/tokens";
+import type { MappedEvent, MappedNews } from "../../_types";
 
-const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 const PAGE_SIZE = 12;
-const YELLOW = "#FFC936";
 
 // ─── Skeleton debounce thresholds ─────────────────────────────────────────────
 // 1. Show delay  — if data arrives before this, skeleton never appears at all.
@@ -20,7 +22,7 @@ const SKELETON_MIN_DISPLAY_MS = 200;
 // ─── Responsive columns ────────────────────────────────────────────────────────
 
 function getColumns(width: number, isMobile: boolean): number {
-  if (isMobile || width < 768) return 2;
+  if (isMobile || width < 768) return 1;
   if (width < 1280)            return 3;
   return 4;
 }
@@ -103,36 +105,6 @@ function Pagination({ page, totalPages, onPageChange }: {
   );
 }
 
-// ─── Placeholder Card ─────────────────────────────────────────────────────────
-
-function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
-  return (
-    <div style={{
-      position: "relative", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", borderRadius: 8,
-      boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.15)",
-      background: "rgba(255, 255, 255, 0.03)", backdropFilter: "blur(8px)",
-      padding: "40px", height: "100%", overflow: "hidden",
-    }}>
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "url(/Batik_Pattern_white.svg)",
-        backgroundSize: "cover", backgroundRepeat: "no-repeat",
-        backgroundPosition: "center", opacity: 0.15,
-        pointerEvents: "none", zIndex: 0, filter: "blur(1.5px)",
-      }} />
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" style={{ marginBottom: 12 }}>
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        <span style={{ ...JK, fontSize: "11px", fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.12em", textAlign: "center" }}>
-          Coming Soon
-        </span>
-      </div>
-    </div>
-  );
-}
-
 // ─── Card Slot ────────────────────────────────────────────────────────────────
 // CSS grid stacking (grid-area:1/1) keeps both layers in normal flow so slot
 // height = max(skeleton, card) — no clipping, no position:absolute games.
@@ -142,7 +114,7 @@ function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
 
 interface SlotProps {
   index:        number;
-  item:         any | null;
+  item:         MappedNews | null;
   isPlaceholder: boolean;
   ready:        boolean;
   showSkeleton: boolean;
@@ -176,7 +148,6 @@ function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, d
         opacity: 0,
         animation: `anim-slide-up-soft ${dur}ms ${ease} ${base + index * stagger}ms forwards`,
         display: "grid",
-        height: "100%",
       }}
     >
       {/* Skeleton layer — only mounted when showSkeleton=true */}
@@ -212,7 +183,7 @@ function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, d
       >
         {ready && (
           isPlaceholder
-            ? <NewsPlaceholder isMobile={isMobile} />
+            ? <NewsPlaceholder />
             : item
               ? <NewsCard item={item} isMobile={isMobile} />
               : null
@@ -225,14 +196,14 @@ function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, d
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 interface Props {
-  event:    any;
+  event:    MappedEvent;
   isMobile: boolean;
   phase:    AnimPhase;
 }
 
 export default function NewsTab({ event, isMobile, phase }: Props) {
   const [page,            setPage]            = useState(1);
-  const [items,           setItems]           = useState<any[] | null>(null);
+  const [items,           setItems]           = useState<MappedNews[] | null>(null);
   const [totalPages,      setTotalPages]      = useState(0);
   const [totalSlots,      setTotalSlots]      = useState(PAGE_SIZE);
   const [ready,           setReady]           = useState(false);
@@ -246,7 +217,7 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
 
   const COLUMNS = useColumns(isMobile);
-  const GAP     = isMobile ? 8 : 12;
+  const GAP     = 8;
 
   useEffect(() => {
     setItems(null);

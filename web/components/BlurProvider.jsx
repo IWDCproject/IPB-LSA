@@ -5,10 +5,11 @@
 // Does NOT accept a manifest. Pages register their own images via useBlurImages().
 //
 // Worker lifecycle:
-//   - Spawned lazily on the first register() call (zero cost on pages that don't use blur)
+//   - Spawned lazily on the first register() call (zero cost on pages with no blur)
 //   - Shared across all pages for the lifetime of the session
-//   - Bitmaps persist in memory as a cross-page cache — if two pages share an
-//     image URL + type, it is only ever processed once
+//   - Bitmaps persist in memory as a cross-page cache
+//   - If the worker crashes, it is automatically respawned and pending keys
+//     are cleared from submittedRef so they can be resubmitted.
 //
 // Usage in layout.jsx:
 //   import BlurProvider from "@/components/BlurProvider";
@@ -24,7 +25,7 @@ export default function BlurProvider({ children }) {
 
   // Ref — not state — so register() never re-renders the tree
   const workerRef    = useRef(null);
-  const submittedRef = useRef(new Set()); // all keys ever sent to the worker
+  const submittedRef = useRef(new Set()); // all keys currently sent to the worker
 
   // ── Lazy worker init ──────────────────────────────────────────────────────
   function getWorker() {
@@ -35,6 +36,14 @@ export default function BlurProvider({ children }) {
     worker.onmessage = ({ data }) => {
       if (data.error) {
         console.warn(`[BlurProvider] worker error for ${data.type} ${data.url}:`, data.error);
+
+        // FIX: Remove the failed key from submittedRef so the image can be
+        // retried on the next register() call (e.g. page re-visit, remount).
+        // Previously the key stayed in the set permanently, silently
+        // blacklisting any failed image for the entire session.
+        if (data.url && data.type) {
+          submittedRef.current.delete(`${data.url}_${data.type}`);
+        }
         return;
       }
 
@@ -51,6 +60,17 @@ export default function BlurProvider({ children }) {
 
     worker.onerror = (e) => {
       console.warn("[BlurProvider] uncaught worker error:", e.message);
+
+      // FIX: Null out the dead worker so the next getWorker() call spawns a
+      // fresh one. Previously workerRef kept pointing at the crashed worker —
+      // all subsequent postMessage() calls were silently dropped, and blur
+      // stopped working for the rest of the session with no visible error.
+      workerRef.current = null;
+
+      // Also clear submittedRef so all pending images can be resubmitted to
+      // the new worker. Without this, every image that was "in flight" when
+      // the worker crashed would be permanently blacklisted.
+      submittedRef.current.clear();
     };
 
     workerRef.current = worker;

@@ -1,177 +1,13 @@
 "use client";
+import React from "react";
 import { PanelTitle, EmptyState } from "./Panel";
-
-// ─── Helpers & Styles ─────────────────────────────────────────────────────────
-
-const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
-
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "long", year: "numeric",
-  });
-}
-
-function getEngine(fmt: any) {
-  return fmt?.modules?.[0] ?? null;
-}
-
-function calcAvg(scores: number[] = [], method = "avg"): number {
-  if (!scores.length) return 0;
-  if (method === "drop_extremes" && scores.length > 2) {
-    const sorted = [...scores].sort((a, b) => a - b).slice(1, -1);
-    return sorted.reduce((a, b) => a + b, 0) / sorted.length;
-  }
-  const sum = scores.reduce((a, b) => a + b, 0);
-  return method === "sum" ? sum : sum / scores.length;
-}
-
-function groupByDate(matches: any[]): Map<string, any[]> {
-  return matches.reduce((map, m) => {
-    const key = m.scheduled_at ? fmtDate(m.scheduled_at) : "No Date";
-    return map.set(key, [...(map.get(key) ?? []), m]);
-  }, new Map<string, any[]>());
-}
-
-// ─── Score / badge components ──────────────────────────────────────────────────
-
-function SolidLiveBadge() {
-  return (
-    <div style={{ ...JK, fontSize: 13, fontWeight: 800, color: "#111", background: "#FFC936", borderRadius: 6, padding: "4px 16px", flexShrink: 0 }}>
-      Live
-    </div>
-  );
-}
-
-function ScoreSetsLive({ live }: { live: any }) {
-  const setScore = live?.setScore ?? [0, 0];
-  const setLog   = live?.setLog   ?? [];
-
-  const NumPill = ({ n }: { n: number }) => (
-    <div style={{ ...JK, fontSize: 14, fontWeight: 900, color: "#111", background: "#FFC936", borderRadius: 6, minWidth: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>
-      {String(n).padStart(2, "0")}
-    </div>
-  );
-
-  const SetPill = ({ s, i }: { s: any; i: number }) => (
-    <div style={{
-      background: "#FFF8D6",
-      border: "1px solid #FFC936",
-      borderRadius: 6,
-      padding: "4px 8px",
-      textAlign: "center",
-      minWidth: 50
-    }}>
-      <div style={{ ...JK, fontSize: 10, fontWeight: 700, color: "#CA8A04", marginBottom: 2 }}>Set {i + 1}</div>
-      <div style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#111" }}>
-        <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>{s.home}</span>
-        {" - "}
-        <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>{s.away}</span>
-      </div>
-    </div>
-  );
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <NumPill n={setScore[0]} />
-      {setLog.length === 0 ? (
-        <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#CA8A04" }}>-</span>
-      ) : (
-        setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)
-      )}
-      <NumPill n={setScore[1]} />
-    </div>
-  );
-}
-
-function ScoreSetsFinished({ live }: { live: any }) {
-  const setLog = live?.setLog ?? [];
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-      {setLog.map((s: any, i: number) => (
-        <div key={i} style={{ background: "#f3f4f6", borderRadius: 6, padding: "4px 8px", textAlign: "center", minWidth: 50 }}>
-          <div style={{ ...JK, fontSize: 10, fontWeight: 600, color: "#676767", marginBottom: 2 }}>Set {i + 1}</div>
-          <div style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#111" }}>
-            <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>{s.home}</span>
-            {" - "}
-            <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>{s.away}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function JudgeScoreBadge({ live, engine }: { live: any; engine: any }) {
-  const scores = live?.judgeScores ?? [];
-  const method = engine?.config?.method ?? "avg";
-  const result = calcAvg(scores, method).toFixed(2).replace(".", ",");
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#111" }}>Avg:</span>
-      <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111", background: "#f3f4f6", borderRadius: 6, padding: "4px 10px" }}>
-        {result}
-      </span>
-    </div>
-  );
-}
-
-function ManualPickBadge({ live }: { live: any }) {
-  const winner = live?.winner;
-  if (!winner) return null;
-  return (
-    <div style={{ ...JK, fontSize: 13, fontWeight: 800, color: "#111", background: "#f3f4f6", borderRadius: 6, padding: "4px 16px" }}>
-      {winner} Wins
-    </div>
-  );
-}
-
-function MiddleBadge({ match }: { match: any }) {
-  const isH2H = match.competition_category?.format_id?.match_type === "head_to_head";
-  return (
-    <div style={{
-      ...JK, fontSize: 13, fontWeight: 800, color: "#aaa",
-      background: "#f3f4f6", borderRadius: 6, padding: "4px 16px",
-      whiteSpace: "nowrap", minWidth: 50, textAlign: "center"
-    }}>
-      {isH2H ? "vs" : "---"}
-    </div>
-  );
-}
-
-function ScoreCell({ match }: { match: any }) {
-  const engine     = getEngine(match.competition_category?.format_id);
-  const live       = match.live_state ?? {};
-  const isLive     = match.status === "live";
-  const isUpcoming = match.status === "upcoming";
-
-  if (isUpcoming) return <MiddleBadge match={match} />;
-
-  switch (engine?.type) {
-    case "score_timed": {
-      const h = live.homeScore ?? 0;
-      const a = live.awayScore ?? 0;
-      return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: isLive ? "#FFF8D6" : "#f3f4f6", border: isLive ? "1px solid #FFC936" : "1px solid transparent", borderRadius: 6, padding: "4px 16px" }}>
-          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111" }}>{String(h).padStart(2, "0")}</span>
-          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: isLive ? "#CA8A04" : "#aaa" }}>-</span>
-          <span style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#111" }}>{String(a).padStart(2, "0")}</span>
-        </div>
-      );
-    }
-    case "score_sets":
-      return isLive ? <ScoreSetsLive live={live} /> : <ScoreSetsFinished live={live} />;
-    case "judge_scores":
-    case "finish_time":
-    case "manual_pick":
-      if (isLive) return <SolidLiveBadge />;
-      if (engine?.type === "judge_scores") return <JudgeScoreBadge live={live} engine={engine} />;
-      if (engine?.type === "manual_pick") return <ManualPickBadge live={live} />;
-      return null;
-    default:
-      return null;
-  }
-}
+import { JK } from "../shared/tokens";
+import {
+  getEngine, fmtDateShort as fmtDate, fmtTime, groupByDateShort as groupByDate,
+  resolveWinnerName,
+} from "../match/scoreUtils";
+import { MiddleBadge, ScoreCell } from "../match/ScoreBadges";
+import type { MappedMatch } from "../../_types";
 
 // ─── Participant cells ─────────────────────────────────────────────────────────
 
@@ -214,7 +50,7 @@ function UndecidedParticipant({ size = 32, align = "left" }: { size?: number; al
   );
 }
 
-function StatusLabel({ match }: { match: any }) {
+function StatusLabel({ match }: { match: MappedMatch }) {
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
   const round      = (match.round as string | null | undefined)?.trim();
@@ -227,7 +63,7 @@ function StatusLabel({ match }: { match: any }) {
   return <span style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#9CA3AF" }}>Upcoming</span>;
 }
 
-function MobileScoreCell({ match }: { match: any }) {
+function MobileScoreCell({ match }: { match: MappedMatch }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
@@ -280,7 +116,7 @@ function MobileScoreCell({ match }: { match: any }) {
   return <ScoreCell match={match} />;
 }
 
-function MobileMatchRow({ match }: { match: any }) {
+function MobileMatchRow({ match }: { match: MappedMatch }) {
   const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
   const isOpen     = match.competition_category?.format_id?.match_type === "open";
   const isLive     = match.status === "live";
@@ -374,26 +210,6 @@ const truncateMobile: React.CSSProperties = {
   overflow: "hidden",
 };
 
-function fmtTime(iso: string | null | undefined): string {
-  if (!iso) return "?";
-  return new Date(iso).toLocaleTimeString("id-ID", {
-    hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta",
-  });
-}
-
-function resolveWinnerName(match: any): string | null {
-  const live     = match.live_state ?? {};
-  const winnerId = match.winner ?? live.winner;
-  if (!winnerId) return null;
-  if (match.home_participant?.id === winnerId) return match.home_participant.name;
-  if (match.away_participant?.id === winnerId) return match.away_participant.name;
-  for (const entry of match.participants ?? []) {
-    if (entry.participant_id?.id === winnerId) return entry.participant_id.name;
-  }
-  if (typeof live.winner === "string" && !live.winner.includes("-")) return live.winner;
-  return null;
-}
-
 function ParticipantInfo({ inst, name, align = "left" }: { inst: any; name: string; align?: "left" | "right" }) {
   return (
     <div style={{ minWidth: 0, textAlign: align, flex: 1 }}>
@@ -407,7 +223,7 @@ function ParticipantInfo({ inst, name, align = "left" }: { inst: any; name: stri
   );
 }
 
-function OpenParticipants({ match }: { match: any }) {
+function OpenParticipants({ match }: { match: MappedMatch }) {
   const entries = [...(match?.participants ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((j: any) => j.participant_id);
@@ -471,7 +287,7 @@ function OpenParticipants({ match }: { match: any }) {
   );
 }
 
-function HomeCell({ match }: { match: any }) {
+function HomeCell({ match }: { match: MappedMatch }) {
   const isOpen      = match.competition_category?.format_id?.match_type === "open";
   const participant = match.home_participant;
   if (isOpen) return <OpenParticipants match={match} />;
@@ -484,7 +300,7 @@ function HomeCell({ match }: { match: any }) {
   );
 }
 
-function AwayCell({ match }: { match: any }) {
+function AwayCell({ match }: { match: MappedMatch }) {
   const isH2H       = match.competition_category?.format_id?.match_type === "head_to_head";
   const participant = match.away_participant;
   if (!isH2H || !participant) return <div />;
@@ -531,7 +347,7 @@ const ROW_GRID: React.CSSProperties = {
   overflow: "hidden",
 };
 
-function CompactMatchRow({ match }: { match: any }) {
+function CompactMatchRow({ match }: { match: MappedMatch }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
@@ -615,7 +431,7 @@ export function UpcomingMatchesPanel({
   contentRef,
   firstRowRef,
   onTabChange,
-}: MatchPanelProps & { upcoming: any[] }) {
+}: MatchPanelProps & { upcoming: MappedMatch[] }) {
   if (!upcoming.length) return null;
 
   const displayed = upcoming.slice(0, limit);
@@ -637,7 +453,7 @@ export function UpcomingMatchesPanel({
         {groups.map(([date, rows], gi) => (
           <div key={date}>
             <DateHeader label={date} />
-            {rows.map((m: any, ri: number) => (
+            {rows.map((m: MappedMatch, ri: number) => (
               <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}
                 style={isMobile ? { marginBottom: 6 } : undefined}>
                 {isMobile ? <MobileMatchRow match={m} /> : <CompactMatchRow match={m} />}
@@ -676,7 +492,7 @@ export function LatestResultsPanel({
   contentRef,
   firstRowRef,
   onTabChange,
-}: MatchPanelProps & { finished: any[] }) {
+}: MatchPanelProps & { finished: MappedMatch[] }) {
   if (!finished.length) return null;
 
   const displayed = finished.slice(0, limit);
@@ -698,7 +514,7 @@ export function LatestResultsPanel({
         {groups.map(([date, rows], gi) => (
           <div key={date}>
             <DateHeader label={date} />
-            {rows.map((m: any, ri: number) => (
+            {rows.map((m: MappedMatch, ri: number) => (
               <div key={m.id} ref={gi === 0 && ri === 0 ? firstRowRef : undefined}
                 style={isMobile ? { marginBottom: 6 } : undefined}>
                 {isMobile ? <MobileMatchRow match={m} /> : <CompactMatchRow match={m} />}
