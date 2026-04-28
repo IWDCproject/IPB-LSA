@@ -34,6 +34,17 @@ function sortNewestFirst(matches: MappedMatch[]): MappedMatch[] {
   });
 }
 
+/** Group matches by their competition category name. */
+function groupByCategory(matches: MappedMatch[]): Map<string, MappedMatch[]> {
+  const map = new Map<string, MappedMatch[]>();
+  for (const m of matches) {
+    const key = m.competition_category?.name ?? "Uncategorized";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(m);
+  }
+  return map;
+}
+
 /** Mobile-only score display for score_sets engine:
  *  - Big set-count numbers (home sets won vs away sets won)
  *  - Tiny detail line: "21-18 | 18-21 | 21-16"
@@ -584,6 +595,129 @@ function EmptyState() {
   );
 }
 
+// ─── Grouping toggle ───────────────────────────────────────────────────────────
+
+type GroupValue = "schedule" | "category";
+
+const GROUP_OPTIONS: { value: GroupValue; label: string }[] = [
+  { value: "schedule", label: "Schedule" },
+  { value: "category", label: "Category" },
+];
+
+function GroupToggle({ active, onChange, groupCounts }: {
+  active:      GroupValue;
+  onChange:    (v: GroupValue) => void;
+  groupCounts: Record<GroupValue, number>;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+      {GROUP_OPTIONS.map(({ value, label }) => {
+        const isActive = active === value;
+        return (
+          <button
+            key={value}
+            onClick={() => onChange(value)}
+            style={{
+              ...JK,
+              background: "none",
+              border:     "none",
+              padding:    "0 0 0 16px",
+              fontSize:   13,
+              fontWeight: isActive ? 800 : 600,
+              color:      isActive ? "#171717" : "#676767",
+              cursor:     "pointer",
+              display:    "flex",
+              alignItems: "center",
+              gap:        4,
+              transition: "color 0.15s",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+            {groupCounts[value] > 0 && (
+              <span style={{
+                ...JK, fontSize: 10, fontWeight: 700,
+                color:        isActive ? "#444" : "#bbb",
+                background:   isActive ? "#f0f0f0" : "#f5f5f5",
+                borderRadius: 12, padding: "1px 5px",
+              }}>
+                {groupCounts[value]}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Mobile-only: single button showing active group, taps open an overlay dropdown. */
+function MobileGroupDropdown({ active, onChange, groupCounts }: {
+  active:      GroupValue;
+  onChange:    (v: GroupValue) => void;
+  groupCounts: Record<GroupValue, number>;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = GROUP_OPTIONS.find(o => o.value === active)!;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          ...JK, display: "flex", alignItems: "center", gap: 5,
+          background: "#f0f0f0", border: "none", borderRadius: 8,
+          padding: "5px 10px", fontSize: 12, fontWeight: 800, color: "#171717", cursor: "pointer",
+        }}
+      >
+        {current.label}
+        {groupCounts[active] > 0 && (
+          <span style={{ ...JK, fontSize: 10, fontWeight: 700, color: "#444", background: "#ddd", borderRadius: 10, padding: "1px 5px" }}>
+            {groupCounts[active]}
+          </span>
+        )}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
+          <path d={open ? "M2 6.5L5 3.5L8 6.5" : "M2 3.5L5 6.5L8 3.5"} stroke="#555" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+          <div style={{
+            position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 20,
+            background: "#fff", borderRadius: 10, border: "1px solid #ECEEF2",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: "4px 0", minWidth: 140,
+          }}>
+            {GROUP_OPTIONS.map(({ value, label }) => {
+              const isActive = active === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => { onChange(value); setOpen(false); }}
+                  style={{
+                    ...JK, display: "flex", alignItems: "center", justifyContent: "space-between",
+                    width: "100%", background: isActive ? "#f8f8f8" : "none", border: "none",
+                    padding: "9px 14px", fontSize: 13, fontWeight: isActive ? 800 : 600,
+                    color: isActive ? "#171717" : "#444", cursor: "pointer",
+                  }}
+                >
+                  {label}
+                  {groupCounts[value] > 0 && (
+                    <span style={{ ...JK, fontSize: 10, fontWeight: 700, color: isActive ? "#444" : "#bbb", background: isActive ? "#f0f0f0" : "#f5f5f5", borderRadius: 12, padding: "1px 6px" }}>
+                      {groupCounts[value]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Filter tabs — inside the card, text-style ─────────────────────────────────
 
 type FilterValue = "all" | "upcoming" | "live" | "finished";
@@ -727,7 +861,8 @@ interface Props {
 
 export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPolling, wsStatus }: Props) {
   const allMatches: MappedMatch[] = event.matches ?? [];
-  const [filter, setFilter] = useState<FilterValue>("all");
+  const [filter,  setFilter]  = useState<FilterValue>("all");
+  const [groupBy, setGroupBy] = useState<GroupValue>("schedule");
 
   const counts = useMemo<Record<FilterValue, number>>(() => ({
     all:      allMatches.length,
@@ -741,7 +876,15 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
     return sortNewestFirst(base);
   }, [allMatches, filter]);
 
-  const groups = useMemo(() => Array.from(groupByDate(sorted).entries()), [sorted]);
+  const groups = useMemo(() => {
+    const map = groupBy === "category" ? groupByCategory(sorted) : groupByDate(sorted);
+    return Array.from(map.entries());
+  }, [sorted, groupBy]);
+
+  const groupCounts = useMemo<Record<GroupValue, number>>(() => ({
+    schedule: groupByDate(sorted).size,
+    category: groupByCategory(sorted).size,
+  }), [sorted]);
 
   const cardStyle = phase === "entering" ? staggerSlideUp(0, TAB_ENTER) : {};
 
@@ -772,10 +915,19 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
               </div>
             ) : null}
           </div>
-          {isMobile
-            ? <MobileFilterDropdown active={filter} onChange={setFilter} counts={counts} />
-            : <FilterBar active={filter} onChange={setFilter} counts={counts} />
-          }
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+            {isMobile ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <MobileGroupDropdown active={groupBy} onChange={setGroupBy} groupCounts={groupCounts} />
+                <MobileFilterDropdown active={filter} onChange={setFilter} counts={counts} />
+              </div>
+            ) : (
+              <>
+                <FilterBar active={filter} onChange={setFilter} counts={counts} />
+                <GroupToggle active={groupBy} onChange={setGroupBy} groupCounts={groupCounts} />
+              </>
+            )}
+          </div>
         </div>
 
         {/* ── Rows ── */}
@@ -786,7 +938,7 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
           let rowIdx = 0;
           return (
             // Key on filter so rows remount → animation replays on every filter switch
-            <div key={filter}>
+            <div key={`${filter}-${groupBy}`}>
               {groups.map(([date, rows]) => (
                 <div key={date}>
                   <DateHeader label={date} count={rows.length} />
