@@ -5,6 +5,7 @@ import { MatchTable } from "../match-stuff/MatchTable";
 import Button from "@/components/Button";
 import { useBlurImages } from "@/hooks/useBlurImages";
 import { getAssetUrl } from "@/lib/directus";
+import { BlockRevealText } from "@/components/BlockRevealText";
 
 const SCALE_START = 1600;
 const SCALE_FLOOR = 0.875;
@@ -165,7 +166,8 @@ export default function MatchSection({ matches: rawMatches }) {
         gap: isMobile ? 14 : 20,
       }}>
 
-        <div style={{ ...anim(0), paddingLeft: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)", paddingRight: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)" }}>
+        <div style={{ ...anim(0), paddingLeft: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)", paddingRight: isMobile ? mobilePad : "clamp(40px, 8.33vw, 160px)" 
+        }}>
           <div style={{
             fontFamily: "'Bebas Neue', sans-serif",
             fontSize: isMobile ? "2.2rem" : "calc(64px * var(--s))",
@@ -174,7 +176,9 @@ export default function MatchSection({ matches: rawMatches }) {
             filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
             textTransform: "uppercase",
           }}>
-            {liveMatches.length > 0 ? "Live Matches" : "No Live Matches"}
+            <BlockRevealText delay={0.5} blockColor="#ffffff">
+              {liveMatches.length > 0 ? "Live Matches" : "No Live Matches"}
+            </BlockRevealText>
           </div>
         </div>
 

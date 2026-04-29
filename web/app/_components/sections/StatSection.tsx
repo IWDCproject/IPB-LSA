@@ -8,6 +8,7 @@ import FightBackground from "../match-stuff/FightBackground";
 import universitiesImg from "../stats-stuff/2.jpg";
 import athletesImg from "../stats-stuff/1.jpg";
 import eventsImg from "../stats-stuff/3.jpg";
+import { BlockRevealText } from "@/components/BlockRevealText";
 
 
 // Types
@@ -108,8 +109,12 @@ function CTA({ centered = false, fontSize = "4rem", ctaGap, anim }: CTAProps) {
   return (
     <div style={ctaStyle}>
       <div style={{ ...headingStyle, ...anim(3) }}>
-        <div>Are you ready to</div>
-        <div>Prove Yourself?</div>
+        <div>
+          <BlockRevealText delay={0.4} blockColor="#ffffff">Are you ready to</BlockRevealText>
+        </div>
+        <div>
+          <BlockRevealText delay={0.8} blockColor="#ffffff">Prove Yourself?</BlockRevealText>
+        </div>
       </div>
       <div style={anim(4)}>
         <Button href="/events" variant="primary" size="md">See Events</Button>
