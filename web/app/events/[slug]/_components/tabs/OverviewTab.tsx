@@ -6,29 +6,22 @@ import TimelinePanel from "../panels/TimelinePanel";
 import CountdownPanel from "../panels/CountdownPanel";
 import { UpcomingMatchesPanel, LatestResultsPanel } from "../panels/MatchesPanels";
 import LatestStoriesSection from "../panels/LatestStoriesSection";
-import { staggerSlideUp, TAB_ENTER, PAGE_ENTER } from "../shared/Animations";
+import { staggerSlideUp, TAB_ENTER } from "../shared/Animations";
 import type { AnimPhase } from "../shared/UseTabTransition";
 import type { MappedEvent, TabKey } from "../../_types";
 
-// ─── Layout constants ──────────────────────────────────────────────────────────
-// These pixel values are an invisible contract with MatchesPanels.tsx.
-// Each one must match the actual rendered height of the corresponding element
-// in MatchesPanels. If padding, font size, or line height changes in
-// MatchesPanels, update the matching constant here.
+// --- Const layout ---------------------------------------------
+// Nilai-nilai ini harus selalu sync sama tinggi elemen aktual di MatchesPanels.tsx.
+// Kalau padding/font/line-height di sana berubah, update juga di sini.
 
-/** Height of the DateHeader component in MatchesPanels (font 13px + padding). */
-const DATE_H        = 32;
-/** PanelCard padding (16px top + 16px bottom) + PanelTitle height (≈25px) = 57px. */
-const OVERHEAD_BASE = 57;
-/** Footer/"show more" row height at the bottom of UpcomingMatchesPanel/LatestResultsPanel. */
-const FOOTER_H      = 20;
+const DATE_H        = 32;   // tinggi DateHeader
+const OVERHEAD_BASE = 57;   // PanelCard padding (32px) + PanelTitle (~25px)
+const FOOTER_H      = 20;   // baris "show more" di bawah panel
 
-/** Default height of a MatchRow in MatchesPanels (no set score). */
-const ROW_H_DEFAULT      = 52;
-/** Height of a MatchRow that shows a set-score breakdown. */
-const ROW_H_SETS_DEFAULT = 64;
+const ROW_H_DEFAULT      = 52;  // MatchRow biasa
+const ROW_H_SETS_DEFAULT = 64;  // MatchRow dengan set score
 
-// ─── Layout math ──────────────────────────────────────────────────────────────
+// --- Layout math ----------------------------------------------
 
 function nextRowCost(matches: any[], count: number, getRowH: (m: any) => number): number {
   if (count >= matches.length) return Infinity;
@@ -145,17 +138,7 @@ function useRightColumnLayout(
     let upH  = Math.max(upBudget,  OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH));
     let resH = Math.max(resBudget, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
 
-    // ── FIX: use per-panel slack, not combined (totalSlack) ───────────────────
-    //
-    // Bug: the old code computed totalSlack = upSlack + resSlack, then allowed
-    // upLimit++ even when upSlack alone was insufficient. This caused upH to
-    // grow beyond upBudget by consuming resH's slack — silently making
-    // upH + gap + resH > bothAvail, so the right column overflowed anchorHeight.
-    // That pushed the right column taller than the left, and the About panel
-    // (which couldn't grow — see wrapper fix below) failed to close the gap.
-    //
-    // Fix: only bump a panel's row count when THAT panel has enough slack.
-    // This keeps upH + gap + resH <= bothAvail at all times.
+    // Pakai slack per-panel (bukan gabungan) biar satu panel nggak "makan" ruang panel lain
     {
       const upContentH  = OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH);
       const resContentH = OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH);
@@ -177,7 +160,7 @@ function useRightColumnLayout(
   }, [upcoming, finished, anchorHeight, countdownH, isMobile, panelGap, getRowH]);
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// --- OverviewTab ----------------------------------------------
 
 interface Props {
   event:       MappedEvent;
@@ -199,7 +182,9 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
   const upFirstRowRef  = useRef<HTMLDivElement>(null);
   const resFirstRowRef = useRef<HTMLDivElement>(null);
 
+  // PANEL_GAP dipakai di dua tempat: visual CSS gap dan kalkulasi layout — harus sama
   const PANEL_GAP = isMobile ? 4 : 8;
+
   const upcoming      = (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live");
   const finished      = (event.matches ?? []).filter((m: any) => m.status === "finished");
   const showCountdown = !!(event.is_registration_open && event.registration_end_date);
@@ -240,9 +225,6 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
     measure();
 
     let rafId = 0;
-    // ResizeObserver on the left column fires whenever the column's own width
-    // changes — the window resize listener was redundant and couldn't detect
-    // container-width changes independently of window size.
     const ro = new ResizeObserver(() => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(measure);
@@ -250,10 +232,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
     ro.observe(el);
     document.fonts?.ready.then(measure);
 
-    return () => {
-      ro.disconnect();
-      cancelAnimationFrame(rafId);
-    };
+    return () => { ro.disconnect(); cancelAnimationFrame(rafId); };
   }, [isMobile]);
 
   const getRowH = useMemo(
@@ -262,115 +241,61 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
   );
 
   const { upcomingH, resultsH, upcomingLimit, resultsLimit } = useRightColumnLayout(
-    upcoming,
-    finished,
+    upcoming, finished,
     anchorHeight,
     showCountdown && !isMobile ? countdownHeight : 0,
-    isMobile,
-    PANEL_GAP,
-    getRowH,
+    isMobile, PANEL_GAP, getRowH,
   );
 
   const measured = !isMobile && anchorHeight > 0;
 
-  // ─── Panel stagger styles ────────────────────────────────────────────────
-  const tier = TAB_ENTER;
+  const s0 = staggerSlideUp(0,                    TAB_ENTER);
+  const s1 = staggerSlideUp(TAB_ENTER.stagger,     TAB_ENTER);
+  const s2 = staggerSlideUp(TAB_ENTER.stagger * 2, TAB_ENTER);
+  const s3 = staggerSlideUp(TAB_ENTER.stagger * 3, TAB_ENTER);
+  const s4 = staggerSlideUp(TAB_ENTER.stagger * 4, TAB_ENTER);
+  const s5 = staggerSlideUp(TAB_ENTER.stagger * 5, TAB_ENTER);
 
-  const s0 = staggerSlideUp(0,                tier);
-  const s1 = staggerSlideUp(tier.stagger,     tier);
-  const s2 = staggerSlideUp(tier.stagger * 2, tier);
-  const s3 = staggerSlideUp(tier.stagger * 3, tier);
-  const s4 = staggerSlideUp(tier.stagger * 4, tier);
-  const s5 = staggerSlideUp(tier.stagger * 5, tier);
-
-  const panelStyle = (s: React.CSSProperties) =>
-    phase === "entering" ? s : {};
+  const panelStyle = (s: React.CSSProperties) => phase === "entering" ? s : {};
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="flex flex-col gap-5">
       <div
-        style={{
-          display:             "grid",
-          // minmax(0,1fr) on mobile: the 0 minimum stops the grid cell from inflating
-          // to fit the min-content of deeply-nested children (e.g. the scrollable
-          // timeline rail). Without this, `1fr` = `minmax(auto,1fr)` and the cell
-          // expands to accommodate any child's minWidth, defeating overflow/scroll.
-          gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "3fr 2fr",
-          gap:                 PANEL_GAP,
-          alignItems:          "stretch",
-        }}
+        className="grid items-stretch"
+        style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "3fr 2fr", gap: PANEL_GAP }}
       >
-        {/* Left column */}
-        <div
-          ref={leftColRef}
-          style={{ display: "flex", flexDirection: "column", gap: PANEL_GAP }}
-        >
+        {/* Kolom kiri */}
+        <div ref={leftColRef} className={`flex flex-col ${isMobile ? "gap-1" : "gap-2"}`}>
           {isMobile && showCountdown && (
             <div style={panelStyle(s0)}>
-              <CountdownPanel
-                deadline={event.registration_end_date}
-                registrationUrl={event.registration_url}
-              />
+              <CountdownPanel deadline={event.registration_end_date} registrationUrl={event.registration_url} />
             </div>
           )}
 
-          {/*
-           * FIX: The wrapper around AboutPanel must be:
-           *   • a flex child that CAN GROW  →  flex: "1 1 auto"
-           *   • a flex container itself     →  display: flex / flexDirection: column
-           *
-           * Why flex-basis: auto (not 0)?
-           *   The measurement loop temporarily sets alignSelf: "start" on the
-           *   left column to read its natural height. With flex-basis: 0, the
-           *   wrapper collapses to 0px in that mode, understating anchorHeight
-           *   and making the right panels too short. flex-basis: auto uses the
-           *   wrapper's content height as the base, so measurement is correct.
-           *
-           * Why display: flex on the wrapper?
-           *   AboutPanel's CARD already declares flex: 1. flex: 1 only takes
-           *   effect when the parent is a flex container. Without this, the card
-           *   ignores the extra height given by flex-grow and stays content-sized.
-           *
-           * End result: when the grid stretches the left column to match a taller
-           * right column (e.g. extra match row), this wrapper absorbs the delta
-           * and AboutPanel's card fills it — both columns are flush at the bottom.
-           */}
-          <div
-            style={{
-              flex:          "1 1 auto",
-              display:       "flex",
-              flexDirection: "column",
-              minHeight:     0,
-              ...panelStyle(isMobile && showCountdown ? s1 : s0),
-            }}
-          >
+          <div className="flex-auto flex flex-col min-h-0" style={panelStyle(isMobile && showCountdown ? s1 : s0)}>
             <AboutPanel event={event} isMobile={isMobile} />
           </div>
 
-          <div style={panelStyle(isMobile && showCountdown ? staggerSlideUp(tier.stagger * 2, tier) : s1)}>
-            <TimelinePanel phases={event.phases ?? []} />
+          <div style={panelStyle(isMobile && showCountdown ? s2 : s1)}>
+            <TimelinePanel phases={event.phases ?? []} isMobile={isMobile} />
           </div>
         </div>
 
-        {/* Right column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: PANEL_GAP }}>
+        {/* Kolom kanan */}
+        <div className={`flex flex-col ${isMobile ? "gap-1" : "gap-2"}`}>
           {!isMobile && showCountdown && (
-            <div ref={countdownRef} style={{ flex: "0 0 auto", ...panelStyle(s2) }}>
-              <CountdownPanel
-                deadline={event.registration_end_date}
-                registrationUrl={event.registration_url}
-              />
+            <div ref={countdownRef} className="flex-none" style={panelStyle(s2)}>
+              <CountdownPanel deadline={event.registration_end_date} registrationUrl={event.registration_url} />
             </div>
           )}
 
           {hasUpcoming && (
             <div
+              className="flex flex-col"
               style={{
                 ...(measured && upcomingH > 0
-                  ? { height: upcomingH, display: "flex", flexDirection: "column" }
-                  : isMobile
-                    ? { display: "flex", flexDirection: "column" }
-                    : { flex: hasResults ? 3 : 1, display: "flex", flexDirection: "column", minHeight: 0 }),
+                  ? { height: upcomingH }
+                  : !isMobile ? { flex: hasResults ? 3 : 1, minHeight: 0 } : {}),
                 ...panelStyle(!isMobile && showCountdown ? s3 : s2),
               }}
             >
@@ -387,12 +312,11 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
 
           {hasResults && (
             <div
+              className="flex flex-col"
               style={{
                 ...(measured && resultsH > 0
-                  ? { height: resultsH, display: "flex", flexDirection: "column" }
-                  : isMobile
-                    ? { display: "flex", flexDirection: "column" }
-                    : { flex: 2, display: "flex", flexDirection: "column", minHeight: 0 }),
+                  ? { height: resultsH }
+                  : !isMobile ? { flex: 2, minHeight: 0 } : {}),
                 ...panelStyle(!isMobile && showCountdown ? s4 : s3),
               }}
             >

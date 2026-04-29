@@ -3,31 +3,12 @@
 import Image from "next/image";
 import { getEngine, calcAvg, fmtTime, resolveWinnerName } from "../match/scoreUtils";
 import { MiddleBadge, ScoreCell, AnimatedScore } from "../match/ScoreBadges";
-import { JK } from "../shared/tokens";
 import type { MappedMatch } from "../../_types";
 
-// Style truncate teks — maks 2 baris, sisanya dipotong.
-const truncate: React.CSSProperties = {
-  display: "-webkit-box",
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: "vertical",
-  overflow: "hidden",
-};
+// --- MobileScoreCell ---------------------------------------------------------
 
-// Grid layout untuk baris desktop.
-// 5 kolom: [waktu+venue 160px] [home 1fr] [skor auto] [away 1fr] [meta 160px]
-const DESKTOP_GRID: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "160px 1fr auto 1fr 160px",
-  alignItems: "center",
-  gap: "0 40px",
-  padding: "7px 0",
-};
+const numPillCls = "font-jakarta text-sm font-black rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]";
 
-// Komponen skor untuk mobile.
-// - score_sets: angka set besar + detail per set kecil di bawahnya
-// - judge_scores: rata-rata nilai juri + detail tiap juri
-// - engine lain: pakai ScoreCell compact biasa
 function MobileScoreCell({ match }: { match: MappedMatch }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
@@ -36,30 +17,26 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
 
   if (isUpcoming) return <MiddleBadge match={match} />;
 
-  const numPill = (bg: string, color: string): React.CSSProperties => ({
-    ...JK, fontSize: 14, fontWeight: 900, color,
-    background: bg, borderRadius: 6,
-    minWidth: 26, height: 26,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    padding: "0 5px",
-  });
-
   if (engine?.type === "score_sets") {
     if (isLive) {
       const setScore  = live?.setScore ?? [0, 0];
       const setLog    = live?.setLog   ?? [];
       const detailArr = setLog.map((s: any) => `${s.home}-${s.away}`);
       return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, maxWidth: 88 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[0])} /></span>
-            <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#CA8A04" }}>vs</span>
-            <span style={numPill("#FFC936", "#111")}><AnimatedScore value={String(setScore[1])} /></span>
+        <div className="flex flex-col items-end gap-[3px] max-w-[88px]">
+          <div className="flex items-center gap-1">
+            <span className={numPillCls} style={{ background: "#FFC936", color: "#111" }}>
+              <AnimatedScore value={String(setScore[0])} />
+            </span>
+            <span className="font-jakarta text-xs font-extrabold text-yellow-600">vs</span>
+            <span className={numPillCls} style={{ background: "#FFC936", color: "#111" }}>
+              <AnimatedScore value={String(setScore[1])} />
+            </span>
           </div>
           {detailArr.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: "1px 3px", maxWidth: "100%" }}>
-              {detailArr.map((d, i) => (
-                <span key={i} style={{ ...JK, fontSize: 9, fontWeight: 600, color: "#CA8A04", whiteSpace: "nowrap" }}>[{d}]</span>
+            <div className="flex flex-wrap justify-end gap-x-[3px] gap-y-px max-w-full">
+              {detailArr.map((d: string, i: number) => (
+                <span key={i} className="font-jakarta text-[9px] font-semibold text-yellow-600 whitespace-nowrap">[{d}]</span>
               ))}
             </div>
           )}
@@ -71,16 +48,20 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
       const awaySets  = setLog.filter((s: any) => s.away > s.home).length;
       const detailArr = setLog.map((s: any) => `${s.home}-${s.away}`);
       return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, maxWidth: 88 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(homeSets)} /></span>
-            <span style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#aaa" }}>vs</span>
-            <span style={numPill("#f3f4f6", "#111")}><AnimatedScore value={String(awaySets)} /></span>
+        <div className="flex flex-col items-end gap-[3px] max-w-[88px]">
+          <div className="flex items-center gap-1">
+            <span className="font-jakarta text-sm font-black text-[#111] bg-gray-100 rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]">
+              <AnimatedScore value={String(homeSets)} />
+            </span>
+            <span className="font-jakarta text-xs font-extrabold text-[#aaa]">vs</span>
+            <span className="font-jakarta text-sm font-black text-[#111] bg-gray-100 rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]">
+              <AnimatedScore value={String(awaySets)} />
+            </span>
           </div>
           {detailArr.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: "1px 3px", maxWidth: "100%" }}>
-              {detailArr.map((d, i) => (
-                <span key={i} style={{ ...JK, fontSize: 9, fontWeight: 600, color: "#9CA3AF", whiteSpace: "nowrap" }}>[{d}]</span>
+            <div className="flex flex-wrap justify-end gap-x-[3px] gap-y-px max-w-full">
+              {detailArr.map((d: string, i: number) => (
+                <span key={i} className="font-jakarta text-[9px] font-semibold text-gray-400 whitespace-nowrap">[{d}]</span>
               ))}
             </div>
           )}
@@ -93,32 +74,34 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
     const scores: number[]   = live?.judgeScores ?? [];
     const method             = engine?.config?.method ?? "avg";
     const judgeCount: number = engine?.config?.num_judges ?? scores.length;
-
-    const submitted = scores.filter((s: any) => s !== undefined && s !== null);
-    const hasAny    = submitted.length > 0;
-    const avgResult = hasAny
+    const submitted          = scores.filter((s: any) => s !== undefined && s !== null);
+    const hasAny             = submitted.length > 0;
+    const avgResult          = hasAny
       ? calcAvg(submitted, method).toFixed(1).replace(".", ",")
       : "--,-";
-
-    // Placeholder "--,-" untuk juri yang belum submit nilai
-    const detailArr = judgeCount > 0
+    const detailArr          = judgeCount > 0
       ? Array.from({ length: judgeCount }, (_, i) => {
           const raw = scores[i];
-          return (raw !== undefined && raw !== null)
-            ? raw.toFixed(1).replace(".", ",")
-            : "--,-";
+          return (raw !== undefined && raw !== null) ? raw.toFixed(1).replace(".", ",") : "--,-";
         })
       : [];
 
+    const pillBg = isLive ? "bg-[#FFC936]" : "bg-gray-100";
+
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, maxWidth: 88 }}>
-        <span style={numPill(isLive ? "#FFC936" : "#f3f4f6", "#111")}>
+      <div className="flex flex-col items-end gap-[3px] max-w-[88px]">
+        <span className={`font-jakarta text-sm font-black text-[#111] ${pillBg} rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]`}>
           &nbsp;Avg:&nbsp;<AnimatedScore value={avgResult} />&nbsp;
         </span>
         {detailArr.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: "1px 3px", maxWidth: "100%" }}>
-            {detailArr.map((d, i) => (
-              <span key={i} style={{ ...JK, fontSize: 9, fontWeight: 600, color: isLive ? "#CA8A04" : "#9CA3AF", whiteSpace: "nowrap" }}>[{d}]</span>
+          <div className="flex flex-wrap justify-end gap-x-[3px] gap-y-px max-w-full">
+            {detailArr.map((d: string, i: number) => (
+              <span
+                key={i}
+                className={`font-jakarta text-[9px] font-semibold whitespace-nowrap ${isLive ? "text-yellow-600" : "text-gray-400"}`}
+              >
+                [{d}]
+              </span>
             ))}
           </div>
         )}
@@ -129,71 +112,58 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
   return <ScoreCell match={match} compact />;
 }
 
-// Logo institusi. Kalau tidak ada logo_url, tampilkan lingkaran warna.
-// isLoser akan meredam warna logo (desaturate + opacity).
+// --- Logo & Peserta ----------------------------------------------------------
+
 function Logo({ inst, size = 32, isLoser = false }: { inst: any; size?: number; isLoser?: boolean }) {
   const dimFilter = isLoser ? "saturate(0) opacity(0.65)" : undefined;
   if (!inst?.logo_url) {
     return (
-      <div style={{
-        width: size, height: size, borderRadius: "50%",
-        background: inst?.color ?? "#334155", flexShrink: 0,
-        filter: dimFilter, transition: "filter 0.2s",
-      }} />
+      <div
+        className="rounded-full shrink-0 transition-[filter] duration-200"
+        style={{ width: size, height: size, background: inst?.color ?? "#334155", filter: dimFilter }}
+      />
     );
   }
   return (
     <Image
       src={inst.logo_url} alt={inst?.name ?? ""}
       width={size} height={size}
-      style={{ objectFit: "contain", flexShrink: 0, filter: dimFilter, transition: "filter 0.2s" }}
+      className="shrink-0 transition-[filter] duration-200"
+      style={{ objectFit: "contain", filter: dimFilter }}
     />
   );
 }
 
-// Placeholder logo "?" untuk slot bracket yang pesertanya belum ditentukan.
 function UndecidedLogo({ size = 32 }: { size?: number }) {
   return (
     <svg
       width={size} height={size} viewBox="0 0 32 32"
       fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={{ flexShrink: 0 }}
+      className="shrink-0"
     >
       <circle cx="16" cy="16" r="14.5" stroke="#D1D5DB" strokeWidth="1.5" strokeDasharray="3 2" />
-      <text
-        x="16" y="21"
-        textAnchor="middle"
-        fontSize="13"
-        fontWeight="700"
-        fontFamily="'Plus Jakarta Sans', sans-serif"
-        fill="#D1D5DB"
-      >?</text>
+      <text x="16" y="21" textAnchor="middle" fontSize="13" fontWeight="700"
+        fontFamily="'Plus Jakarta Sans', sans-serif" fill="#D1D5DB">?</text>
     </svg>
   );
 }
 
-// Slot peserta yang belum ditentukan (misalnya dari bracket).
 function UndecidedParticipant({ size = 32, align = "left" }: { size?: number; align?: "left" | "right" }) {
+  const textBlock = (
+    <div className={`min-w-0 ${align === "right" ? "text-right" : ""}`}>
+      <div className="font-jakarta text-[11px] font-semibold text-gray-300 leading-[1.2]">Undecided</div>
+      <div className="font-jakarta text-[13px] font-bold text-gray-300 mt-0.5">To Be Determined</div>
+    </div>
+  );
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: align === "right" ? "flex-end" : "flex-start" }}>
-      {align === "right" && (
-        <div style={{ minWidth: 0, textAlign: "right" }}>
-          <div style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#D1D5DB", lineHeight: 1.2 }}>Undecided</div>
-          <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#D1D5DB", marginTop: 2 }}>To Be Determined</div>
-        </div>
-      )}
+    <div className={`flex items-center gap-2 flex-1 min-w-0 ${align === "right" ? "justify-end" : "justify-start"}`}>
+      {align === "right" && textBlock}
       <UndecidedLogo size={size} />
-      {align === "left" && (
-        <div style={{ minWidth: 0 }}>
-          <div style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#D1D5DB", lineHeight: 1.2 }}>Undecided</div>
-          <div style={{ ...JK, fontSize: 13, fontWeight: 700, color: "#D1D5DB", marginTop: 2 }}>To Be Determined</div>
-        </div>
-      )}
+      {align === "left" && textBlock}
     </div>
   );
 }
 
-// Nama + institusi peserta, bisa align kiri atau kanan.
 function ParticipantInfo({ inst, name, align = "left", dimmed = false }: {
   inst:    any;
   name:    string;
@@ -201,19 +171,23 @@ function ParticipantInfo({ inst, name, align = "left", dimmed = false }: {
   dimmed?: boolean;
 }) {
   return (
-    <div style={{ minWidth: 0, textAlign: align, flex: 1 }}>
-      <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 600, color: dimmed ? "#C4C8D4" : "#676767", lineHeight: 1.2, transition: "color 0.2s" }}>
+    <div className={`min-w-0 flex-1 text-${align}`}>
+      <div
+        className={`font-jakarta line-clamp-2 text-[11px] font-semibold leading-[1.2] transition-colors duration-200 ${dimmed ? "text-[#C4C8D4]" : "text-[#676767]"}`}
+        style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+      >
         {inst?.name ?? ""}
       </div>
-      <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: dimmed ? "#9CA3AF" : "#111", marginTop: 2, transition: "color 0.2s" }}>
+      <div
+        className={`font-jakarta text-[13px] font-bold mt-0.5 transition-colors duration-200 ${dimmed ? "text-gray-400" : "text-[#111]"}`}
+        style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+      >
         {name}
       </div>
     </div>
   );
 }
 
-// Daftar peserta untuk format open (bisa lebih dari 2 tim).
-// Tampilkan maks 4 logo tumpuk, nama dibagi 2 baris.
 function OpenParticipants({ match }: { match: MappedMatch }) {
   const entries = [...(match?.participants ?? [])]
     .sort((a: any, b: any) => (a?.position ?? Infinity) - (b?.position ?? Infinity))
@@ -225,44 +199,36 @@ function OpenParticipants({ match }: { match: MappedMatch }) {
   const line2    = allNames.slice(3);
 
   if (entries.length === 0) {
-    return <div style={{ ...JK, fontSize: 12, fontWeight: 600, color: "#aaa" }}>Waiting for participants...</div>;
+    return <div className="font-jakarta text-xs font-semibold text-[#aaa]">Waiting for participants...</div>;
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ display: "flex", paddingRight: 8 }}>
+    <div className="flex items-center gap-2.5">
+      <div className="flex pr-2">
         {shown.map((p: any, i: number) =>
           p?.institution?.logo_url ? (
             <Image
               key={i}
-              src={p.institution.logo_url}
-              alt={p.institution?.name ?? ""}
+              src={p.institution.logo_url} alt={p.institution?.name ?? ""}
               width={32} height={32}
-              style={{
-                objectFit: "contain", borderRadius: "50%",
-                background: "#fff", border: "2px solid #fff",
-                marginLeft: i > 0 ? -12 : 0, flexShrink: 0, zIndex: shown.length - i,
-              }}
+              className="rounded-full bg-white border-2 border-white shrink-0"
+              style={{ objectFit: "contain", marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           ) : (
             <div
               key={i}
-              style={{
-                width: 32, height: 32, borderRadius: "50%",
-                background: (p as any)?.institution?.color ?? "#1D4ED8",
-                border: "2px solid #fff",
-                marginLeft: i > 0 ? -12 : 0, flexShrink: 0, zIndex: shown.length - i,
-              }}
+              className="w-8 h-8 rounded-full border-2 border-white shrink-0"
+              style={{ background: (p as any)?.institution?.color ?? "#1D4ED8", marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           )
         )}
       </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: "#000" }}>
+      <div className="min-w-0 flex-1">
+        <div className="font-jakarta truncate text-[13px] font-bold text-black">
           {line1}{line2.length > 0 ? "," : ""}
         </div>
         {line2.length > 0 && (
-          <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#676767", marginTop: 2 }}>
+          <div className="font-jakarta truncate text-[11px] font-medium text-[#676767] mt-0.5">
             {line2.slice(0, 3).join(", ")}{line2.length > 3 ? ", ..." : ""}
           </div>
         )}
@@ -271,50 +237,53 @@ function OpenParticipants({ match }: { match: MappedMatch }) {
   );
 }
 
-// Kolom tim home. Format open tampilkan daftar peserta, selainnya tampilkan nama tunggal.
 function HomeCell({ match, isLoser = false }: { match: MappedMatch; isLoser?: boolean }) {
   const isOpen      = match.competition_category?.format_id?.match_type === "open";
   const participant = match.home_participant;
   if (isOpen) return <OpenParticipants match={match} />;
   if (!participant) return <UndecidedParticipant align="left" />;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+    <div className="flex items-center gap-2.5 min-w-0">
       <Logo inst={participant.institution} isLoser={isLoser} />
       <ParticipantInfo inst={participant.institution} name={participant.name} dimmed={isLoser} />
     </div>
   );
 }
 
-// Kolom tim away. Hanya tampil kalau format head-to-head.
 function AwayCell({ match, isLoser = false }: { match: MappedMatch; isLoser?: boolean }) {
   const isH2H       = match.competition_category?.format_id?.match_type === "head_to_head";
   const participant = match.away_participant;
   if (!isH2H) return <div />;
   if (!participant) return <UndecidedParticipant align="right" />;
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, minWidth: 0 }}>
+    <div className="flex items-center justify-end gap-2.5 min-w-0">
       <ParticipantInfo inst={participant.institution} name={participant.name} align="right" dimmed={isLoser} />
       <Logo inst={participant.institution} isLoser={isLoser} />
     </div>
   );
 }
 
-// Baris podium untuk engine finish_time yang sudah selesai (maks 3 besar).
+// --- Info Pertandingan -------------------------------------------------------
+
 function PodiumRow({ live }: { live: any }) {
   const podium = (live?.timeLog ?? []).slice(0, 3);
   const labels = ["1st", "2nd", "3rd"];
   const pct    = `${(100 / podium.length).toFixed(4)}%`;
   return (
-    <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+    <div className="flex items-center w-full">
       {podium.map((p: any, i: number) => (
-        <div key={i} style={{ width: pct, flexShrink: 0, display: "flex", alignItems: "center", gap: 8, minWidth: 0, padding: "0 8px" }}>
-          <div style={{ ...JK, fontSize: 12, fontWeight: 800, color: "#676767", background: "#f3f4f6", borderRadius: 6, padding: "3px 9px", flexShrink: 0 }}>
+        <div key={i} className="flex items-center gap-2 min-w-0 px-2 shrink-0" style={{ width: pct }}>
+          <div className="font-jakarta text-xs font-extrabold text-[#676767] bg-gray-100 rounded-md px-[9px] py-[3px] shrink-0">
             {labels[i]}
           </div>
           <Logo inst={p.institution ?? null} size={26} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ ...JK, ...truncate, fontSize: 10, fontWeight: 600, color: "#9CA3AF", lineHeight: 1.1 }}>{p.institution?.name ?? ""}</div>
-            <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 700, color: "#111" }}>{p.name}</div>
+          <div className="min-w-0">
+            <div className="font-jakarta truncate text-[10px] font-semibold text-gray-400 leading-[1.1]">
+              {p.institution?.name ?? ""}
+            </div>
+            <div className="font-jakarta truncate text-[13px] font-bold text-[#111]">
+              {p.name}
+            </div>
           </div>
         </div>
       ))}
@@ -322,7 +291,6 @@ function PodiumRow({ live }: { live: any }) {
   );
 }
 
-// Label status pertandingan. Prioritas: nama ronde > status live/finished/upcoming.
 function StatusLabel({ match }: { match: MappedMatch }) {
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
@@ -330,30 +298,35 @@ function StatusLabel({ match }: { match: MappedMatch }) {
 
   if (round) {
     return (
-      <span style={{ ...JK, fontSize: 11, fontWeight: 700, color: isLive ? "#D97706" : "#9CA3AF" }}>
+      <span className={`font-jakarta text-[11px] font-bold ${isLive ? "text-amber-600" : "text-gray-400"}`}>
         {round}
       </span>
     );
   }
 
-  if (isLive)     return <span style={{ ...JK, fontSize: 11, fontWeight: 800, color: "#D97706" }}>Ongoing</span>;
+  if (isLive)     return <span className="font-jakarta text-[11px] font-extrabold text-amber-600">Ongoing</span>;
   if (isFinished) {
     const winner = resolveWinnerName(match);
-    return <span style={{ ...JK, fontSize: 11, fontWeight: 700, color: "#9CA3AF" }}>{winner ? `${winner} Win` : "Finished"}</span>;
+    return <span className="font-jakarta text-[11px] font-bold text-gray-400">{winner ? `${winner} Win` : "Finished"}</span>;
   }
-  return <span style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#9CA3AF" }}>Upcoming</span>;
+  return <span className="font-jakarta text-[11px] font-semibold text-gray-400">Upcoming</span>;
 }
 
-// Kolom waktu dan venue (kolom pertama di desktop).
 function TimeVenueCell({ match, isLive }: { match: MappedMatch; isLive: boolean }) {
   const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
   return (
-    <div style={{ minWidth: 0 }}>
-      <div style={{ ...JK, fontSize: 15, fontWeight: 800, color: isLive ? "#D97706" : "#676767" }} suppressHydrationWarning>
+    <div className="min-w-0">
+      <div
+        className={`font-jakarta text-[15px] font-extrabold ${isLive ? "text-amber-600" : "text-[#676767]"}`}
+        suppressHydrationWarning
+      >
         {timeLabel}
       </div>
       {match.venue && (
-        <div style={{ ...JK, ...truncate, fontSize: 11, fontWeight: 500, color: "#aaa", marginTop: 2 }}>
+        <div
+          className="font-jakarta text-[11px] font-medium text-[#aaa] mt-0.5"
+          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+        >
           {match.venue}
         </div>
       )}
@@ -361,22 +334,25 @@ function TimeVenueCell({ match, isLive }: { match: MappedMatch; isLive: boolean 
   );
 }
 
-// Kolom meta (kolom terakhir di desktop): nama kategori + label status.
 function MetaCell({ match }: { match: MappedMatch }) {
   return (
-    <div style={{ textAlign: "right", minWidth: 0 }}>
-      <div style={{ ...JK, ...truncate, fontSize: 13, fontWeight: 800, color: "#444" }}>
+    <div className="text-right min-w-0">
+      <div
+        className="font-jakarta text-[13px] font-extrabold text-[#444]"
+        style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+      >
         {match.competition_category?.name ?? ""}
       </div>
-      <div style={{ marginTop: 3 }}>
+      <div className="mt-[3px]">
         <StatusLabel match={match} />
       </div>
     </div>
   );
 }
 
-// Baris pertandingan versi desktop.
-// Format finish_time yang sudah selesai: podium merentang kolom 2-4.
+// --- DesktopMatchRow ---------------------------------------------------------
+// Grid: [160px] [1fr] [auto] [1fr] [160px]
+
 export function DesktopMatchRow({ match }: { match: MappedMatch }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
@@ -390,7 +366,10 @@ export function DesktopMatchRow({ match }: { match: MappedMatch }) {
 
   if (engine?.type === "finish_time" && isFinished) {
     return (
-      <div style={DESKTOP_GRID}>
+      <div
+        className="grid items-center py-[7px]"
+        style={{ gridTemplateColumns: "160px 1fr auto 1fr 160px", gap: "0 40px" }}
+      >
         <TimeVenueCell match={match} isLive={isLive} />
         <div style={{ gridColumn: "2 / 5" }}>
           <PodiumRow live={live} />
@@ -401,15 +380,18 @@ export function DesktopMatchRow({ match }: { match: MappedMatch }) {
   }
 
   return (
-    <div style={DESKTOP_GRID}>
+    <div
+      className="grid items-center py-[7px]"
+      style={{ gridTemplateColumns: "160px 1fr auto 1fr 160px", gap: "0 40px" }}
+    >
       <TimeVenueCell match={match} isLive={isLive} />
-      <div style={{ minWidth: 0, overflow: "hidden" }}>
+      <div className="min-w-0 overflow-hidden">
         <HomeCell match={match} isLoser={homeIsLoser} />
       </div>
-      <div style={{ display: "flex", justifyContent: "center" }}>
+      <div className="flex justify-center">
         <ScoreCell match={match} />
       </div>
-      <div style={{ minWidth: 0, overflow: "hidden" }}>
+      <div className="min-w-0 overflow-hidden">
         <AwayCell match={match} isLoser={awayIsLoser} />
       </div>
       <MetaCell match={match} />
@@ -417,8 +399,33 @@ export function DesktopMatchRow({ match }: { match: MappedMatch }) {
   );
 }
 
-// Baris pertandingan versi mobile.
-// Layout: meta row (waktu + kategori) di atas, peserta + skor di bawah.
+// --- MobileMatchRow ----------------------------------------------------------
+
+function MobileParticipantRow({ participant, isLoser }: { participant: any; isLoser: boolean }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      {participant
+        ? <Logo inst={participant.institution} size={26} isLoser={isLoser} />
+        : <UndecidedLogo size={26} />
+      }
+      <div className="min-w-0">
+        <div
+          className={`font-jakarta text-xs font-bold transition-colors duration-200 ${participant ? (isLoser ? "text-gray-400" : "text-[#111]") : "text-gray-300"}`}
+          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+        >
+          {participant?.name ?? "To Be Determined"}
+        </div>
+        <div
+          className={`font-jakarta text-[10px] font-medium transition-colors duration-200 ${isLoser ? "text-[#C4C8D4]" : "text-[#aaa]"}`}
+          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+        >
+          {participant ? (participant.institution?.name ?? "") : "Undecided"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MobileMatchRow({ match }: { match: MappedMatch }) {
   const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
   const isOpen     = match.competition_category?.format_id?.match_type === "open";
@@ -431,88 +438,64 @@ export function MobileMatchRow({ match }: { match: MappedMatch }) {
   const winnerId    = match.winner ?? live.winner;
   const homeIsLoser = isFinished && isH2H && !!winnerId && home?.id !== winnerId;
   const awayIsLoser = isFinished && isH2H && !!winnerId && away?.id !== winnerId;
-
-  const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
-
-  const metaTop: React.CSSProperties    = { ...JK, fontSize: 11, fontWeight: 700, color: isLive ? "#D97706" : "#555" };
-  const metaBottom: React.CSSProperties = { ...JK, fontSize: 10, fontWeight: 500, color: "#aaa", marginTop: 1 };
+  const timeLabel   = isLive ? "Live" : fmtTime(match.scheduled_at);
 
   return (
-    <div style={{
-      background:    "#F8F9FB",
-      borderRadius:  12,
-      border:        "1px solid #ECEEF2",
-      padding:       "10px 12px",
-      display:       "flex",
-      flexDirection: "column",
-      gap:           8,
-    }}>
+    <div className="bg-[#F8F9FB] rounded-xl border border-[#ECEEF2] px-3 py-[10px] flex flex-col gap-2">
 
-      {/* Meta row: waktu/venue di kiri, kategori/ronde di kanan */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      {/* Meta row */}
+      <div className="flex justify-between items-start">
         <div>
-          <div style={{ ...metaTop }} suppressHydrationWarning>{timeLabel}</div>
+          <div
+            className={`font-jakarta text-[11px] font-bold ${isLive ? "text-amber-600" : "text-[#555]"}`}
+            suppressHydrationWarning
+          >
+            {timeLabel}
+          </div>
           {match.venue && (
-            <div style={{ ...metaBottom, ...truncate, maxWidth: 140 }}>{match.venue}</div>
+            <div
+              className="font-jakarta text-[10px] font-medium text-[#aaa] mt-px max-w-[140px]"
+              style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+            >
+              {match.venue}
+            </div>
           )}
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ ...JK, fontSize: 11, fontWeight: 700, color: "#555", ...truncate, maxWidth: 150 }}>
+        <div className="text-right">
+          <div
+            className="font-jakarta text-[11px] font-bold text-[#555] max-w-[150px]"
+            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          >
             {match.competition_category?.name ?? ""}
           </div>
-          <div style={{ ...metaBottom, marginTop: 1 }}><StatusLabel match={match} /></div>
+          <div className="mt-px">
+            <StatusLabel match={match} />
+          </div>
         </div>
       </div>
 
-      {/* Peserta (kiri) + skor (kanan) */}
+      {/* Participants + score */}
       {isOpen ? (
-        // Format open: daftar peserta di kiri, skor di kanan
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}><OpenParticipants match={match} /></div>
-          <div style={{ flexShrink: 0 }}><MobileScoreCell match={match} /></div>
+        <div className="flex items-center gap-2.5">
+          <div className="flex-1 min-w-0"><OpenParticipants match={match} /></div>
+          {/* Score */}
+          <div className="shrink-0"><MobileScoreCell match={match} /></div>
         </div>
       ) : (
-        // H2H: home di atas, away di bawah, skor di kanan
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-
-            {/* Baris home */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              {home ? <Logo inst={home.institution} size={26} isLoser={homeIsLoser} /> : <UndecidedLogo size={26} />}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ ...JK, ...truncate, fontSize: 12, fontWeight: 700, color: home ? (homeIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
-                  {home?.name ?? "To Be Determined"}
-                </div>
-                <div style={{ ...JK, ...truncate, fontSize: 10, fontWeight: 500, color: homeIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
-                  {home ? (home.institution?.name ?? "") : "Undecided"}
-                </div>
-              </div>
-            </div>
-
-            {/* Baris away (hanya untuk H2H) */}
-            {isH2H && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                {away ? <Logo inst={away.institution} size={26} isLoser={awayIsLoser} /> : <UndecidedLogo size={26} />}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ ...JK, ...truncate, fontSize: 12, fontWeight: 700, color: away ? (awayIsLoser ? "#9CA3AF" : "#111") : "#D1D5DB", transition: "color 0.2s" }}>
-                    {away?.name ?? "To Be Determined"}
-                  </div>
-                  <div style={{ ...JK, ...truncate, fontSize: 10, fontWeight: 500, color: awayIsLoser ? "#C4C8D4" : "#aaa", transition: "color 0.2s" }}>
-                    {away ? (away.institution?.name ?? "") : "Undecided"}
-                  </div>
-                </div>
-              </div>
-            )}
+        <div className="flex items-center gap-2.5">
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            {/* Home */}
+            <MobileParticipantRow participant={home} isLoser={homeIsLoser} />
+            {/* Away */}
+            {isH2H && <MobileParticipantRow participant={away} isLoser={awayIsLoser} />}
           </div>
-
-          {/* Skor di kanan, tengah vertikal */}
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* Score */}
+          <div className="shrink-0 flex items-center justify-center">
             <MobileScoreCell match={match} />
           </div>
-
         </div>
       )}
+
     </div>
   );
 }

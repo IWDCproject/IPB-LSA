@@ -4,7 +4,6 @@ import React from "react";
 import NewsCard from "@/components/NewsCard";
 import Button from "@/components/Button";
 import { NewsPlaceholder } from "../shared/NewsPlaceholder";
-import { JK } from "../shared/tokens";
 import type { MappedNews } from "../../_types";
 
 export default function LatestStoriesSection({
@@ -20,18 +19,19 @@ export default function LatestStoriesSection({
 }) {
   const displayNews = news.slice(0, 4);
 
-  // Desktop: always fill up to 4 items with placeholders.
-  // Mobile: single column — no placeholders needed to balance grid.
+  // Desktop: fill up to 4 items with placeholders.
+  // Mobile: single column — no placeholders needed to balance the grid.
   const placeholderCount = isMobile ? 0 : Math.max(0, 4 - displayNews.length);
-  const placeholders = Array.from({ length: placeholderCount });
+  const placeholders     = Array.from({ length: placeholderCount });
 
   return (
-    <div style={{ paddingBottom: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20, marginTop: 60 }}>
-        <span style={{ ...JK, fontSize: 22, fontWeight: 800, color: "#fff", whiteSpace: "nowrap" }}>
+    <div className="pb-0">
+      {/* Section header */}
+      <div className="flex items-center gap-4 mb-5 mt-[60px]">
+        <span className="font-jakarta text-[22px] font-extrabold text-white whitespace-nowrap">
           Latest Stories
         </span>
-        <div style={{ marginTop: 3, flex: 1, height: 2, background: "linear-gradient(to right, rgba(255,255,255,0.7), rgba(255,255,255,0.3))" }} />
+        <div className="mt-[3px] flex-1 h-0.5 bg-gradient-to-r from-white/70 to-white/30" />
         {!isMobile && (
           <Button
             variant="header-outline"
@@ -44,12 +44,12 @@ export default function LatestStoriesSection({
         )}
       </div>
 
-      <div style={{
-        display:             "grid",
-        gridTemplateColumns: isMobile ? "repeat(1, 1fr)" : "repeat(4, 1fr)",
-        gap:                 8,
-        alignItems:          "stretch",
-      }}>
+      {/* News grid */}
+      <div
+        className={`grid gap-2 items-stretch ${
+          isMobile ? "grid-cols-1" : "grid-cols-4"
+        }`}
+      >
         {displayNews.map((item) => (
           <NewsCard key={item.id} item={item} isMobile={isMobile} />
         ))}
@@ -58,8 +58,9 @@ export default function LatestStoriesSection({
         ))}
       </div>
 
+      {/* Mobile read-more button */}
       {isMobile && (
-        <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
+        <div className="mt-5 flex justify-center">
           <Button
             variant="header-outline"
             size="sm"

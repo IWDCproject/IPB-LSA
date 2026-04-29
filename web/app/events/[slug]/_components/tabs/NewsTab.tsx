@@ -7,19 +7,18 @@ import { getNewsByEvent, getNewsCountByEvent } from "@/lib/directus";
 import { TAB_ENTER } from "../shared/Animations";
 import type { AnimPhase } from "../shared/UseTabTransition";
 import { NewsPlaceholder } from "../shared/NewsPlaceholder";
-import { JK, YELLOW } from "../shared/tokens";
+import { YELLOW } from "../shared/tokens";
 import type { MappedEvent, MappedNews } from "../../_types";
+
+// --- Konstanta ---------------------------------------------------------------
 
 const PAGE_SIZE = 12;
 
-// ─── Skeleton debounce thresholds ─────────────────────────────────────────────
-// 1. Show delay  — if data arrives before this, skeleton never appears at all.
-// 2. Min display — once skeleton is visible, keep it for at least this long
-//                  to avoid a flash.
+// Delay sebelum skeleton muncul, biar koneksi cepat nggak kedip-kedip
 const SKELETON_SHOW_DELAY_MS  = 200;
 const SKELETON_MIN_DISPLAY_MS = 200;
 
-// ─── Responsive columns ────────────────────────────────────────────────────────
+// --- Helpers -----------------------------------------------------------------
 
 function getColumns(width: number, isMobile: boolean): number {
   if (isMobile || width < 768) return 1;
@@ -39,7 +38,7 @@ function useColumns(isMobile: boolean): number {
   return columns;
 }
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
+// --- Pagination --------------------------------------------------------------
 
 function PaginationButton({
   label, active, disabled, onClick,
@@ -47,6 +46,7 @@ function PaginationButton({
   label: React.ReactNode; active?: boolean; disabled?: boolean; onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  // Warna tergantung state hover/active/disabled, harus inline
   const bg     = active ? YELLOW : hovered && !disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)";
   const color  = active ? "#06125C" : disabled ? "rgba(255,255,255,0.25)" : "#fff";
   const border = active ? `1px solid ${YELLOW}` : "1px solid rgba(255,255,255,0.15)";
@@ -57,13 +57,11 @@ function PaginationButton({
       disabled={disabled}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        ...JK, minWidth: 36, height: 36, padding: "0 10px", borderRadius: 6,
-        border, background: bg, color, fontSize: 13, fontWeight: active ? 800 : 600,
-        cursor: disabled ? "not-allowed" : "pointer",
-        transition: "background 0.2s ease, border 0.2s ease",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}
+      className={`font-jakarta min-w-9 h-9 px-2.5 rounded-md text-[13px]
+        flex items-center justify-center cursor-pointer disabled:cursor-not-allowed
+        transition-[background,border] duration-200
+        ${active ? "font-extrabold" : "font-semibold"}`}
+      style={{ background: bg, color, border }}
     >
       {label}
     </button>
@@ -85,7 +83,7 @@ function Pagination({ page, totalPages, onPageChange }: {
     pages.push(totalPages);
   }
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 40 }}>
+    <div className="flex items-center justify-center gap-1.5 mt-10">
       <PaginationButton
         label={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>}
         disabled={page === 1}
@@ -93,7 +91,7 @@ function Pagination({ page, totalPages, onPageChange }: {
       />
       {pages.map((p, i) =>
         p === "…"
-          ? <span key={`e-${i}`} style={{ ...JK, color: "rgba(255,255,255,0.3)", fontSize: 13, padding: "0 4px" }}>…</span>
+          ? <span key={`e-${i}`} className="font-jakarta text-[13px] text-white/30 px-1">…</span>
           : <PaginationButton key={p} label={p} active={p === page} onClick={() => onPageChange(p as number)} />
       )}
       <PaginationButton
@@ -105,30 +103,25 @@ function Pagination({ page, totalPages, onPageChange }: {
   );
 }
 
-// ─── Card Slot ────────────────────────────────────────────────────────────────
-// CSS grid stacking (grid-area:1/1) keeps both layers in normal flow so slot
-// height = max(skeleton, card) — no clipping, no position:absolute games.
-//
-// showSkeleton = false (fast path): card slides in directly, no skeleton layer.
-// showSkeleton = true             : skeleton animates in, crossfades to card.
+// --- CardSlot ----------------------------------------------------------------
+// Grid stacking (grid-area:1/1) bikin tinggi slot = max(skeleton, card),
+// tanpa perlu position:absolute.
 
 interface SlotProps {
-  index:        number;
-  item:         MappedNews | null;
+  index:         number;
+  item:          MappedNews | null;
   isPlaceholder: boolean;
-  ready:        boolean;
-  showSkeleton: boolean;
-  isMobile:     boolean;
-  dur:          number;
-  ease:         string;
-  base:         number;
-  stagger:      number;
+  ready:         boolean;
+  showSkeleton:  boolean;
+  isMobile:      boolean;
+  dur:           number;
+  ease:          string;
+  base:          number;
+  stagger:       number;
 }
 
 function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, dur, ease, base, stagger }: SlotProps) {
-  // cardShowing lags one rAF behind ready (skeleton path only).
-  // This ensures the card first paints at opacity:0, then the transition fires —
-  // giving a real crossfade instead of an instant jump that flashes the background.
+  // cardShowing sengaja nunggu satu rAF setelah ready, biar crossfade skeleton bisa jalan
   const [cardShowing, setCardShowing] = useState(false);
 
   useEffect(() => {
@@ -137,48 +130,40 @@ function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, d
     return () => cancelAnimationFrame(raf);
   }, [ready, showSkeleton]);
 
-  // On the fast path (no skeleton) the card is immediately visible; the parent
-  // slide-up keyframe animation handles the visual entry.
-  const cardOpacity    = showSkeleton ? (cardShowing ? 1 : 0) : (ready ? 1 : 0);
-  const cardInteract   = showSkeleton ? cardShowing : ready;
+  const cardOpacity  = showSkeleton ? (cardShowing ? 1 : 0) : (ready ? 1 : 0);
+  const cardInteract = showSkeleton ? cardShowing : ready;
 
   return (
+    // Delay animasi dihitung per-index, harus inline
     <div
+      className="grid"
       style={{
-        opacity: 0,
+        opacity:   0,
         animation: `anim-slide-up-soft ${dur}ms ${ease} ${base + index * stagger}ms forwards`,
-        display: "grid",
       }}
     >
-      {/* Skeleton layer — only mounted when showSkeleton=true */}
       {showSkeleton && (
         <div
+          className="pointer-events-none"
           style={{
-            gridArea:      "1/1",
-            opacity:       cardShowing ? 0 : 1,
-            // Delay visibility:hidden until after the opacity fade completes
-            // so the skeleton doesn't disappear before the card is fully visible.
-            visibility:    cardShowing ? "hidden" : "visible",
-            transition:    "opacity 0.3s ease, visibility 0s linear 0.3s",
-            pointerEvents: "none",
-            zIndex:        cardShowing ? 0 : 1,
+            gridArea:   "1/1",
+            opacity:    cardShowing ? 0 : 1,
+            visibility: cardShowing ? "hidden" : "visible",
+            transition: "opacity 0.3s ease, visibility 0s linear 0.3s",
+            zIndex:     cardShowing ? 0 : 1,
           }}
         >
           <NewsCardSkeleton isMobile={isMobile} />
         </div>
       )}
 
-      {/* Real card layer */}
       <div
+        className={`h-full ${cardInteract ? "pointer-events-auto" : "pointer-events-none"}`}
         style={{
-          gridArea:      "1/1",
-          opacity:       cardOpacity,
-          // Always keep transition present so the browser has a "from" state
-          // when opacity changes from 0→1 (avoids instant jump).
-          transition:    showSkeleton ? "opacity 0.3s ease" : "none",
-          pointerEvents: cardInteract ? "auto" : "none",
-          zIndex:        cardInteract ? 1 : 0,
-          height:        "100%",
+          gridArea:   "1/1",
+          opacity:    cardOpacity,
+          transition: showSkeleton ? "opacity 0.3s ease" : "none",
+          zIndex:     cardInteract ? 1 : 0,
         }}
       >
         {ready && (
@@ -193,7 +178,7 @@ function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMobile, d
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// --- NewsTab -----------------------------------------------------------------
 
 interface Props {
   event:    MappedEvent;
@@ -207,8 +192,6 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const [totalPages,      setTotalPages]      = useState(0);
   const [totalSlots,      setTotalSlots]      = useState(PAGE_SIZE);
   const [ready,           setReady]           = useState(false);
-  // skeletonVisible: true only once the show-delay fires. If data arrives
-  // before the delay, this stays false and skeleton is never rendered at all.
   const [skeletonVisible, setSkeletonVisible] = useState(false);
   const [animKey,         setAnimKey]         = useState(0);
 
@@ -232,18 +215,13 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
     let resolvedCount                  = false;
     let minDisplayTimer: ReturnType<typeof setTimeout> | null = null;
 
-    // Called once both fetches have landed. Decides whether to flip ready
-    // immediately or wait out the skeleton minimum display time.
     const tryCommit = () => {
       if (!resolvedItems || !resolvedCount) return;
 
       if (skeletonShownAt === null) {
-        // Fast path — data arrived before show delay fired.
-        // Skeleton was never shown; go straight to cards.
         clearTimeout(showTimer);
         if (!cancelled) setReady(true);
       } else {
-        // Skeleton is (or was) visible — enforce minimum display time.
         const elapsed   = Date.now() - skeletonShownAt;
         const remaining = SKELETON_MIN_DISPLAY_MS - elapsed;
         if (remaining <= 0) {
@@ -256,16 +234,12 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
       }
     };
 
-    // ── Show delay ────────────────────────────────────────────────────────
-    // If this fires before data arrives, show the skeleton. If data is already
-    // here by now, tryCommit will have cleared this timer already (fast path).
     const showTimer = setTimeout(() => {
-      if (cancelled || resolvedItems) return; // data already committed
+      if (cancelled || resolvedItems) return;
       skeletonShownAt = Date.now();
       setSkeletonVisible(true);
     }, SKELETON_SHOW_DELAY_MS);
 
-    // ── Count fetch ───────────────────────────────────────────────────────
     getNewsCountByEvent(event.slug, page, PAGE_SIZE).then(({ pageCount, totalPages: tp }) => {
       if (cancelled) return;
       const isLastPage   = page === tp;
@@ -277,7 +251,6 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
       tryCommit();
     });
 
-    // ── Items fetch ───────────────────────────────────────────────────────
     getNewsByEvent(event.slug, page, PAGE_SIZE).then(({ items: newItems }) => {
       if (cancelled) return;
       setItems(newItems);
@@ -313,38 +286,41 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
   const BASE    = TAB_ENTER.baseDelay;
   const STAGGER = TAB_ENTER.stagger;
 
-  const isEmpty    = ready && items !== null && items.length === 0;
-  const showGrid   = skeletonVisible || ready; // don't render anything until needed
+  const isEmpty  = ready && items !== null && items.length === 0;
+  const showGrid = skeletonVisible || ready;
 
   return (
+    // height, overflow, transition dihitung dari lockedHeight, harus inline
     <div
       ref={outerRef}
       onTransitionEnd={handleTransitionEnd}
       style={{
-        height:     lockedHeight !== null ? lockedHeight : undefined,
-        overflow:   lockedHeight !== null ? "hidden"     : undefined,
+        height:     lockedHeight !== null ? lockedHeight      : undefined,
+        overflow:   lockedHeight !== null ? "hidden"          : undefined,
         transition: lockedHeight !== null ? "height 0.4s ease" : undefined,
       }}
     >
       <div ref={innerRef}>
 
         {isEmpty && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 20px" }}>
-            <span style={{ ...JK, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No news yet for this event</span>
+          <div className="flex flex-col items-center py-20 px-5">
+            <span className="font-jakarta text-sm text-white/30">No news yet for this event</span>
           </div>
         )}
 
         {!isEmpty && showGrid && (
           <>
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
-              gap: GAP, alignItems: "stretch", padding: 2,
-            }}>
+            {/* gridTemplateColumns dihitung dari COLUMNS, harus inline */}
+            <div
+              className="grid items-stretch p-0.5"
+              style={{
+                gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
+                gap: GAP,
+              }}
+            >
               {Array.from({ length: totalSlots }).map((_, i) => {
                 const isPlaceholder = ready && items !== null && i >= items.length;
                 const item          = ready && items !== null && !isPlaceholder ? items[i] : null;
-
                 return (
                   <CardSlot
                     key={`${animKey}-${i}`}
@@ -360,11 +336,14 @@ export default function NewsTab({ event, isMobile, phase }: Props) {
               })}
             </div>
 
+            {/* Delay animasi dihitung dari totalSlots, harus inline */}
             {ready && (
-              <div style={{
-                opacity: 0,
-                animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
-              }}>
+              <div
+                style={{
+                  opacity:   0,
+                  animation: `anim-fade-in ${DUR}ms ${EASE} ${BASE + totalSlots * STAGGER + 60}ms forwards`,
+                }}
+              >
                 <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
               </div>
             )}
