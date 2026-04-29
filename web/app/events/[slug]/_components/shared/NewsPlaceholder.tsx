@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { JK } from "./tokens";
 
 /**
  * Decorative "Coming Soon" card — shown when an event has fewer news items
@@ -9,62 +8,23 @@ import { JK } from "./tokens";
  */
 export function NewsPlaceholder() {
   return (
-    <div
-      style={{
-        position:        "relative",
-        display:         "flex",
-        flexDirection:   "column",
-        alignItems:      "center",
-        justifyContent:  "center",
-        borderRadius:    8,
-        boxShadow:       "0 0 0 2px rgba(255, 255, 255, 0.15)",
-        background:      "rgba(255, 255, 255, 0.03)",
-        backdropFilter:  "blur(8px)",
-        padding:         "40px",
-        height:          "100%",
-        minHeight:       380,
-        overflow:        "hidden",
-      }}
-    >
+    <div className="relative flex flex-col items-center justify-center rounded-lg shadow-[0_0_0_2px_rgba(255,255,255,0.15)] bg-white/[0.03] backdrop-blur-sm p-10 h-full min-h-[380px] overflow-hidden">
+      {/* Batik pattern bg — background-image needs an inline style */}
       <div
-        style={{
-          position:            "absolute",
-          inset:               0,
-          backgroundImage:     "url(/Batik_Pattern_white.svg)",
-          backgroundSize:      "cover",
-          backgroundRepeat:    "no-repeat",
-          backgroundPosition:  "center",
-          opacity:             0.15,
-          pointerEvents:       "none",
-          zIndex:              0,
-          filter:              "blur(1.5px)",
-        }}
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-no-repeat bg-center opacity-[0.15] pointer-events-none z-0 blur-[1.5px]"
+        style={{ backgroundImage: "url(/Batik_Pattern_white.svg)" }}
       />
-      <div style={{
-        position:       "relative",
-        zIndex:         1,
-        display:        "flex",
-        flexDirection:  "column",
-        alignItems:     "center",
-        justifyContent: "center",
-        width:          "100%",
-        textAlign:      "center",
-      }}>
+
+      <div className="relative z-10 flex flex-col items-center justify-center w-full text-center">
         <svg
           width="18" height="18" viewBox="0 0 24 24"
           fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"
-          style={{ marginBottom: 12 }}
+          className="mb-3"
         >
           <path d="M12 5v14M5 12h14" />
         </svg>
-        <span style={{
-          ...JK,
-          fontSize:      "11px",
-          fontWeight:    800,
-          color:         "rgba(255,255,255,0.4)",
-          textTransform: "uppercase",
-          letterSpacing: "0.12em",
-        }}>
+        <span className="font-jakarta text-[11px] font-extrabold text-white/40 uppercase tracking-[0.12em]">
           Coming Soon
         </span>
       </div>

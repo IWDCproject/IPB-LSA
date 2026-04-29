@@ -16,14 +16,14 @@ import type {
   RawAsset,
 } from '../app/events/[slug]/_types';
 
-// ─── Directus clients ─────────────────────────────────────────────────────────
+// --- Directus clients ---------------------------------------------------------
 
-// Live data (scores, match state) — always fresh
+// Live data (scores, match state) - always fresh
 const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
   .with(rest({ onRequest: (options) => ({ ...options, cache: "no-store" as RequestCache }) }));
 
-// Stable data (news, participants, phases) — revalidate every 60s.
-// Do not merge into a single client — the dual-client pattern is intentional.
+// Stable data (news, participants, phases) - revalidate every 60s.
+// Do not merge into a single client - the dual-client pattern is intentional.
 const directusCached = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
   .with(rest({ onRequest: (options) => ({ ...options, next: { revalidate: 60 } }) }));
 
@@ -50,22 +50,22 @@ export const getAssetUrl = (
   return `${base}/assets/${id}${qs}`;
 };
 
-// ─── STATUS_MAP ───────────────────────────────────────────────────────────────
+// --- STATUS_MAP ---------------------------------------------------------------
 // Maps raw Directus status strings (including legacy aliases) to the three
 // canonical frontend values. This is the single source of truth for status
-// normalization — a change here propagates everywhere automatically.
+// normalization - a change here propagates everywhere automatically.
 // The EventDetailHeader status dictionaries use the canonical keys that this
 // map produces: "upcoming" | "ongoing" | "concluded".
 export const STATUS_MAP: Record<string, "upcoming" | "ongoing" | "concluded"> = {
   upcoming:  'upcoming',
   ongoing:   'ongoing',
-  active:    'ongoing',   // alias — remove if unused in Directus
+  active:    'ongoing',   // alias - remove if unused in Directus
   concluded: 'concluded',
-  finished:  'concluded', // alias — remove if unused in Directus
-  past:      'concluded', // alias — remove if unused in Directus
+  finished:  'concluded', // alias - remove if unused in Directus
+  past:      'concluded', // alias - remove if unused in Directus
 };
 
-// ─── Mapping helpers ──────────────────────────────────────────────────────────
+// --- Mapping helpers ----------------------------------------------------------
 
 const mapInstitution = (raw: any): MappedInstitution | null => {
   if (!raw || typeof raw !== 'object') return null;
@@ -138,9 +138,9 @@ const mapMatch = (m: any): MappedMatch => {
     });
   }
 
-  // Warn loudly — a null format_id means scoring is silently broken for this match.
+  // Warn loudly - a null format_id means scoring is silently broken for this match.
   if (cat && !fmt) {
-    console.warn('[mapMatch] match', m.id, 'has no format_id — scoring will be unavailable for category', cat.id);
+    console.warn('[mapMatch] match', m.id, 'has no format_id - scoring will be unavailable for category', cat.id);
   }
 
   const mappedCategory: MappedCompetitionCategory = {
@@ -171,7 +171,7 @@ const mapNews = (n: any): MappedNews => {
   };
 };
 
-// ─── Exported data functions ──────────────────────────────────────────────────
+// --- Exported data functions --------------------------------------------------
 
 export const getMatches = async (): Promise<MappedMatch[]> => {
   try {
@@ -188,7 +188,7 @@ export const getMatches = async (): Promise<MappedMatch[]> => {
 };
 
 export const getMatchesByEvent = async (slug: string): Promise<MappedMatch[]> => {
-  // Intentionally no try-catch — let errors propagate to the API route
+  // Intentionally no try-catch - let errors propagate to the API route
   // so it can return a proper HTTP 500 instead of a silent empty array.e
   const res = await directus.request(readItems('matches', {
     filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
@@ -216,25 +216,25 @@ export const getEventsForListing = async () => {
 export const getEventDetail = async (slug: string): Promise<MappedEvent | null> => {
   try {
     const [events, phases, rawMatches, rawNews, participants] = await Promise.all([
-      // Live client — event status and match scores change at any time
+      // Live client - event status and match scores change at any time
       directus.request(readItems('events', {
         filter: { slug: { _eq: slug } },
         fields: ['*', 'banner_image.*', 'card_image.*', 'user_created.organisation_name'],
         limit:  1,
       })),
-      // Cached client — phases are stable (rarely change)
+      // Cached client - phases are stable (rarely change)
       directusCached.request(readItems('event_phases', {
         filter: { event_id: { slug: { _eq: slug } } },
         sort:   ['display_order'],
       })),
-      // Live client — match scores and status change frequently
+      // Live client - match scores and status change frequently
       directus.request(readItems('matches', {
         filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
         fields: MATCH_FIELDS,
         sort:   ['status', 'scheduled_at'],
-        limit:  -1, // fetch all matches — hard limit of 50 would silently truncate
+        limit:  -1, // fetch all matches - hard limit of 50 would silently truncate
       })),
-      // Cached client — news teaser (4 items) is stable data
+      // Cached client - news teaser (4 items) is stable data
       directusCached.request(readItems('news', {
         filter: {
           event_id:     { slug: { _eq: slug } },
@@ -244,7 +244,7 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
         sort:   ['-published_at'],
         limit:  4,
       })),
-      // Cached client — participants are stable (60s revalidation)
+      // Cached client - participants are stable (60s revalidation)
       getParticipantsByEvent(slug),
     ]);
 
@@ -269,7 +269,7 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
   }
 };
 
-// ─── News ─────────────────────────────────────────────────────────────────────
+// --- News ---------------------------------------------------------------------
 
 /** Cheap aggregate-only fetch for the News tab skeleton.
  *  Returns the number of items on the requested page so the skeleton can render
@@ -349,7 +349,7 @@ export const getNewsBySlug = async (
   }
 };
 
-// ─── Participants ─────────────────────────────────────────────────────────────
+// --- Participants -------------------------------------------------------------
 
 const PARTICIPANT_FIELDS = [
   '*',
@@ -396,7 +396,7 @@ export const getParticipantsByEvent = async (
   }
 };
 
-// ─── Misc ─────────────────────────────────────────────────────────────────────
+// --- Misc ---------------------------------------------------------------------
 
 export const getEvents = async () => getEventsForListing();
 
@@ -475,7 +475,7 @@ export const getAllNewsFiltered = async ({
 }: {
   page?:     number;
   pageSize?: number;
-  // Intentionally `any` — callers pass a `DirectusNewsFilter` interface that
+  // Intentionally `any` - callers pass a `DirectusNewsFilter` interface that
   // lacks an index signature, which makes it incompatible with a typed Record.
   filter?:   any;
   sort?:     string;

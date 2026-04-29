@@ -61,7 +61,7 @@ export function useMatchState(
     return () => { isMounted.current = false; };
   }, []);
 
-  // ─── applyUpdates ────────────────────────────────────────────────────────────
+  // --- applyUpdates ------------------------------------------------------------
   // Patch data match yang berubah berdasarkan ID.
   // Kita cuma subscribe ke [id, live_state, status], jadi data lain (peserta, kategori)
   // tetap dari server render dan ga kena overwrite.
@@ -79,7 +79,7 @@ export function useMatchState(
     setLastUpdated(new Date());
   }, []);
 
-  // ─── fetchOnce ───────────────────────────────────────────────────────────────
+  // --- fetchOnce ---------------------------------------------------------------
   // Polling REST, dipanggil kalau WebSocket udah menyerah
   const pollRetries = useRef(0);
   const pollAbort   = useRef<AbortController | null>(null);
@@ -111,7 +111,7 @@ export function useMatchState(
     }
   }, [slug]);
 
-  // ─── Main WS effect ──────────────────────────────────────────────────────────
+  // --- Main WS effect ----------------------------------------------------------
   useEffect(() => {
     let cancelled      = false;           // ← local to this invocation; never shared
     let ws:            WebSocket | null = null;
@@ -120,7 +120,7 @@ export function useMatchState(
     let pollInterval:   ReturnType<typeof setInterval> | null = null;
     let usingFallback                   = false;
 
-    // ── Fallback helpers ──────────────────────────────────────────────────────
+    // -- Fallback helpers ------------------------------------------------------
 
     const startFallback = () => {
       if (usingFallback || cancelled) return;
@@ -142,7 +142,7 @@ export function useMatchState(
       if (!cancelled) setIsPolling(false);
     };
 
-    // ── WebSocket ─────────────────────────────────────────────────────────────
+    // -- WebSocket -------------------------------------------------------------
 
     const log = (...args: unknown[]) => console.log("[WS]", ...args);
 
@@ -230,7 +230,7 @@ export function useMatchState(
       };
     };
 
-    // ── Visibility handler ────────────────────────────────────────────────────
+    // -- Visibility handler ----------------------------------------------------
 
     const onVisibility = () => {
       if (cancelled || document.visibilityState !== "visible") return;

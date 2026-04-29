@@ -4,17 +4,14 @@ import type { Metadata } from "next";
 import { getEventDetail, getAssetUrl } from "@/lib/directus";
 import EventDetailClient from "./EventDetailClient";
 
-// ─── generateMetadata ─────────────────────────────────────────────────────────
-// Runs server-side, shares the same getEventDetail call as the page render.
-// Next.js de-duplicates the fetch via its built-in request memoisation, so
-// there is no double-fetch cost.
+
 export async function generateMetadata(
   { params }: { params: { slug: string } },
 ): Promise<Metadata> {
   const event = await getEventDetail(params.slug);
   if (!event) return {};
 
-  const title       = `${event.name} — ${event.organiser}`;
+  const title       = `${event.name} by ${event.organiser}`;
   const description = event.description?.slice(0, 160) ?? title;
   const ogImage     = event.banner_image
     ? getAssetUrl(event.banner_image)
@@ -40,18 +37,24 @@ export async function generateMetadata(
   };
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-// EventDetailClient uses useSearchParams(), which requires a Suspense boundary
-// at or above the client component. Wrapping here satisfies that requirement
-// without adding any visible loading UI — the server-rendered shell is already
-// in place when the client hydrates.
-export default async function EventPage({ params }: { params: { slug: string } }) {
+// --- Page ---------------------------------------------------------------------
+
+export default async function EventPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: { slug: string }; 
+  searchParams: { tab?: string }; 
+}) {
   const event = await getEventDetail(params.slug);
   if (!event) notFound();
 
+  // Get the tab from the URL on the server side
+  const initialTab = (searchParams.tab as any) || "overview";
+
   return (
     <Suspense>
-      <EventDetailClient event={event} />
+      <EventDetailClient event={event} initialTab={initialTab} />
     </Suspense>
   );
 }

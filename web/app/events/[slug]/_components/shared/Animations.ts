@@ -1,6 +1,6 @@
 "use client";
 
-// ─── Keyframe definitions ──────────────────────────────────────────────────────
+// --- Keyframe definitions ------------------------------------------------------
 
 export const KEYFRAMES = `
   @keyframes anim-slide-up {
@@ -25,12 +25,12 @@ export const KEYFRAMES = `
   }
 `;
 
-// ─── Easing presets ────────────────────────────────────────────────────────────
+// --- Easing presets ------------------------------------------------------------
 
 const EASE_OUT_EXPO = "cubic-bezier(0.16, 1, 0.3, 1)";
 const EASE_OUT_SOFT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-// ─── Timing tiers ─────────────────────────────────────────────────────────────
+// --- Timing tiers -------------------------------------------------------------
 
 /** First-load stagger: elements reveal slowly and gracefully */
 export const PAGE_ENTER = {
@@ -45,13 +45,13 @@ export const PAGE_ENTER = {
  * motion reads as a gentle lift rather than a jarring jump.
  */
 export const TAB_ENTER = {
-  duration:   600,  // was 280 — long enough to read as a fade, not a blink
-  stagger:     60,  // was 40  — slight breathing room between items
+  duration:   600,  // was 280 - long enough to read as a fade, not a blink
+  stagger:     60,  // was 40  - slight breathing room between items
   easing:    EASE_OUT_SOFT,
   baseDelay:   30,  // ms head-start so the first item doesn't fire on paint
 } as const;
 
-// ─── Style factories ───────────────────────────────────────────────────────────
+// --- Style factories -----------------------------------------------------------
 
 /**
  * Returns an inline style that plays `anim-slide-up` after `delay` ms.

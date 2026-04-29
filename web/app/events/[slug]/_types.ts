@@ -1,11 +1,11 @@
-// ─── Tab navigation ───────────────────────────────────────────────────────────
+// --- Tab navigation -----------------------------------------------------------
 export type TabKey    = "overview" | "matches" | "participants" | "news";
 export type AnimPhase = "entering" | "idle";
 
-// ─── Canonical event status values (output of STATUS_MAP) ────────────────────
+// --- Canonical event status values (output of STATUS_MAP) --------------------
 export type EventStatus = "upcoming" | "ongoing" | "concluded";
 
-// ─── Directus raw shapes (server response before mapping) ─────────────────────
+// --- Directus raw shapes (server response before mapping) ---------------------
 export interface RawAsset {
   id:          string;
   uploaded_on?: string;
@@ -73,7 +73,7 @@ export interface DirectusPhase {
   event_id:      string;
 }
 
-// ─── Mapped / normalized shapes (what components receive) ─────────────────────
+// --- Mapped / normalized shapes (what components receive) ---------------------
 
 export interface MemberEntry {
   name:   string;

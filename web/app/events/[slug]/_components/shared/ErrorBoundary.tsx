@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { JK } from "./tokens";
 
 interface Props {
   children: React.ReactNode;
@@ -19,11 +18,6 @@ interface State {
  * Catches render errors and shows a friendly retry card instead of a
  * white screen. The "Try again" button resets the error state, which
  * causes React to re-mount the child tree.
- *
- * Usage:
- *   <ErrorBoundary label="Matches">
- *     <MatchesTab ... />
- *   </ErrorBoundary>
  */
 export class ErrorBoundary extends React.Component<Props, State> {
   state: State = { hasError: false, message: null };
@@ -35,7 +29,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(err: unknown, info: React.ErrorInfo) {
-    // Swap for your own error-reporting service (Sentry, etc.) when ready
     console.error("[ErrorBoundary]", err, info.componentStack);
   }
 
@@ -45,40 +38,24 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div style={{
-        display:        "flex",
-        flexDirection:  "column",
-        alignItems:     "center",
-        justifyContent: "center",
-        padding:        "64px 24px",
-        gap:            16,
-        textAlign:      "center",
-      }}>
-        <div style={{ fontSize: 36 }}>⚠️</div>
-        <div style={{ ...JK, fontSize: 16, fontWeight: 700, color: "#fff" }}>
+      <div className="flex flex-col items-center justify-center px-6 py-16 gap-4 text-center">
+        <div className="text-4xl">⚠️</div>
+
+        <div className="font-jakarta text-base font-bold text-white">
           {this.props.label
             ? `The ${this.props.label} tab ran into a problem.`
             : "Something went wrong."}
         </div>
+
         {this.state.message && (
-          <div style={{ ...JK, fontSize: 12, color: "rgba(255,255,255,0.5)", maxWidth: 400 }}>
+          <div className="font-jakarta text-xs text-white/50 max-w-[400px]">
             {this.state.message}
           </div>
         )}
+
         <button
           onClick={this.reset}
-          style={{
-            ...JK,
-            marginTop:    8,
-            padding:      "8px 20px",
-            borderRadius: 8,
-            border:       "1.5px solid rgba(255,255,255,0.3)",
-            background:   "rgba(255,255,255,0.08)",
-            color:        "#fff",
-            fontSize:     13,
-            fontWeight:   700,
-            cursor:       "pointer",
-          }}
+          className="font-jakarta mt-2 px-5 py-2 rounded-lg border border-white/30 bg-white/[0.08] text-white text-[13px] font-bold cursor-pointer hover:bg-white/[0.14] transition-colors"
         >
           Try again
         </button>
