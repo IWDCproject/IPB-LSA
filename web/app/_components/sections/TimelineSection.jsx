@@ -8,6 +8,7 @@ import EventCard from "@/components/EventCard";
 import VerticalTimeline from "../timeline-stuff/VerticalTimeline";
 import { useBlurImages } from "@/hooks/useBlurImages";
 import { getAssetUrl } from "@/lib/directus";
+import { BlockRevealText } from "@/components/BlockRevealText";
 
 const BG  = "linear-gradient(to top, #06125C 5%, #0D26C2 100%)";
 const YEL = "#FFC936";
@@ -538,7 +539,6 @@ export default function EventTimeline({ events: rawEvents }) {
           }}
         />
       </div>
-
       <div ref={ctaRef} style={{
         position: "absolute", left: Math.round(160 * scaleF), top: "65%",
         transform: "translateY(-50%)", zIndex: 5, maxWidth: Math.round(300 * scaleF),
@@ -547,11 +547,13 @@ export default function EventTimeline({ events: rawEvents }) {
           fontFamily: "'Bebas Neue', cursive", fontSize: `${3.8 * scaleF}rem`,
           color: "#fff", lineHeight: 1, margin: 0,
         }}>
-          WHY WAIT?
+          <BlockRevealText delay={0.5} blockColor="#ffffff">WHY WAIT?</BlockRevealText>
         </h2>
-        <p style={{ color: "#fff", fontSize: `${Math.round(22 * scaleF)}px`, marginTop: 5, fontWeight: 500 }}>
-          Make sure to not miss your registration period!
-        </p>
+        <div style={{ color: "#fff", fontSize: `${Math.round(22 * scaleF)}px`, marginTop: 5, fontWeight: 500 }}>
+
+          <BlockRevealText delay={0.8} blockColor="#ffffff"> Make sure to not miss your registration period! </BlockRevealText>
+        </div>
+        
         <div style={{ marginTop: 18 }}>
           <Button href="/events" variant="primary" size="md">SEE EVENTS</Button>
         </div>
