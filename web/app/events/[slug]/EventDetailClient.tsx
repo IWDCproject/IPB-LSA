@@ -16,7 +16,6 @@ import { KEYFRAMES }        from "./_components/shared/Animations";
 import { ErrorBoundary }    from "./_components/shared/ErrorBoundary";
 import { useMatchState }    from "./hooks/useMatchState";
 import type { MappedEvent, TabKey } from "./_types";
-
 const BG_TOP    = "#0D26C2 30%";
 const BG_BOTTOM = "#06125C";
 const BG_IMAGE_HEIGHT = "clamp(500px, 65vh, 650px)";
@@ -46,14 +45,18 @@ export default function EventDetailClient({ event }: { event: MappedEvent }) {
   const isFirstTab = useRef(true);
 
   // ─── Live match data (polls every 10s; easy WebSocket swap later) ─────────
-  const { matches, lastUpdated, isPolling } = useMatchState(event.slug, event.matches);
+  const { matches, lastUpdated, isPolling, wsStatus } = useMatchState(event.slug, event.matches);
 
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setIsMobile(e.contentRect.width < 1024));
+    let timer: ReturnType<typeof setTimeout>;
+    const ro = new ResizeObserver(([e]) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setIsMobile(e.contentRect.width < 1024), 100);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); clearTimeout(timer); };
   }, []);
 
   useEffect(() => {
@@ -163,6 +166,7 @@ export default function EventDetailClient({ event }: { event: MappedEvent }) {
                       phase={phase}
                       lastUpdated={lastUpdated}
                       isPolling={isPolling}
+                      wsStatus={wsStatus}
                     />
                   </ErrorBoundary>
                 )}

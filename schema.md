@@ -1,5 +1,5 @@
 # IPB Lucky Sport & Art — Schema
-> Directus (port 6767) over PostgreSQL. All PKs `UUID`. All timestamps UTC. Directus manages its own tables — only custom tables are defined here.
+> Directus (port 7777) over PostgreSQL. All PKs `UUID`. All timestamps UTC. Directus manages its own tables — only custom tables are defined here.
 
 ---
 

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef } from "react";
+import Image from "next/image";
 import { getAssetUrl } from "@/lib/directus";
 import { useBlur } from "@/contexts/BlurContext";
 
@@ -103,7 +104,11 @@ function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }: { inst: any; 
   if (!inst?.logo_url) {
     return <div style={{ width: size, height: size, borderRadius: "50%", background: inst?.color ?? "#334155", flexShrink: 0 }} />;
   }
-  return <img src={inst.logo_url} alt={inst.name} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0 }} />;
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <Image src={inst.logo_url} alt={inst.name} fill style={{ objectFit: "contain" }} />
+    </div>
+  );
 }
 
 function ScoreTimed({ live }: { live: any }) {

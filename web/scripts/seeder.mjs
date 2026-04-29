@@ -18,7 +18,7 @@ const ADMIN_TOKEN = 'ECH98IbvMYhkTbPM2sYWKsjeib3Bpgo2';
 const UNSPLASH_KEY = 'tanya-gilang';
 // ^ Get a free key at https://unsplash.com/developers (instant approval, 50 req/hr)
 // Usage: UNSPLASH_KEY=your_access_key node scripts/seeder.mjs
-const client = createDirectus('http://localhost:6767').with(rest()).with(staticToken(ADMIN_TOKEN));
+const client = createDirectus('http://localhost:7777').with(rest()).with(staticToken(ADMIN_TOKEN));
 
 // ==========================================
 // UTILITIES & GENERATORS
@@ -137,7 +137,7 @@ async function importImageFromUrl(keyword, title) {
     form.append('title', title);
     form.append('file', new Blob([buffer], { type: mime }), `${name}.${ext}`);
 
-    const upRes = await fetch('http://localhost:6767/files', {
+    const upRes = await fetch('http://localhost:7777/files', {
       method: 'POST',
       headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
       body: form,

@@ -29,15 +29,24 @@ const directusCached = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as st
 
 export default directus;
 
-export const getAssetUrl = (asset: RawAsset | string | null | undefined): string | null => {
+export const getAssetUrl = (
+  asset: RawAsset | string | null | undefined,
+  opts?: { width?: number; height?: number; quality?: number; format?: string },
+): string | null => {
   if (!asset) return null;
   const id = typeof asset === 'object' ? asset.id : asset;
   if (!id || id === 'null') return null;
   if (typeof id === 'string' && id.startsWith('http')) return id;
-  const base = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:6767';
-  const qs = typeof asset === 'object' && asset.uploaded_on
-    ? `?v=${new Date(asset.uploaded_on).getTime()}`
-    : '';
+  const base = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:7777';
+  const params = new URLSearchParams();
+  if (typeof asset === 'object' && asset.uploaded_on) {
+    params.set('v', String(new Date(asset.uploaded_on).getTime()));
+  }
+  if (opts?.width)   params.set('width',   String(opts.width));
+  if (opts?.height)  params.set('height',  String(opts.height));
+  if (opts?.quality) params.set('quality', String(opts.quality));
+  if (opts?.format)  params.set('format',  opts.format);
+  const qs = params.size > 0 ? `?${params.toString()}` : '';
   return `${base}/assets/${id}${qs}`;
 };
 
@@ -101,9 +110,13 @@ const MATCH_FIELDS = [
 const mapMatch = (m: any): MappedMatch => {
   const cat = m.competition_category_id;
   const fmt = cat?.format_id;
-  const modules: FormatModule[] = typeof fmt?.modules === 'string'
-    ? JSON.parse(fmt.modules)
-    : (fmt?.modules ?? []);
+  let modules: FormatModule[] = [];
+  if (typeof fmt?.modules === 'string') {
+    try { modules = JSON.parse(fmt.modules); }
+    catch (e) { console.error('[mapMatch] Invalid JSON in fmt.modules:', e); }
+  } else {
+    modules = fmt?.modules ?? [];
+  }
 
   const junctionParts: ParticipantJunction[] = (m.participants ?? []).map((j: any) => ({
     ...j,
@@ -123,6 +136,11 @@ const mapMatch = (m: any): MappedMatch => {
         institution: found?.participant_id?.institution || logEntry.institution || null,
       };
     });
+  }
+
+  // Warn loudly — a null format_id means scoring is silently broken for this match.
+  if (cat && !fmt) {
+    console.warn('[mapMatch] match', m.id, 'has no format_id — scoring will be unavailable for category', cat.id);
   }
 
   const mappedCategory: MappedCompetitionCategory = {
@@ -163,19 +181,22 @@ export const getMatches = async (): Promise<MappedMatch[]> => {
       sort:   ['status', 'scheduled_at'],
     }));
     return (res as any[]).map(mapMatch);
-  } catch { return []; }
+  } catch (err) {
+    console.error('[getMatches]', err);
+    return [];
+  }
 };
 
 export const getMatchesByEvent = async (slug: string): Promise<MappedMatch[]> => {
-  try {
-    const res = await directus.request(readItems('matches', {
-      filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
-      fields: MATCH_FIELDS,
-      sort:   ['status', 'scheduled_at'],
-      limit:  -1,
-    }));
-    return (res as any[]).map(mapMatch);
-  } catch { return []; }
+  // Intentionally no try-catch — let errors propagate to the API route
+  // so it can return a proper HTTP 500 instead of a silent empty array.e
+  const res = await directus.request(readItems('matches', {
+    filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
+    fields: MATCH_FIELDS,
+    sort:   ['status', 'scheduled_at'],
+    limit:  -1,
+  }));
+  return (res as any[]).map(mapMatch);
 };
 
 export const getEventsForListing = async () => {
@@ -186,7 +207,10 @@ export const getEventsForListing = async () => {
       sort:   ['start_date'],
       limit:  -1,
     }));
-  } catch { return []; }
+  } catch (err) {
+    console.error("[getEventsForListing]", err);
+    return [];
+  }
 };
 
 export const getEventDetail = async (slug: string): Promise<MappedEvent | null> => {
@@ -239,7 +263,10 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
       news:       (rawNews as any[]).map(mapNews),
       participants,
     } as MappedEvent;
-  } catch { return null; }
+  } catch (err) {
+    console.error("[getEventDetail]", err);
+    return null;
+  }
 };
 
 // ─── News ─────────────────────────────────────────────────────────────────────
@@ -269,7 +296,8 @@ export const getNewsCountByEvent = async (
       total,
       totalPages,
     };
-  } catch {
+  } catch (err) {
+    console.error("[getNewsCountByEvent]", err);
     return { pageCount: pageSize, total: 0, totalPages: 0, error: true };
   }
 };
@@ -293,7 +321,8 @@ export const getNewsByEvent = async (
       offset: (page - 1) * pageSize,
     }));
     return { items: (items as any[]).map(mapNews) };
-  } catch {
+  } catch (err) {
+    console.error("[getNewsByEvent]", err);
     return { items: [], error: true };
   }
 };
@@ -314,7 +343,10 @@ export const getNewsBySlug = async (
     }));
     const item = (items as any[])[0];
     return item ? mapNews(item) : null;
-  } catch { return null; }
+  } catch (err) {
+    console.error("[getNewsBySlug]", err);
+    return null;
+  }
 };
 
 // ─── Participants ─────────────────────────────────────────────────────────────
@@ -358,7 +390,8 @@ export const getParticipantsByEvent = async (
         return catId === cat.id;
       }),
     }));
-  } catch {
+  } catch (err) {
+    console.error("[getParticipantsByEvent]", err);
     return [];
   }
 };
@@ -379,7 +412,8 @@ export const getStats = async () => {
       institutionsCount: (i as any[]).length,
       participantsCount: (p as any[]).length,
     };
-  } catch {
+  } catch (err) {
+    console.error("[getStats]", err);
     return { eventsCount: 0, institutionsCount: 0, participantsCount: 0 };
   }
 };
@@ -427,21 +461,22 @@ export const getEventsWithRecentNews = async () => {
     );
 
     return eventsWithNews.filter((e) => e.news.length > 0);
-  } catch { return []; }
+  } catch (err) {
+    console.error('[getEventsWithRecentNews]', err);
+    return [];
+  }
 };
 
 export const getAllNewsFiltered = async ({
   page     = 1,
   pageSize = 24,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filter   = {} as any,
+  filter   = {} as any, // intentional: callers pass DirectusNewsFilter which lacks an index signature
   sort     = '-published_at',
 }: {
   page?:     number;
   pageSize?: number;
   // Intentionally `any` — callers pass a `DirectusNewsFilter` interface that
   // lacks an index signature, which makes it incompatible with a typed Record.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter?:   any;
   sort?:     string;
 } = {}): Promise<{ items: MappedNews[]; total: number; totalPages: number }> => {
@@ -466,7 +501,8 @@ export const getAllNewsFiltered = async ({
       total,
       totalPages: Math.ceil(total / pageSize),
     };
-  } catch {
+  } catch (err) {
+    console.error("[getAllNewsFiltered]", err);
     return { items: [], total: 0, totalPages: 0 };
   }
 };

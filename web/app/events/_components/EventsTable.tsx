@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "nextjs-toploader/app";
 import { useState } from "react";
+import Image from "next/image";
 import { getAssetUrl } from "@/lib/directus";
 import Button from "@/components/Button";
 
@@ -246,8 +247,8 @@ function DesktopEventRow({ ev, isLast, index, cellPad, thumbW, thumbH }: {
     >
       <td style={{ padding: cellPad }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: thumbW, height: thumbH, flexShrink: 0, borderRadius: 4, overflow: "hidden", background: "#e8eaf6" }}>
-            {imgUrl && <img src={imgUrl} alt={ev.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+          <div style={{ width: thumbW, height: thumbH, flexShrink: 0, borderRadius: 4, overflow: "hidden", background: "#e8eaf6", position: "relative" }}>
+            {imgUrl && <Image src={imgUrl} alt={ev.name} fill style={{ objectFit: "cover" }} />}
           </div>
           <div>
             <div style={{ ...JK, fontWeight: 700, fontSize: 14, color: "#111", lineHeight: 1.3 }}>{ev.name}</div>
@@ -314,7 +315,7 @@ function MobileEventRow({ ev, index }: { ev: EventListing; isLast: boolean; inde
       {/* Banner image with status badge overlaid top-right */}
       <div style={{ position: "relative", width: "100%", height: 80, background: "#e8eaf6", flexShrink: 0 }}>
         {imgUrl && (
-          <img src={imgUrl} alt={ev.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <Image src={imgUrl} alt={ev.name} fill style={{ objectFit: "cover" }} />
         )}
         {/* Dark scrim so badge is readable over any image */}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, transparent 60%)" }} />
