@@ -1,9 +1,14 @@
 import React from "react";
-import { JK } from "../shared/tokens";
 
-export function PanelCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+export function PanelCard({
+  children,
+  className,
+}: {
+  children:   React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: "16px 20px", ...style }}>
+    <div className={`bg-white rounded-xl px-5 py-4 ${className ?? ""}`}>
       {children}
     </div>
   );
@@ -11,7 +16,7 @@ export function PanelCard({ children, style }: { children: React.ReactNode; styl
 
 export function PanelTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ ...JK, fontSize: 14, fontWeight: 800, color: "#06125C", marginBottom: 14 }}>
+    <div className="font-jakarta text-sm font-extrabold text-navy mb-3.5">
       {children}
     </div>
   );
@@ -19,7 +24,7 @@ export function PanelTitle({ children }: { children: React.ReactNode }) {
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <div style={{ ...JK, fontSize: 13, color: "#9CA3AF", fontWeight: 500, padding: "16px 0", textAlign: "center" }}>
+    <div className="font-jakarta text-[13px] text-gray-400 font-medium py-4 text-center">
       {message}
     </div>
   );

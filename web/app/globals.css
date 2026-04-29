@@ -105,3 +105,30 @@ html, body {
   100% { transform: scale(2); opacity: 0;   }
 }
  
+
+.tab-scroll::-webkit-scrollbar { display: none; }
+.tl-scroll::-webkit-scrollbar  { display: none; }
+[data-tab-btn]:focus-visible    { outline: 2px solid rgba(255,255,255,0.9); outline-offset: 2px; }
+
+@keyframes dropdownReveal {
+from { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-4px); }
+  to   { clip-path: inset(0 0 0% 0);   opacity: 1; transform: translateY(0); }
+}
+@keyframes dropdownHide {
+  from { clip-path: inset(0 0 0% 0);   opacity: 1; transform: translateY(0); }
+  to   { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-4px); }
+}
+@keyframes memberSlide {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes match-row-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dropdown-item-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

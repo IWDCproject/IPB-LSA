@@ -1,30 +1,46 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { staggerSlideUp, TAB_ENTER } from "../shared/Animations";
-import type { AnimPhase } from "../shared/UseTabTransition";
-import type { MappedEvent, MappedMatch } from "../../_types";
-import { JK } from "../shared/tokens";
-import { groupByDateLong as groupByDate } from "../match/scoreUtils";
+
+import { staggerSlideUp, TAB_ENTER }       from "../shared/Animations";
+import type { AnimPhase }                  from "../shared/UseTabTransition";
+import type { MappedEvent, MappedMatch }   from "../../_types";
+import { groupByDateLong as groupByDate }  from "../match/scoreUtils";
 import { DesktopMatchRow, MobileMatchRow } from "../match/MatchRow";
 
-// Animasi masuk untuk baris pertandingan, panel dropdown, dan item di dalamnya.
-const ROW_KEYFRAMES = `
-  @keyframes match-row-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0);   }
-  }
-  @keyframes dropdown-panel-in {
-    from { max-height: 0;     opacity: 0; }
-    to   { max-height: 320px; opacity: 1; }
-  }
-  @keyframes dropdown-item-in {
-    from { opacity: 0; transform: translateY(5px); }
-    to   { opacity: 1; transform: translateY(0);   }
-  }
-`;
+// --- Konstanta ----------------------------------------------
 
-// Urutkan dari terbaru: tanggal mendatang di atas, yang sudah lewat di bawah.
+const GROUP_OPTIONS = [
+  { value: "schedule" as const, label: "Schedule" },
+  { value: "category" as const, label: "Category" },
+];
+
+const FILTER_OPTIONS = [
+  { value: "all"      as const, label: "All"      },
+  { value: "live"     as const, label: "Live"     },
+  { value: "upcoming" as const, label: "Upcoming" },
+  { value: "finished" as const, label: "Results"  },
+];
+
+// Animasi baris dibatasi di index ke-n biar baris ke-n+1 dst nggak nunggu lama
+const MAX_STAGGER_INDEX = 15;
+
+// --- Types ---------------------------------------------------
+
+type GroupValue  = (typeof GROUP_OPTIONS)[number]["value"];
+type FilterValue = (typeof FILTER_OPTIONS)[number]["value"];
+
+interface MatchesTabProps {
+  event:        MappedEvent;
+  isMobile:     boolean;
+  phase:        AnimPhase;
+  lastUpdated?: Date | null;
+  isPolling?:   boolean;
+  wsStatus?:    "connected" | "reconnecting" | "polling";
+}
+
+// --- Helpers -------------------------------------------------
+
 function sortNewestFirst(matches: MappedMatch[]): MappedMatch[] {
   return [...matches].sort((a, b) => {
     const ta = a.scheduled_at ? new Date(a.scheduled_at).getTime() : 0;
@@ -33,109 +49,46 @@ function sortNewestFirst(matches: MappedMatch[]): MappedMatch[] {
   });
 }
 
-// Kelompokkan pertandingan berdasarkan nama kategori kompetisi.
 function groupByCategory(matches: MappedMatch[]): Map<string, MappedMatch[]> {
   const map = new Map<string, MappedMatch[]>();
-  for (const m of matches) {
-    const key = m.competition_category?.name ?? "Uncategorized";
+  for (const match of matches) {
+    const key = match.competition_category?.name ?? "Uncategorized";
     if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(m);
+    map.get(key)!.push(match);
   }
   return map;
 }
 
-// Header pemisah antar grup tanggal atau kategori.
+// --- Komponen kecil ------------------------------------------
+
 function DateHeader({ label, count }: { label: string; count: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 4px" }}>
-      <span style={{ ...JK, fontSize: 12, fontWeight: 700, color: "#0D26C2", whiteSpace: "nowrap" }}>{label}</span>
-      <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
-      <span style={{ ...JK, fontSize: 11, fontWeight: 600, color: "#d1d5db", whiteSpace: "nowrap" }}>
+    <div className="flex items-center gap-3 pt-[18px] pb-1">
+      <span className="font-jakarta text-xs font-bold text-[#0D26C2] whitespace-nowrap">{label}</span>
+      <div className="flex-1 h-px bg-gray-100" />
+      <span className="font-jakarta text-[11px] font-semibold text-gray-300 whitespace-nowrap">
         {count} match{count !== 1 ? "es" : ""}
       </span>
     </div>
   );
 }
 
-// Tampilan kosong kalau belum ada pertandingan terjadwal.
 function EmptyState() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "56px 20px", gap: 10 }}>
+    <div className="flex flex-col items-center justify-center py-14 gap-2.5">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8"  y1="2" x2="8"  y2="6" />
+        <line x1="3"  y1="10" x2="21" y2="10" />
       </svg>
-      <span style={{ ...JK, fontSize: 13, fontWeight: 600, color: "#d1d5db" }}>No matches scheduled yet</span>
+      <span className="font-jakarta text-[13px] font-semibold text-gray-300">No matches scheduled yet</span>
     </div>
   );
 }
 
-// Tipe dan pilihan grouping.
-type GroupValue = "schedule" | "category";
+// --- Toolbar -------------------------------------------------
 
-const GROUP_OPTIONS: { value: GroupValue; label: string }[] = [
-  { value: "schedule", label: "Schedule" },
-  { value: "category", label: "Category" },
-];
-
-// Toggle grouping (Schedule / Category) versi desktop.
-function GroupToggle({ active, onChange, groupCounts }: {
-  active:      GroupValue;
-  onChange:    (v: GroupValue) => void;
-  groupCounts: Record<GroupValue, number>;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-      {GROUP_OPTIONS.map(({ value, label }) => {
-        const isActive = active === value;
-        return (
-          <button
-            key={value}
-            onClick={() => onChange(value)}
-            style={{
-              ...JK,
-              background: "none",
-              border:     "none",
-              padding:    "0 0 0 16px",
-              fontSize:   13,
-              fontWeight: isActive ? 800 : 600,
-              color:      isActive ? "#171717" : "#676767",
-              cursor:     "pointer",
-              display:    "flex",
-              alignItems: "center",
-              gap:        4,
-              transition: "color 0.15s",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {label}
-            {groupCounts[value] > 0 && (
-              <span style={{
-                ...JK, fontSize: 10, fontWeight: 700,
-                color:        isActive ? "#444" : "#bbb",
-                background:   isActive ? "#f0f0f0" : "#f5f5f5",
-                borderRadius: 12, padding: "1px 5px",
-              }}>
-                {groupCounts[value]}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// Tipe dan pilihan filter status.
-type FilterValue = "all" | "upcoming" | "live" | "finished";
-
-const FILTERS: { value: FilterValue; label: string }[] = [
-  { value: "all",      label: "All"      },
-  { value: "live",     label: "Live"     },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "finished", label: "Results"  },
-];
-
-// Filter bar status (All / Live / Upcoming / Results) versi desktop.
 function FilterBar({ active, onChange, counts, isMobile = false }: {
   active:    FilterValue;
   onChange:  (v: FilterValue) => void;
@@ -143,37 +96,21 @@ function FilterBar({ active, onChange, counts, isMobile = false }: {
   isMobile?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-      {FILTERS.map(({ value, label }) => {
+    <div className="flex items-center">
+      {FILTER_OPTIONS.map(({ value, label }) => {
         const isActive = active === value;
         return (
           <button
             key={value}
             onClick={() => onChange(value)}
-            style={{
-              ...JK,
-              background: "none",
-              border:     "none",
-              padding:    `0 0 0 ${isMobile ? 10 : 16}px`,
-              fontSize:   isMobile ? 12 : 13,
-              fontWeight: isActive ? 800 : 600,
-              color:      isActive ? "#171717" : "#676767",
-              cursor:     "pointer",
-              display:    "flex",
-              alignItems: "center",
-              gap:        4,
-              transition: "color 0.15s",
-              whiteSpace: "nowrap",
-            }}
+            className={`font-jakarta bg-transparent border-none cursor-pointer flex items-center gap-1 transition-colors whitespace-nowrap
+              ${isMobile ? "pl-[10px] text-xs" : "pl-4 text-[13px]"}
+              ${isActive ? "font-extrabold text-[#171717]" : "font-semibold text-[#676767]"}`}
           >
             {label}
             {counts[value] > 0 && (
-              <span style={{
-                ...JK, fontSize: 10, fontWeight: 700,
-                color:        isActive ? "#444" : "#bbb",
-                background:   isActive ? "#f0f0f0" : "#f5f5f5",
-                borderRadius: 12, padding: "1px 5px",
-              }}>
+              <span className={`font-jakarta text-[10px] font-bold rounded-xl px-[5px] py-px
+                ${isActive ? "text-[#444] bg-gray-100" : "text-[#bbb] bg-gray-50"}`}>
                 {counts[value]}
               </span>
             )}
@@ -184,8 +121,36 @@ function FilterBar({ active, onChange, counts, isMobile = false }: {
   );
 }
 
-// Dropdown filter gabungan untuk mobile. Dua kolom: Group By dan Status.
-// Panel tetap terbuka saat memilih opsi supaya user bisa atur dua filter sekaligus.
+function GroupToggle({ active, onChange, groupCounts }: {
+  active:      GroupValue;
+  onChange:    (v: GroupValue) => void;
+  groupCounts: Record<GroupValue, number>;
+}) {
+  return (
+    <div className="flex items-center">
+      {GROUP_OPTIONS.map(({ value, label }) => {
+        const isActive = active === value;
+        return (
+          <button
+            key={value}
+            onClick={() => onChange(value)}
+            className={`font-jakarta bg-transparent border-none pl-4 text-[13px] cursor-pointer flex items-center gap-1 transition-colors whitespace-nowrap
+              ${isActive ? "font-extrabold text-[#171717]" : "font-semibold text-[#676767]"}`}
+          >
+            {label}
+            {groupCounts[value] > 0 && (
+              <span className={`font-jakarta text-[10px] font-bold rounded-xl px-[5px] py-px
+                ${isActive ? "text-[#444] bg-gray-100" : "text-[#bbb] bg-gray-50"}`}>
+                {groupCounts[value]}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function MobileCombinedFilterDropdown({ activeGroup, onGroupChange, groupCounts, activeFilter, onFilterChange, filterCounts }: {
   activeGroup:    GroupValue;
   onGroupChange:  (v: GroupValue) => void;
@@ -195,113 +160,72 @@ function MobileCombinedFilterDropdown({ activeGroup, onGroupChange, groupCounts,
   filterCounts:   Record<FilterValue, number>;
 }) {
   const [open, setOpen] = useState(false);
-
-  const colHeader: React.CSSProperties = {
-    ...JK, fontSize: 10, fontWeight: 800, color: "#9CA3AF",
-    textTransform: "uppercase", letterSpacing: "0.06em",
-    padding: "10px 14px 6px",
-  };
-
-  const optionBtn = (isActive: boolean): React.CSSProperties => ({
-    ...JK, display: "flex", alignItems: "center", justifyContent: "space-between",
-    width: "100%", border: "none", cursor: "pointer",
-    padding: "8px 14px", fontSize: 13, fontWeight: isActive ? 800 : 600,
-    color: isActive ? "#171717" : "#444",
-    background: isActive ? "#f3f4f6" : "none",
-    borderRadius: 7,
-  });
-
-  const badge = (isActive: boolean, count: number) => (
-    <span style={{
-      ...JK, fontSize: 10, fontWeight: 700,
-      color: isActive ? "#444" : "#bbb",
-      background: isActive ? "#e5e7eb" : "#f5f5f5",
-      borderRadius: 12, padding: "1px 6px",
-    }}>
-      {count}
-    </span>
-  );
-
-  // Tombol trigger berubah warna kalau ada filter aktif selain default
   const isFiltered = activeFilter !== "all" || activeGroup !== "schedule";
 
+  // Helper biar nggak duplikat markup kolom "Group by" dan "Status"
+  function DropdownColumn({ title, options, activeValue, counts, onSelect }: {
+    title:       string;
+    options:     typeof GROUP_OPTIONS | typeof FILTER_OPTIONS;
+    activeValue: string;
+    counts:      Record<string, number>;
+    onSelect:    (v: string) => void;
+  }) {
+    return (
+      <div className="min-w-[130px]">
+        <p className="font-jakarta text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.06em] px-3.5 pt-2.5 pb-1.5 opacity-0 animate-[dropdown-item-in_0.2s_ease_60ms_forwards]">
+          {title}
+        </p>
+        <div className="px-1.5 pb-2">
+          {options.map(({ value, label }, i) => {
+            const isActive = activeValue === value;
+            return (
+              <button
+                key={value}
+                onClick={() => onSelect(value)}
+                className={`font-jakarta flex items-center justify-between w-full border-none cursor-pointer px-3.5 py-2 text-[13px] rounded-[7px] opacity-0
+                  ${isActive ? "font-extrabold text-[#171717] bg-gray-100" : "font-semibold text-[#444] bg-transparent"}`}
+                style={{ animation: `dropdown-item-in 0.22s ease ${90 + i * 40}ms forwards` }}
+              >
+                {label}
+                {counts[value] > 0 && (
+                  <span className={`font-jakarta text-[10px] font-bold rounded-xl px-1.5 py-px
+                    ${isActive ? "text-[#444] bg-gray-200" : "text-[#bbb] bg-gray-50"}`}>
+                    {counts[value]}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        style={{
-          ...JK, display: "flex", alignItems: "center", gap: 5,
-          background: isFiltered ? "#171717" : "#f0f0f0",
-          border: "none", borderRadius: 8,
-          padding: "5px 10px", fontSize: 12, fontWeight: 800,
-          color: isFiltered ? "#fff" : "#171717", cursor: "pointer",
-        }}
+        className={`font-jakarta flex items-center gap-[5px] border-none rounded-lg px-[10px] py-[5px] text-xs font-extrabold cursor-pointer
+          ${isFiltered ? "bg-[#171717] text-white" : "bg-gray-100 text-[#171717]"}`}
       >
         Filter
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
-          <path d={open ? "M2 6.5L5 3.5L8 6.5" : "M2 3.5L5 6.5L8 3.5"} stroke={isFiltered ? "#ccc" : "#555"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="shrink-0">
+          <path
+            d={open ? "M2 6.5L5 3.5L8 6.5" : "M2 3.5L5 6.5L8 3.5"}
+            stroke={isFiltered ? "#ccc" : "#555"}
+            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+          />
         </svg>
       </button>
 
       {open && (
         <>
-          {/* Backdrop untuk tutup panel saat tap di luar */}
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
-
-          {/* Panel utama — expand dari kanan atas */}
-          <div style={{
-            position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 20,
-            background: "#fff", borderRadius: 12, border: "1px solid #ECEEF2",
-            boxShadow: "0 8px 28px rgba(0,0,0,0.3)",
-            display: "flex", gap: 0,
-            overflow: "hidden",
-            animation: "dropdown-panel-in 0.22s ease-out forwards",
-          }}>
-            {/* Kolom Group By */}
-            <div style={{ minWidth: 130, borderRight: "1px solid #F3F4F6" }}>
-              <div style={{ ...colHeader, opacity: 0, animation: "dropdown-item-in 0.2s ease 60ms forwards" }}>
-                Group by
-              </div>
-              <div style={{ padding: "0 6px 8px" }}>
-                {GROUP_OPTIONS.map(({ value, label }, i) => {
-                  const isActive = activeGroup === value;
-                  const delay = 90 + i * 40;
-                  return (
-                    <button
-                      key={value}
-                      onClick={() => onGroupChange(value)}
-                      style={{ ...optionBtn(isActive), opacity: 0, animation: `dropdown-item-in 0.22s ease ${delay}ms forwards` }}
-                    >
-                      {label}
-                      {groupCounts[value] > 0 && badge(isActive, groupCounts[value])}
-                    </button>
-                  );
-                })}
-              </div>
+          <div onClick={() => setOpen(false)} className="fixed inset-0 z-10" />
+          <div className="absolute top-[calc(100%+6px)] right-0 z-20 bg-white rounded-xl border border-[#ECEEF2] shadow-[0_8px_28px_rgba(0,0,0,0.3)] flex overflow-hidden animate-dropdown-panel-in">
+            <div className="border-r border-gray-100">
+              <DropdownColumn title="Group by" options={GROUP_OPTIONS} activeValue={activeGroup} counts={groupCounts} onSelect={v => onGroupChange(v as GroupValue)} />
             </div>
-
-            {/* Kolom Status */}
-            <div style={{ minWidth: 130 }}>
-              <div style={{ ...colHeader, opacity: 0, animation: "dropdown-item-in 0.2s ease 60ms forwards" }}>
-                Status
-              </div>
-              <div style={{ padding: "0 6px 8px" }}>
-                {FILTERS.map(({ value, label }, i) => {
-                  const isActive = activeFilter === value;
-                  const delay = 90 + i * 40;
-                  return (
-                    <button
-                      key={value}
-                      onClick={() => onFilterChange(value)}
-                      style={{ ...optionBtn(isActive), opacity: 0, animation: `dropdown-item-in 0.22s ease ${delay}ms forwards` }}
-                    >
-                      {label}
-                      {filterCounts[value] > 0 && badge(isActive, filterCounts[value])}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <DropdownColumn title="Status" options={FILTER_OPTIONS} activeValue={activeFilter} counts={filterCounts} onSelect={v => onFilterChange(v as FilterValue)} />
           </div>
         </>
       )}
@@ -309,125 +233,102 @@ function MobileCombinedFilterDropdown({ activeGroup, onGroupChange, groupCounts,
   );
 }
 
-// Props untuk MatchesTab
-interface Props {
-  event:    MappedEvent;
-  isMobile: boolean;
-  phase:    AnimPhase;
+// --- MatchesTab ----------------------------------------------
 
-  lastUpdated?: Date | null;
-  isPolling?:   boolean;
-  wsStatus?:    "connected" | "reconnecting" | "polling";
-}
-
-export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPolling, wsStatus }: Props) {
+export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPolling, wsStatus }: MatchesTabProps) {
   const allMatches: MappedMatch[] = event.matches ?? [];
   const [filter,  setFilter]  = useState<FilterValue>("all");
   const [groupBy, setGroupBy] = useState<GroupValue>("schedule");
 
-  const counts = useMemo<Record<FilterValue, number>>(() => ({
+  const filterCounts = useMemo<Record<FilterValue, number>>(() => ({
     all:      allMatches.length,
     live:     allMatches.filter(m => m.status === "live").length,
     upcoming: allMatches.filter(m => m.status === "upcoming").length,
     finished: allMatches.filter(m => m.status === "finished").length,
   }), [allMatches]);
 
-  const sorted = useMemo(() => {
-    const base = filter === "all" ? allMatches : allMatches.filter(m => m.status === filter);
-    return sortNewestFirst(base);
+  const filteredAndSorted = useMemo(() => {
+    const filtered = filter === "all" ? allMatches : allMatches.filter(m => m.status === filter);
+    return sortNewestFirst(filtered);
   }, [allMatches, filter]);
 
-  const groups = useMemo(() => {
-    const map = groupBy === "category" ? groupByCategory(sorted) : groupByDate(sorted);
+  const groupEntries = useMemo(() => {
+    const map = groupBy === "category" ? groupByCategory(filteredAndSorted) : groupByDate(filteredAndSorted);
     return Array.from(map.entries());
-  }, [sorted, groupBy]);
+  }, [filteredAndSorted, groupBy]);
 
   const groupCounts = useMemo<Record<GroupValue, number>>(() => ({
-    schedule: groupByDate(sorted).size,
-    category: groupByCategory(sorted).size,
-  }), [sorted]);
+    schedule: groupByDate(filteredAndSorted).size,
+    category: groupByCategory(filteredAndSorted).size,
+  }), [filteredAndSorted]);
 
-  const cardStyle = phase === "entering" ? staggerSlideUp(0, TAB_ENTER) : {};
+  const cardEnterStyle = phase === "entering" ? staggerSlideUp(0, TAB_ENTER) : {};
 
   return (
-    <div style={cardStyle}>
-      <style dangerouslySetInnerHTML={{ __html: ROW_KEYFRAMES }} />
-      <div style={{
-        background:   "#fff",
-        borderRadius: 14,
-        padding:      isMobile ? "16px 16px" : "20px 28px",
-        boxShadow:    "0 4px 24px rgba(0,0,0,0.10)",
-      }}>
+    <div style={cardEnterStyle}>
+      <div className={`bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.10)] ${isMobile ? "px-4 py-4" : "px-7 py-5"}`}>
 
-        {/* Judul + kontrol filter dalam satu baris */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span style={{ ...JK, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#06125C" }}>
+        {/* Header: judul + kontrol filter */}
+        <div className="flex justify-between items-start">
+          <div className="flex flex-col gap-1">
+            <span className={`font-jakarta font-extrabold text-navy ${isMobile ? "text-[15px]" : "text-[17px]"}`}>
               Matches
             </span>
-            {/* Status koneksi realtime */}
+
+            {/* Prioritas status: WebSocket > timestamp polling > kosong */}
             {wsStatus === "connected" || wsStatus === "reconnecting" ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 5, ...JK, fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.35)" }}>
-                {wsStatus === "connected" ? "Real-time · WebSocket" : "Connecting WebSocket..."}
-              </div>
+              <p className="font-jakarta text-xs font-semibold text-black/35">
+                {wsStatus === "connected" ? "Real-time · WebSocket" : "Connecting WebSocket…"}
+              </p>
             ) : lastUpdated ? (
-              <div style={{ ...JK, fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.35)" }}>
+              <p className="font-jakarta text-xs font-semibold text-black/35">
                 Last updated {lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-              </div>
+              </p>
             ) : null}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+
+          <div className="flex flex-col items-end gap-2">
             {isMobile ? (
               <MobileCombinedFilterDropdown
-                activeGroup={groupBy}   onGroupChange={setGroupBy}   groupCounts={groupCounts}
-                activeFilter={filter}  onFilterChange={setFilter}   filterCounts={counts}
+                activeGroup={groupBy}  onGroupChange={setGroupBy}  groupCounts={groupCounts}
+                activeFilter={filter}  onFilterChange={setFilter}  filterCounts={filterCounts}
               />
             ) : (
               <>
-                <FilterBar active={filter} onChange={setFilter} counts={counts} />
+                <FilterBar   active={filter}  onChange={setFilter}  counts={filterCounts}  />
                 <GroupToggle active={groupBy} onChange={setGroupBy} groupCounts={groupCounts} />
               </>
             )}
           </div>
         </div>
 
-        {/* Daftar pertandingan */}
-        {sorted.length === 0 ? (
+        {/* Daftar match */}
+        {filteredAndSorted.length === 0 ? (
           <EmptyState />
-        ) : (() => {
-          // Counter baris global supaya stagger delay konsisten lintas semua grup
-          let rowIdx = 0;
-          return (
-            // Key pada filter supaya baris remount dan animasi ulang tiap ganti filter
-            <div key={`${filter}-${groupBy}`}>
-              {groups.map(([date, rows]) => (
-                <div key={date}>
-                  <DateHeader label={date} count={rows.length} />
-                  {rows.map((match: MappedMatch) => {
-                    const delay = Math.min(rowIdx++, 8) * 40;
-                    return (
-                      <div
-                        key={match.id}
-                        style={{
-                          opacity: 0,
-                          animation: `match-row-in 0.28s ease ${delay}ms forwards`,
-                          borderRadius: 8,
-                          marginBottom: isMobile ? 6 : 0,
-                        }}
-                      >
-                        {isMobile
-                          ? <MobileMatchRow match={match} />
-                          : <DesktopMatchRow match={match} />}
-                      </div>
-                    );
-                  })}
+        ) : (
+          // key berubah tiap filter/group ganti biar animasi entrance muter ulang
+          <div key={`${filter}-${groupBy}`}>
+            {(() => {
+              let rowIdx = 0;
+              return groupEntries.map(([groupLabel, rows]) => (
+                <div key={groupLabel}>
+                  <DateHeader label={groupLabel} count={rows.length} />
+                  {rows.map((match: MappedMatch) => (
+                    <div
+                      key={match.id}
+                      className={`opacity-0 rounded-lg ${isMobile ? "mb-1.5" : ""}`}
+                      style={{ animation: `match-row-in 0.28s ease ${Math.min(rowIdx++, MAX_STAGGER_INDEX) * 40}ms forwards` }}
+                    >
+                      {isMobile ? <MobileMatchRow match={match} /> : <DesktopMatchRow match={match} />}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          );
-        })()}
-        {/* Spacer bawah */}
-        <div style={{ height: 20 }} />
+              ));
+            })()}
+          </div>
+        )}
+
+        <div className="h-5" />
       </div>
     </div>
   );
