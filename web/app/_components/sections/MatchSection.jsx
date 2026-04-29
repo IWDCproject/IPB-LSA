@@ -176,7 +176,7 @@ export default function MatchSection({ matches: rawMatches }) {
             filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
             textTransform: "uppercase",
           }}>
-            <BlockRevealText delay={0.5} blockColor="#ffffff">
+            <BlockRevealText delay={0.4} blockColor="#ffffff">
               {liveMatches.length > 0 ? "Live Matches" : "No Live Matches"}
             </BlockRevealText>
           </div>

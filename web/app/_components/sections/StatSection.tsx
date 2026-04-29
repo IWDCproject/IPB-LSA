@@ -110,10 +110,10 @@ function CTA({ centered = false, fontSize = "4rem", ctaGap, anim }: CTAProps) {
     <div style={ctaStyle}>
       <div style={{ ...headingStyle, ...anim(3) }}>
         <div>
-          <BlockRevealText delay={0.4} blockColor="#ffffff">Are you ready to</BlockRevealText>
+          <BlockRevealText delay={0.3} blockColor="#ffffff">Are you ready to</BlockRevealText>
         </div>
         <div>
-          <BlockRevealText delay={0.8} blockColor="#ffffff">Prove Yourself?</BlockRevealText>
+          <BlockRevealText delay={0.5} blockColor="#ffffff">Prove Yourself?</BlockRevealText>
         </div>
       </div>
       <div style={anim(4)}>
