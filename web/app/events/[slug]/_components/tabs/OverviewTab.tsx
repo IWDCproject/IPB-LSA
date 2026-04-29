@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useLayoutEffect, useRef, useMemo } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import AboutPanel from "../panels/AboutPanel";
 import TimelinePanel from "../panels/TimelinePanel";
 import CountdownPanel from "../panels/CountdownPanel";
@@ -9,158 +9,9 @@ import LatestStoriesSection from "../panels/LatestStoriesSection";
 import { staggerSlideUp, TAB_ENTER } from "../shared/Animations";
 import type { AnimPhase } from "../shared/UseTabTransition";
 import type { MappedEvent, TabKey } from "../../_types";
+import { calculateGreedyLayout } from "./layoutEngine";
 
-// --- Const layout ---------------------------------------------
-// Nilai-nilai ini harus selalu sync sama tinggi elemen aktual di MatchesPanels.tsx.
-// Kalau padding/font/line-height di sana berubah, update juga di sini.
-
-const DATE_H        = 32;   // tinggi DateHeader
-const OVERHEAD_BASE = 57;   // PanelCard padding (32px) + PanelTitle (~25px)
-const FOOTER_H      = 20;   // baris "show more" di bawah panel
-
-const ROW_H_DEFAULT      = 52;  // MatchRow biasa
-const ROW_H_SETS_DEFAULT = 64;  // MatchRow dengan set score
-
-// --- Layout math ----------------------------------------------
-
-function nextRowCost(matches: any[], count: number, getRowH: (m: any) => number): number {
-  if (count >= matches.length) return Infinity;
-  const prevDate = count > 0 ? (matches[count - 1].scheduled_at?.split("T")[0] ?? "~") : "";
-  const next     = matches[count];
-  const nextDate = next.scheduled_at?.split("T")[0] ?? "~";
-  return (nextDate !== prevDate ? DATE_H : 0) + getRowH(next);
-}
-
-function naturalRowH(matches: any[], getRowH: (m: any) => number): number {
-  let h = 0, lastDate = "";
-  for (const m of matches) {
-    const d = m.scheduled_at?.split("T")[0] ?? "~";
-    if (d !== lastDate) { h += DATE_H; lastDate = d; }
-    h += getRowH(m);
-  }
-  return h;
-}
-
-function rowsHeight(matches: any[], count: number, getRowH: (m: any) => number): number {
-  let h = 0, lastDate = "";
-  const n = Math.min(count, matches.length);
-  for (let i = 0; i < n; i++) {
-    const m = matches[i];
-    const d = m.scheduled_at?.split("T")[0] ?? "~";
-    if (d !== lastDate) { h += DATE_H; lastDate = d; }
-    h += getRowH(m);
-  }
-  return h + (count < matches.length ? FOOTER_H : 0);
-}
-
-function fitRows(matches: any[], budget: number, getRowH: (m: any) => number): number {
-  if (!matches.length || budget <= 0) return 0;
-
-  let used = 0, lastDate = "", count = 0;
-  for (const m of matches) {
-    const d    = m.scheduled_at?.split("T")[0] ?? "~";
-    const cost = (d !== lastDate ? DATE_H : 0) + getRowH(m);
-    if (used + cost > budget) break;
-    used += cost; lastDate = d; count++;
-  }
-  if (count >= matches.length) return count;
-
-  used = 0; lastDate = ""; count = 0;
-  const b2 = budget - FOOTER_H;
-  for (const m of matches) {
-    const d    = m.scheduled_at?.split("T")[0] ?? "~";
-    const cost = (d !== lastDate ? DATE_H : 0) + getRowH(m);
-    if (used + cost > b2) break;
-    used += cost; lastDate = d; count++;
-  }
-
-  if (count < matches.length) {
-    const next     = matches[count];
-    const nextDate = next.scheduled_at?.split("T")[0] ?? "~";
-    const nextCost = (nextDate !== lastDate ? DATE_H : 0) + getRowH(next);
-    if (b2 - used >= nextCost * 0.5) count++;
-  }
-
-  return Math.max(1, count);
-}
-
-function useRightColumnLayout(
-  upcoming:     any[],
-  finished:     any[],
-  anchorHeight: number,
-  countdownH:   number,
-  isMobile:     boolean,
-  panelGap:     number,
-  getRowH:      (m: any) => number,
-) {
-  return useMemo(() => {
-    const FALLBACK = { upcomingH: 0, resultsH: 0, upcomingLimit: 3, resultsLimit: 3 };
-    if (isMobile || anchorHeight <= 0) return FALLBACK;
-
-    const hasUpcoming = upcoming.length > 0;
-    const hasResults  = finished.length > 0;
-    if (!hasUpcoming && !hasResults) return FALLBACK;
-
-    const cdGap      = countdownH > 0 ? panelGap : 0;
-    const totalAvail = anchorHeight - countdownH - cdGap;
-
-    if (!hasUpcoming) {
-      const limit    = fitRows(finished, totalAvail - OVERHEAD_BASE, getRowH);
-      const contentH = OVERHEAD_BASE + rowsHeight(finished, limit, getRowH);
-      return { upcomingH: 0, resultsH: Math.max(totalAvail, contentH), upcomingLimit: 0, resultsLimit: limit };
-    }
-
-    if (!hasResults) {
-      const limit    = fitRows(upcoming, totalAvail - OVERHEAD_BASE, getRowH);
-      const contentH = OVERHEAD_BASE + rowsHeight(upcoming, limit, getRowH);
-      return { upcomingH: Math.max(totalAvail, contentH), resultsH: 0, upcomingLimit: limit, resultsLimit: 0 };
-    }
-
-    const bothAvail = totalAvail - panelGap;
-    const upNat  = OVERHEAD_BASE + naturalRowH(upcoming, getRowH);
-    const resNat = OVERHEAD_BASE + naturalRowH(finished, getRowH);
-    const p60    = Math.round(bothAvail * 0.6);
-    const p40    = bothAvail - p60;
-
-    let upBudget: number, resBudget: number;
-    if (upNat + resNat <= bothAvail) {
-      resBudget = resNat; upBudget = bothAvail - resBudget;
-    } else if (upNat <= p60) {
-      upBudget = upNat; resBudget = bothAvail - upBudget;
-    } else if (resNat <= p40) {
-      resBudget = resNat; upBudget = bothAvail - resBudget;
-    } else {
-      upBudget = p60; resBudget = p40;
-    }
-
-    let upLimit  = fitRows(upcoming, upBudget  - OVERHEAD_BASE, getRowH);
-    let resLimit = fitRows(finished, resBudget - OVERHEAD_BASE, getRowH);
-    let upH  = Math.max(upBudget,  OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH));
-    let resH = Math.max(resBudget, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
-
-    // Pakai slack per-panel (bukan gabungan) biar satu panel nggak "makan" ruang panel lain
-    {
-      const upContentH  = OVERHEAD_BASE + rowsHeight(upcoming, upLimit,  getRowH);
-      const resContentH = OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH);
-      const upSlack     = Math.max(0, upH  - upContentH);
-      const resSlack    = Math.max(0, resH - resContentH);
-      const upNext      = nextRowCost(upcoming, upLimit,  getRowH);
-      const resNext     = nextRowCost(finished, resLimit, getRowH);
-
-      if (upNext <= resNext && upSlack >= upNext * 0.3) {
-        upLimit++;
-        upH = Math.max(upH, OVERHEAD_BASE + rowsHeight(upcoming, upLimit, getRowH));
-      } else if (resNext < upNext && resSlack >= resNext * 0.3) {
-        resLimit++;
-        resH = Math.max(resH, OVERHEAD_BASE + rowsHeight(finished, resLimit, getRowH));
-      }
-    }
-
-    return { upcomingH: upH, resultsH: resH, upcomingLimit: upLimit, resultsLimit: resLimit };
-  }, [upcoming, finished, anchorHeight, countdownH, isMobile, panelGap, getRowH]);
-}
-
-// --- OverviewTab ----------------------------------------------
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Props {
   event:       MappedEvent;
@@ -169,86 +20,119 @@ interface Props {
   onTabChange: (t: TabKey) => void;
 }
 
+// ─── OverviewTab ──────────────────────────────────────────────────────────────
+//
+// Desktop layout strategy:
+//   1. Measure the left column's NATURAL height (with alignSelf:start so the
+//      right column doesn't inflate it). This is the only JS measurement needed.
+//   2. Set the right column to that exact height explicitly. This gives the
+//      overflow:hidden panels a real bounded height to clip against.
+//   3. Inside the right column, CSS flex weights (3:2) distribute the space.
+//      No row-height pixel math, no hardcoded constants.
+//   4. Each panel renders ALL its rows. overflow:hidden clips what doesn't fit.
+//      After each paint, the panel counts actually-visible rows via
+//      getBoundingClientRect() and shows the correct "N more" footer.
+
 export default function OverviewTab({ event, isMobile, phase, onTabChange }: Props) {
-  const [anchorHeight,    setAnchorHeight]    = useState(0);
-  const [countdownHeight, setCountdownHeight] = useState(0);
-  const [upRowH,          setUpRowH]          = useState(ROW_H_DEFAULT);
-  const [resRowH,         setResRowH]         = useState(ROW_H_SETS_DEFAULT);
-
-  const leftColRef     = useRef<HTMLDivElement>(null);
-  const countdownRef   = useRef<HTMLDivElement>(null);
-  const upContentRef   = useRef<HTMLDivElement>(null);
-  const resContentRef  = useRef<HTMLDivElement>(null);
-  const upFirstRowRef  = useRef<HTMLDivElement>(null);
-  const resFirstRowRef = useRef<HTMLDivElement>(null);
-
-  // PANEL_GAP dipakai di dua tempat: visual CSS gap dan kalkulasi layout — harus sama
   const PANEL_GAP = isMobile ? 4 : 8;
 
   const upcoming      = (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live");
   const finished      = (event.matches ?? []).filter((m: any) => m.status === "finished");
   const showCountdown = !!(event.is_registration_open && event.registration_end_date);
-  const hasResults    = finished.length > 0;
   const hasUpcoming   = upcoming.length > 0;
+  const hasResults    = finished.length > 0;
 
+  // ── Height measurement ──────────────────────────────────────────────────────
+  // We only need two measurements: left column natural height, and countdown
+  // panel height (so the match panels share the remaining space correctly).
+  // Everything else is handled by CSS flex inside the right column.
+
+  const [layoutState, setLayoutState] = useState({ 
+    measuredWidth: -1, isMeasuring: true, upCount: -1, lateCount: -1 
+  });
+
+  const leftColRef   = useRef<HTMLDivElement>(null);
+  const countdownRef = useRef<HTMLDivElement>(null);
+  const upRef        = useRef<HTMLDivElement>(null);
+  const lateRef      = useRef<HTMLDivElement>(null);
+
+  // Pass 1: Watch width resizes and trigger an invisible measurement reset
   useLayoutEffect(() => {
     if (isMobile) return;
     const el = leftColRef.current;
     if (!el) return;
 
-    const measure = () => {
-      const prev = el.style.alignSelf;
-      el.style.alignSelf = "start";
-      const h = el.offsetHeight;
-      el.style.alignSelf = prev;
-      setAnchorHeight(curr => curr !== h ? h : curr);
-
-      const cd = countdownRef.current;
-      if (cd) {
-        const ch = cd.offsetHeight;
-        setCountdownHeight(curr => curr !== ch ? ch : curr);
-      }
-
-      const upRowEl = upFirstRowRef.current;
-      if (upRowEl) {
-        const h = upRowEl.offsetHeight;
-        if (h > 0) setUpRowH(prev => prev !== h ? h : prev);
-      }
-
-      const resRowEl = resFirstRowRef.current;
-      if (resRowEl) {
-        const h = resRowEl.offsetHeight;
-        if (h > 0) setResRowH(prev => prev !== h ? h : prev);
-      }
-    };
-
-    measure();
-
-    let rafId = 0;
-    const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(measure);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0].contentRect.width;
+      setLayoutState(prev => prev.measuredWidth !== w 
+        ? { ...prev, measuredWidth: w, isMeasuring: true, upCount: -1, lateCount: -1 } 
+        : prev
+      );
     });
     ro.observe(el);
-    document.fonts?.ready.then(measure);
+    return () => ro.disconnect();
+  },[isMobile]);
 
-    return () => { ro.disconnect(); cancelAnimationFrame(rafId); };
-  }, [isMobile]);
+  // Pass 2: Synchronous DOM Measurement (Runs invisibly before paint!)
+  useLayoutEffect(() => {
+    if (isMobile || !layoutState.isMeasuring) return;
+    const el = leftColRef.current;
+    if (!el) return;
 
-  const getRowH = useMemo(
-    () => (m: any) => m.status === "finished" ? resRowH : upRowH,
-    [upRowH, resRowH],
-  );
+    const prevAlign = el.style.alignSelf;
+    const prevMinH  = el.style.minHeight;
+    el.style.alignSelf = "start";
+    el.style.minHeight = "0px";
 
-  const { upcomingH, resultsH, upcomingLimit, resultsLimit } = useRightColumnLayout(
-    upcoming, finished,
-    anchorHeight,
-    showCountdown && !isMobile ? countdownHeight : 0,
-    isMobile, PANEL_GAP, getRowH,
-  );
+    const upPrevDisp = upRef.current?.style.display;
+    const latePrevDisp = lateRef.current?.style.display;
+    if (upRef.current) upRef.current.style.display = "none";
+    if (lateRef.current) lateRef.current.style.display = "none";
 
-  const measured = !isMobile && anchorHeight > 0;
+    void el.offsetHeight; // Force reflow
+    const leftH = el.offsetHeight;
+    const cdH   = countdownRef.current?.offsetHeight || 0;
+    const availH = leftH - cdH - (showCountdown && cdH > 0 ? PANEL_GAP : 0);
 
+    if (upRef.current) upRef.current.style.display = upPrevDisp || "";
+    if (lateRef.current) lateRef.current.style.display = latePrevDisp || "";
+    void el.offsetHeight; 
+
+    const extractPanelData = (panelEl: HTMLElement | null) => {
+      if (!panelEl) return null;
+      const container = panelEl.querySelector('[data-panel-container]') as HTMLElement;
+      const content   = panelEl.querySelector('[data-panel-content]') as HTMLElement;
+      const header    = panelEl.querySelector('[data-panel-header]') as HTMLElement;
+      if (!container || !content || !header) return null;
+
+      const comp = window.getComputedStyle(container);
+      const baseH = (parseFloat(comp.paddingTop) || 0) + header.offsetHeight + (parseFloat(window.getComputedStyle(header).marginBottom) || 0) + (parseFloat(comp.paddingBottom) || 0);
+
+      const items: { height: number, isLive: boolean }[] =[];
+      let cost = 0;
+      
+      content.querySelectorAll('[data-date-header],[data-match-row]').forEach(child => {
+        const htmlChild = child as HTMLElement;
+        if (htmlChild.hasAttribute('data-date-header')) cost += htmlChild.offsetHeight;
+        else {
+          const mb = parseFloat(window.getComputedStyle(htmlChild).marginBottom) || 0;
+          items.push({ height: cost + htmlChild.offsetHeight + mb, isLive: htmlChild.hasAttribute('data-is-live') });
+          cost = 0;
+        }
+      });
+      return { baseH, items, footerH: 28 };
+    };
+
+    const res = calculateGreedyLayout(availH, extractPanelData(upRef.current), extractPanelData(lateRef.current), PANEL_GAP, 28);
+
+    el.style.alignSelf = prevAlign;
+    el.style.minHeight = prevMinH;
+
+    setLayoutState(prev => ({ ...prev, isMeasuring: false, upCount: res.upCount, lateCount: res.lateCount }));
+  },[isMobile, layoutState.isMeasuring, showCountdown, event.matches?.length]);
+
+
+  // Stagger animation helpers
   const s0 = staggerSlideUp(0,                    TAB_ENTER);
   const s1 = staggerSlideUp(TAB_ENTER.stagger,     TAB_ENTER);
   const s2 = staggerSlideUp(TAB_ENTER.stagger * 2, TAB_ENTER);
@@ -264,15 +148,15 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
         className="grid items-stretch"
         style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "3fr 2fr", gap: PANEL_GAP }}
       >
-        {/* Kolom kiri */}
-        <div ref={leftColRef} className={`flex flex-col ${isMobile ? "gap-1" : "gap-2"}`}>
+        {/* ── Left column ── */}
+        <div ref={leftColRef} className={`flex flex-col h-full ${isMobile ? "gap-1" : "gap-2"}`}>
           {isMobile && showCountdown && (
             <div style={panelStyle(s0)}>
               <CountdownPanel deadline={event.registration_end_date} registrationUrl={event.registration_url} />
             </div>
           )}
 
-          <div className="flex-auto flex flex-col min-h-0" style={panelStyle(isMobile && showCountdown ? s1 : s0)}>
+          <div className="flex-1 flex flex-col min-h-0" style={panelStyle(isMobile && showCountdown ? s1 : s0)}>
             <AboutPanel event={event} isMobile={isMobile} />
           </div>
 
@@ -281,66 +165,43 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
           </div>
         </div>
 
-        {/* Kolom kanan */}
-        <div className={`flex flex-col ${isMobile ? "gap-1" : "gap-2"}`}>
+        {/* ── Right column ── */}
+        <div className={`flex flex-col h-full ${isMobile ? "gap-1" : "gap-2"}`}>
           {!isMobile && showCountdown && (
             <div ref={countdownRef} className="flex-none" style={panelStyle(s2)}>
               <CountdownPanel deadline={event.registration_end_date} registrationUrl={event.registration_url} />
             </div>
           )}
 
-          {hasUpcoming && (
-            <div
-              className="flex flex-col"
-              style={{
-                ...(measured && upcomingH > 0
-                  ? { height: upcomingH }
-                  : !isMobile ? { flex: hasResults ? 3 : 1, minHeight: 0 } : {}),
-                ...panelStyle(!isMobile && showCountdown ? s3 : s2),
-              }}
-            >
-              <UpcomingMatchesPanel
-                upcoming={upcoming}
-                limit={isMobile ? Math.min(upcoming.length, 5) : (measured ? upcomingLimit : 3)}
-                isMobile={isMobile}
-                contentRef={upContentRef}
-                firstRowRef={upFirstRowRef}
-                onTabChange={() => onTabChange("matches")}
-              />
-            </div>
-          )}
+          <div className="flex-1 flex flex-col" style={{ gap: PANEL_GAP }}>
+            {hasUpcoming && (
+              <div ref={upRef} className="flex flex-col flex-1" style={panelStyle(!isMobile && showCountdown ? s3 : s2)}>
+                <UpcomingMatchesPanel 
+                   upcoming={upcoming} 
+                   isMobile={isMobile} 
+                   desktopLimit={layoutState.upCount} 
+                   onTabChange={() => onTabChange("matches")} 
+                />
+              </div>
+            )}
 
-          {hasResults && (
-            <div
-              className="flex flex-col"
-              style={{
-                ...(measured && resultsH > 0
-                  ? { height: resultsH }
-                  : !isMobile ? { flex: 2, minHeight: 0 } : {}),
-                ...panelStyle(!isMobile && showCountdown ? s4 : s3),
-              }}
-            >
-              <LatestResultsPanel
-                finished={finished}
-                limit={isMobile ? Math.min(finished.length, 5) : (measured ? resultsLimit : 3)}
-                isMobile={isMobile}
-                contentRef={resContentRef}
-                firstRowRef={resFirstRowRef}
-                onTabChange={() => onTabChange("matches")}
-              />
-            </div>
-          )}
+            {hasResults && (
+              <div ref={lateRef} className="flex flex-col flex-1" style={panelStyle(!isMobile && showCountdown ? s4 : s3)}>
+                <LatestResultsPanel 
+                   finished={finished} 
+                   isMobile={isMobile} 
+                   desktopLimit={layoutState.lateCount} 
+                   onTabChange={() => onTabChange("matches")} 
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {event.news?.length > 0 && (
         <div style={panelStyle(s5)}>
-          <LatestStoriesSection
-            news={event.news}
-            eventSlug={event.slug}
-            isMobile={isMobile}
-            onTabChange={onTabChange}
-          />
+          <LatestStoriesSection news={event.news} eventSlug={event.slug} isMobile={isMobile} onTabChange={onTabChange} />
         </div>
       )}
     </div>
