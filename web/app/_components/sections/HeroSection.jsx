@@ -258,6 +258,8 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
   useEffect(() => { setMounted(true); }, []);
 
   const isMobile        = cw < 1024;
+  const isCrampedDesktop = !isMobile && cw < 1320;
+  const heroMinHeight = isCrampedDesktop ? 820 : undefined;
   const mobileCardPx    = cw * MOBILE_CARD_VW;
   const mobileCardScale = Math.min(1, mobileCardPx / MOBILE_CARD_REF);
   const mobileCardH     = Math.min(195, Math.round(mobileCardPx * 1.4));
@@ -376,20 +378,85 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
         <div ref={barRef} className="absolute top-0 h-full" style={{ background: "#FFC936" }} />
       </div>
 
-      <div className="absolute z-10" style={{ top: isMobile ? "48px" : "clamp(48px, 4.17vw, 80px)", left: isMobile ? "24px" : "clamp(40px, 8.33vw, 160px)", right: isMobile ? "24px" : undefined, maxWidth: isMobile ? "480px" : "calc(512px * var(--s))" }}>
-        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "12px" : "calc(12px * var(--s))", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "#FFC936", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", ...infoAnimStyle(0) }}>
-          {displayEvent?.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
-        </p>
-        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: isMobile ? "clamp(2rem, 10vw, 3.5rem)" : "calc(80px * var(--s))", lineHeight: 1, textWrap: "balance", color: "#fff", textTransform: "uppercase", marginBottom: isMobile ? "10px" : "calc(12px * var(--s))", filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))", ...infoAnimStyle(1) }}>
-          {displayEvent?.name}
-        </h1>
-        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? "12px" : "calc(16px * var(--s))", lineHeight: 1.625, fontWeight: 600, color: "#fff", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textWrap: "balance", marginBottom: isMobile ? "20px" : "calc(24px * var(--s))", ...infoAnimStyle(2) }}>
-          {displayEvent?.description}
-        </p>
-        <div style={infoAnimStyle(3)}>
-          {displayEvent && (
-            <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">More Details</Button>
-          )}
+      <div
+        className="absolute z-10"
+        style={{
+          top: isMobile ? "48px" : "clamp(48px, 4.17vw, 80px)",
+          left: isMobile ? "24px" : "clamp(40px, 8.33vw, 160px)",
+          right: isMobile ? "24px" : undefined,
+          maxWidth: isMobile ? "480px" : "calc(512px * var(--s))",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            width: "100%",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: isMobile ? "12px" : "calc(12px * var(--s))",
+              fontWeight: 700,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "#FFC936",
+              marginBottom: isMobile ? "10px" : "calc(12px * var(--s))",
+              ...infoAnimStyle(0),
+            }}
+          >
+            {displayEvent?.status === "active" ? ">>> Ongoing" : ">>> Coming Soon"}
+          </p>
+
+          <h1
+            style={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontSize: isMobile
+                ? "clamp(2rem, 10vw, 3.5rem)"
+                : "calc(80px * var(--s))",
+              lineHeight: 0.95,
+              color: "#fff",
+              textTransform: "uppercase",
+              marginBottom: isMobile ? "10px" : "calc(12px * var(--s))",
+              filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.25))",
+              whiteSpace: "nowrap",
+              overflow: "visible",
+              width: "100%",
+              ...infoAnimStyle(1),
+            }}
+          >
+            {displayEvent?.name}
+          </h1>
+
+          <p
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: isMobile ? "12px" : "calc(16px * var(--s))",
+              lineHeight: 1.625,
+              fontWeight: 600,
+              color: "#fff",
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              width: "100%",
+              maxWidth: "100%",
+              marginBottom: isMobile ? "20px" : "calc(24px * var(--s))",
+              ...infoAnimStyle(2),
+            }}
+          >
+            {displayEvent?.description}
+          </p>
+
+          <div style={infoAnimStyle(3)}>
+            {displayEvent && (
+              <Button href={`/events/${displayEvent.slug}`} variant="primary" size="md">
+                More Details
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
