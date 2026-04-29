@@ -16,12 +16,7 @@ import { ErrorBoundary }    from "./_components/shared/ErrorBoundary";
 import { useMatchState }    from "./hooks/useMatchState";
 import type { MappedEvent, TabKey } from "./_types";
 
-export default function EventDetailClient({ event }: { event: MappedEvent }) {
-  const initialTab = (
-    typeof window !== "undefined"
-      ? (new URLSearchParams(window.location.search).get("tab") as TabKey)
-      : null
-  ) ?? "overview";
+export default function EventDetailClient({ event, initialTab }: { event: MappedEvent; initialTab: TabKey; }) {
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
   const mainRef      = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -32,6 +27,16 @@ export default function EventDetailClient({ event }: { event: MappedEvent }) {
   const isFirstTab = useRef(true);
 
   const { matches, lastUpdated, isPolling, wsStatus } = useMatchState(event.slug, event.matches);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = (params.get("tab") as TabKey) || "overview";
+      setActiveTab(tab);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     const el = mainRef.current;

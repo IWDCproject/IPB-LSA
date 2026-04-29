@@ -2,7 +2,7 @@
 import React, { useState, useEffect, Fragment, memo } from "react";
 import { PanelCard } from "./Panel";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// --- Helpers ------------------------------------------------------------------
 
 function calcCoarse(deadline: string) {
   const diff = Math.max(0, new Date(deadline).getTime() - Date.now());
@@ -27,7 +27,7 @@ function fmtDeadline(deadline: string) {
   );
 }
 
-// ─── SecondsDisplay ───────────────────────────────────────────────────────────
+// --- SecondsDisplay -----------------------------------------------------------
 // Isolated into its own memo'd component so only this node re-renders every
 // second. Days/hours/minutes tiles update only once per minute via the coarse
 // state in the parent.
@@ -67,7 +67,7 @@ const SecondsDisplay = memo(function SecondsDisplay({ deadline }: SecondsProps) 
   );
 });
 
-// ─── CoarseUnit ───────────────────────────────────────────────────────────────
+// --- CoarseUnit ---------------------------------------------------------------
 interface CoarseUnitProps {
   label: string;
   value: number;
@@ -97,7 +97,7 @@ const CoarseUnit = memo(function CoarseUnit({ label, value }: CoarseUnitProps) {
   );
 });
 
-// ─── SquareDotSeparator ───────────────────────────────────────────────────────
+// --- SquareDotSeparator -------------------------------------------------------
 const SquareDotSeparator = () => (
   <div
     className="flex flex-col justify-center"
@@ -117,7 +117,7 @@ const SquareDotSeparator = () => (
   </div>
 );
 
-// ─── CountdownPanel ───────────────────────────────────────────────────────────
+// --- CountdownPanel -----------------------------------------------------------
 interface Props {
   deadline:          string;
   registrationUrl?:  string | null;

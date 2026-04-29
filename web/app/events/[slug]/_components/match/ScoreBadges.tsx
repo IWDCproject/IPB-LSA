@@ -1,13 +1,10 @@
 "use client";
 
-// Keyframes (digit-slot-in, digit-slot-out, score-cell-swap) are defined in
-// tailwind.config.js — the old runtime useDigitStyles() injection is gone.
-
 import React, { useState, useRef, useEffect } from "react";
 import { calcAvg, getEngine, resolveWinnerName } from "./scoreUtils";
 import type { MappedMatch } from "../../_types";
 
-// --- AnimatedDigit -------------------------------------------------------------
+// --- Slot Animation System -----------------------------------------------------
 
 export function AnimatedDigit({ char, delay = 0 }: { char: string; delay?: number }) {
   const [state, setState] = useState<{ cur: string; prev: string | null; gen: number }>({
@@ -116,11 +113,11 @@ export function ScoreSetsLive({ live, compact = false }: SetScoreProps) {
     <div className={`bg-[#FFF8D6] border border-[#FFC936] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}>
       <div className="font-jakarta text-[9px] font-bold text-[#CA8A04] mb-0.5">Set {i + 1}</div>
       <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
-        <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>
+        <span className={s.home > s.away ? "border-b border-[#111] pb-[1px]" : ""}>
           <AnimatedScore value={String(s.home)} />
         </span>
-        <span className="font-extrabold text-[#676767]">{" : "}</span>
-        <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>
+        <span className="font-extrabold text-[#676767] px-0.5"> : </span>
+        <span className={s.away > s.home ? "border-b border-[#111] pb-[1px]" : ""}>
           <AnimatedScore value={String(s.away)} />
         </span>
       </div>
@@ -131,8 +128,11 @@ export function ScoreSetsLive({ live, compact = false }: SetScoreProps) {
 
   return (
     <div className={`flex items-center ${compact ? "gap-1" : "gap-1.5"}`}>
+      {/* LEFT BIG PILL */}
       <div className={pillClass}>
-        <AnimatedScore value={String(setScore[0]).padStart(2, "0")} />
+        <span className={setScore[0] > setScore[1] ? "border-b border-[#111] pb-0.5" : ""}>
+          <AnimatedScore value={String(setScore[0]).padStart(2, "0")} />
+        </span>
       </div>
 
       {setLog.length === 0
@@ -140,8 +140,11 @@ export function ScoreSetsLive({ live, compact = false }: SetScoreProps) {
         : setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)
       }
 
+      {/* RIGHT BIG PILL */}
       <div className={pillClass}>
-        <AnimatedScore value={String(setScore[1]).padStart(2, "0")} />
+        <span className={setScore[1] > setScore[0] ? "border-b border-[#111] pb-0.5" : ""}>
+          <AnimatedScore value={String(setScore[1]).padStart(2, "0")} />
+        </span>
       </div>
     </div>
   );
@@ -155,11 +158,11 @@ export function ScoreSetsFinished({ live, compact = false }: SetScoreProps) {
         <div key={i} className={`bg-[#f3f4f6] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}>
           <div className="font-jakarta text-[9px] font-semibold text-[#676767] mb-0.5">Set {i + 1}</div>
           <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
-            <span style={{ textDecoration: s.home > s.away ? "underline" : "none" }}>
+            <span className={s.home > s.away ? "border-b border-[#111] pb-[1px]" : ""}>
               <AnimatedScore value={String(s.home)} />
             </span>
-            <span className="font-extrabold text-[#676767]">{" : "}</span>
-            <span style={{ textDecoration: s.away > s.home ? "underline" : "none" }}>
+            <span className="font-extrabold text-[#676767] px-0.5"> : </span>
+            <span className={s.away > s.home ? "border-b border-[#111] pb-[1px]" : ""}>
               <AnimatedScore value={String(s.away)} />
             </span>
           </div>

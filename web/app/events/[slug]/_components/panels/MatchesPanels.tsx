@@ -145,10 +145,11 @@ export function LatestResultsPanel({
 }: MatchPanelProps & { finished: MappedMatch[], desktopLimit?: number }) {
   if (!finished.length) return null;
 
-  const displayedCount = isMobile ? MOBILE_LIMIT : (desktopLimit === -1 ? finished.length : desktopLimit);
-  const displayed = finished.slice(0, displayedCount); // STRICT SLICE
+  const reversedFinished = [...finished].reverse();
+  const displayedCount = isMobile ? MOBILE_LIMIT : (desktopLimit === -1 ? reversedFinished.length : desktopLimit);
+  const displayed = reversedFinished.slice(0, displayedCount); 
   const groups    = Array.from(groupByDate(displayed).entries());
-  const hiddenCount = Math.max(0, finished.length - displayedCount);
+  const hiddenCount = Math.max(0, reversedFinished.length - displayedCount);
 
   return (
     <div data-panel-container="true" className={isMobile ? "bg-white rounded-xl px-5 py-4" : CARD_BASE}>
