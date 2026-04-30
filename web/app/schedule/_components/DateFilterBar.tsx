@@ -46,7 +46,8 @@ const PRESETS: { id: DatePreset; label: string }[] = [
   { id: "month", label: "This Month" },
 ];
 
-const pillBase   = "px-4 py-2.5 rounded-full text-xs md:text-sm font-bold whitespace-nowrap transition-all border";
+// h-9 matches ScheduleToolbar tab height (h-9 inside p-1 container)
+const pillBase   = "h-11 px-5 rounded-lg text-sm font-bold whitespace-nowrap transition-all border";
 const pillActive = "bg-yellow-400 text-black border-yellow-400 shadow-md";
 const pillIdle   = "bg-[#11194C] text-white border-blue-800/40 hover:bg-[#1A266B]";
 
@@ -69,7 +70,6 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
   }, []);
 
   function handlePresetClick(id: DatePreset) {
-    // Clicking the active preset toggles it off
     onChange(activePreset === id ? null : id);
   }
 
@@ -85,7 +85,7 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
   }
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex items-center gap-1 shrink-0">
 
       {/* Preset pills */}
       {PRESETS.map(p => (
@@ -103,7 +103,7 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
 
         {isRange ? (
           // Collapsed applied-range pill
-          <div className={cn(pillBase, pillActive, "flex items-center gap-2 pr-2")}>
+          <div className={cn(pillBase, pillActive, "flex items-center gap-2 pr-3")}>
             <button
               onClick={() => setPickerOpen(open => !open)}
               className="flex items-center gap-1.5"
@@ -113,14 +113,14 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
             </button>
             <button
               onClick={clearRange}
-              className="ml-1 hover:opacity-70 transition-opacity"
+              className="ml-0.5 hover:opacity-70 transition-opacity"
               aria-label="Clear date range"
             >
               <X size={13} />
             </button>
           </div>
         ) : (
-          // "Pick range +" button
+          // "Pick range" button
           <button
             onClick={() => setPickerOpen(open => !open)}
             className={cn(pillBase, pickerOpen ? pillActive : pillIdle, "flex items-center gap-2")}
@@ -130,9 +130,9 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
           </button>
         )}
 
-        {/* Dropdown calendar */}
+        {/* Dropdown calendar — anchors to the right edge on larger screens */}
         {pickerOpen && (
-          <div className="absolute left-0 top-full mt-2 z-50">
+          <div className="absolute right-0 top-full mt-2 z-50">
             <DateRangePicker
               initialStart={isRange ? value.start : null}
               initialEnd={isRange ? value.end   : null}

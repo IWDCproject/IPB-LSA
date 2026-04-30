@@ -36,7 +36,7 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// ─── ScrollRow ───────────────────────────────────────────────────────────────
+// --- ScrollRow ---------------------------------------------------------------
 // Scrollable flex row with scroll-aware left/right fade masks.
 // Mask image is set imperatively via the DOM — must stay in JS.
 function ScrollRow({
@@ -104,7 +104,7 @@ function ScrollRow({
   );
 }
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+// --- Props -------------------------------------------------------------------
 interface Props {
   event:        MappedEvent;
   activeTab:    TabKey;
@@ -125,7 +125,7 @@ export default function EventDetailHeader({
   const PAD             = `30px ${SIDE_PAD} 36px`;
   const MIN_HERO_HEIGHT = isMobile ? "0px" : "300px";
 
-  // ─── Layout: single-row vs two-row ─────────────────────────────────────────
+  // --- Layout: single-row vs two-row -----------------------------------------
   const containerRef = useRef<HTMLDivElement>(null);
   const probeRef     = useRef<HTMLDivElement>(null);
   const [needsTwoRows, setNeedsTwoRows] = useState(false);
@@ -148,7 +148,7 @@ export default function EventDetailHeader({
 
   const tabsRef = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  // ─── Scroll selected tab into view ─────────────────────────────────────────
+  // --- Scroll selected tab into view -----------------------------------------
   useEffect(() => {
     const btn = tabsRef.current[activeTab];
     if (!btn || !needsTwoRows) return;
@@ -174,7 +174,7 @@ export default function EventDetailHeader({
     container.scrollTo({ left: targetScroll, behavior: "smooth" });
   }, [activeTab, needsTwoRows]);
 
-  // ─── Keyboard navigation for the tab list (← → Home End) ──────────────────
+  // --- Keyboard navigation for the tab list (← → Home End) ------------------
   const handleTabKeyDown = (e: React.KeyboardEvent, currentIdx: number) => {
     let nextIdx: number | null = null;
 
@@ -191,7 +191,7 @@ export default function EventDetailHeader({
     }
   };
 
-  // ─── Meta ─────────────────────────────────────────────────────────────────
+  // --- Meta -----------------------------------------------------------------
   const meta = [
     { label: "Registration", value: event.registration_end_date ? `Until ${fmtDate(event.registration_end_date)}` : "—" },
     { label: "Dates",        value: event.start_date ? `${fmtDate(event.start_date)} – ${fmtDate(event.end_date)}` : "—" },
@@ -200,7 +200,7 @@ export default function EventDetailHeader({
 
   const videoId = getYouTubeID(event.url_youtube);
 
-  // ─── Animation delays ─────────────────────────────────────────────────────
+  // --- Animation delays -----------------------------------------------------
   // staggerSlideUp / staggerFadeIn return CSSProperties (opacity + animation
   // string with a computed delay) — these must stay in style props.
   const s = {
@@ -212,7 +212,7 @@ export default function EventDetailHeader({
     actions: staggerFadeIn( 560, PAGE_ENTER),
   };
 
-  // ─── Tab pills ─────────────────────────────────────────────────────────────
+  // --- Tab pills -------------------------------------------------------------
   const tabPills = (
     <div role="tablist" aria-label="Event sections" className="flex items-center gap-2">
       {TABS.map((t, i) => (
@@ -282,7 +282,7 @@ export default function EventDetailHeader({
       className="relative z-[1] h-auto flex flex-col justify-end mb-4 gap-[18px]"
       style={{ minHeight: MIN_HERO_HEIGHT, padding: PAD }}
     >
-      {/* ── Status badge ── */}
+      {/* -- Status badge -- */}
       <div style={s.badge}>
         <span
           className="font-jakarta inline-block px-3 py-1 rounded-lg border-[1.8px] text-[11px] font-extrabold uppercase tracking-[0.06em] mb-5"
@@ -295,7 +295,7 @@ export default function EventDetailHeader({
           {STATUS_LABEL[event.status] ?? event.status}
         </span>
 
-        {/* ── Title block ── */}
+        {/* -- Title block -- */}
         <div style={{ ...s.title, position: "relative" }}>
           <div
             className="font-bebas drop-shadow-md uppercase leading-none text-white"
@@ -351,7 +351,7 @@ export default function EventDetailHeader({
         </div>
       )}
 
-      {/* ── Meta strip ── */}
+      {/* -- Meta strip -- */}
       <div
         className="flex flex-wrap"
         style={{ gap: isMobile ? 20 : 36, ...s.meta }}
@@ -364,10 +364,10 @@ export default function EventDetailHeader({
         ))}
       </div>
 
-      {/* ── Tab row + action buttons ──────────────────────────────────────────
+      {/* -- Tab row + action buttons ------------------------------------------
           Fits?      → single row: tabs left │ spacer │ actions right
           Overflows? → two rows: each independently scrollable with fades
-      ────────────────────────────────────────────────────────────────────────── */}
+      -------------------------------------------------------------------------- */}
       <div
         ref={containerRef}
         className="w-full min-w-0 overflow-visible -mb-5"
@@ -390,7 +390,7 @@ export default function EventDetailHeader({
           {event.is_registration_open && event.registration_url && <button className="px-4 py-[7px] shrink-0">Register</button>}
         </div>
 
-        {/* ── Single-row layout ── */}
+        {/* -- Single-row layout -- */}
         {!needsTwoRows && (
           <div className="flex items-center gap-2 w-full">
             <div className="flex items-center gap-2 shrink-0">
@@ -403,7 +403,7 @@ export default function EventDetailHeader({
           </div>
         )}
 
-        {/* ── Two-row layout ── */}
+        {/* -- Two-row layout -- */}
         {needsTwoRows && (
           <div className="flex flex-col gap-2">
             <ScrollRow className="tab-scroll">

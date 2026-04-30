@@ -1,13 +1,43 @@
 // Purely presentational — no state, no logic.
 // Renders the hero banner: left mascot + title block + right mascot.
 
+import React from "react";
+
+const fadeUp = (delay: string): React.CSSProperties => ({
+  opacity: 0,
+  animation: `hero-in 500ms ease forwards`,
+  animationDelay: delay,
+});
+
 export function ScheduleHero() {
   return (
-    <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 mt-10 mb-16">
+    <>
+      <style>{`
+        @keyframes hero-in {
+          from { opacity: 0; transform: translateY(18px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+        @keyframes hero-in-left {
+          from { opacity: 0; transform: translate(-24px, calc(-50% + 18px)); }
+          to   { opacity: 1; transform: translate(0,     -50%);              }
+        }
+        @keyframes hero-in-right {
+          from { opacity: 0; transform: translate(24px, calc(-50% + 18px)); }
+          to   { opacity: 1; transform: translate(0,    -50%);              }
+        }
+      `}</style>
 
-      {/* Left side: male mascot + title */}
-      <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6 md:gap-10 w-full md:w-auto">
-        <div className="hidden sm:block shrink-0">
+      <div className="relative flex items-center justify-center mt-10 mb-16">
+
+        {/* Left mascot */}
+        <div
+          className="absolute left-0 hidden sm:block z-10"
+          style={{
+            top: "50%",
+            opacity: 0,
+            animation: "hero-in-left 500ms ease 100ms forwards",
+          }}
+        >
           <img
             src="/maskot/Cowok%20Suka.png"
             alt=""
@@ -15,26 +45,50 @@ export function ScheduleHero() {
           />
         </div>
 
-        <div className="text-center sm:text-left flex-1">
-          <h1 className="text-5xl md:text-[65px] lg:text-[80px] font-display font-black uppercase tracking-wide leading-[1.05] text-white drop-shadow-lg">
-            MATCH & EVENT <br className="hidden md:block" />
-            <span className="text-yellow-400">SCHEDULES</span>
+        {/* Title */}
+        <div className="text-center z-10 px-4">
+          <h1
+            className="font-bebas drop-shadow-md uppercase leading-none text-white"
+            style={{
+              fontSize: "clamp(3rem, 4.5vw, 4rem)",
+              filter: "drop-shadow(4px 6px 8px rgba(0,0,0,0.2))",
+              ...fadeUp("0ms"),
+            }}
+          >
+            MATCH & EVENT SCHEDULES
           </h1>
-          <p className="text-blue-100 text-sm md:text-base mt-4 font-bold tracking-wide uppercase">
+          <p
+            className="font-jakarta"
+            style={{
+              margin: "0px 0 10px",
+              fontSize: "clamp(12px, 1.4vw, 14px)",
+              color: "rgba(255,255,255,0.7)",
+              filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.2))",
+              fontWeight: 600,
+              ...fadeUp("120ms"),
+            }}
+          >
             Pantau jadwal dari seluruh kompetisi olahraga dan seni
           </p>
         </div>
-      </div>
 
-      {/* Right side: female mascot (mirrored) */}
-      <div className="hidden md:block relative z-10 shrink-0">
-        <img
-          src="/maskot/Cewek%20Semangat.png"
-          alt=""
-          className="w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 object-contain drop-shadow-2xl scale-x-[-1]"
-        />
-      </div>
+        {/* Right mascot */}
+        <div
+          className="absolute right-0 hidden md:block z-10"
+          style={{
+            top: "50%",
+            opacity: 0,
+            animation: "hero-in-right 500ms ease 100ms forwards",
+          }}
+        >
+          <img
+            src="/maskot/Cewek%20Semangat.png"
+            alt=""
+            className="w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 object-contain drop-shadow-2xl scale-x-[-1]"
+          />
+        </div>
 
-    </div>
+      </div>
+    </>
   );
 }

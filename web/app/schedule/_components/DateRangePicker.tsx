@@ -82,7 +82,7 @@ export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: 
   const canApply = !!start && !!end;
 
   return (
-    <div className="bg-[#11194C] border border-blue-700/50 rounded-2xl shadow-2xl p-5 w-[320px]">
+    <div className="bg-[#11194C] border border-blue-700/50 rounded-lg shadow-2xl p-5 w-[320px]">
 
       {/* Start / End field pills */}
       <div className="flex gap-3 mb-5">
@@ -93,7 +93,7 @@ export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: 
             <button
               key={field}
               onClick={() => setActive(field)}
-              className={`flex-1 text-left px-3 py-2 rounded-xl border text-sm font-bold transition-all ${
+              className={`flex-1 text-left px-3 py-2 rounded-lg border text-sm font-bold transition-all ${
                 isActive
                   ? "border-yellow-400 bg-yellow-400/10 text-yellow-300"
                   : "border-blue-700/40 bg-[#0D1A4A] text-white/70 hover:border-blue-500"
@@ -172,7 +172,7 @@ export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: 
       <button
         disabled={!canApply}
         onClick={() => canApply && onApply(start!, end!)}
-        className={`mt-5 w-full py-2.5 rounded-xl font-bold text-sm transition-all ${
+        className={`mt-5 w-full py-2.5 rounded-lg font-bold text-sm transition-all ${
           canApply
             ? "bg-yellow-400 text-black hover:bg-yellow-300"
             : "bg-blue-900/50 text-blue-600 cursor-not-allowed"
