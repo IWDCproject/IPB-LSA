@@ -1,6 +1,3 @@
-// Purely presentational — no state, no logic.
-// Renders the hero banner: left mascot + title block + right mascot.
-
 import React from "react";
 
 const fadeUp = (delay: string): React.CSSProperties => ({
@@ -29,14 +26,9 @@ export function ScheduleHero() {
 
       <div className="relative flex items-center justify-center mt-10 mb-16">
 
-        {/* Left mascot */}
         <div
           className="absolute left-0 hidden sm:block z-10"
-          style={{
-            top: "50%",
-            opacity: 0,
-            animation: "hero-in-left 500ms ease 100ms forwards",
-          }}
+          style={{ top: "50%", opacity: 0, animation: "hero-in-left 500ms ease 100ms forwards" }}
         >
           <img
             src="/maskot/Cowok%20Suka.png"
@@ -45,7 +37,6 @@ export function ScheduleHero() {
           />
         </div>
 
-        {/* Title */}
         <div className="text-center z-10 px-4">
           <h1
             className="font-bebas drop-shadow-md uppercase leading-none text-white"
@@ -72,14 +63,9 @@ export function ScheduleHero() {
           </p>
         </div>
 
-        {/* Right mascot */}
         <div
           className="absolute right-0 hidden md:block z-10"
-          style={{
-            top: "50%",
-            opacity: 0,
-            animation: "hero-in-right 500ms ease 100ms forwards",
-          }}
+          style={{ top: "50%", opacity: 0, animation: "hero-in-right 500ms ease 100ms forwards" }}
         >
           <img
             src="/maskot/Cewek%20Semangat.png"

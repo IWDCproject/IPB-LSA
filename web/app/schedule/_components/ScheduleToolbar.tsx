@@ -1,25 +1,30 @@
-// Purely presentational — category tab pills only.
-// Search has moved into the parent row so it can flex-grow between tabs and date filters.
-
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-export type CategoryTab = "ALL" | "sport" | "arts";
-
-interface ScheduleToolbarProps {
-  activeTab:   CategoryTab;
-  onTabChange: (tab: CategoryTab) => void;
-}
+// --- Konstanta ----------------------------------------------------------------
 
 const TABS: { id: CategoryTab; label: string }[] = [
   { id: "ALL",   label: "ALL" },
   { id: "sport", label: "SPORTS" },
   { id: "arts",  label: "ARTS" },
 ];
+
+// --- Types --------------------------------------------------------------------
+
+export type CategoryTab = "ALL" | "sport" | "arts";
+
+// --- Helpers ------------------------------------------------------------------
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+// --- Komponen -----------------------------------------------------------------
+
+interface ScheduleToolbarProps {
+  activeTab:   CategoryTab;
+  onTabChange: (tab: CategoryTab) => void;
+}
 
 export function ScheduleToolbar({ activeTab, onTabChange }: ScheduleToolbarProps) {
   return (

@@ -1,33 +1,5 @@
 "use client";
 
-// Root client shell for /schedule.
-//
-// Data strategy
-// -------------
-// Matches are fetched client-side (like AllNewsTab) via a dynamic import of
-// getMatchesSchedule so the Directus SDK stays out of the initial bundle.
-//
-// After the initial fetch, useScheduleMatchState opens a persistent SSE
-// connection to /api/matches/stream which fans out a single Directus WS
-// to all connected browsers. Only { id, status, live_state } are patched
-// live — all rich display fields come from the initial fetch.
-//
-// Default window (no date filter): -30 days → +90 days from today.
-// With a date filter: the caller's range replaces the window entirely.
-//
-// Grouping & sort order (within a page of events):
-//   -1. Events with a live match             (always first)
-//    0. Events with a match TODAY            (priority 0)
-//    1. Events with upcoming matches         (priority 1, nearest first)
-//    2. Events whose matches are all past    (priority 2, most-recent first)
-//
-// Pagination
-// ----------
-// Pagination is over *event groups*, not individual matches.
-// EVENTS_PER_PAGE event groups are shown per page.
-// Height is locked before the transition and released after, matching
-// AllNewsTab's UX exactly (smooth height animation, scroll-to-top on page turn).
-
 import {
   useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo,
 } from "react";
@@ -42,7 +14,7 @@ import type { ScheduleMatchFilter }          from "@/lib/directus";
 import Footer from "@/components/Footer";
 import UniversityMarquee from "@/components/UniversityMarquee";
 
-// --- Constants ----------------------------------------------------------------
+// --- Konstanta ----------------------------------------------------------------
 
 const EVENTS_PER_PAGE        = 6;
 const SKELETON_SHOW_DELAY_MS = 200;
@@ -51,21 +23,22 @@ const SKELETON_MIN_DISP_MS   = 200;
 // --- Types --------------------------------------------------------------------
 
 interface EventGroupData {
-  eventName:  string;
-  cardImage:  string | null;
-  matches:    any[];
-  priority:   -1 | 0 | 1 | 2; // -1 = has live match, 0 = today, 1 = upcoming, 2 = past
-  sortDate:   number;
+  eventName: string;
+  cardImage: string | null;
+  matches:   any[];
+  // -1 = ada live, 0 = hari ini, 1 = upcoming, 2 = sudah lewat
+  priority:  -1 | 0 | 1 | 2;
+  sortDate:  number;
 }
 
-// --- Grouping & sorting -------------------------------------------------------
+// --- Helpers ------------------------------------------------------------------
 
 function buildEventGroups(matches: any[]): EventGroupData[] {
   const map: Record<string, EventGroupData> = {};
   const todayStr = new Date().toDateString();
 
   for (const m of matches) {
-    const name  = m.competition_category?.event_id?.name     ?? "Other Events";
+    const name  = m.competition_category?.event_id?.name      ?? "Other Events";
     const image = m.competition_category?.event_id?.card_image ?? null;
     if (!map[name]) {
       map[name] = { eventName: name, cardImage: image, matches: [], priority: 2, sortDate: 0 };
@@ -90,25 +63,18 @@ function buildEventGroups(matches: any[]): EventGroupData[] {
       if (t <  now && t > mostRecPast) mostRecPast = t;
     }
 
-    if (hasLive) {
-      g.priority = -1; g.sortDate = now;
-    } else if (hasToday) {
-      g.priority = 0; g.sortDate = now;
-    } else if (nearestUp !== Infinity) {
-      g.priority = 1; g.sortDate = nearestUp;
-    } else {
-      g.priority = 2; g.sortDate = mostRecPast === -Infinity ? 0 : mostRecPast;
-    }
+    if (hasLive)                     { g.priority = -1; g.sortDate = now; }
+    else if (hasToday)               { g.priority =  0; g.sortDate = now; }
+    else if (nearestUp !== Infinity) { g.priority =  1; g.sortDate = nearestUp; }
+    else { g.priority = 2; g.sortDate = mostRecPast === -Infinity ? 0 : mostRecPast; }
   }
 
   return Object.values(map).sort((a, b) => {
     if (a.priority !== b.priority) return a.priority - b.priority;
-    if (a.priority === 2) return b.sortDate - a.sortDate; // past: most recent first
-    return a.sortDate - b.sortDate;                        // today/upcoming: soonest first
+    // sudah lewat: paling baru duluan; lainnya: paling dekat duluan
+    return a.priority === 2 ? b.sortDate - a.sortDate : a.sortDate - b.sortDate;
   });
 }
-
-// --- Date filter → ISO strings ------------------------------------------------
 
 function dateFilterToRange(f: DateFilter): { dateFrom: string | null; dateTo: string | null } {
   if (!f) return { dateFrom: null, dateTo: null };
@@ -138,7 +104,7 @@ function dateFilterToRange(f: DateFilter): { dateFrom: string | null; dateTo: st
   return { dateFrom: null, dateTo: null };
 }
 
-// --- Skeleton card ------------------------------------------------------------
+// --- Komponen kecil -----------------------------------------------------------
 
 function SkeletonEventCard({ index }: { index: number }) {
   return (
@@ -149,56 +115,66 @@ function SkeletonEventCard({ index }: { index: number }) {
   );
 }
 
-// --- Pagination ---------------------------------------------------------------
-
 function Pagination({
   page, totalPages, onPageChange,
 }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
   if (totalPages <= 1) return null;
 
-  const pages: (number | "…")[] = [];
+  const pageNumbers: (number | "…")[] = [];
   for (let p = 1; p <= totalPages; p++) {
     if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
-      pages.push(p);
-    } else if (pages[pages.length - 1] !== "…") {
-      pages.push("…");
+      pageNumbers.push(p);
+    } else if (pageNumbers[pageNumbers.length - 1] !== "…") {
+      pageNumbers.push("…");
     }
   }
 
+  const btnBase = "h-9 w-9 rounded-lg text-sm font-bold transition-all border border-blue-800/40 text-white bg-[#11194C] hover:bg-[#1A266B]";
+
   return (
     <div className="flex items-center justify-center gap-2 mt-8">
-      <button
-        onClick={() => onPageChange(page - 1)} disabled={page === 1}
-        className="h-9 w-9 rounded-lg border border-blue-800/40 text-sm font-bold text-white bg-[#11194C] hover:bg-[#1A266B] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-      >‹</button>
+      <button onClick={() => onPageChange(page - 1)} disabled={page === 1} className={`${btnBase} disabled:opacity-30 disabled:cursor-not-allowed`}>‹</button>
 
-      {pages.map((p, i) =>
+      {pageNumbers.map((p, i) =>
         p === "…"
           ? <span key={`e-${i}`} className="text-blue-400 text-sm px-1">…</span>
           : <button
               key={p}
               onClick={() => onPageChange(p as number)}
-              className={[
-                "h-9 w-9 rounded-lg text-sm font-bold transition-all",
-                page === p
-                  ? "bg-yellow-400 text-black shadow-md"
-                  : "border border-blue-800/40 text-white bg-[#11194C] hover:bg-[#1A266B]",
-              ].join(" ")}
+              className={p === page ? "h-9 w-9 rounded-lg text-sm font-bold bg-yellow-400 text-black shadow-md" : btnBase}
             >{p}</button>
       )}
 
-      <button
-        onClick={() => onPageChange(page + 1)} disabled={page === totalPages}
-        className="h-9 w-9 rounded-lg border border-blue-800/40 text-sm font-bold text-white bg-[#11194C] hover:bg-[#1A266B] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-      >›</button>
+      <button onClick={() => onPageChange(page + 1)} disabled={page === totalPages} className={`${btnBase} disabled:opacity-30 disabled:cursor-not-allowed`}>›</button>
     </div>
   );
 }
 
-// --- Root component -----------------------------------------------------------
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <div
+      className="py-32 text-center bg-[#091340]/40 rounded-3xl border border-blue-800/30 backdrop-blur-md flex flex-col items-center justify-center shadow-xl opacity-0"
+      style={{ animation: "match-row-in 340ms ease 60ms forwards" }}
+    >
+      <h3 className="text-2xl font-bold text-white uppercase tracking-widest mb-2">
+        Tidak ada pertandingan
+      </h3>
+      <p className="text-blue-300 text-sm max-w-md mx-auto">
+        Kami tidak dapat menemukan pertandingan yang sesuai dengan filter atau pencarian Anda.
+      </p>
+      <button
+        onClick={onReset}
+        className="mt-6 px-6 py-2 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-300 transition-colors"
+      >
+        Reset Filter
+      </button>
+    </div>
+  );
+}
+
+// --- Komponen utama -----------------------------------------------------------
 
 export default function SchedulePageClient() {
-  // -- Filter state ------------------------------------------------------------
   const [activeTab,   setActiveTab]   = useState<CategoryTab>("ALL");
   const [dateFilter,  setDateFilter]  = useState<DateFilter>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -206,29 +182,22 @@ export default function SchedulePageClient() {
 
   const debouncedSearch = useDebounce(searchInput, 350);
 
-  // -- Data state --------------------------------------------------------------
-  // rawMatches: the full match objects from the last fetch (all display fields).
-  // The SSE hook patches status/live_state on top without re-fetching.
   const [rawMatches,      setRawMatches]      = useState<any[] | null>(null);
   const [ready,           setReady]           = useState(false);
   const [skeletonVisible, setSkeletonVisible] = useState(false);
   const [animKey,         setAnimKey]         = useState(0);
 
-  // -- Real-time patch layer ---------------------------------------------------
-  // liveMatches mirrors rawMatches but with status/live_state kept current via SSE.
+  // rawMatches dipakai SSE hook buat nambal status/live_state tanpa re-fetch
   const stableMatches = useMemo(() => rawMatches ?? [], [rawMatches]);
   const { liveMatches } = useScheduleMatchState(stableMatches);
 
-  // -- Height-transition refs (mirrors AllNewsTab exactly) ----------------------
   const topRef        = useRef<HTMLDivElement>(null);
   const outerRef      = useRef<HTMLDivElement>(null);
   const innerRef      = useRef<HTMLDivElement>(null);
   const scrollTargetY = useRef<number | null>(null);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
 
-  // -- Derived ------------------------------------------------------------------
-  // Build event groups from the live-patched matches (re-computes on SSE update)
-  const allGroups  = useMemo(
+  const allGroups = useMemo(
     () => (rawMatches !== null ? buildEventGroups(liveMatches) : null),
     [liveMatches, rawMatches],
   );
@@ -238,7 +207,6 @@ export default function SchedulePageClient() {
   const gridKey    = `${activeTab}|${JSON.stringify(dateFilter)}|${debouncedSearch}|${page}`;
   const isEmpty    = ready && (allGroups?.length ?? 0) === 0;
 
-  // -- Fetch (fires on filter change) ------------------------------------------
   useEffect(() => {
     let cancelled        = false;
     let skeletonShownAt: number | null = null;
@@ -258,7 +226,6 @@ export default function SchedulePageClient() {
     };
 
     const commit = (items: any[]) => {
-      // Store raw matches — SSE hook takes over from here
       setRawMatches(items);
       if (skeletonShownAt === null) {
         clearTimeout(showTimer);
@@ -296,7 +263,6 @@ export default function SchedulePageClient() {
     };
   }, [activeTab, dateFilter, debouncedSearch]);
 
-  // -- Cache scroll target ------------------------------------------------------
   useEffect(() => {
     const capture = () => {
       if (topRef.current)
@@ -308,14 +274,12 @@ export default function SchedulePageClient() {
     return () => window.removeEventListener("resize", capture);
   }, []);
 
-  // -- Update locked height once new content has painted -----------------------
   useLayoutEffect(() => {
     if (!ready || lockedHeight === null || !innerRef.current) return;
     setLockedHeight(innerRef.current.offsetHeight);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // -- Reset page on filter change ----------------------------------------------
   const prevFilters = useRef({ debouncedSearch, activeTab, dateFilter });
   useEffect(() => {
     const prev = prevFilters.current;
@@ -329,7 +293,6 @@ export default function SchedulePageClient() {
     }
   }, [debouncedSearch, activeTab, dateFilter]);
 
-  // -- Handlers ------------------------------------------------------------------
   const handlePageChange = useCallback((p: number) => {
     if (outerRef.current) setLockedHeight(outerRef.current.offsetHeight);
     const y = scrollTargetY.current
@@ -344,7 +307,6 @@ export default function SchedulePageClient() {
     setSearchInput(""); setActiveTab("ALL"); setDateFilter(null); setPage(1);
   }, []);
 
-  // -- Render --------------------------------------------------------------------
   const showContent = skeletonVisible || ready;
 
   return (
@@ -368,7 +330,15 @@ export default function SchedulePageClient() {
 
         <ScheduleHero />
 
-        {/* -- Filter bar ---------------------------------------------------- */}
+        {ready && allGroups !== null && allGroups.length > 0 && (
+          <p
+            className="font-jakarta text-xs text-center -mt-14 mb-6"
+            style={{ color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
+          >
+            {allGroups.length} event &middot; halaman {page} dari {totalPages}
+          </p>
+        )}
+
         <div ref={topRef} className="flex flex-wrap md:flex-nowrap items-center gap-3 mb-6">
           <ScheduleToolbar activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -389,16 +359,6 @@ export default function SchedulePageClient() {
           <DateFilterBar value={dateFilter} onChange={setDateFilter} />
         </div>
 
-        {/* -- Result count ---------------------------------------------------- */}
-        <div className="text-blue-300/70 text-xs font-semibold uppercase tracking-wider mb-4 h-4 transition-opacity duration-300">
-          {ready && allGroups !== null && (
-            allGroups.length === 0
-              ? "Tidak ada event ditemukan"
-              : `${allGroups.length} event · halaman ${page} dari ${totalPages}`
-          )}
-        </div>
-
-        {/* -- Event list with height-locked transition ------------------------ */}
         <div
           ref={outerRef}
           onTransitionEnd={handleTransitionEnd}
@@ -411,7 +371,6 @@ export default function SchedulePageClient() {
         >
           <div ref={innerRef}>
 
-            {/* Skeleton */}
             {showContent && !ready && (
               <div className="flex flex-col gap-2">
                 {Array.from({ length: EVENTS_PER_PAGE }).map((_, i) => (
@@ -420,10 +379,8 @@ export default function SchedulePageClient() {
               </div>
             )}
 
-            {/* Empty */}
             {isEmpty && <EmptyState onReset={resetFilters} />}
 
-            {/* Event groups + pagination */}
             {ready && !isEmpty && (
               <>
                 <div key={animKey} className="flex flex-col gap-0">
@@ -449,31 +406,10 @@ export default function SchedulePageClient() {
         </div>
 
       </div>
+
       <UniversityMarquee />
-      {/* spacer */}
       <div style={{ height: 80 }} />
-      <Footer/>
-    </div>
-  );
-}
-
-// --- Empty state --------------------------------------------------------------
-
-function EmptyState({ onReset }: { onReset: () => void }) {
-  return (
-    <div className="py-32 text-center bg-[#091340]/40 rounded-3xl border border-blue-800/30 backdrop-blur-md flex flex-col items-center justify-center shadow-xl">
-      <h3 className="text-2xl font-bold text-white uppercase tracking-widest mb-2">
-        Tidak ada pertandingan
-      </h3>
-      <p className="text-blue-300 text-sm max-w-md mx-auto">
-        Kami tidak dapat menemukan pertandingan yang sesuai dengan filter atau pencarian Anda.
-      </p>
-      <button
-        onClick={onReset}
-        className="mt-6 px-6 py-2 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-300 transition-colors"
-      >
-        Reset Filter
-      </button>
+      <Footer />
     </div>
   );
 }

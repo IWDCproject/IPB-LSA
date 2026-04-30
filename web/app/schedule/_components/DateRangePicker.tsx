@@ -1,11 +1,17 @@
 "use client";
 
-// Self-contained calendar popup.
-// Owns its own internal UI state: which field is active, current month view.
-// Calls onApply(start, end) when the user confirms. onClose for outside-click handling.
-
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
+// --- Konstanta ----------------------------------------------------------------
+
+const DAY_LABELS  = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+// --- Types --------------------------------------------------------------------
 
 interface DateRangePickerProps {
   initialStart?: Date | null;
@@ -14,11 +20,9 @@ interface DateRangePickerProps {
   onClose:       () => void;
 }
 
-const DAY_LABELS   = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-const MONTH_NAMES  = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+type ActiveField = "start" | "end";
+
+// --- Helpers ------------------------------------------------------------------
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -33,7 +37,7 @@ function fmtField(d: Date | null) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-type ActiveField = "start" | "end";
+// --- Komponen -----------------------------------------------------------------
 
 export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: DateRangePickerProps) {
   const today = new Date();
@@ -43,31 +47,20 @@ export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: 
   const [end,       setEnd]       = useState<Date | null>(initialEnd   ?? null);
   const [active,    setActive]    = useState<ActiveField>("start");
 
-  // Calendar layout helpers
   const firstWeekday = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay();
   const totalDays    = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
 
-  const prevMonth = () =>
-    setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1));
-  const nextMonth = () =>
-    setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1));
+  const prevMonth = () => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1));
+  const nextMonth = () => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1));
 
   function handleDayClick(day: number) {
     const clicked = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
-
-    if (active === "start") {
+    if (active === "start" || (start && clicked < start)) {
       setStart(clicked);
       setEnd(null);
       setActive("end");
     } else {
-      // If user clicked before the start, reset to a new start
-      if (start && clicked < start) {
-        setStart(clicked);
-        setEnd(null);
-        setActive("end");
-      } else {
-        setEnd(clicked);
-      }
+      setEnd(clicked);
     }
   }
 
@@ -84,7 +77,6 @@ export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: 
   return (
     <div className="bg-[#11194C] border border-blue-700/50 rounded-lg shadow-2xl p-5 w-[320px]">
 
-      {/* Start / End field pills */}
       <div className="flex gap-3 mb-5">
         {(["start", "end"] as ActiveField[]).map(field => {
           const isActive = active === field;
@@ -108,47 +100,30 @@ export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: 
         })}
       </div>
 
-      {/* Month navigation header */}
       <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={prevMonth}
-          className="p-1.5 rounded-lg text-blue-300 hover:text-white hover:bg-blue-800/50 transition-colors"
-          aria-label="Previous month"
-        >
+        <button onClick={prevMonth} className="p-1.5 rounded-lg text-blue-300 hover:text-white hover:bg-blue-800/50 transition-colors" aria-label="Previous month">
           <ChevronLeft size={18} />
         </button>
         <span className="text-white font-bold text-sm">
           {MONTH_NAMES[viewMonth.getMonth()]} {viewMonth.getFullYear()}
         </span>
-        <button
-          onClick={nextMonth}
-          className="p-1.5 rounded-lg text-blue-300 hover:text-white hover:bg-blue-800/50 transition-colors"
-          aria-label="Next month"
-        >
+        <button onClick={nextMonth} className="p-1.5 rounded-lg text-blue-300 hover:text-white hover:bg-blue-800/50 transition-colors" aria-label="Next month">
           <ChevronRight size={18} />
         </button>
       </div>
 
-      {/* Day-of-week labels */}
       <div className="grid grid-cols-7 mb-1">
         {DAY_LABELS.map(d => (
-          <div key={d} className="text-center text-[10px] font-bold text-blue-400 uppercase py-1">
-            {d}
-          </div>
+          <div key={d} className="text-center text-[10px] font-bold text-blue-400 uppercase py-1">{d}</div>
         ))}
       </div>
 
-      {/* Day grid */}
       <div className="grid grid-cols-7 gap-y-0.5">
-        {/* Offset blank cells so day 1 falls on the right weekday */}
-        {Array.from({ length: firstWeekday }, (_, i) => (
-          <div key={`blank-${i}`} />
-        ))}
+        {Array.from({ length: firstWeekday }, (_, i) => <div key={`blank-${i}`} />)}
 
         {Array.from({ length: totalDays }, (_, i) => {
           const day   = i + 1;
           const state = getDayState(day);
-
           return (
             <button
               key={day}
@@ -168,7 +143,6 @@ export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: 
         })}
       </div>
 
-      {/* Apply */}
       <button
         disabled={!canApply}
         onClick={() => canApply && onApply(start!, end!)}
