@@ -40,7 +40,7 @@ export function BlockRevealText({
         // 1. Block scales in from the left to cover the area
         await blockControls.start({
           scaleX: 1,
-          transition: { duration: 0.4, ease: "easeInOut", delay },
+          transition: { duration: 0.2, ease: "easeInOut", delay },
         });
         
         // 2. Text becomes visible while covered
@@ -53,7 +53,7 @@ export function BlockRevealText({
         await blockControls.start({
           scaleX: 0,
           transformOrigin: "right",
-          transition: { duration: 0.4, ease: "easeInOut" },
+          transition: { duration: 0.2, ease: "easeInOut" },
         });
       };
       

@@ -547,11 +547,11 @@ export default function EventTimeline({ events: rawEvents }) {
           fontFamily: "'Bebas Neue', cursive", fontSize: `${3.8 * scaleF}rem`,
           color: "#fff", lineHeight: 1, margin: 0,
         }}>
-          <BlockRevealText delay={0.5} blockColor="#ffffff">WHY WAIT?</BlockRevealText>
+          <BlockRevealText delay={0.2} blockColor="#ffffff">WHY WAIT?</BlockRevealText>
         </h2>
         <div style={{ color: "#fff", fontSize: `${Math.round(22 * scaleF)}px`, marginTop: 5, fontWeight: 500 }}>
 
-          <BlockRevealText delay={0.8} blockColor="#ffffff"> Make sure to not miss your registration period! </BlockRevealText>
+          <BlockRevealText delay={0.4} blockColor="#ffffff"> Make sure to not miss your registration period! </BlockRevealText>
         </div>
         
         <div style={{ marginTop: 18 }}>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useBlurImages } from "@/hooks/useBlurImages";
 import NewsCard from "../news-stuff/HomepageNewsCard";
 import Button   from "@/components/Button";
+import { BlockRevealText } from "@/components/BlockRevealText";
 
 
 // Types
@@ -191,6 +192,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
           transform: "rotate(180deg)",
         }} />
 
+
         <h2
           style={{
             ...styles.heading,
@@ -198,7 +200,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
             marginBottom: isMobile ? "clamp(6px, 2vw, 12px)" : 17,
           }}
         >
-          Latest Stories
+          <BlockRevealText delay={0.4} blockColor="#000"> Latest Stories </BlockRevealText>
         </h2>
 
         {isMobile ? (
