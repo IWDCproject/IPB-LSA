@@ -27,12 +27,12 @@ export const LIGHT_MATCH_COLORS: MatchColors = {
 }
 
 export const DARK_MATCH_COLORS: MatchColors = {
-  cardBg:        "#1a2e6e",
+  cardBg:        "#08103F",
   border:        "rgba(255,255,255,0.1)",
   primaryText:   "#ffffff",
   secondaryText: "rgba(255,255,255,0.7)",
-  mutedText:     "rgba(255,255,255,0.4)",
-  dimmedText:    "rgba(255,255,255,0.25)",
+  mutedText:     "rgba(255,255,255,0.55)",
+  dimmedText:    "rgba(255,255,255,0.4)",
 }
 
 // --- MobileScoreCell ---------------------------------------------------------
@@ -258,14 +258,14 @@ function OpenParticipants({ match, C }: { match: MappedMatch; C: MatchColors }) 
               key={i}
               src={p.institution.logo_url} alt={p.institution?.name ?? ""}
               width={32} height={32}
-              className="rounded-full bg-white border-2 border-white shrink-0"
-              style={{ objectFit: "contain", marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
+              className="rounded-full border-2 shrink-0"
+              style={{ objectFit: "contain", width: 32, height: 32, borderColor: C.cardBg, background: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           ) : (
             <div
               key={i}
-              className="w-8 h-8 rounded-full border-2 border-white shrink-0"
-              style={{ background: (p as any)?.institution?.color ?? "#1D4ED8", marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
+              className="rounded-full border-2 shrink-0"
+              style={{ width: 32, height: 32, background: (p as any)?.institution?.color ?? "#1D4ED8", borderColor: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           )
         )}
