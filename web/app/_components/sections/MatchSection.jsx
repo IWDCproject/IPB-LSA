@@ -6,6 +6,7 @@ import Button from "@/components/Button";
 import { useBlurImages } from "@/hooks/useBlurImages";
 import { getAssetUrl } from "@/lib/directus";
 import { BlockRevealText } from "@/components/BlockRevealText";
+import { useScheduleMatchState } from "@/hooks/useScheduleMatchState";
 
 const SCALE_START = 1600;
 const SCALE_FLOOR = 0.875;
@@ -72,6 +73,7 @@ function BitmapBlurLayer({ bitmap }) {
 export default function MatchSection({ matches: rawMatches }) {
   const sectionRef = useRef(null);
   const cw         = useContainerWidth(sectionRef);
+  const { liveMatches: patchedMatches } = useScheduleMatchState(rawMatches ?? []);
 
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -104,13 +106,8 @@ export default function MatchSection({ matches: rawMatches }) {
 
   const { bitmaps } = useBlurImages(matchcardManifest);
 
-  const liveMatches = useMemo(() => 
-    (rawMatches || []).filter(m => m.status === 'live'), 
-  [rawMatches]);
-  
-  const upcomingMatches = useMemo(() => 
-    (rawMatches || []).filter(m => m.status === 'upcoming'), 
-  [rawMatches]);
+  const liveMatches     = useMemo(() => patchedMatches.filter(m => m.status === 'live'),     [patchedMatches]);
+  const upcomingMatches = useMemo(() => patchedMatches.filter(m => m.status === 'upcoming'), [patchedMatches]);
 
   const isMobile = cw > 0 && cw < 1024;
   const mobilePad = 20;

@@ -33,7 +33,7 @@ import {
 } from "react";
 import { Search } from "lucide-react";
 import { useDebounce }                       from "@/hooks/useDebounce";
-import { useScheduleMatchState }             from "./hooks/useScheduleMatchState";
+import { useScheduleMatchState }             from "../../hooks/useScheduleMatchState";
 import { ScheduleHero }                      from "./_components/ScheduleHero";
 import { ScheduleToolbar, type CategoryTab } from "./_components/ScheduleToolbar";
 import { DateFilterBar, type DateFilter, isRangeFilter } from "./_components/DateFilterBar";
