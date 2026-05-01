@@ -3,12 +3,13 @@
 import {
   useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo,
 } from "react";
-import { Search } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useDebounce }                       from "@/hooks/useDebounce";
 import { useScheduleMatchState }             from "../../hooks/useScheduleMatchState";
 import { ScheduleHero }                      from "./_components/ScheduleHero";
 import { ScheduleToolbar, type CategoryTab } from "./_components/ScheduleToolbar";
 import { DateFilterBar, type DateFilter, isRangeFilter } from "./_components/DateFilterBar";
+import { DateRangePicker } from "./_components/DateRangePicker";
 import { EventGroup }                        from "./_components/EventGroup";
 import type { ScheduleMatchFilter }          from "@/lib/directus";
 import Footer from "@/components/Footer";
@@ -25,6 +26,7 @@ const SKELETON_MIN_DISP_MS   = 200;
 interface EventGroupData {
   eventName: string;
   cardImage: string | null;
+  organizer: string | null;
   matches:   any[];
   // -1 = ada live, 0 = hari ini, 1 = upcoming, 2 = sudah lewat
   priority:  -1 | 0 | 1 | 2;
@@ -38,10 +40,11 @@ function buildEventGroups(matches: any[]): EventGroupData[] {
   const todayStr = new Date().toDateString();
 
   for (const m of matches) {
-    const name  = m.competition_category?.event_id?.name      ?? "Other Events";
-    const image = m.competition_category?.event_id?.card_image ?? null;
+    const name      = m.competition_category?.event_id?.name                              ?? "Other Events";
+    const image     = m.competition_category?.event_id?.card_image                        ?? null;
+    const organizer = m.competition_category?.event_id?.user_created?.organisation_name   ?? null;
     if (!map[name]) {
-      map[name] = { eventName: name, cardImage: image, matches: [], priority: 2, sortDate: 0 };
+      map[name] = { eventName: name, cardImage: image, organizer, matches: [], priority: 2, sortDate: 0 };
     }
     map[name].matches.push(m);
   }
@@ -205,6 +208,10 @@ export default function SchedulePageClient() {
   const [searchInput, setSearchInput] = useState("");
   const [page,        setPage]        = useState(1);
 
+  const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+  const [mobileDateOpen,     setMobileDateOpen]     = useState(false);
+  const [mobileRangePicker,  setMobileRangePicker]  = useState(false);
+
   const debouncedSearch = useDebounce(searchInput, 350);
 
   const [rawMatches,      setRawMatches]      = useState<any[] | null>(null);
@@ -217,7 +224,8 @@ export default function SchedulePageClient() {
   const stableMatches = useMemo(() => rawMatches ?? [], [rawMatches]);
   const { liveMatches } = useScheduleMatchState(stableMatches);
 
-  const topRef        = useRef<HTMLDivElement>(null);
+  const topRef          = useRef<HTMLDivElement>(null);
+  const mobileFilterRef = useRef<HTMLDivElement>(null);
   const outerRef      = useRef<HTMLDivElement>(null);
   const innerRef      = useRef<HTMLDivElement>(null);
   const scrollTargetY = useRef<number | null>(null);
@@ -353,6 +361,18 @@ export default function SchedulePageClient() {
     setAnimKey(k => k + 1);
   }, []);
 
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (mobileFilterRef.current && !mobileFilterRef.current.contains(e.target as Node)) {
+        setMobileCategoryOpen(false);
+        setMobileDateOpen(false);
+        setMobileRangePicker(false);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, []);
+
   const showContent = skeletonVisible || ready;
 
   const eventCount =
@@ -382,35 +402,223 @@ export default function SchedulePageClient() {
         }}
       />
 
-      <div className="relative z-10" style={{ padding: "24px clamp(20px, 8.33vw, 160px) 20px" }}>
+      <div className="relative z-10 px-4 md:px-[clamp(20px,8.33vw,160px)]" style={{ paddingTop: 24, paddingBottom: 20 }}>
 
         <ScheduleHero />
 
         <p
-          className="font-jakarta text-xs text-center -mt-14 mb-6"
+          className="font-jakarta text-xs text-center -mt-8 mb-3 sm:-mt-14 sm:mb-5"
           style={{ color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
         >
           {eventCount} event &middot; halaman {currentPage} dari {totalPageCount}
         </p>
 
-        <div ref={topRef} className="flex flex-wrap md:flex-nowrap items-center gap-3 mb-6">
-          <ScheduleToolbar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div ref={topRef}>
 
-          <div className="relative flex-1 min-w-[200px] group order-last md:order-none w-full md:w-auto">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-yellow-400 transition-colors pointer-events-none"
-              size={16}
-            />
-            <input
-              type="text"
-              placeholder="Cari tim, kategori, venue..."
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              className="w-full h-11 bg-[#11194C] border border-blue-800/40 text-white rounded-lg pl-10 pr-4 text-sm focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all placeholder:text-blue-300 shadow-lg"
-            />
+          {/* ── MOBILE TOOLBAR ─────────────────────────────────────────────── */}
+          <div ref={mobileFilterRef} className="relative flex flex-col gap-1.5 mb-3 md:hidden">
+
+            {/* Search — full width on top */}
+            <div className="relative group">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-yellow-400 transition-colors pointer-events-none"
+                size={16}
+              />
+              <input
+                type="text"
+                placeholder="Cari tim, kategori, venue..."
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="w-full h-11 bg-[#11194C] border border-blue-800/40 text-white rounded-lg pl-10 pr-4 text-sm focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all placeholder:text-blue-300 shadow-lg"
+              />
+            </div>
+
+            {/* Two filter buttons + both dropdowns — all in one relative wrapper
+                so top-full / left-0 / right-0 anchors to the button row, not the whole bar */}
+            <div className="relative">
+              <style>{`
+                @keyframes mob-panel-in {
+                  from { opacity: 0; transform: scaleY(0.92) translateY(-6px); }
+                  to   { opacity: 1; transform: none; }
+                }
+                @keyframes mob-item-in {
+                  from { opacity: 0; transform: translateY(-5px); }
+                  to   { opacity: 1; transform: none; }
+                }
+              `}</style>
+
+              {/* Button row */}
+              <div className="flex gap-1">
+
+                {/* Category button */}
+                <button
+                  onClick={() => { setMobileCategoryOpen(v => !v); setMobileDateOpen(false); setMobileRangePicker(false); }}
+                  className={`flex-1 h-11 flex items-center justify-between px-4 rounded-lg border text-sm font-bold transition-all ${
+                    mobileCategoryOpen || activeTab !== "ALL"
+                      ? "bg-yellow-400 text-black border-yellow-400"
+                      : "bg-[#11194C] text-white border-blue-800/40"
+                  }`}
+                >
+                  <span>{activeTab === "ALL" ? "Kategori" : activeTab === "sport" ? "Sports" : "Arts"}</span>
+                  {mobileCategoryOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+
+                {/* Date button */}
+                <button
+                  onClick={() => { setMobileDateOpen(v => !v); setMobileCategoryOpen(false); setMobileRangePicker(false); }}
+                  className={`flex-1 h-11 flex items-center justify-between px-4 rounded-lg border text-sm font-bold transition-all ${
+                    mobileDateOpen || dateFilter !== null
+                      ? "bg-yellow-400 text-black border-yellow-400"
+                      : "bg-[#11194C] text-white border-blue-800/40"
+                  }`}
+                >
+                  <span className="truncate mr-1">
+                    {dateFilter === null
+                      ? "Tanggal"
+                      : dateFilter === "today"  ? "Today"
+                      : dateFilter === "week"   ? "This Week"
+                      : dateFilter === "month"  ? "This Month"
+                      : isRangeFilter(dateFilter)
+                        ? `${dateFilter.start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${dateFilter.end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                        : "Tanggal"}
+                  </span>
+                  {dateFilter !== null && !mobileDateOpen
+                    ? <span onClick={e => { e.stopPropagation(); setDateFilter(null); setMobileRangePicker(false); }} className="shrink-0 hover:opacity-70 transition-opacity"><X size={13} /></span>
+                    : mobileDateOpen ? <ChevronUp size={14} className="shrink-0" /> : <ChevronDown size={14} className="shrink-0" />
+                  }
+                </button>
+
+              </div>
+
+              {/* Category dropdown — full width, anchored to button row */}
+              {mobileCategoryOpen && (
+                <div
+                  className="absolute top-full left-0 right-0 z-50 border border-white/10 rounded-xl overflow-hidden"
+                  style={{
+                    marginTop: 6,
+                    background: "rgba(6, 18, 92, 0.55)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+                    transformOrigin: "top",
+                    animation: "mob-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
+                  }}
+                >
+                  {([["ALL", "Semua"], ["sport", "Sports"], ["arts", "Arts"]] as [CategoryTab, string][]).map(([id, label], i) => (
+                    <button
+                      key={id}
+                      onClick={() => { setActiveTab(id); setMobileCategoryOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors"
+                      style={{ opacity: 0, animation: `mob-item-in 220ms ease ${i * 38}ms forwards` }}
+                    >
+                      <span className={`w-[18px] h-[18px] rounded flex-shrink-0 border-2 flex items-center justify-center transition-all ${
+                        activeTab === id ? "bg-yellow-400 border-yellow-400" : "border-white/25"
+                      }`}>
+                        {activeTab === id && (
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <polyline points="1 4 3.5 6.5 9 1" stroke="#0D1A4A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </span>
+                      <span className={`font-semibold ${activeTab === id ? "text-white" : "text-white/70"}`}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Date dropdown — full width, anchored to button row */}
+              {mobileDateOpen && (
+                <div
+                  className="absolute top-full left-0 right-0 z-50 border border-white/10 rounded-xl overflow-hidden"
+                  style={{
+                    marginTop: 6,
+                    background: "rgba(6, 18, 92, 0.55)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+                    transformOrigin: "top",
+                    animation: "mob-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
+                  }}
+                >
+                  {(["today", "week", "month"] as const).map((id, i) => {
+                    const label = id === "today" ? "Today" : id === "week" ? "This Week" : "This Month";
+                    const isActive = dateFilter === id;
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => { setDateFilter(isActive ? null : id); setMobileDateOpen(false); setMobileRangePicker(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left border-b border-white/5 hover:bg-white/5 transition-colors"
+                        style={{ opacity: 0, animation: `mob-item-in 220ms ease ${i * 38}ms forwards` }}
+                      >
+                        <span className={`w-[18px] h-[18px] rounded flex-shrink-0 border-2 flex items-center justify-center transition-all ${isActive ? "bg-yellow-400 border-yellow-400" : "border-white/25"}`}>
+                          {isActive && (
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                              <polyline points="1 4 3.5 6.5 9 1" stroke="#0D1A4A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </span>
+                        <span className={`font-semibold ${isActive ? "text-white" : "text-white/70"}`}>{label}</span>
+                      </button>
+                    );
+                  })}
+
+                  {/* Custom range toggle */}
+                  <button
+                    onClick={() => setMobileRangePicker(v => !v)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-white/5 transition-colors ${mobileRangePicker ? "bg-white/5" : ""}`}
+                    style={{ opacity: 0, animation: `mob-item-in 220ms ease ${3 * 38}ms forwards` }}
+                  >
+                    <span className={`w-[18px] h-[18px] rounded flex-shrink-0 border-2 flex items-center justify-center transition-all ${isRangeFilter(dateFilter) ? "bg-yellow-400 border-yellow-400" : "border-white/25"}`}>
+                      {isRangeFilter(dateFilter) && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                          <polyline points="1 4 3.5 6.5 9 1" stroke="#0D1A4A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </span>
+                    <span className={`font-semibold flex-1 ${isRangeFilter(dateFilter) ? "text-white" : "text-white/70"}`}>Custom Range</span>
+                    {mobileRangePicker ? <ChevronUp size={12} className="text-white/40 shrink-0" /> : <ChevronDown size={12} className="text-white/40 shrink-0" />}
+                  </button>
+
+                {mobileRangePicker && (
+                  <div className="flex justify-center p-3 pt-0">
+                    <DateRangePicker
+                      initialStart={isRangeFilter(dateFilter) ? dateFilter.start : null}
+                      initialEnd={isRangeFilter(dateFilter) ? dateFilter.end   : null}
+                      onApply={(start, end) => {
+                        setDateFilter({ start, end });
+                        setMobileDateOpen(false);
+                        setMobileRangePicker(false);
+                      }}
+                    />
+                  </div>
+                )}
+
+              </div>
+            )}
+            </div>{/* end relative wrapper */}
           </div>
 
-          <DateFilterBar value={dateFilter} onChange={setDateFilter} />
+          {/* ── DESKTOP TOOLBAR ────────────────────────────────────────────── */}
+          <div className="hidden md:flex items-center gap-3 mb-6">
+            <ScheduleToolbar activeTab={activeTab} onTabChange={setActiveTab} />
+
+            <div className="relative flex-1 min-w-[200px] group">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-yellow-400 transition-colors pointer-events-none"
+                size={16}
+              />
+              <input
+                type="text"
+                placeholder="Cari tim, kategori, venue..."
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="w-full h-11 bg-[#11194C] border border-blue-800/40 text-white rounded-lg pl-10 pr-4 text-sm focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all placeholder:text-blue-300 shadow-lg"
+              />
+            </div>
+
+            <DateFilterBar value={dateFilter} onChange={setDateFilter} />
+          </div>
+
         </div>
 
         <div
@@ -439,11 +647,12 @@ export default function SchedulePageClient() {
             {ready && !fetchError && !isEmpty && (
               <>
                 <div key={animKey} className="flex flex-col gap-0">
-                  {pageGroups.map(({ eventName, cardImage, matches }, i) => (
+                  {pageGroups.map(({ eventName, cardImage, organizer, matches }, i) => (
                     <EventGroup
                       key={eventName}
                       eventName={eventName}
                       cardImage={cardImage}
+                      organizer={organizer}
                       matches={matches}
                       gridKey={gridKey}
                       index={i}

@@ -17,6 +17,7 @@ const SCROLL_MARGIN_TOP = 100;
 interface EventGroupProps {
   eventName: string;
   cardImage: string | null;
+  organizer: string | null;
   matches:   any[];
   gridKey:   string;
   index:     number;
@@ -75,7 +76,7 @@ function countByStatus(matches: any[]) {
 
 // --- Komponen -----------------------------------------------------------------
 
-export function EventGroup({ eventName, cardImage, matches, gridKey, index, isOpen, onToggle }: EventGroupProps) {
+export function EventGroup({ eventName, cardImage, organizer, matches, gridKey, index, isOpen, onToggle }: EventGroupProps) {
   const groupRef  = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLButtonElement>(null);
   // Ref on the grid wrapper so we can listen to its transitionend precisely.
@@ -145,36 +146,41 @@ export function EventGroup({ eventName, cardImage, matches, gridKey, index, isOp
       >
         {imageUrl && (
           <div
-            className="absolute right-0 top-0 bottom-0 w-[70%] md:w-[50%] pointer-events-none opacity-50 group-hover:opacity-75 transition-opacity"
+            className="absolute right-0 top-0 bottom-0 w-[70%] md:w-[75%] pointer-events-none opacity-50 group-hover:opacity-75 transition-opacity"
             style={{
               backgroundImage:    `url(${imageUrl})`,
               backgroundPosition: "center",
               backgroundSize:     "cover",
               backgroundRepeat:   "no-repeat",
-              WebkitMaskImage:    "linear-gradient(to left, black 0%, transparent 100%)",
-              maskImage:          "linear-gradient(to left, black 0%, transparent 100%)",
+              WebkitMaskImage:    "linear-gradient(to left, black 0%, black 15%, transparent 75%)",
+              maskImage:          "linear-gradient(to left, black 0%, black 15%, transparent 75%)",
             }}
           />
         )}
 
-        <div className="relative z-10 flex flex-wrap md:flex-nowrap items-center gap-3 md:gap-4 text-left">
+        <div className="relative z-10 flex flex-col gap-1 text-left">
           <h2 className="font-bebas text-xl mt-1 md:text-2xl font-bold text-white uppercase tracking-wide group-hover:text-yellow-400 transition-colors drop-shadow-md">
             {eventName}
           </h2>
-          <div className="flex flex-wrap items-center gap-1.5">
+          {organizer && (
+            <p className="font-jakarta text-[12px] font-bold text-white/70 -mt-2 mb-2">
+              by {organizer}
+            </p>
+          )}
+          <div className="flex flex-col gap-0.5">
             {statusCounts.live > 0 && (
-              <span className="bg-yellow-400 text-black text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap border border-yellow-300/40" style={{ boxShadow: "0 0 8px 2px rgba(250,204,21,0.45)" }}>
-                {statusCounts.live} LIVE
+              <span className="font-jakarta text-[11px] font-bold text-yellow-400 whitespace-nowrap">
+                [{statusCounts.live} live]
               </span>
             )}
             {statusCounts.upcoming > 0 && (
-              <span className="bg-[#1D3282] text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-inner border border-blue-600/30">
-                {statusCounts.upcoming} UPCOMING
+              <span className="font-jakarta text-[11px] font-bold text-white/60 whitespace-nowrap">
+                [{statusCounts.upcoming} upcoming]
               </span>
             )}
             {statusCounts.finished > 0 && (
-              <span className="bg-[#0D1F4C]/80 text-blue-300 text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-inner border border-blue-800/40">
-                {statusCounts.finished} SELESAI
+              <span className="font-jakarta text-[11px] font-bold text-white/30 whitespace-nowrap">
+                [{statusCounts.finished} selesai]
               </span>
             )}
           </div>
@@ -203,6 +209,9 @@ export function EventGroup({ eventName, cardImage, matches, gridKey, index, isOp
                       {fmtDateHeader(dateKey)}
                     </span>
                     <div className="h-px flex-1 bg-white/20" />
+                    <span className="text-[10px] font-bold bg-white/10 text-white/50 px-2 py-0.5 rounded-full shrink-0 tabular-nums whitespace-nowrap">
+                      {dayMatches.length} matches
+                    </span>
                   </div>
                   <MatchGrid key={`${gridKey}-${openKey}-${dateKey}`} matches={dayMatches} />
                 </div>

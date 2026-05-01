@@ -412,6 +412,7 @@ const SCHEDULE_FIELDS = [
   'competition_category_id.event_id.name',
   'competition_category_id.event_id.slug',
   'competition_category_id.event_id.card_image.*',
+  'competition_category_id.event_id.user_created.organisation_name',
   'competition_category_id.format_id.*',
   'home_participant_id.*',
   'home_participant_id.institution_id.*',

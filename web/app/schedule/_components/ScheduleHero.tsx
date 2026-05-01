@@ -29,7 +29,7 @@ export function ScheduleHero() {
         }
       `}</style>
 
-      <div className="relative flex items-center justify-center mt-10 mb-16">
+      <div className="relative flex items-center justify-center mt-4 mb-6 sm:mt-10 sm:mb-14">
 
         <div
           className="absolute left-0 hidden sm:block z-10"
