@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, memo } from "react";
 import { ChevronDown, ChevronUp, CalendarDays } from "lucide-react";
 import { getAssetUrl } from "@/lib/directus";
 import { MatchGrid } from "./MatchGrid";
@@ -76,38 +76,20 @@ function countByStatus(matches: any[]) {
 
 // --- Komponen -----------------------------------------------------------------
 
-export function EventGroup({ eventName, cardImage, organizer, matches, gridKey, index, isOpen, onToggle }: EventGroupProps) {
+export const EventGroup = memo(function EventGroup({
+  eventName, cardImage, organizer, matches, gridKey, index, isOpen, onToggle,
+}: EventGroupProps) {
   const groupRef  = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLButtonElement>(null);
-  // Ref on the grid wrapper so we can listen to its transitionend precisely.
   const gridRef   = useRef<HTMLDivElement>(null);
-
-  const [openKey, setOpenKey] = useState(0);
 
   useEffect(() => {
     if (!isOpen) return;
-    setOpenKey(k => k + 1);
 
     const gridEl   = gridRef.current;
     const headerEl = headerRef.current;
     if (!gridEl || !headerEl) return;
 
-    // WHY transitionend instead of RAF or setTimeout:
-    //
-    // The overshoot happens because the previously-open group above is also
-    // collapsing at the same time. If we read getBoundingClientRect() too early
-    // (RAF, or a short timeout), the collapsing group hasn't finished shrinking
-    // yet — so our target position is off by however much height still remains.
-    // By the time the smooth scroll reaches that position, the layout has shifted
-    // and we've overshot.
-    //
-    // Both groups use the same transition duration (0.3s). So by the time OUR
-    // grid's transitionend fires, the other group's collapse is also complete.
-    // Layout is fully settled → position measurement is accurate → no overshoot.
-    //
-    // We guard with `e.target === gridEl` because transitionend bubbles up from
-    // child elements (MatchGrid cards, etc.) and we only want the one from our
-    // specific grid row, not any child.
     const onTransitionEnd = (e: TransitionEvent) => {
       if (e.target !== gridEl || e.propertyName !== "grid-template-rows") return;
 
@@ -115,9 +97,6 @@ export function EventGroup({ eventName, cardImage, organizer, matches, gridKey, 
       const inView = rect.top >= SCROLL_MARGIN_TOP && rect.bottom <= window.innerHeight;
       if (inView) return;
 
-      // Works for both directions:
-      // - header below viewport (rect.top > innerHeight) → scroll down
-      // - header above viewport (rect.top < 0, e.g. collapse above pushed us up) → scroll up
       window.scrollTo({ top: rect.top + window.scrollY - SCROLL_MARGIN_TOP, behavior: "smooth" });
     };
 
@@ -213,11 +192,11 @@ export function EventGroup({ eventName, cardImage, organizer, matches, gridKey, 
                       {dayMatches.length} matches
                     </span>
                   </div>
-                  <MatchGrid key={`${gridKey}-${openKey}-${dateKey}`} matches={dayMatches} />
+                  <MatchGrid key={`${gridKey}-${dateKey}`} matches={dayMatches} />
                 </div>
               ))
             ) : (
-              <MatchGrid key={`${gridKey}-${openKey}`} matches={matches} />
+              <MatchGrid key={gridKey} matches={matches} />
             )}
           </div>
         </div>
@@ -225,4 +204,4 @@ export function EventGroup({ eventName, cardImage, organizer, matches, gridKey, 
 
     </div>
   );
-}
+});
