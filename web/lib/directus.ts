@@ -158,7 +158,7 @@ const mapMatch = (m: any): MappedMatch => {
   };
 };
 
-const NEWS_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug'];
+const NEWS_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug', 'event_id.banner_image.*'];
 
 const mapNews = (n: any): MappedNews => {
   return {
@@ -167,7 +167,9 @@ const mapNews = (n: any): MappedNews => {
     thumbnail_width:  n.thumbnail?.width  ?? null,
     thumbnail_height: n.thumbnail?.height ?? null,
     category:         n.category          ?? null,
-    event_id: typeof n.event_id === 'object' && n.event_id !== null ? n.event_id : null,
+    event_id: typeof n.event_id === 'object' && n.event_id !== null
+      ? { ...n.event_id, banner_url: getAssetUrl(n.event_id.banner_image) }
+      : null,
   };
 };
 
