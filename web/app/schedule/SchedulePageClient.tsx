@@ -60,7 +60,6 @@ function buildEventGroups(matches: any[]): EventGroupData[] {
     for (const m of g.matches) {
       if (m.status === "live") hasLive = true;
       if (!m.scheduled_at) continue;
-      // FIX #4: parse once, reuse for both getTime() and toDateString()
       const d = new Date(m.scheduled_at);
       const t = d.getTime();
       if (d.toDateString() === todayStr) hasToday = true;
@@ -76,7 +75,6 @@ function buildEventGroups(matches: any[]): EventGroupData[] {
 
   return Object.values(map).sort((a, b) => {
     if (a.priority !== b.priority) return a.priority - b.priority;
-    // sudah lewat: paling baru duluan; lainnya: paling dekat duluan
     return a.priority === 2 ? b.sortDate - a.sortDate : a.sortDate - b.sortDate;
   });
 }
@@ -177,7 +175,6 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
-// FIX #11: error state punya tampilan sendiri, beda dari empty state
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div
@@ -216,39 +213,64 @@ export default function SchedulePageClient() {
 
   const [rawMatches,      setRawMatches]      = useState<any[] | null>(null);
   const [ready,           setReady]           = useState(false);
-  const [fetchError,      setFetchError]      = useState(false); 
+  const [fetchError,      setFetchError]      = useState(false);
   const [skeletonVisible, setSkeletonVisible] = useState(false);
   const [animKey,         setAnimKey]         = useState(0);
 
-  // rawMatches dipakai SSE hook buat nambal status/live_state tanpa re-fetch
+  const [retryKey, setRetryKey] = useState(0);
+
   const stableMatches = useMemo(() => rawMatches ?? [], [rawMatches]);
   const { liveMatches } = useScheduleMatchState(stableMatches);
 
   const topRef          = useRef<HTMLDivElement>(null);
   const mobileFilterRef = useRef<HTMLDivElement>(null);
-  const outerRef      = useRef<HTMLDivElement>(null);
-  const innerRef      = useRef<HTMLDivElement>(null);
-  const scrollTargetY = useRef<number | null>(null);
+  const outerRef        = useRef<HTMLDivElement>(null);
+  const innerRef        = useRef<HTMLDivElement>(null);
+  const scrollTargetY   = useRef<number | null>(null);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
 
-  const allGroups = useMemo(
-    () => (rawMatches !== null ? buildEventGroups(liveMatches) : null),
-    [liveMatches, rawMatches],
+  const baseGroups = useMemo(
+    () => (rawMatches !== null ? buildEventGroups(rawMatches) : null),
+    [rawMatches],
   );
 
-  const totalPages = allGroups ? Math.max(1, Math.ceil(allGroups.length / EVENTS_PER_PAGE)) : 0;
-  const pageGroups = allGroups?.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE) ?? [];
-  const gridKey    = `${activeTab}|${JSON.stringify(dateFilter)}|${debouncedSearch}|${page}`;
-  const isEmpty    = ready && !fetchError && (allGroups?.length ?? 0) === 0;
+  const allGroups = useMemo(() => {
+    if (!baseGroups) return null;
+    // No live updates yet — liveMatches is the same reference as stableMatches
+    if (liveMatches === stableMatches) return baseGroups;
+    const liveById = new Map<string, any>(liveMatches.map((m: any) => [m.id, m]));
+    return baseGroups.map(g => ({
+      ...g,
+      matches: g.matches.map((m: any) => liveById.get(m.id) ?? m),
+    }));
+  }, [baseGroups, liveMatches, stableMatches]);
 
-  // null = semua tertutup; string = nama event yang sedang terbuka
+  const totalPages = useMemo(
+    () => (allGroups ? Math.max(1, Math.ceil(allGroups.length / EVENTS_PER_PAGE)) : 0),
+    [allGroups],
+  );
+  const pageGroups = useMemo(
+    () => allGroups?.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE) ?? [],
+    [allGroups, page],
+  );
+
+  const gridKey = useMemo(() => {
+    const dateStr = dateFilter === null
+      ? "null"
+      : isRangeFilter(dateFilter)
+        ? `${dateFilter.start.getTime()}-${dateFilter.end.getTime()}`
+        : dateFilter;
+    return `${activeTab}|${dateStr}|${debouncedSearch}|${page}`;
+  }, [activeTab, dateFilter, debouncedSearch, page]);
+
+  const isEmpty = ready && !fetchError && (allGroups?.length ?? 0) === 0;
+
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const handleGroupToggle = useCallback((eventName: string) => {
     setOpenGroup(g => g === eventName ? null : eventName);
   }, []);
 
-  // prevFilters ref pattern replaced with a simple effect
   useEffect(() => { setPage(1); setOpenGroup(null); }, [debouncedSearch, activeTab, dateFilter]);
 
   useEffect(() => {
@@ -270,7 +292,6 @@ export default function SchedulePageClient() {
       search:   debouncedSearch || null,
     };
 
-    // showTimer declared before commit so the closure is never forward-referencing
     let showTimer: ReturnType<typeof setTimeout>;
 
     const commit = (items: any[]) => {
@@ -288,8 +309,6 @@ export default function SchedulePageClient() {
       }
     };
 
-    
-
     showTimer = setTimeout(() => {
       if (cancelled) return;
       skeletonShownAt = Date.now();
@@ -302,7 +321,6 @@ export default function SchedulePageClient() {
         const { items } = await getMatchesSchedule(fetchFilter);
         if (!cancelled) commit(items);
       } catch {
-        // set error state instead of silently falling through to empty state
         if (!cancelled) { setFetchError(true); setReady(true); }
       }
     });
@@ -312,7 +330,7 @@ export default function SchedulePageClient() {
       clearTimeout(showTimer);
       if (minDisplayTimer) clearTimeout(minDisplayTimer);
     };
-  }, [activeTab, dateFilter, debouncedSearch]);
+  }, [activeTab, dateFilter, debouncedSearch, retryKey]); // retryKey added so retryFetch actually re-fetches
 
   useEffect(() => {
     const capture = () => {
@@ -327,8 +345,6 @@ export default function SchedulePageClient() {
 
   useLayoutEffect(() => {
     if (!ready || lockedHeight === null || !innerRef.current) return;
-    // lockedHeight sengaja tidak masuk dep array — kalau dimasukkan akan loop tak terbatas
-    // karena effect ini sendiri yang mengubah lockedHeight
     setLockedHeight(innerRef.current.offsetHeight);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
@@ -341,8 +357,6 @@ export default function SchedulePageClient() {
     setPage(p);
   }, []);
 
-  // transitionend bubbles — accordion children juga fire event ini dan bisa clear lockedHeight
-  // terlalu cepat. Guard: hanya react kalau event-nya dari outerRef sendiri dan property-nya height.
   const handleTransitionEnd = useCallback((e: React.TransitionEvent<HTMLDivElement>) => {
     if (e.target === outerRef.current && e.propertyName === "height") {
       setLockedHeight(null);
@@ -353,12 +367,12 @@ export default function SchedulePageClient() {
     setSearchInput(""); setActiveTab("ALL"); setDateFilter(null); setPage(1);
   }, []);
 
-  // retry bersihkan error state dan trigger re-fetch lewat filter deps
   const retryFetch = useCallback(() => {
     setFetchError(false);
     setRawMatches(null);
     setReady(false);
     setAnimKey(k => k + 1);
+    setRetryKey(k => k + 1); // this actually re-triggers the fetch effect
   }, []);
 
   useEffect(() => {
@@ -382,7 +396,7 @@ export default function SchedulePageClient() {
       ? 0
       : allGroups.length;
 
-  const currentPage = ready ? page : "__";
+  const currentPage    = ready ? page : "__";
   const totalPageCount = ready ? totalPages : "__";
 
   return (
@@ -415,7 +429,7 @@ export default function SchedulePageClient() {
 
         <div ref={topRef}>
 
-          {/* ── MOBILE TOOLBAR ─────────────────────────────────────────────── */}
+          {/* -- MOBILE TOOLBAR ----------------------------------------------- */}
           <div ref={mobileFilterRef} className="relative flex flex-col gap-1.5 mb-3 md:hidden">
 
             {/* Search — full width on top */}
@@ -433,19 +447,7 @@ export default function SchedulePageClient() {
               />
             </div>
 
-            {/* Two filter buttons + both dropdowns — all in one relative wrapper
-                so top-full / left-0 / right-0 anchors to the button row, not the whole bar */}
             <div className="relative">
-              <style>{`
-                @keyframes mob-panel-in {
-                  from { opacity: 0; transform: scaleY(0.92) translateY(-6px); }
-                  to   { opacity: 1; transform: none; }
-                }
-                @keyframes mob-item-in {
-                  from { opacity: 0; transform: translateY(-5px); }
-                  to   { opacity: 1; transform: none; }
-                }
-              `}</style>
 
               {/* Button row */}
               <div className="flex gap-1">
@@ -490,7 +492,7 @@ export default function SchedulePageClient() {
 
               </div>
 
-              {/* Category dropdown — full width, anchored to button row */}
+              {/* Category dropdown */}
               {mobileCategoryOpen && (
                 <div
                   className="absolute top-full left-0 right-0 z-50 border border-white/10 rounded-xl overflow-hidden"
@@ -526,7 +528,7 @@ export default function SchedulePageClient() {
                 </div>
               )}
 
-              {/* Date dropdown — full width, anchored to button row */}
+              {/* Date dropdown */}
               {mobileDateOpen && (
                 <div
                   className="absolute top-full left-0 right-0 z-50 border border-white/10 rounded-xl overflow-hidden"
@@ -579,26 +581,26 @@ export default function SchedulePageClient() {
                     {mobileRangePicker ? <ChevronUp size={12} className="text-white/40 shrink-0" /> : <ChevronDown size={12} className="text-white/40 shrink-0" />}
                   </button>
 
-                {mobileRangePicker && (
-                  <div className="flex justify-center p-3 pt-0">
-                    <DateRangePicker
-                      initialStart={isRangeFilter(dateFilter) ? dateFilter.start : null}
-                      initialEnd={isRangeFilter(dateFilter) ? dateFilter.end   : null}
-                      onApply={(start, end) => {
-                        setDateFilter({ start, end });
-                        setMobileDateOpen(false);
-                        setMobileRangePicker(false);
-                      }}
-                    />
-                  </div>
-                )}
+                  {mobileRangePicker && (
+                    <div className="flex justify-center p-3 pt-0">
+                      <DateRangePicker
+                        initialStart={isRangeFilter(dateFilter) ? dateFilter.start : null}
+                        initialEnd={isRangeFilter(dateFilter) ? dateFilter.end   : null}
+                        onApply={(start, end) => {
+                          setDateFilter({ start, end });
+                          setMobileDateOpen(false);
+                          setMobileRangePicker(false);
+                        }}
+                      />
+                    </div>
+                  )}
 
-              </div>
-            )}
+                </div>
+              )}
             </div>{/* end relative wrapper */}
           </div>
 
-          {/* ── DESKTOP TOOLBAR ────────────────────────────────────────────── */}
+          {/* -- DESKTOP TOOLBAR ---------------------------------------------- */}
           <div className="hidden md:flex items-center gap-3 mb-6">
             <ScheduleToolbar activeTab={activeTab} onTabChange={setActiveTab} />
 
