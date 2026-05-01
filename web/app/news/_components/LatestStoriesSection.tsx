@@ -23,7 +23,7 @@ interface Props {
   pad:        number;
 }
 
-// ─── Hover card wrapper ────────────────────────────────────────────────────────
+// --- Hover card wrapper --------------------------------------------------------
 
 function HoverCard({
   children,
@@ -64,7 +64,7 @@ function HoverCard({
   );
 }
 
-// ─── Ghost card ───────────────────────────────────────────────────────────────
+// --- Ghost card ---------------------------------------------------------------
 
 function LatestGhost({ style }: { style?: React.CSSProperties }) {
   return (
@@ -96,7 +96,7 @@ function LatestGhost({ style }: { style?: React.CSSProperties }) {
   );
 }
 
-// ─── Desktop grid ─────────────────────────────────────────────────────────────
+// --- Desktop grid -------------------------------------------------------------
 
 function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
   const router  = useRouter();
@@ -154,7 +154,7 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
   );
 }
 
-// ─── Mobile stack ─────────────────────────────────────────────────────────────
+// --- Mobile stack -------------------------------------------------------------
 
 function MobileStack({ news }: { news: NewsItem[] }) {
   const router = useRouter();
@@ -201,7 +201,7 @@ function MobileStack({ news }: { news: NewsItem[] }) {
   );
 }
 
-// ─── Section ──────────────────────────────────────────────────────────────────
+// --- Section ------------------------------------------------------------------
 
 export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: Props) {
   return (

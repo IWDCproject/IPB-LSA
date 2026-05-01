@@ -2,20 +2,50 @@
 
 import Image from "next/image";
 import { getEngine, calcAvg, fmtTime, resolveWinnerName } from "../match/scoreUtils";
-import { MiddleBadge, ScoreCell, AnimatedScore } from "../match/ScoreBadges";
+import { MiddleBadge, ScoreCell, AnimatedScore, LIGHT_BADGE_COLORS, DARK_BADGE_COLORS } from "../match/ScoreBadges";
+import type { BadgeColors } from "../match/ScoreBadges";
 import type { MappedMatch } from "../../_types";
+
+// --- Match Row Color Config ---------------------------------------------------
+
+export type MatchColors = {
+  cardBg:        string   // card background
+  border:        string   // card border
+  primaryText:   string   // names, time
+  secondaryText: string   // category, venue, meta
+  mutedText:     string   // institution name, timestamps
+  dimmedText:    string   // loser text
+}
+
+export const LIGHT_MATCH_COLORS: MatchColors = {
+  cardBg:        "#F8F9FB",
+  border:        "#ECEEF2",
+  primaryText:   "#111111",
+  secondaryText: "#555555",
+  mutedText:     "#aaaaaa",
+  dimmedText:    "#C4C8D4",
+}
+
+export const DARK_MATCH_COLORS: MatchColors = {
+  cardBg:        "#08103F",
+  border:        "rgba(255,255,255,0.4)",
+  primaryText:   "#ffffff",
+  secondaryText: "rgba(255,255,255,0.7)",
+  mutedText:     "rgba(255,255,255,0.55)",
+  dimmedText:    "rgba(255,255,255,0.4)",
+}
 
 // --- MobileScoreCell ---------------------------------------------------------
 
 const numPillCls = "font-jakarta text-sm font-black rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]";
 
-function MobileScoreCell({ match }: { match: MappedMatch }) {
+function MobileScoreCell({ match, C, badgeColors }: { match: MappedMatch; C: MatchColors; badgeColors: BadgeColors }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
   const isUpcoming = match.status === "upcoming";
 
-  if (isUpcoming) return <MiddleBadge match={match} />;
+  if (isUpcoming) return <MiddleBadge match={match} colors={badgeColors} />;
 
   if (engine?.type === "score_sets") {
     if (isLive) {
@@ -50,18 +80,28 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
       return (
         <div className="flex flex-col items-end gap-[3px] max-w-[88px]">
           <div className="flex items-center gap-1">
-            <span className="font-jakarta text-sm font-black text-[#111] bg-gray-100 rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]">
+            <span
+              className={numPillCls}
+              style={{ background: badgeColors.badgeBg, color: badgeColors.valueText }}
+            >
               <AnimatedScore value={String(homeSets)} />
             </span>
-            <span className="font-jakarta text-xs font-extrabold text-[#aaa]">vs</span>
-            <span className="font-jakarta text-sm font-black text-[#111] bg-gray-100 rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]">
+            <span className="font-jakarta text-xs font-extrabold" style={{ color: badgeColors.mutedText }}>vs</span>
+            <span
+              className={numPillCls}
+              style={{ background: badgeColors.badgeBg, color: badgeColors.valueText }}
+            >
               <AnimatedScore value={String(awaySets)} />
             </span>
           </div>
           {detailArr.length > 0 && (
             <div className="flex flex-wrap justify-end gap-x-[3px] gap-y-px max-w-full">
               {detailArr.map((d: string, i: number) => (
-                <span key={i} className="font-jakarta text-[9px] font-semibold text-gray-400 whitespace-nowrap">[{d}]</span>
+                <span
+                  key={i}
+                  className="font-jakarta text-[9px] font-semibold whitespace-nowrap"
+                  style={{ color: badgeColors.mutedText }}
+                >[{d}]</span>
               ))}
             </div>
           )}
@@ -86,11 +126,12 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
         })
       : [];
 
-    const pillBg = isLive ? "bg-[#FFC936]" : "bg-gray-100";
-
     return (
       <div className="flex flex-col items-end gap-[3px] max-w-[88px]">
-        <span className={`font-jakarta text-sm font-black text-[#111] ${pillBg} rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]`}>
+        <span
+          className={`font-jakarta text-sm font-black rounded-md min-w-[26px] h-[26px] flex items-center justify-center px-[5px]`}
+          style={{ background: isLive ? "#FFC936" : badgeColors.badgeBg, color: isLive ? "#111" : badgeColors.valueText }}
+        >
           &nbsp;Avg:&nbsp;<AnimatedScore value={avgResult} />&nbsp;
         </span>
         {detailArr.length > 0 && (
@@ -98,10 +139,9 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
             {detailArr.map((d: string, i: number) => (
               <span
                 key={i}
-                className={`font-jakarta text-[9px] font-semibold whitespace-nowrap ${isLive ? "text-yellow-600" : "text-gray-400"}`}
-              >
-                [{d}]
-              </span>
+                className="font-jakarta text-[9px] font-semibold whitespace-nowrap"
+                style={{ color: isLive ? "#CA8A04" : badgeColors.mutedText }}
+              >[{d}]</span>
             ))}
           </div>
         )}
@@ -109,10 +149,10 @@ function MobileScoreCell({ match }: { match: MappedMatch }) {
     );
   }
 
-  return <ScoreCell match={match} compact />;
+  return <ScoreCell match={match} compact colors={badgeColors} />;
 }
 
-// --- Logo & Peserta ----------------------------------------------------------
+// --- Logo & Participants -----------------------------------------------------
 
 function Logo({ inst, size = 32, isLoser = false }: { inst: any; size?: number; isLoser?: boolean }) {
   const dimFilter = isLoser ? "saturate(0) opacity(0.65)" : undefined;
@@ -148,11 +188,11 @@ function UndecidedLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-function UndecidedParticipant({ size = 32, align = "left" }: { size?: number; align?: "left" | "right" }) {
+function UndecidedParticipant({ size = 32, align = "left", C }: { size?: number; align?: "left" | "right"; C: MatchColors }) {
   const textBlock = (
     <div className={`min-w-0 ${align === "right" ? "text-right" : ""}`}>
-      <div className="font-jakarta text-[11px] font-semibold text-gray-300 leading-[1.2]">Undecided</div>
-      <div className="font-jakarta text-[13px] font-bold text-gray-300 mt-0.5">To Be Determined</div>
+      <div className="font-jakarta text-[11px] font-semibold leading-[1.2]" style={{ color: C.mutedText }}>Undecided</div>
+      <div className="font-jakarta text-[13px] font-bold mt-0.5"           style={{ color: C.mutedText }}>To Be Determined</div>
     </div>
   );
   return (
@@ -164,23 +204,30 @@ function UndecidedParticipant({ size = 32, align = "left" }: { size?: number; al
   );
 }
 
-function ParticipantInfo({ inst, name, align = "left", dimmed = false }: {
+function ParticipantInfo({ inst, name, align = "left", dimmed = false, C }: {
   inst:    any;
   name:    string;
   align?:  "left" | "right";
   dimmed?: boolean;
+  C:       MatchColors;
 }) {
   return (
     <div className={`min-w-0 flex-1 text-${align}`}>
       <div
-        className={`font-jakarta line-clamp-2 text-[11px] font-semibold leading-[1.2] transition-colors duration-200 ${dimmed ? "text-[#C4C8D4]" : "text-[#676767]"}`}
-        style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+        className="font-jakarta line-clamp-2 text-[11px] font-semibold leading-[1.2] transition-colors duration-200"
+        style={{
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+          color: dimmed ? C.dimmedText : C.mutedText,
+        }}
       >
         {inst?.name ?? ""}
       </div>
       <div
-        className={`font-jakarta text-[13px] font-bold mt-0.5 transition-colors duration-200 ${dimmed ? "text-gray-400" : "text-[#111]"}`}
-        style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+        className="font-jakarta text-[13px] font-bold mt-0.5 transition-colors duration-200"
+        style={{
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+          color: dimmed ? C.dimmedText : C.primaryText,
+        }}
       >
         {name}
       </div>
@@ -188,7 +235,7 @@ function ParticipantInfo({ inst, name, align = "left", dimmed = false }: {
   );
 }
 
-function OpenParticipants({ match }: { match: MappedMatch }) {
+function OpenParticipants({ match, C }: { match: MappedMatch; C: MatchColors }) {
   const entries = [...(match?.participants ?? [])]
     .sort((a: any, b: any) => (a?.position ?? Infinity) - (b?.position ?? Infinity))
     .map((j: any) => j.participant_id);
@@ -199,7 +246,7 @@ function OpenParticipants({ match }: { match: MappedMatch }) {
   const line2    = allNames.slice(3);
 
   if (entries.length === 0) {
-    return <div className="font-jakarta text-xs font-semibold text-[#aaa]">Waiting for participants...</div>;
+    return <div className="font-jakarta text-xs font-semibold" style={{ color: C.mutedText }}>Waiting for participants...</div>;
   }
 
   return (
@@ -211,24 +258,24 @@ function OpenParticipants({ match }: { match: MappedMatch }) {
               key={i}
               src={p.institution.logo_url} alt={p.institution?.name ?? ""}
               width={32} height={32}
-              className="rounded-full bg-white border-2 border-white shrink-0"
-              style={{ objectFit: "contain", marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
+              className="rounded-full border-2 shrink-0"
+              style={{ objectFit: "contain", width: 32, height: 32, borderColor: C.cardBg, background: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           ) : (
             <div
               key={i}
-              className="w-8 h-8 rounded-full border-2 border-white shrink-0"
-              style={{ background: (p as any)?.institution?.color ?? "#1D4ED8", marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
+              className="rounded-full border-2 shrink-0"
+              style={{ width: 32, height: 32, background: (p as any)?.institution?.color ?? "#1D4ED8", borderColor: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           )
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="font-jakarta truncate text-[13px] font-bold text-black">
+        <div className="font-jakarta truncate text-[13px] font-bold" style={{ color: C.primaryText }}>
           {line1}{line2.length > 0 ? "," : ""}
         </div>
         {line2.length > 0 && (
-          <div className="font-jakarta truncate text-[11px] font-medium text-[#676767] mt-0.5">
+          <div className="font-jakarta truncate text-[11px] font-medium mt-0.5" style={{ color: C.mutedText }}>
             {line2.slice(0, 3).join(", ")}{line2.length > 3 ? ", ..." : ""}
           </div>
         )}
@@ -237,33 +284,33 @@ function OpenParticipants({ match }: { match: MappedMatch }) {
   );
 }
 
-function HomeCell({ match, isLoser = false }: { match: MappedMatch; isLoser?: boolean }) {
+function HomeCell({ match, isLoser = false, C }: { match: MappedMatch; isLoser?: boolean; C: MatchColors }) {
   const isOpen      = match.competition_category?.format_id?.match_type === "open";
   const participant = match.home_participant;
-  if (isOpen) return <OpenParticipants match={match} />;
-  if (!participant) return <UndecidedParticipant align="left" />;
+  if (isOpen) return <OpenParticipants match={match} C={C} />;
+  if (!participant) return <UndecidedParticipant align="left" C={C} />;
   return (
     <div className="flex items-center gap-2.5 min-w-0">
       <Logo inst={participant.institution} isLoser={isLoser} />
-      <ParticipantInfo inst={participant.institution} name={participant.name} dimmed={isLoser} />
+      <ParticipantInfo inst={participant.institution} name={participant.name} dimmed={isLoser} C={C} />
     </div>
   );
 }
 
-function AwayCell({ match, isLoser = false }: { match: MappedMatch; isLoser?: boolean }) {
+function AwayCell({ match, isLoser = false, C }: { match: MappedMatch; isLoser?: boolean; C: MatchColors }) {
   const isH2H       = match.competition_category?.format_id?.match_type === "head_to_head";
   const participant = match.away_participant;
   if (!isH2H) return <div />;
-  if (!participant) return <UndecidedParticipant align="right" />;
+  if (!participant) return <UndecidedParticipant align="right" C={C} />;
   return (
     <div className="flex items-center justify-end gap-2.5 min-w-0">
-      <ParticipantInfo inst={participant.institution} name={participant.name} align="right" dimmed={isLoser} />
+      <ParticipantInfo inst={participant.institution} name={participant.name} align="right" dimmed={isLoser} C={C} />
       <Logo inst={participant.institution} isLoser={isLoser} />
     </div>
   );
 }
 
-// --- Info Pertandingan -------------------------------------------------------
+// --- Info Cells --------------------------------------------------------------
 
 function PodiumRow({ live }: { live: any }) {
   const podium = (live?.timeLog ?? []).slice(0, 3);
@@ -291,41 +338,45 @@ function PodiumRow({ live }: { live: any }) {
   );
 }
 
-function StatusLabel({ match }: { match: MappedMatch }) {
+function StatusLabel({ match, C = LIGHT_MATCH_COLORS }: { match: MappedMatch; C?: MatchColors }) {
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
   const round      = (match.round as string | null | undefined)?.trim();
 
   if (round) {
     return (
-      <span className={`font-jakarta text-[11px] font-bold ${isLive ? "text-amber-600" : "text-gray-400"}`}>
+      <span className="font-jakarta text-[11px] font-bold" style={{ color: isLive ? "rgb(217,119,6)" : C.mutedText }}>
         {round}
       </span>
     );
   }
 
-  if (isLive)     return <span className="font-jakarta text-[11px] font-extrabold text-amber-600">Ongoing</span>;
+  if (isLive)     return <span className="font-jakarta text-[11px] font-extrabold" style={{ color: "rgb(217,119,6)" }}>Ongoing</span>;
   if (isFinished) {
     const winner = resolveWinnerName(match);
-    return <span className="font-jakarta text-[11px] font-bold text-gray-400">{winner ? `${winner} Win` : "Finished"}</span>;
+    return <span className="font-jakarta text-[11px] font-bold" style={{ color: C.mutedText }}>{winner ? `${winner} Win` : "Finished"}</span>;
   }
-  return <span className="font-jakarta text-[11px] font-semibold text-gray-400">Upcoming</span>;
+  return <span className="font-jakarta text-[11px] font-semibold" style={{ color: C.mutedText }}>Upcoming</span>;
 }
 
-function TimeVenueCell({ match, isLive }: { match: MappedMatch; isLive: boolean }) {
+function TimeVenueCell({ match, isLive, C = LIGHT_MATCH_COLORS }: { match: MappedMatch; isLive: boolean; C?: MatchColors }) {
   const timeLabel = isLive ? "Live" : fmtTime(match.scheduled_at);
   return (
     <div className="min-w-0">
       <div
-        className={`font-jakarta text-[15px] font-extrabold ${isLive ? "text-amber-600" : "text-[#676767]"}`}
+        className="font-jakarta text-[15px] font-extrabold"
+        style={{ color: isLive ? "rgb(217,119,6)" : C.secondaryText }}
         suppressHydrationWarning
       >
         {timeLabel}
       </div>
       {match.venue && (
         <div
-          className="font-jakarta text-[11px] font-medium text-[#aaa] mt-0.5"
-          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          className="font-jakarta text-[11px] font-medium mt-0.5"
+          style={{
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+            color: C.mutedText,
+          }}
         >
           {match.venue}
         </div>
@@ -334,17 +385,20 @@ function TimeVenueCell({ match, isLive }: { match: MappedMatch; isLive: boolean 
   );
 }
 
-function MetaCell({ match }: { match: MappedMatch }) {
+function MetaCell({ match, C = LIGHT_MATCH_COLORS }: { match: MappedMatch; C?: MatchColors }) {
   return (
     <div className="text-right min-w-0">
       <div
-        className="font-jakarta text-[13px] font-extrabold text-[#444]"
-        style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+        className="font-jakarta text-[13px] font-extrabold"
+        style={{
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+          color: C.primaryText,
+        }}
       >
         {match.competition_category?.name ?? ""}
       </div>
       <div className="mt-[3px]">
-        <StatusLabel match={match} />
+        <StatusLabel match={match} C={C} />
       </div>
     </div>
   );
@@ -352,6 +406,7 @@ function MetaCell({ match }: { match: MappedMatch }) {
 
 // --- DesktopMatchRow ---------------------------------------------------------
 // Grid: [160px] [1fr] [auto] [1fr] [160px]
+// gada versi darknya
 
 export function DesktopMatchRow({ match }: { match: MappedMatch }) {
   const engine     = getEngine(match.competition_category?.format_id);
@@ -386,13 +441,13 @@ export function DesktopMatchRow({ match }: { match: MappedMatch }) {
     >
       <TimeVenueCell match={match} isLive={isLive} />
       <div className="min-w-0 overflow-hidden">
-        <HomeCell match={match} isLoser={homeIsLoser} />
+        <HomeCell match={match} isLoser={homeIsLoser} C={LIGHT_MATCH_COLORS} />
       </div>
       <div className="flex justify-center">
         <ScoreCell match={match} />
       </div>
       <div className="min-w-0 overflow-hidden">
-        <AwayCell match={match} isLoser={awayIsLoser} />
+        <AwayCell match={match} isLoser={awayIsLoser} C={LIGHT_MATCH_COLORS} />
       </div>
       <MetaCell match={match} />
     </div>
@@ -401,7 +456,7 @@ export function DesktopMatchRow({ match }: { match: MappedMatch }) {
 
 // --- MobileMatchRow ----------------------------------------------------------
 
-function MobileParticipantRow({ participant, isLoser }: { participant: any; isLoser: boolean }) {
+function MobileParticipantRow({ participant, isLoser, C }: { participant: any; isLoser: boolean; C: MatchColors }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
       {participant
@@ -410,14 +465,20 @@ function MobileParticipantRow({ participant, isLoser }: { participant: any; isLo
       }
       <div className="min-w-0">
         <div
-          className={`font-jakarta text-xs font-bold transition-colors duration-200 ${participant ? (isLoser ? "text-gray-400" : "text-[#111]") : "text-gray-300"}`}
-          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          className="font-jakarta text-xs font-bold transition-colors duration-200"
+          style={{
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+            color: participant ? (isLoser ? C.dimmedText : C.primaryText) : C.mutedText,
+          }}
         >
           {participant?.name ?? "To Be Determined"}
         </div>
         <div
-          className={`font-jakarta text-[10px] font-medium transition-colors duration-200 ${isLoser ? "text-[#C4C8D4]" : "text-[#aaa]"}`}
-          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          className="font-jakarta text-[10px] font-medium transition-colors duration-200"
+          style={{
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+            color: isLoser ? C.dimmedText : C.mutedText,
+          }}
         >
           {participant ? (participant.institution?.name ?? "") : "Undecided"}
         </div>
@@ -426,7 +487,10 @@ function MobileParticipantRow({ participant, isLoser }: { participant: any; isLo
   );
 }
 
-export function MobileMatchRow({ match }: { match: MappedMatch }) {
+export function MobileMatchRow({ match, dark = false }: { match: MappedMatch; dark?: boolean }) {
+  const C           = dark ? DARK_MATCH_COLORS : LIGHT_MATCH_COLORS;
+  const badgeColors = dark ? DARK_BADGE_COLORS : LIGHT_BADGE_COLORS;
+
   const isH2H      = match.competition_category?.format_id?.match_type === "head_to_head";
   const isOpen     = match.competition_category?.format_id?.match_type === "open";
   const isLive     = match.status === "live";
@@ -441,21 +505,27 @@ export function MobileMatchRow({ match }: { match: MappedMatch }) {
   const timeLabel   = isLive ? "Live" : fmtTime(match.scheduled_at);
 
   return (
-    <div className="bg-[#F8F9FB] rounded-xl border border-[#ECEEF2] px-3 py-[10px] flex flex-col gap-2">
-
+    <div
+      className="rounded-xl px-3 py-[10px] flex flex-col gap-2"
+      style={{ background: C.cardBg, border: `1px solid ${C.border}` }}
+    >
       {/* Meta row */}
       <div className="flex justify-between items-start">
         <div>
           <div
-            className={`font-jakarta text-[11px] font-bold ${isLive ? "text-amber-600" : "text-[#555]"}`}
+            className="font-jakarta text-[11px] font-bold"
+            style={{ color: isLive ? "rgb(217,119,6)" : C.secondaryText }}
             suppressHydrationWarning
           >
             {timeLabel}
           </div>
           {match.venue && (
             <div
-              className="font-jakarta text-[10px] font-medium text-[#aaa] mt-px max-w-[140px]"
-              style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+              className="font-jakarta text-[10px] font-medium mt-px max-w-[140px]"
+              style={{
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                color: C.mutedText,
+              }}
             >
               {match.venue}
             </div>
@@ -463,13 +533,16 @@ export function MobileMatchRow({ match }: { match: MappedMatch }) {
         </div>
         <div className="text-right">
           <div
-            className="font-jakarta text-[11px] font-bold text-[#555] max-w-[150px]"
-            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+            className="font-jakarta text-[11px] font-bold max-w-[150px]"
+            style={{
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+              color: C.secondaryText,
+            }}
           >
             {match.competition_category?.name ?? ""}
           </div>
           <div className="mt-px">
-            <StatusLabel match={match} />
+            <StatusLabel match={match} C={C} />
           </div>
         </div>
       </div>
@@ -477,25 +550,20 @@ export function MobileMatchRow({ match }: { match: MappedMatch }) {
       {/* Participants + score */}
       {isOpen ? (
         <div className="flex items-center gap-2.5">
-          <div className="flex-1 min-w-0"><OpenParticipants match={match} /></div>
-          {/* Score */}
-          <div className="shrink-0"><MobileScoreCell match={match} /></div>
+          <div className="flex-1 min-w-0"><OpenParticipants match={match} C={C} /></div>
+          <div className="shrink-0"><MobileScoreCell match={match} C={C} badgeColors={badgeColors} /></div>
         </div>
       ) : (
         <div className="flex items-center gap-2.5">
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-            {/* Home */}
-            <MobileParticipantRow participant={home} isLoser={homeIsLoser} />
-            {/* Away */}
-            {isH2H && <MobileParticipantRow participant={away} isLoser={awayIsLoser} />}
+            <MobileParticipantRow participant={home} isLoser={homeIsLoser} C={C} />
+            {isH2H && <MobileParticipantRow participant={away} isLoser={awayIsLoser} C={C} />}
           </div>
-          {/* Score */}
           <div className="shrink-0 flex items-center justify-center">
-            <MobileScoreCell match={match} />
+            <MobileScoreCell match={match} C={C} badgeColors={badgeColors} />
           </div>
         </div>
       )}
-
     </div>
   );
 }

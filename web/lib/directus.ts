@@ -396,6 +396,85 @@ export const getParticipantsByEvent = async (
   }
 };
 
+// --- Schedule -----------------------------------------------------------------
+
+export interface ScheduleMatchFilter {
+  dateFrom: string | null;
+  dateTo:   string | null;
+  category: string | null;
+  search:   string | null;
+}
+
+const SCHEDULE_FIELDS = [
+  '*',
+  'competition_category_id.*',
+  'competition_category_id.event_id.id',
+  'competition_category_id.event_id.name',
+  'competition_category_id.event_id.slug',
+  'competition_category_id.event_id.card_image.*',
+  'competition_category_id.event_id.user_created.organisation_name',
+  'competition_category_id.format_id.*',
+  'home_participant_id.*',
+  'home_participant_id.institution_id.*',
+  'away_participant_id.*',
+  'away_participant_id.institution_id.*',
+  'participants.id',
+  'participants.participant_id.*',
+  'participants.participant_id.institution_id.*',
+];
+
+/** Fetches matches for the /schedule page with optional date, category, and
+ *  search filters. Defaults to a -30 day → +90 day window when no date range
+ *  is supplied, matching the client's comment at the top of SchedulePageClient. */
+export const getMatchesSchedule = async (
+  filter: ScheduleMatchFilter = { dateFrom: null, dateTo: null, category: null, search: null },
+): Promise<{ items: MappedMatch[] }> => {
+  const now = new Date();
+  const defaultFrom = new Date(now);
+  defaultFrom.setDate(now.getDate() - 30);
+  const defaultTo = new Date(now);
+  defaultTo.setDate(now.getDate() + 90);
+
+  const dateFrom = filter.dateFrom ?? defaultFrom.toISOString();
+  const dateTo   = filter.dateTo   ?? defaultTo.toISOString();
+
+  const conditions: any[] = [
+    { scheduled_at: { _gte: dateFrom } },
+    { scheduled_at: { _lte: dateTo   } },
+  ];
+
+  if (filter.category) {
+    conditions.push({
+      competition_category_id: { name: { _icontains: filter.category } },
+    });
+  }
+
+  if (filter.search) {
+    conditions.push({
+      _or: [
+        { competition_category_id: { event_id: { name: { _icontains: filter.search } } } },
+        { competition_category_id: { name:              { _icontains: filter.search } } },
+        { home_participant_id:     { name:              { _icontains: filter.search } } },
+        { away_participant_id:     { name:              { _icontains: filter.search } } },
+        { venue:                   {                      _icontains: filter.search   } },
+      ],
+    });
+  }
+
+  try {
+    const res = await directusCached.request(readItems('matches', {
+      filter: { _and: conditions },
+      fields: SCHEDULE_FIELDS,
+      sort:   ['scheduled_at'],
+      limit:  -1,
+    }));
+    return { items: (res as any[]).map(mapMatch) };
+  } catch (err) {
+    console.error('[getMatchesSchedule]', err);
+    return { items: [] };
+  }
+};
+
 // --- Misc ---------------------------------------------------------------------
 
 export const getEvents = async () => getEventsForListing();

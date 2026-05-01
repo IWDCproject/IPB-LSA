@@ -278,7 +278,7 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
             {/* Prioritas status: WebSocket > timestamp polling > kosong */}
             {wsStatus === "connected" || wsStatus === "reconnecting" ? (
               <p className="font-jakarta text-xs font-semibold text-black/35">
-                {wsStatus === "connected" ? "Real-time · WebSocket" : "Connecting WebSocket…"}
+                {wsStatus === "connected" ? "Real-time · SSE" : "Connecting SSE…"}
               </p>
             ) : lastUpdated ? (
               <p className="font-jakarta text-xs font-semibold text-black/35">
