@@ -2,7 +2,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import Image from "next/image";
 import { getAssetUrl } from "@/lib/directus";
-import { useBlur } from "@/contexts/BlurContext";
 
 const BB = { fontFamily: "'Bebas Neue', 'Arial Narrow', sans-serif" };
 const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
@@ -13,10 +12,6 @@ const S = {
     display: "flex", flexDirection: "column",
     width: "100%", height: "100%", position: "relative",
     contain: "layout paint",
-  } as React.CSSProperties,
-  cardBg: {
-    position: "absolute", inset: 0,
-    backgroundSize: "cover", backgroundPosition: "center",
   } as React.CSSProperties,
   cardOverlay: {
     position: "absolute", inset: 0,
@@ -47,10 +42,8 @@ function fmtSecs(s: number) {
 function getEngine(fmt: any)   { return fmt?.modules?.[0] ?? null; }
 function getTimerMod(fmt: any) { return fmt?.modules?.find((m: any) => m.type === "timer") ?? null; }
 
-function calcJudgeScore(rawScores: any[] =[], method = "avg") {
-  // 1. FILTER OUT NULL/UNDEFINED SCORES FIRST
+function calcJudgeScore(rawScores: any[] = [], method = "avg") {
   const scores = rawScores.filter((s) => typeof s === "number" && !isNaN(s));
-  
   if (!scores.length) return 0;
   if (method === "drop_extremes" && scores.length > 2) {
     const sorted = [...scores].sort((a, b) => a - b).slice(1, -1);
@@ -65,14 +58,12 @@ function useMatchTimerDOM(ref: React.RefObject<HTMLSpanElement>, live: any, time
     if (!timerMod) return;
     const isStopwatch = timerMod?.config?.mode === "stopwatch";
     const isDeadline  = timerMod?.config?.mode === "deadline";
-    
+
     const calc = () => {
-      // 1. Read the target directly from the JSON
       if (isDeadline && live?.timerTarget) {
         const diff = (new Date(live.timerTarget).getTime() - Date.now()) / 1000;
-        return diff <= 0 ? -1 : diff; // -1 means finished
+        return diff <= 0 ? -1 : diff;
       }
-      
       const snap = Math.max(0, live?.timerSecs ?? 0);
       if (!live?.timerRunning || !live?.timerLastStarted) return snap;
       const elapsed = Math.max(0, (Date.now() - new Date(live.timerLastStarted).getTime()) / 1000);
@@ -97,7 +88,7 @@ function useMatchTimerDOM(ref: React.RefObject<HTMLSpanElement>, live: any, time
       const id = setInterval(update, 1000);
       return () => clearInterval(id);
     }
-  },[live?.timerRunning, live?.timerLastStarted, live?.timerSecs, live?.timerTarget, timerMod?.config?.mode]);
+  }, [live?.timerRunning, live?.timerLastStarted, live?.timerSecs, live?.timerTarget, timerMod?.config?.mode]);
 }
 
 function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }: { inst: any; size?: string }) {
@@ -123,8 +114,8 @@ function ScoreTimed({ live }: { live: any }) {
 
 function ScoreSets({ live, engine }: { live: any; engine: any }) {
   const setsWon   = live?.setsWon  ?? [0, 0];
-  const setScore  = live?.setScore ??[0, 0];
-  const setLog    = live?.setLog   ??[];
+  const setScore  = live?.setScore ?? [0, 0];
+  const setLog    = live?.setLog   ?? [];
   const setsToWin = engine?.config?.sets_to_win ?? 3;
 
   const Dots = ({ filled }: { filled: number }) => (
@@ -166,7 +157,7 @@ function ScoreSets({ live, engine }: { live: any; engine: any }) {
 }
 
 function JudgeScores({ live, engine }: { live: any; engine: any }) {
-  const scores = live?.judgeScores ??[];
+  const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
   const result = calcJudgeScore(scores, method);
   const pill: React.CSSProperties = {
@@ -179,7 +170,6 @@ function JudgeScores({ live, engine }: { live: any; engine: any }) {
     <div style={{ textAlign: "center" }}>
       <div style={{ ...BB, fontSize: "calc(40px * var(--s))", lineHeight: 1, letterSpacing: 2 }}>{result.toFixed(2)}</div>
       <div style={{ display: "flex", gap: "calc(6px * var(--s))", justifyContent: "center", marginTop: "calc(4px * var(--s))", flexWrap: "wrap" }}>
-        {/* 2. SAFELY HANDLE NULL VALUES IN THE UI */}
         {scores.map((s: number | null, i: number) => (
           <span key={i} style={pill}>
             {typeof s === "number" ? s.toFixed(1) : "-"}
@@ -194,7 +184,7 @@ function JudgeScores({ live, engine }: { live: any; engine: any }) {
 }
 
 function FinishTime({ live, match }: { live: any; match: any }) {
-  const log = live?.timeLog ??[];
+  const log = live?.timeLog ?? [];
   if (!log.length) {
     const isOpen = match?.competition_category?.format_id?.match_type === "open";
     if (isOpen && match?.participants?.length) return <OpenParticipants match={match} />;
@@ -217,7 +207,7 @@ function FinishTime({ live, match }: { live: any; match: any }) {
 
 function ManualPick({ live, match }: { live: any; match: any }) {
   const winner   = live?.winner   ?? null;
-  const rankings = live?.rankings ??[];
+  const rankings = live?.rankings ?? [];
 
   if (rankings.length > 0) {
     return (
@@ -285,58 +275,7 @@ function OpenParticipants({ match }: { match: any }) {
   );
 }
 
-
-function BitmapBlurLayer({ bitmap }) {
-  const canvasRef = useRef(null);
-  const bitmapRef = useRef(null);
-
-  useEffect(() => {
-    if (!bitmap || !canvasRef.current) return;
-    bitmapRef.current = bitmap;
-    const canvas = canvasRef.current;
-
-    function draw() {
-      if (!bitmapRef.current) return;
-      const dpr = window.devicePixelRatio || 1;
-      const w   = canvas.offsetWidth  || 1;
-      const h   = canvas.offsetHeight || 1;
-      canvas.width  = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      const ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      // cover-fit: scale bitmap so it fills w×h without distortion
-      const bw = bitmapRef.current.width;
-      const bh = bitmapRef.current.height;
-      const scale = Math.max(w / bw, h / bh);
-      const dw = bw * scale;
-      const dh = bh * scale;
-      const dx = (w - dw) / 2;
-      const dy = (h - dh) / 2;
-      ctx.drawImage(bitmapRef.current, dx, dy, dw, dh);
-    }
-
-    const ro = new ResizeObserver(draw);
-    ro.observe(canvas);
-    draw(); // initial paint
-    return () => ro.disconnect();
-  }, [bitmap]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position:      "absolute",
-        inset:         0,
-        width:         "100%",
-        height:        "100%",
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
-
-export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bitmap?: ImageBitmap | null }) {
+export function MatchCard({ match }: { match: any }) {
   const { live_state: live, competition_category: cat } = match;
   const event = cat?.event_id;
   const fmt   = cat?.format_id;
@@ -345,7 +284,7 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
   const isSolo = fmt?.match_type === "solo";
   const isOpen = fmt?.match_type === "open";
 
-  const timerMod     = getTimerMod(fmt);
+  const timerMod      = getTimerMod(fmt);
   const badgeTimerRef = useRef<HTMLSpanElement>(null);
   const openTimerRef  = useRef<HTMLSpanElement>(null);
   useMatchTimerDOM(badgeTimerRef, live, (!isOpen && timerMod) ? timerMod : null);
@@ -365,21 +304,24 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  },[]);
+  }, []);
 
   const imageUrl = getAssetUrl(event?.card_image);
   const hasBg    = !!imageUrl;
 
-  const { bitmaps } = useBlur();
-  const bitmap = bitmapProp ?? (imageUrl ? bitmaps[imageUrl]?.matchcard?.bitmap ?? null : null);
-
   return (
     <div ref={cardRef} style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
+      {/* CSS blur background — no canvas, no bitmap needed */}
       {hasBg && (
-        <>
-          <div style={{ ...S.cardBg, backgroundImage: `url(${imageUrl})` }} />
-          {bitmap && <BitmapBlurLayer bitmap={bitmap} />}
-        </>
+        <div style={{
+          position: "absolute",
+          // extend 20px past card edges so blur fade is hidden behind overflow:hidden
+          inset: "-20px",
+          backgroundImage: `url(${imageUrl})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          filter: "blur(10px)",
+        }} />
       )}
 
       <div style={S.cardOverlay} />
@@ -461,12 +403,12 @@ export function MatchCard({ match, bitmap: bitmapProp = null }: { match: any; bi
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 0, lineHeight: 1 }}>
-                     <span style={{ fontSize: "calc(20px * var(--s))", opacity: 0.8 }}>
-                       {match.scheduled_at ? new Date(match.scheduled_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }).toUpperCase() : "NO DATE"}
-                     </span>
-                     <span style={{ fontSize: "calc(14px * var(--s))", opacity: 0.4 }}>
-                       {match.scheduled_at ? new Date(match.scheduled_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) : "--:--"}
-                     </span>
+                    <span style={{ fontSize: "calc(20px * var(--s))", opacity: 0.8 }}>
+                      {match.scheduled_at ? new Date(match.scheduled_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase() : "NO DATE"}
+                    </span>
+                    <span style={{ fontSize: "calc(14px * var(--s))", opacity: 0.4 }}>
+                      {match.scheduled_at ? new Date(match.scheduled_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : "--:--"}
+                    </span>
                   </div>
                 )}
               </div>

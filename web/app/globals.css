@@ -20,7 +20,7 @@ html, body {
   scroll-behavior: smooth;
 }
 
-/* ── MatchSection — scrollbar hide ── */
+/* ── MatchSection ── */
 
 .match-scroll::-webkit-scrollbar { display: none; }
 .match-scroll { -ms-overflow-style: none; scrollbar-width: none; }
@@ -28,11 +28,6 @@ html, body {
 @keyframes bgFadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
-}
-
-@keyframes notch-pop {
-  from { opacity: 0; transform: translateX(-50%) scaleX(0.5); }
-  to   { opacity: 1; transform: translateX(-50%) scaleX(1); }
 }
 
 @keyframes info-exit {
@@ -96,8 +91,25 @@ html, body {
 }
 
 @keyframes pulse-ring {
-  0%   { transform: scale(0);   opacity: 0.7; }
-  100% { transform: scale(2);   opacity: 0;   }
+  0%   { transform: scale(0); opacity: 0.7; }
+  100% { transform: scale(2); opacity: 0;   }
+}
+
+/* Dot aktif pada event card di timeline */
+.etl-dot-pulse {
+  animation: etl-dot-pulse 2s ease-out infinite;
+}
+@keyframes etl-dot-pulse {
+  0%   { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 0    rgba(255,201,54,0.7); }
+  70%  { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 10px rgba(255,201,54,0);   }
+  100% { box-shadow: 0 0 14px 4px rgba(255,201,54,0.6), 0 0 0 0    rgba(255,201,54,0);   }
+}
+
+/* 3-keyframe biar ada overshoot effect yang terasa snap */
+@keyframes notch-pop {
+  0%   { transform: translateX(-50%) scaleY(0);    opacity: 0; }
+  60%  { transform: translateX(-50%) scaleY(1.15); opacity: 1; }
+  100% { transform: translateX(-50%) scaleY(1);    opacity: 1; }
 }
 
 .tab-scroll::-webkit-scrollbar { display: none; }
@@ -127,9 +139,8 @@ html, body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── ScheduleHero ─────────────────────────────────────────────────────────
-   Moved from inline <style> in ScheduleHero.tsx — injecting keyframes inside
-   a component re-injects them into the DOM on every mount/remount.           */
+/* ── ScheduleHero ──
+   Keyframe di sini biar nggak re-inject ke DOM tiap mount/remount komponen. */
 
 @keyframes hero-in {
   from { opacity: 0; transform: translateY(18px); }
@@ -144,8 +155,7 @@ html, body {
   to   { opacity: 1; transform: translate(0,    -50%);              }
 }
 
-/* ── Mobile schedule filter dropdowns (SchedulePageClient) ────────────────
-   Moved from inline <style> inside the component render body.                */
+/* ── Mobile schedule filter dropdowns (SchedulePageClient) ── */
 
 @keyframes mob-panel-in {
   from { opacity: 0; transform: scaleY(0.92) translateY(-6px); }
