@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp, CalendarDays } from "lucide-react";
 import { getAssetUrl } from "@/lib/directus";
 import { MatchGrid } from "./MatchGrid";
 
 // --- Konstanta ----------------------------------------------------------------
 
-// Dibatasi biar item ke-11 dst nggak nunggu lama
 const MAX_STAGGER_INDEX = 10;
 const STAGGER_STEP_MS   = 60;
 const ANIM_DURATION_MS  = 300;
+const SCROLL_MARGIN_TOP = 100;
 
 // --- Types --------------------------------------------------------------------
 
@@ -18,9 +18,10 @@ interface EventGroupProps {
   eventName: string;
   cardImage: string | null;
   matches:   any[];
-  // key berubah tiap filter ganti biar animasi entrance muter ulang
   gridKey:   string;
   index:     number;
+  isOpen:    boolean;
+  onToggle:  (eventName: string) => void;
 }
 
 // --- Helpers ------------------------------------------------------------------
@@ -65,40 +66,80 @@ function countByStatus(matches: any[]) {
   let live = 0, upcoming = 0, finished = 0;
   for (const m of matches) {
     const s = m.status ?? "";
-    if (s === "live")                                              live++;
+    if (s === "live")                                                live++;
     else if (s === "finished" || s === "done" || s === "completed") finished++;
-    else                                                           upcoming++;
+    else                                                             upcoming++;
   }
   return { live, upcoming, finished };
 }
 
 // --- Komponen -----------------------------------------------------------------
 
-export function EventGroup({ eventName, cardImage, matches, gridKey, index }: EventGroupProps) {
-  const [isOpen,  setIsOpen]  = useState(false);
-  // naik tiap kali dibuka biar MatchGrid remount dan stagger muter ulang
+export function EventGroup({ eventName, cardImage, matches, gridKey, index, isOpen, onToggle }: EventGroupProps) {
+  const groupRef  = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLButtonElement>(null);
+  // Ref on the grid wrapper so we can listen to its transitionend precisely.
+  const gridRef   = useRef<HTMLDivElement>(null);
+
   const [openKey, setOpenKey] = useState(0);
 
-  const imageUrl     = getAssetUrl(cardImage);
-  const dateGroups   = groupMatchesByDate(matches);
-  const showDates    = dateGroups.length > 1;
-  const statusCounts = countByStatus(matches);
-  const delayMs      = Math.min(index, MAX_STAGGER_INDEX) * STAGGER_STEP_MS;
+  useEffect(() => {
+    if (!isOpen) return;
+    setOpenKey(k => k + 1);
 
-  function handleToggle() {
-    setIsOpen(open => {
-      if (!open) setOpenKey(k => k + 1);
-      return !open;
-    });
-  }
+    const gridEl   = gridRef.current;
+    const headerEl = headerRef.current;
+    if (!gridEl || !headerEl) return;
+
+    // WHY transitionend instead of RAF or setTimeout:
+    //
+    // The overshoot happens because the previously-open group above is also
+    // collapsing at the same time. If we read getBoundingClientRect() too early
+    // (RAF, or a short timeout), the collapsing group hasn't finished shrinking
+    // yet — so our target position is off by however much height still remains.
+    // By the time the smooth scroll reaches that position, the layout has shifted
+    // and we've overshot.
+    //
+    // Both groups use the same transition duration (0.3s). So by the time OUR
+    // grid's transitionend fires, the other group's collapse is also complete.
+    // Layout is fully settled → position measurement is accurate → no overshoot.
+    //
+    // We guard with `e.target === gridEl` because transitionend bubbles up from
+    // child elements (MatchGrid cards, etc.) and we only want the one from our
+    // specific grid row, not any child.
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.target !== gridEl || e.propertyName !== "grid-template-rows") return;
+
+      const rect   = headerEl.getBoundingClientRect();
+      const inView = rect.top >= SCROLL_MARGIN_TOP && rect.bottom <= window.innerHeight;
+      if (inView) return;
+
+      // Works for both directions:
+      // - header below viewport (rect.top > innerHeight) → scroll down
+      // - header above viewport (rect.top < 0, e.g. collapse above pushed us up) → scroll up
+      window.scrollTo({ top: rect.top + window.scrollY - SCROLL_MARGIN_TOP, behavior: "smooth" });
+    };
+
+    gridEl.addEventListener("transitionend", onTransitionEnd);
+    return () => gridEl.removeEventListener("transitionend", onTransitionEnd);
+  }, [isOpen]);
+
+  const imageUrl     = cardImage ? getAssetUrl(cardImage) : null;
+  const dateGroups   = useMemo(() => groupMatchesByDate(matches), [matches]);
+  const statusCounts = useMemo(() => countByStatus(matches), [matches]);
+  const showDates    = dateGroups.length > 1;
+  const delayMs      = Math.min(index, MAX_STAGGER_INDEX) * STAGGER_STEP_MS;
+  const handleToggle = useCallback(() => onToggle(eventName), [eventName, onToggle]);
 
   return (
     <div
+      ref={groupRef}
       className="flex flex-col gap-2 opacity-0"
       style={{ animation: `match-row-in ${ANIM_DURATION_MS}ms ease ${delayMs}ms forwards` }}
     >
 
       <button
+        ref={headerRef}
         onClick={handleToggle}
         className="relative flex items-center justify-between w-full bg-[#11194C] border border-blue-800/40 p-4 md:p-6 rounded-lg hover:bg-[#162162] transition-colors shadow-lg group overflow-hidden"
       >
@@ -144,7 +185,10 @@ export function EventGroup({ eventName, cardImage, matches, gridKey, index }: Ev
         </div>
       </button>
 
-      <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: "grid-template-rows 0.3s ease" }}>
+      <div
+        ref={gridRef}
+        style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: "grid-template-rows 0.3s ease" }}
+      >
         <div className="overflow-hidden">
           <div className="pt-5 pb-16 flex flex-col gap-4">
             {showDates ? (

@@ -13,11 +13,11 @@ const MONTH_NAMES = [
 
 // --- Types --------------------------------------------------------------------
 
+// parent yang handle close lewat outside-click detection sendiri
 interface DateRangePickerProps {
   initialStart?: Date | null;
   initialEnd?:   Date | null;
   onApply:       (start: Date, end: Date) => void;
-  onClose:       () => void;
 }
 
 type ActiveField = "start" | "end";
@@ -39,7 +39,7 @@ function fmtField(d: Date | null) {
 
 // --- Komponen -----------------------------------------------------------------
 
-export function DateRangePicker({ initialStart, initialEnd, onApply, onClose }: DateRangePickerProps) {
+export function DateRangePicker({ initialStart, initialEnd, onApply }: DateRangePickerProps) {
   const today = new Date();
 
   const [viewMonth, setViewMonth] = useState<Date>(initialStart ?? today);

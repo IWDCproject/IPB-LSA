@@ -28,7 +28,7 @@ export const LIGHT_MATCH_COLORS: MatchColors = {
 
 export const DARK_MATCH_COLORS: MatchColors = {
   cardBg:        "#08103F",
-  border:        "rgba(255,255,255,0.1)",
+  border:        "rgba(255,255,255,0.4)",
   primaryText:   "#ffffff",
   secondaryText: "rgba(255,255,255,0.7)",
   mutedText:     "rgba(255,255,255,0.55)",

@@ -1,5 +1,10 @@
 import React from "react";
 
+/*
+  @keyframes ini idealnya dipindah ke global CSS (misalnya globals.css atau
+  tailwind.config.js > theme.extend.keyframes) supaya nggak di-inject ulang ke DOM
+  tiap kali komponen ini mount/remount.
+*/
 const fadeUp = (delay: string): React.CSSProperties => ({
   opacity: 0,
   animation: `hero-in 500ms ease forwards`,

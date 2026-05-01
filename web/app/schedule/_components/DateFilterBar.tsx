@@ -6,6 +6,15 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { DateRangePicker } from "./DateRangePicker";
 
+// --- Types --------------------------------------------------------------------
+
+export type DatePreset = "today" | "week" | "month";
+export type DateFilter = DatePreset | { start: Date; end: Date } | null;
+
+export function isRangeFilter(v: DateFilter): v is { start: Date; end: Date } {
+  return typeof v === "object" && v !== null && "start" in v;
+}
+
 // --- Konstanta ----------------------------------------------------------------
 
 const PRESETS: { id: DatePreset; label: string }[] = [
@@ -18,17 +27,9 @@ const pillBase   = "h-11 px-5 rounded-lg text-sm font-bold whitespace-nowrap tra
 const pillActive = "bg-yellow-400 text-black border-yellow-400 shadow-md";
 const pillIdle   = "bg-[#11194C] text-white border-blue-800/40 hover:bg-[#1A266B]";
 
-// --- Types --------------------------------------------------------------------
-
-export type DatePreset = "today" | "week" | "month";
-export type DateFilter = DatePreset | { start: Date; end: Date } | null;
-
-export function isRangeFilter(v: DateFilter): v is { start: Date; end: Date } {
-  return typeof v === "object" && v !== null && "start" in v;
-}
-
 // --- Helpers ------------------------------------------------------------------
 
+// cn diduplikasi di ScheduleToolbar juga — idealnya dipindah ke @/lib/utils
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -95,6 +96,7 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
           <div className={cn(pillBase, pillActive, "flex items-center gap-2 pr-3")}>
             <button onClick={() => setPickerOpen(open => !open)} className="flex items-center gap-1.5">
               <CalendarRange size={14} />
+              {/* TypeScript menyempitkan value ke { start, end } lewat isRange di ternary ini */}
               <span>{fmtRangeLabel(value.start, value.end)}</span>
             </button>
             <button onClick={clearRange} className="ml-0.5 hover:opacity-70 transition-opacity" aria-label="Clear date range">
@@ -117,7 +119,6 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
               initialStart={isRange ? value.start : null}
               initialEnd={isRange ? value.end   : null}
               onApply={handleApply}
-              onClose={() => setPickerOpen(false)}
             />
           </div>
         )}

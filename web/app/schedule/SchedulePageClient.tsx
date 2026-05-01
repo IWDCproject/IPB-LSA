@@ -57,8 +57,10 @@ function buildEventGroups(matches: any[]): EventGroupData[] {
     for (const m of g.matches) {
       if (m.status === "live") hasLive = true;
       if (!m.scheduled_at) continue;
-      const t = new Date(m.scheduled_at).getTime();
-      if (new Date(m.scheduled_at).toDateString() === todayStr) hasToday = true;
+      // FIX #4: parse once, reuse for both getTime() and toDateString()
+      const d = new Date(m.scheduled_at);
+      const t = d.getTime();
+      if (d.toDateString() === todayStr) hasToday = true;
       if (t >= now && t < nearestUp)   nearestUp   = t;
       if (t <  now && t > mostRecPast) mostRecPast = t;
     }
@@ -172,6 +174,29 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
+// FIX #11: error state punya tampilan sendiri, beda dari empty state
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      className="py-32 text-center bg-[#091340]/40 rounded-3xl border border-red-800/30 backdrop-blur-md flex flex-col items-center justify-center shadow-xl opacity-0"
+      style={{ animation: "match-row-in 340ms ease 60ms forwards" }}
+    >
+      <h3 className="text-2xl font-bold text-white uppercase tracking-widest mb-2">
+        Gagal memuat data
+      </h3>
+      <p className="text-blue-300 text-sm max-w-md mx-auto">
+        Terjadi kesalahan saat mengambil jadwal. Periksa koneksi internet Anda.
+      </p>
+      <button
+        onClick={onRetry}
+        className="mt-6 px-6 py-2 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-300 transition-colors"
+      >
+        Coba Lagi
+      </button>
+    </div>
+  );
+}
+
 // --- Komponen utama -----------------------------------------------------------
 
 export default function SchedulePageClient() {
@@ -184,6 +209,7 @@ export default function SchedulePageClient() {
 
   const [rawMatches,      setRawMatches]      = useState<any[] | null>(null);
   const [ready,           setReady]           = useState(false);
+  const [fetchError,      setFetchError]      = useState(false); 
   const [skeletonVisible, setSkeletonVisible] = useState(false);
   const [animKey,         setAnimKey]         = useState(0);
 
@@ -205,7 +231,17 @@ export default function SchedulePageClient() {
   const totalPages = allGroups ? Math.max(1, Math.ceil(allGroups.length / EVENTS_PER_PAGE)) : 0;
   const pageGroups = allGroups?.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE) ?? [];
   const gridKey    = `${activeTab}|${JSON.stringify(dateFilter)}|${debouncedSearch}|${page}`;
-  const isEmpty    = ready && (allGroups?.length ?? 0) === 0;
+  const isEmpty    = ready && !fetchError && (allGroups?.length ?? 0) === 0;
+
+  // null = semua tertutup; string = nama event yang sedang terbuka
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  const handleGroupToggle = useCallback((eventName: string) => {
+    setOpenGroup(g => g === eventName ? null : eventName);
+  }, []);
+
+  // prevFilters ref pattern replaced with a simple effect
+  useEffect(() => { setPage(1); setOpenGroup(null); }, [debouncedSearch, activeTab, dateFilter]);
 
   useEffect(() => {
     let cancelled        = false;
@@ -213,6 +249,7 @@ export default function SchedulePageClient() {
     let minDisplayTimer: ReturnType<typeof setTimeout> | null = null;
 
     setReady(false);
+    setFetchError(false);
     setSkeletonVisible(false);
     setRawMatches(null);
     setAnimKey(k => k + 1);
@@ -224,6 +261,9 @@ export default function SchedulePageClient() {
       category: activeTab !== "ALL" ? activeTab : null,
       search:   debouncedSearch || null,
     };
+
+    // showTimer declared before commit so the closure is never forward-referencing
+    let showTimer: ReturnType<typeof setTimeout>;
 
     const commit = (items: any[]) => {
       setRawMatches(items);
@@ -240,7 +280,9 @@ export default function SchedulePageClient() {
       }
     };
 
-    const showTimer = setTimeout(() => {
+    
+
+    showTimer = setTimeout(() => {
       if (cancelled) return;
       skeletonShownAt = Date.now();
       setSkeletonVisible(true);
@@ -252,7 +294,8 @@ export default function SchedulePageClient() {
         const { items } = await getMatchesSchedule(fetchFilter);
         if (!cancelled) commit(items);
       } catch {
-        if (!cancelled) { setRawMatches([]); setReady(true); }
+        // set error state instead of silently falling through to empty state
+        if (!cancelled) { setFetchError(true); setReady(true); }
       }
     });
 
@@ -276,22 +319,11 @@ export default function SchedulePageClient() {
 
   useLayoutEffect(() => {
     if (!ready || lockedHeight === null || !innerRef.current) return;
+    // lockedHeight sengaja tidak masuk dep array — kalau dimasukkan akan loop tak terbatas
+    // karena effect ini sendiri yang mengubah lockedHeight
     setLockedHeight(innerRef.current.offsetHeight);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
-
-  const prevFilters = useRef({ debouncedSearch, activeTab, dateFilter });
-  useEffect(() => {
-    const prev = prevFilters.current;
-    if (
-      prev.debouncedSearch !== debouncedSearch ||
-      prev.activeTab       !== activeTab       ||
-      prev.dateFilter      !== dateFilter
-    ) {
-      setPage(1);
-      prevFilters.current = { debouncedSearch, activeTab, dateFilter };
-    }
-  }, [debouncedSearch, activeTab, dateFilter]);
 
   const handlePageChange = useCallback((p: number) => {
     if (outerRef.current) setLockedHeight(outerRef.current.offsetHeight);
@@ -301,13 +333,37 @@ export default function SchedulePageClient() {
     setPage(p);
   }, []);
 
-  const handleTransitionEnd = () => setLockedHeight(null);
+  // transitionend bubbles — accordion children juga fire event ini dan bisa clear lockedHeight
+  // terlalu cepat. Guard: hanya react kalau event-nya dari outerRef sendiri dan property-nya height.
+  const handleTransitionEnd = useCallback((e: React.TransitionEvent<HTMLDivElement>) => {
+    if (e.target === outerRef.current && e.propertyName === "height") {
+      setLockedHeight(null);
+    }
+  }, []);
 
   const resetFilters = useCallback(() => {
     setSearchInput(""); setActiveTab("ALL"); setDateFilter(null); setPage(1);
   }, []);
 
+  // retry bersihkan error state dan trigger re-fetch lewat filter deps
+  const retryFetch = useCallback(() => {
+    setFetchError(false);
+    setRawMatches(null);
+    setReady(false);
+    setAnimKey(k => k + 1);
+  }, []);
+
   const showContent = skeletonVisible || ready;
+
+  const eventCount =
+    allGroups === null
+      ? "__"
+      : allGroups.length === 0
+      ? 0
+      : allGroups.length;
+
+  const currentPage = ready ? page : "__";
+  const totalPageCount = ready ? totalPages : "__";
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#0D26C2] from-30% to-[#06125C] font-sans selection:bg-yellow-500 selection:text-blue-900 relative overflow-x-hidden">
@@ -330,14 +386,12 @@ export default function SchedulePageClient() {
 
         <ScheduleHero />
 
-        {ready && allGroups !== null && allGroups.length > 0 && (
-          <p
-            className="font-jakarta text-xs text-center -mt-14 mb-6"
-            style={{ color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
-          >
-            {allGroups.length} event &middot; halaman {page} dari {totalPages}
-          </p>
-        )}
+        <p
+          className="font-jakarta text-xs text-center -mt-14 mb-6"
+          style={{ color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
+        >
+          {eventCount} event &middot; halaman {currentPage} dari {totalPageCount}
+        </p>
 
         <div ref={topRef} className="flex flex-wrap md:flex-nowrap items-center gap-3 mb-6">
           <ScheduleToolbar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -379,9 +433,10 @@ export default function SchedulePageClient() {
               </div>
             )}
 
+            {ready && fetchError && <ErrorState onRetry={retryFetch} />}
             {isEmpty && <EmptyState onReset={resetFilters} />}
 
-            {ready && !isEmpty && (
+            {ready && !fetchError && !isEmpty && (
               <>
                 <div key={animKey} className="flex flex-col gap-0">
                   {pageGroups.map(({ eventName, cardImage, matches }, i) => (
@@ -392,6 +447,8 @@ export default function SchedulePageClient() {
                       matches={matches}
                       gridKey={gridKey}
                       index={i}
+                      isOpen={openGroup === eventName}
+                      onToggle={handleGroupToggle}
                     />
                   ))}
                 </div>
