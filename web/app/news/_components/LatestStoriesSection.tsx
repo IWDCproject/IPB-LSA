@@ -13,7 +13,7 @@ interface NewsItem {
   title:         string;
   slug:          string;
   thumbnail_url: string | null;
-  event_id:      { name: string; slug?: string } | null;
+  event_id:      { name: string; slug?: string; banner_url?: string | null } | null;
 }
 
 interface Props {
@@ -204,16 +204,44 @@ function MobileStack({ news }: { news: NewsItem[] }) {
 // --- Section ------------------------------------------------------------------
 
 export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: Props) {
-  return (
-    <section style={{ background: `linear-gradient(160deg, ${BLUE} 0%, ${NAVY} 100%)`, position: "relative", overflow: "hidden" }}>
+  const eventBanner = latestNews[0]?.event_id?.banner_url ?? null;
 
-      {/* Batik top overlay */}
+  return (
+    <section style={{ position: "relative", overflow: "hidden" }}>
+
+      {/* Layer 1 — Event banner as blurred hero background */}
+      {eventBanner && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute", inset: 0,
+            backgroundImage: `url(${eventBanner})`,
+            backgroundSize: "cover", backgroundPosition: "center top",
+            filter: "blur(6px) brightness(0.6) saturate(1.2)",
+            transform: "scale(1.08)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 40%, transparent 100%)",
+            maskImage:        "linear-gradient(to bottom, black 0%, black 40%, transparent 100%)",
+            pointerEvents: "none",
+            transition: "background-image 0.6s ease",
+          }}
+        />
+      )}
+
+      {/* Layer 2 — Blue-to-deep-navy gradient scrim */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: eventBanner
+          ? `linear-gradient(to bottom, ${BLUE}99 0%, ${NAVY} 70%)`
+          : `linear-gradient(to bottom, ${BLUE} 0%, ${NAVY} 100%)`,
+        pointerEvents: "none",
+      }} />
+
+      {/* Layer 3 — Batik pattern */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: "100%", width: "100%",
         backgroundImage: "url(/Batik_Pattern_dark.svg)",
-        // backgroundSize: "cover",
         backgroundPosition: "bottom center",
-				backgroundRepeat: "repeat-x",
+        backgroundRepeat: "repeat-x",
         opacity: 0.3, pointerEvents: "none",
       }} />
 
