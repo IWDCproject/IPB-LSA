@@ -264,7 +264,15 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
   const allMatches: MappedMatch[] = event.matches ?? [];
   const [filter,  setFilter]  = useState<FilterValue>("all");
   const [groupBy, setGroupBy] = useState<GroupValue>("schedule");
-  const [layout,  setLayout]  = useState<LayoutValue>("list");
+  const [layout, setLayout] = useState<LayoutValue>(() => {
+    if (typeof window === "undefined") return "list";
+    return (localStorage.getItem("matches-layout") as LayoutValue) ?? "list";
+  });
+
+  const handleSetLayout = (v: LayoutValue) => {
+    setLayout(v);
+    localStorage.setItem("matches-layout", v);
+  };
 
   const filterCounts = useMemo<Record<FilterValue, number>>(() => ({
     all:      allMatches.length,
@@ -301,28 +309,6 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
             <span className={`font-jakarta font-extrabold text-navy ${isMobile ? "text-[15px]" : "text-[17px]"}`}>
               Matches
             </span>
-
-            {/* Layout toggle — only shown on desktop */}
-            {!isMobile && (
-              <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-[3px]">
-                <button
-                  onClick={() => setLayout("list")}
-                  className={`flex items-center justify-center rounded-md w-[24px] h-[24px] border-none cursor-pointer transition-colors
-                    ${layout === "list" ? "bg-white shadow-sm" : "bg-transparent"}`}
-                  aria-label="List view"
-                >
-                  <ListIcon active={layout === "list"} />
-                </button>
-                <button
-                  onClick={() => setLayout("grid")}
-                  className={`flex items-center justify-center rounded-md w-[24px] h-[24px] border-none cursor-pointer transition-colors
-                    ${layout === "grid" ? "bg-white shadow-sm" : "bg-transparent"}`}
-                  aria-label="Grid view"
-                >
-                  <GridIcon active={layout === "grid"} />
-                </button>
-              </div>
-            )}
           </div>
 
             {/* Prioritas status: WebSocket > timestamp polling > kosong */}
@@ -337,7 +323,7 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
             ) : null}
           </div>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex items-stretch gap-3">
             {isMobile ? (
               <MobileCombinedFilterDropdown
                 activeGroup={groupBy}  onGroupChange={setGroupBy}  groupCounts={groupCounts}
@@ -345,8 +331,29 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
               />
             ) : (
               <>
-                <FilterBar   active={filter}  onChange={setFilter}  counts={filterCounts}  />
-                <GroupToggle active={groupBy} onChange={setGroupBy} groupCounts={groupCounts} />
+                <div className="flex flex-col items-end gap-2">
+                  <FilterBar   active={filter}  onChange={setFilter}  counts={filterCounts}  />
+                  <GroupToggle active={groupBy} onChange={setGroupBy} groupCounts={groupCounts} />
+                </div>
+                {/* Layout toggle — vertical, spans both filter rows */}
+                <div className="flex flex-col bg-gray-100 rounded-lg p-[3px] gap-0.5">
+                  <button
+                    onClick={() => handleSetLayout("list")}
+                    className={`flex items-center justify-center rounded-md w-[24px] flex-1 border-none cursor-pointer transition-colors
+                      ${layout === "list" ? "bg-white shadow-sm" : "bg-transparent"}`}
+                    aria-label="List view"
+                  >
+                    <ListIcon active={layout === "list"} />
+                  </button>
+                  <button
+                    onClick={() => handleSetLayout("grid")}
+                    className={`flex items-center justify-center rounded-md w-[24px] flex-1 border-none cursor-pointer transition-colors
+                      ${layout === "grid" ? "bg-white shadow-sm" : "bg-transparent"}`}
+                    aria-label="Grid view"
+                  >
+                    <GridIcon active={layout === "grid"} />
+                  </button>
+                </div>
               </>
             )}
           </div>
