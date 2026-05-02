@@ -487,7 +487,7 @@ function MobileParticipantRow({ participant, isLoser, C }: { participant: any; i
   );
 }
 
-export function MobileMatchRow({ match, dark = false }: { match: MappedMatch; dark?: boolean }) {
+export function MobileMatchRow({ match, dark = false, className = "" }: { match: MappedMatch; dark?: boolean; className?: string }) {
   const C           = dark ? DARK_MATCH_COLORS : LIGHT_MATCH_COLORS;
   const badgeColors = dark ? DARK_BADGE_COLORS : LIGHT_BADGE_COLORS;
 
@@ -506,7 +506,7 @@ export function MobileMatchRow({ match, dark = false }: { match: MappedMatch; da
 
   return (
     <div
-      className="rounded-xl px-3 py-[10px] flex flex-col gap-2"
+      className={`rounded-xl px-3 py-[10px] flex flex-col gap-2 ${className}`}
       style={{ background: C.cardBg, border: `1px solid ${C.border}` }}
     >
       {/* Meta row */}

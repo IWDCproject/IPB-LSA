@@ -29,6 +29,31 @@ const MAX_STAGGER_INDEX = 15;
 
 type GroupValue  = (typeof GROUP_OPTIONS)[number]["value"];
 type FilterValue = (typeof FILTER_OPTIONS)[number]["value"];
+type LayoutValue = "list" | "grid";
+
+// --- Layout toggle icons -----------------------------------------------------
+
+function ListIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+      <rect x="1"  y="2.5" width="13" height="1.6" rx="0.8" fill={active ? "#171717" : "#BBBEC8"} />
+      <rect x="1"  y="6.7" width="13" height="1.6" rx="0.8" fill={active ? "#171717" : "#BBBEC8"} />
+      <rect x="1"  y="10.9" width="13" height="1.6" rx="0.8" fill={active ? "#171717" : "#BBBEC8"} />
+    </svg>
+  );
+}
+
+function GridIcon({ active }: { active: boolean }) {
+  const fill = active ? "#171717" : "#BBBEC8";
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+      <rect x="1"   y="1"   width="5.5" height="5.5" rx="1.2" fill={fill} />
+      <rect x="8.5" y="1"   width="5.5" height="5.5" rx="1.2" fill={fill} />
+      <rect x="1"   y="8.5" width="5.5" height="5.5" rx="1.2" fill={fill} />
+      <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" fill={fill} />
+    </svg>
+  );
+}
 
 interface MatchesTabProps {
   event:        MappedEvent;
@@ -239,6 +264,7 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
   const allMatches: MappedMatch[] = event.matches ?? [];
   const [filter,  setFilter]  = useState<FilterValue>("all");
   const [groupBy, setGroupBy] = useState<GroupValue>("schedule");
+  const [layout,  setLayout]  = useState<LayoutValue>("list");
 
   const filterCounts = useMemo<Record<FilterValue, number>>(() => ({
     all:      allMatches.length,
@@ -269,11 +295,35 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
       <div className={`bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.10)] ${isMobile ? "px-4 py-4" : "px-7 py-5"}`}>
 
         {/* Header: judul + kontrol filter */}
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
             <span className={`font-jakarta font-extrabold text-navy ${isMobile ? "text-[15px]" : "text-[17px]"}`}>
               Matches
             </span>
+
+            {/* Layout toggle — only shown on desktop */}
+            {!isMobile && (
+              <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-[3px]">
+                <button
+                  onClick={() => setLayout("list")}
+                  className={`flex items-center justify-center rounded-md w-[24px] h-[24px] border-none cursor-pointer transition-colors
+                    ${layout === "list" ? "bg-white shadow-sm" : "bg-transparent"}`}
+                  aria-label="List view"
+                >
+                  <ListIcon active={layout === "list"} />
+                </button>
+                <button
+                  onClick={() => setLayout("grid")}
+                  className={`flex items-center justify-center rounded-md w-[24px] h-[24px] border-none cursor-pointer transition-colors
+                    ${layout === "grid" ? "bg-white shadow-sm" : "bg-transparent"}`}
+                  aria-label="Grid view"
+                >
+                  <GridIcon active={layout === "grid"} />
+                </button>
+              </div>
+            )}
+          </div>
 
             {/* Prioritas status: WebSocket > timestamp polling > kosong */}
             {wsStatus === "connected" || wsStatus === "reconnecting" ? (
@@ -305,9 +355,32 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
         {/* Daftar match */}
         {filteredAndSorted.length === 0 ? (
           <EmptyState />
+        ) : layout === "grid" ? (
+          // Grid layout — key berubah tiap filter/group/layout ganti biar animasi entrance muter ulang
+          <div key={`${filter}-${groupBy}-grid`}>
+            {(() => {
+              let rowIdx = 0;
+              return groupEntries.map(([groupLabel, rows]) => (
+                <div key={groupLabel}>
+                  <DateHeader label={groupLabel} count={rows.length} />
+                  <div className={`grid gap-3 mt-1 ${isMobile ? "grid-cols-1" : "grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"}`}>
+                    {rows.map((match: MappedMatch) => (
+                      <div
+                        key={match.id}
+                        className="opacity-0 h-full"
+                        style={{ animation: `match-row-in 0.28s ease ${Math.min(rowIdx++, MAX_STAGGER_INDEX) * 40}ms forwards` }}
+                      >
+                        <MobileMatchRow match={match} className="h-full" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
         ) : (
-          // key berubah tiap filter/group ganti biar animasi entrance muter ulang
-          <div key={`${filter}-${groupBy}`}>
+          // List layout (default)
+          <div key={`${filter}-${groupBy}-list`}>
             {(() => {
               let rowIdx = 0;
               return groupEntries.map(([groupLabel, rows]) => (
