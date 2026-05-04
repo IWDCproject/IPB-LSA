@@ -43,7 +43,7 @@ function NavLink({
       href={href}
       style={{ paddingLeft: `${8 + indent * 8}px` }}
       className={cn(
-        'flex items-center rounded-lg py-2.5 pr-3 text-sm font-medium transition-colors',
+        'flex items-center rounded-lg py-2.5 pr-3 pl-3 text-sm font-medium',
         active
           ? 'bg-zinc-900 text-white'
           : 'text-foreground/60 hover:bg-muted hover:text-foreground'
@@ -85,8 +85,8 @@ function CollapsibleNav({
   )
 
   const labelClass = cn(
-    'flex-1 py-2.5 text-sm leading-none font-medium',
-    bold && 'font-semibold',
+    'flex-1 py-2.5 text-sm leading-none font-[600]',
+    bold && 'font-[800]',
   )
 
   return (

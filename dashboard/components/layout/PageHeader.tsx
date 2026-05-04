@@ -32,7 +32,7 @@ export function PageHeader({ breadcrumbs, title, status, actions }: Props) {
       <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
         <div className="space-y-1">
           {status && (
-            <p className="text-sm italic text-muted-foreground/60 font-light">
+            <p className="text-sm italic text-muted-foreground/10 font-[500]">
               Event status: {status}
             </p>
           )}

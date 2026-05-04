@@ -108,7 +108,7 @@ export function DataTable<T extends { id: string }>({
                   return (
                     <td
                       key={String(col.key)}
-                      className={cn('px-4 py-3 whitespace-nowrap font-semibold text-zinc-900', col.className)}
+                      className={cn('px-4 py-2.5 whitespace-nowrap font-semibold text-zinc-900', col.className)}
                     >
                       {col.render
                         ? col.render(value, row)
