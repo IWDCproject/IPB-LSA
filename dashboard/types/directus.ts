@@ -8,7 +8,7 @@ export type ScoringMethod   = 'avg' | 'sum' | 'drop_extremes'
 export type TimerMode       = 'countdown' | 'stopwatch' | 'deadline'
 export type ParticipantType = 'individual' | 'team'
 export type NewsCategory    = 'announcement' | 'result' | 'news' | 'update'
-export type UserRole        = 'super_admin' | 'operator'
+export type UserRole        = 'SuperAdmin' | 'PJ Ormawa' | 'Administrator'
 
 // --- Module types ----------------------------------------------
 

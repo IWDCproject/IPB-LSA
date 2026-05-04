@@ -17,7 +17,7 @@ import { useState, useEffect } from 'react'
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-2 pt-5 pb-1 text-[11px] font-semibold text-foreground/40 tracking-wide">
+    <p className="px-2 pt-5 pb-1 text-[12px] font-bold text-black/50 tracking-wide">
       {children}
     </p>
   )
