@@ -33,7 +33,7 @@ export function DataTable<T extends { id: string }>({
   const hasHeader = caption !== undefined || count !== undefined
 
   return (
-    <div className="rounded-lg border border-zinc-200">
+    <div className="rounded-lg border border-zinc-200 shadow-md">
 
       {/* Card header */}
       {hasHeader && (

@@ -45,7 +45,7 @@ function NavLink({
       className={cn(
         'flex items-center rounded-lg py-2.5 pr-3 pl-3 text-sm font-medium',
         active
-          ? 'bg-zinc-900 text-white'
+          ? 'bg-zinc-900 text-white shadow-md'
           : 'text-foreground/60 hover:bg-muted hover:text-foreground'
       )}
     >
@@ -80,7 +80,7 @@ function CollapsibleNav({
   const rowBase = cn(
     'flex items-center rounded-lg transition-colors',
     active
-      ? 'bg-zinc-900 text-white'
+      ? 'bg-zinc-900 text-white shadow-md'
       : 'text-foreground/60 hover:bg-muted hover:text-foreground'
   )
 
