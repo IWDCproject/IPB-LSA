@@ -2,7 +2,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
-import { createDirectus, rest, staticToken, createItem } from '@directus/sdk'
+import { createDirectus, rest, staticToken, createItem, updateItem, deleteItems, readItems } from '@directus/sdk'
 import { revalidatePath } from 'next/cache'
 
 const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
@@ -54,5 +54,66 @@ export async function createMatchAction(payload: {
   } catch (error: any) {
     console.error('Match Action Error:', error)
     return { success: false, error: 'Gagal membuat pertandingan' }
+  }
+}
+
+export async function updateMatchAction(matchId: string, payload: {
+  competition_category_id: string
+  match_name: string | null
+  round: string | null
+  venue: string
+  scheduled_at: string
+  home_participant_id: string | null
+  away_participant_id: string | null
+  participant_ids?: string[] // Untuk tipe 'open'
+}) {
+  const session = await auth()
+  if (!session || (session.user.role !== 'SuperAdmin' && session.user.role !== 'PJ Ormawa')) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  try {
+    const { participant_ids, ...matchData } = payload
+
+    // 1. Update Match utama
+    await adminDirectus.request(
+      updateItem('matches', matchId, matchData)
+    )
+
+    // 2. Jika tipe 'open', update junction table match_participants
+    if (participant_ids) {
+      const existing = await adminDirectus.request(
+        readItems('match_participants', {
+          filter: { match_id: { _eq: matchId } },
+          fields: ['id']
+        })
+      )
+      
+      // Hapus yang lama
+      if (existing.length > 0) {
+        await adminDirectus.request(
+          deleteItems('match_participants', existing.map((e: any) => e.id))
+        )
+      }
+      
+      // Buat yang baru
+      if (participant_ids.length > 0) {
+        for (const [idx, pid] of participant_ids.entries()) {
+          await adminDirectus.request(
+            createItem('match_participants', {
+              match_id: matchId,
+              participant_id: pid,
+              position: idx + 1
+            })
+          )
+        }
+      }
+    }
+
+    revalidatePath(`/events/[eventId]/matches`, 'page')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Update Match Action Error:', error)
+    return { success: false, error: 'Gagal mengubah pertandingan' }
   }
 }

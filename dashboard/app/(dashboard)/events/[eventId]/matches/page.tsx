@@ -6,7 +6,7 @@ import { readItems } from '@directus/sdk'
 import { directus } from '@/lib/directus'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/shared/DataTable'
-import { ExternalLink, Plus } from 'lucide-react'
+import { ExternalLink, Plus, Edit } from 'lucide-react'
 import type { MatchStatus, MatchType } from '@/types/directus'
 import type { ComponentProps } from 'react'
 import { AddMatchModal } from './AddMatchModal'
@@ -41,7 +41,6 @@ type RawMatch = {
     name: string
     institution_id: { name: string } | null
   } | null
-  // PERBAIKAN: Field relasional di Directus bernama "participants", bukan "match_participants"
   participants: {
     participant_id: {
       id: string
@@ -83,9 +82,10 @@ export default function MatchesPage() {
   const { eventId } = useParams<{ eventId: string }>()
   const router = useRouter()
   
-  const[groups, setGroups] = useState<MatchGroup[]>([])
+  const [groups, setGroups] = useState<MatchGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [matchToEdit, setMatchToEdit] = useState<RawMatch | null>(null)
 
   const fetchMatches = useCallback(async () => {
     setLoading(true)
@@ -106,7 +106,6 @@ export default function MatchesPage() {
             'away_participant_id.id',
             'away_participant_id.name',
             'away_participant_id.institution_id.name',
-            // PERBAIKAN: Gunakan "participants.*" sesuai alias di Directus
             'participants.participant_id.id',
             'participants.participant_id.name',
             'participants.participant_id.institution_id.name'
@@ -123,7 +122,7 @@ export default function MatchesPage() {
             categoryId: catId,
             categoryName: match.competition_category_id?.name || 'Unknown Category',
             matchType: match.competition_category_id?.format_id?.match_type || 'open',
-            matches: []
+            matches:[]
           }
         }
         acc[catId].matches.push(match)
@@ -157,7 +156,7 @@ export default function MatchesPage() {
   }, [fetchMatches])
 
   const getColumns = (matchType: MatchType): ColumnType => {
-    const baseCols: ColumnType = [
+    const baseCols: ColumnType =[
       { key: 'scheduled_at', label: 'Time', render: (v) => formatDateTime(v as string | null) },
       { key: 'status', label: 'Status', render: (v) => <span className="capitalize">{v as string}</span> },
       { 
@@ -174,11 +173,9 @@ export default function MatchesPage() {
     const actionCol: ColumnType[0] = {
       key: '_actions',
       label: 'Action',
-      // PERBAIKAN: Tambahkan text-right agar header "Action" mepet kanan
       className: 'text-right', 
       render: (_: any, row: RawMatch) => (
-        // PERBAIKAN: Gunakan justify-end agar tombol mepet kanan
-        <div className="flex justify-end">
+        <div className="flex justify-end items-center gap-3">
           <Button
             variant="noBorder"
             className="px-0 py-0 h-auto font-bold text-zinc-900 hover:text-zinc-600"
@@ -187,8 +184,21 @@ export default function MatchesPage() {
               router.push(`/events/${eventId}/matches/${row.id}/control`)
             }}
           >
-            Results <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+            Operate <ExternalLink className=" h-3.5 w-3.5" />
           </Button>
+          <Button
+          variant="noBorder"
+            className="px-0 py-0 h-auto font-bold text-zinc-900 hover:text-zinc-600"
+            onClick={(e) => {
+              e.stopPropagation()
+              setMatchToEdit(row)
+              setIsModalOpen(true)
+            }}
+            title="Edit Match"
+          >
+            Edit <Edit className="h-3.5 w-3.5" />
+          </Button>
+          
         </div>
       )
     }
@@ -239,7 +249,6 @@ export default function MatchesPage() {
           )
         }},
         { key: 'participants', label: 'Participants', render: (_, row) => {
-          // PERBAIKAN: Baca dari field `row.participants`
           const mps = row.participants ||[]
           
           if (mps.length > 0) {
@@ -268,7 +277,10 @@ export default function MatchesPage() {
   return (
     <div className="relative pb-12">
       <div className="absolute right-0 -top-[3.75rem] z-10 hidden sm:block">
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => {
+          setMatchToEdit(null)
+          setIsModalOpen(true)
+        }}>
           Add Match <Plus className=" h-4 w-4" />
         </Button>
       </div>
@@ -296,9 +308,13 @@ export default function MatchesPage() {
 
       <AddMatchModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false)
+          setMatchToEdit(null)
+        }}
         eventId={eventId}
         onSuccess={fetchMatches}
+        matchToEdit={matchToEdit}
       />
     </div>
   )

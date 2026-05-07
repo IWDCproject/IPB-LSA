@@ -7,7 +7,7 @@ import { directus } from '@/lib/directus'
 import { readItems } from '@directus/sdk'
 import type { MatchType } from '@/types/directus'
 import { Search } from 'lucide-react'
-import { createMatchAction } from './_actions'
+import { createMatchAction, updateMatchAction } from './_actions'
 
 // --- Types -----------------------------------------------------
 
@@ -28,12 +28,13 @@ type AddMatchModalProps = {
   onClose: () => void
   eventId: string
   onSuccess: () => void
+  matchToEdit?: any | null
 }
 
 // --- Komponen Utama --------------------------------------------
 
-export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchModalProps) {
-  const [loading, setLoading] = useState(false)
+export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit }: AddMatchModalProps) {
+  const[loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<CategoryOption[]>([])
   const [participants, setParticipants] = useState<ParticipantOption[]>([])
 
@@ -43,21 +44,22 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
   const [round, setRound] = useState('')
   const [venue, setVenue] = useState('')
   
-  // Pisah state tanggal dan waktu (Drumroller style)
+  // Pisah state tanggal dan waktu
   const [datePart, setDatePart] = useState('')
   const [hourPart, setHourPart] = useState('10')
-  const [minPart, setMinPart] = useState('00')
+  const[minPart, setMinPart] = useState('00')
 
   // Participant states
-  const [participantA, setParticipantA] = useState('')
+  const[participantA, setParticipantA] = useState('')
   const [participantB, setParticipantB] = useState('')
-  const [participantSolo, setParticipantSolo] = useState('')
+  const[participantSolo, setParticipantSolo] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
 
   const selectedCategory = categories.find((c) => c.id === categoryId)
   const matchType = selectedCategory?.matchType
 
+  // 1. Fetch Kategori
   useEffect(() => {
     if (!isOpen) return
     const fetchCategories = async () => {
@@ -81,6 +83,58 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
     fetchCategories()
   }, [isOpen, eventId])
 
+  // 2. Pre-fill data jika matchToEdit ada
+  useEffect(() => {
+    if (isOpen) {
+      if (matchToEdit) {
+        setCategoryId(matchToEdit.competition_category_id?.id || '')
+        setMatchName(matchToEdit.match_name || '')
+        setRound(matchToEdit.round || '')
+        setVenue(matchToEdit.venue || '')
+        
+        if (matchToEdit.scheduled_at) {
+          const d = new Date(matchToEdit.scheduled_at)
+          if (!isNaN(d.getTime())) {
+            const year = d.getFullYear()
+            const month = String(d.getMonth() + 1).padStart(2, '0')
+            const day = String(d.getDate()).padStart(2, '0')
+            setDatePart(`${year}-${month}-${day}`)
+            setHourPart(d.getHours().toString().padStart(2, '0'))
+            setMinPart(d.getMinutes().toString().padStart(2, '0'))
+          } else {
+            setDatePart('')
+            setHourPart('10')
+            setMinPart('00')
+          }
+        } else {
+          setDatePart('')
+          setHourPart('10')
+          setMinPart('00')
+        }
+
+        setParticipantA(matchToEdit.home_participant_id?.id || '')
+        setParticipantB(matchToEdit.away_participant_id?.id || '')
+        setParticipantSolo(matchToEdit.home_participant_id?.id || '')
+        
+        const pids = matchToEdit.participants?.map((p: any) => p.participant_id?.id).filter(Boolean) ||[]
+        setSelectedIds(pids)
+      } else {
+        setCategoryId('')
+        setMatchName('')
+        setRound('')
+        setVenue('')
+        setDatePart('')
+        setHourPart('10')
+        setMinPart('00')
+        setParticipantA('')
+        setParticipantB('')
+        setParticipantSolo('')
+        setSelectedIds([])
+      }
+    }
+  },[isOpen, matchToEdit])
+
+  // 3. Fetch Participants ketika Category berubah
   useEffect(() => {
     if (!categoryId) {
       setParticipants([])
@@ -91,7 +145,7 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
         const res = await directus.request(
           readItems('participants', {
             filter: { competition_category_id: { _eq: categoryId } },
-            fields: ['id', 'name', 'institution_id.name'] as any,
+            fields:['id', 'name', 'institution_id.name'] as any,
             limit: -1,
           })
         )
@@ -102,16 +156,22 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
             institutionName: p.institution_id?.name || 'Unknown',
           }))
         )
+
+        // Hanya reset partisipan form jika kategori diubah manual 
+        // (Bukan kategori bawaan dari matchToEdit)
+        const isEditingSameCategory = matchToEdit && matchToEdit.competition_category_id?.id === categoryId
+        if (!isEditingSameCategory) {
+          setParticipantA('')
+          setParticipantB('')
+          setParticipantSolo('')
+          setSelectedIds([])
+        }
       } catch (err) {
         console.error('Gagal mengambil partisipan', err)
       }
     }
     fetchParticipants()
-    setParticipantA('')
-    setParticipantB('')
-    setParticipantSolo('')
-    setSelectedIds([])
-  }, [categoryId])
+  }, [categoryId, matchToEdit])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,7 +200,9 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
         payload.participant_ids = selectedIds
       }
 
-      const res = await createMatchAction(payload)
+      const res = matchToEdit 
+        ? await updateMatchAction(matchToEdit.id, payload)
+        : await createMatchAction(payload)
 
       if (res.success) {
         onSuccess()
@@ -164,6 +226,10 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
     setDatePart('')
     setHourPart('10')
     setMinPart('00')
+    setParticipantA('')
+    setParticipantB('')
+    setParticipantSolo('')
+    setSelectedIds([])
     onClose()
   }
 
@@ -194,8 +260,8 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-white p-6 shadow-xl border border-zinc-200 rounded-xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Add a Match</DialogTitle>
-          <DialogDescription className="hidden">Membuat match baru berdasarkan format kategori</DialogDescription>
+          <DialogTitle className="text-2xl font-bold">{matchToEdit ? 'Edit Match' : 'Add a Match'}</DialogTitle>
+          <DialogDescription className="hidden">Mengelola data match</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-2">
@@ -219,18 +285,16 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Scheduled at*</label>
               <div className="flex gap-2">
-                {/* Kalender */}
                 <div className="relative flex-1">
                   <input
                     required
                     type="date"
                     value={datePart}
                     onChange={(e) => setDatePart(e.target.value)}
-                    className={`${inputBase} [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                    className={`${inputBase}[&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                   />
                 </div>
 
-                {/* Time Spinner (Drumroll) */}
                 <div className="flex items-center px-2 bg-zinc-50 border border-zinc-200 rounded-lg gap-1">
                   <select 
                     value={hourPart} 
@@ -402,7 +466,7 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess }: AddMatchM
               Cancel
             </Button>
             <Button type="submit" variant="filled" disabled={loading} className="min-w-[120px] font-bold">
-              {loading ? 'Saving...' : 'Add Match'}
+              {loading ? 'Saving...' : (matchToEdit ? 'Save Changes' : 'Add Match')}
             </Button>
           </div>
         </form>
