@@ -93,3 +93,50 @@
     @apply font-sans;
   }
 }
+
+@layer base {
+  /* 1. THE CURE FOR SHIFTING: scrollbar-gutter */
+  /* This tells the browser to reserve space for the scrollbar 
+     BEFORE it even appears, so the layout is ALWAYS stable. */
+  html, .stable-layout {
+    scrollbar-gutter: stable;
+  }
+
+  /* 2. THE FLOATING LOOK (Chrome/Edge/Safari) */
+  /* We make the scrollbar "transparent" and use background-clip 
+     to make the thumb float inside the gutter without a visible track. */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    /* Use a semi-transparent color so it looks like it's floating */
+    background-color: rgba(0, 0, 0, 0.1); 
+    border-radius: 10px;
+    
+    /* THE TRICK: This border + content-box makes the thumb 
+       thinner than the 6px width, creating "invisible padding" 
+       so it doesn't touch the edge of the div. */
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+
+  /* 3. FOR FIREFOX */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+  }
+}
+
+.no-shift-overlay {
+  overflow-y: overlay; /* Legacy but works in Chrome/Edge */
+}

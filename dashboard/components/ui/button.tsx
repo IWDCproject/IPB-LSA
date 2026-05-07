@@ -12,6 +12,7 @@ const buttonVariants = cva(
         default: "py-2 bg-secondary text-foreground hover:bg-muted",
         filled: "py-2 bg-foreground text-background hover:bg-foreground/80",
         noBorder: "border-transparent bg-transparent text-foreground hover:bg-zinc-100",
+        destructive: "py-2 border-red-600 bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500/30",
       },
     },
     defaultVariants: {
