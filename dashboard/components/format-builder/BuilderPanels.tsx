@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useMemo } from 'react'
 import { useFormatBuilder } from '@/stores/formatBuilder'
 import { ScoreTimedConfig }   from './engines/ScoreTimedConfig'
 import { ScoreSetsConfig }    from './engines/ScoreSetsConfig'
@@ -15,6 +16,7 @@ import {
 import { Input }  from '@/components/ui/input'
 import { Label }  from '@/components/ui/label'
 import type { MatchType, EngineType, TimerMode } from '@/types/directus'
+import { PRESETS } from '@/lib/formatPresets' // <--- ADD IMPORT HERE
 
 // ─── Static data ─────────────────────────────────────────────────────────────
 
@@ -22,7 +24,7 @@ const MATCH_TYPE_OPTIONS: {
   value: MatchType
   label: string
   description: string
-}[] = [
+}[] =[
   { value: 'head_to_head', label: 'Head to Head', description: 'dua sisi, a vs b' },
   { value: 'solo',         label: 'Solo',         description: 'satu participant per match' },
   { value: 'open',         label: 'Open',         description: 'semua partisipan satu match' },
@@ -33,36 +35,36 @@ const ENGINE_OPTIONS: {
   label: string
   description: string
   matchTypes: MatchType[]
-}[] = [
+}[] =[
   {
     value: 'score_timed',
     label: 'Accumulating Score',
-    description: 'futsal, basket, kumite, hockey...',
+    description: 'futsal, basket, silat, taekwondo...', // <-- Moved silat here
     matchTypes: ['head_to_head'],
   },
   {
     value: 'score_sets',
     label: 'Set-Based',
-    description: 'badminton, voli, tenis, silat...',
-    matchTypes: ['head_to_head'],
+    description: 'badminton, voli, tenis, takraw...', // <-- Removed silat, added takraw
+    matchTypes:['head_to_head'],
   },
   {
     value: 'judge_scores',
     label: 'Judge Panel',
     description: 'gymnastics, solo vokal, tari...',
-    matchTypes: ['solo'],
+    matchTypes:['solo'],
   },
   {
     value: 'finish_time',
     label: 'Finish Time',
     description: 'lari, marathon, renang, cycling...',
-    matchTypes: ['solo', 'open'],
+    matchTypes:['solo', 'open'],
   },
   {
     value: 'manual_pick',
     label: 'Manual Pick',
-    description: 'hackaton, debat, catur, etc...',
-    matchTypes: ['head_to_head', 'open'],
+    description: 'hackathon, debat, catur, dll...',
+    matchTypes:['head_to_head', 'open'],
   },
 ]
 
@@ -106,130 +108,251 @@ const ENGINE_CONFIG_COMPONENT: Record<EngineType, React.ComponentType> = {
 // ─── Left Sidebar ─────────────────────────────────────────────────────────────
 
 export function LeftSidebar() {
-  const { matchType, setMatchType, engine, setEngine, addOns, setAddOn } = useFormatBuilder()
+  const { matchType, setMatchType, engine, setEngine, addOns, setAddOn, loadFromExisting } = useFormatBuilder()
+  
+  const [showPresets, setShowPresets] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
 
   const availableEngines = ENGINE_OPTIONS.filter((e) =>
     e.matchTypes.includes(matchType)
   )
 
-  // If current engine is not available for new match type, reset engine will be
-  // handled by the store. We just render what the store says.
+  // Use memo to optimize filtering on search/category change
+  const filteredPresets = useMemo(() => {
+    return PRESETS.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            p.description.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesCat = selectedCategory === 'All' || p.category === selectedCategory
+      return matchesSearch && matchesCat
+    })
+  }, [searchQuery, selectedCategory])
+
+  const categories =['All', ...Array.from(new Set(PRESETS.map(p => p.category)))]
 
   return (
-    <div className="p-3 space-y-5">
+    <>
+      <div className="p-3 space-y-5">
+        {/* Start From Preset */}
+        <button
+          onClick={() => setShowPresets(true)}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-sm border border-zinc-700 text-sm font-medium text-zinc-700 hover:bg-zinc-200 transition-colors"
+        >
+          Start From Preset
+          <span className="text-zinc-400">›</span>
+        </button>
 
-      {/* Start From Preset */}
-      <button className="w-full flex items-center justify-between px-3 py-2 rounded-sm border border-zinc-700 text-sm font-medium text-zinc-700 hover:bg-zinc-200 transition-colors">
-        Start From Preset
-        <span className="text-zinc-400">›</span>
-      </button>
+        {/* Match Type */}
+        <section>
+          <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-1 text-center">
+            Match Type
+          </p>
+          <div className="space-y-1">
+            {MATCH_TYPE_OPTIONS.map((opt) => {
+              const active = matchType === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setMatchType(opt.value)}
+                  className={[
+                    'w-full text-left px-3 py-2 rounded-sm border transition-colors',
+                    active
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-900  hover:bg-zinc-200',
+                  ].join(' ')}
+                >
+                  <p className="text-sm font-semibold leading-tight">{opt.label}</p>
+                  <p className={['text-[11px] mt-0', active ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
+                    {opt.description}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </section>
 
-      {/* Match Type */}
-      <section>
-        <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-1 text-center">
-          Match Type
-        </p>
-        <div className="space-y-1">
-          {MATCH_TYPE_OPTIONS.map((opt) => {
-            const active = matchType === opt.value
-            return (
+        {/* Scoring Engine */}
+        <section>
+          <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mt-10 mb-1 px-1 text-center">
+            Scoring Engine
+          </p>
+          <p className="text-[11px] text-zinc-400 px-1 mb-4 leading-relaxed text-center">
+            This determines how the match is scored and how a winner is decided.
+          </p>
+          <div className="space-y-1">
+            {availableEngines.map((opt) => {
+              const active = engine.type === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setEngine({ type: opt.value })}
+                  className={[
+                    'w-full text-left px-3 py-2 rounded-sm border transition-colors',
+                    active
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-900  hover:bg-zinc-200',
+                  ].join(' ')}
+                >
+                  <p className="text-sm font-semibold leading-tight">{opt.label}</p>
+                  <p className={['text-[11px] mt-0', active ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
+                    {opt.description}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* Add-ons */}
+        <section>
+          <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-1 text-center mt-8">
+            Add-on
+          </p>
+          <div className="space-y-1">
+            {/* Timer */}
+            <button
+              type="button"
+              onClick={() => setAddOn('timer', { enabled: !addOns.timer.enabled })}
+              className={[
+                'w-full text-left px-3 py-2 rounded-sm border transition-colors',
+                addOns.timer.enabled
+                  ? 'border-zinc-900 bg-zinc-900 text-white'
+                  : 'border-zinc-900  hover:bg-zinc-200',
+              ].join(' ')}
+            >
+              <p className="text-sm font-semibold leading-tight">Timer</p>
+              <p className={['text-[11px] mt-0', addOns.timer.enabled ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
+                count down/up
+              </p>
+            </button>
+
+            {/* Notes */}
+            <button
+              type="button"
+              onClick={() => setAddOn('notes', { enabled: !addOns.notes.enabled })}
+              className={[
+                'w-full text-left px-3 py-2 rounded-sm border transition-colors',
+                addOns.notes.enabled
+                  ? 'border-zinc-900 bg-zinc-900 text-white'
+                  : 'border-zinc-900  hover:bg-zinc-200',
+              ].join(' ')}
+            >
+              <p className="text-sm font-semibold leading-tight">Notes</p>
+              <p className={['text-[11px] mt-0', addOns.notes.enabled ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
+                catatan operator
+              </p>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      {/* ── Presets Modal ─────────────────────────────────────────────────── */}
+      {showPresets && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
+              <div>
+                <h2 className="text-lg font-bold text-zinc-900">Choose a Preset</h2>
+                <p className="text-sm text-zinc-500">Pick a predefined configuration ({PRESETS.length} presets available).</p>
+              </div>
               <button
-                key={opt.value}
-                type="button"
-                onClick={() => setMatchType(opt.value)}
-                className={[
-                  'w-full text-left px-3 py-2 rounded-sm border transition-colors',
-                  active
-                    ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-900  hover:bg-zinc-200',
-                ].join(' ')}
+                onClick={() => setShowPresets(false)}
+                className="text-zinc-400 hover:text-zinc-700 p-2 rounded-md hover:bg-zinc-200 transition-colors"
               >
-                <p className="text-sm font-semibold leading-tight">{opt.label}</p>
-                <p className={['text-[11px] mt-0', active ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
-                  {opt.description}
-                </p>
+                ✕
               </button>
-            )
-          })}
+            </div>
+            
+            {/* Search & Filters */}
+            <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row gap-1 items-center justify-between bg-white ">
+              <Input 
+                autoFocus
+                placeholder="Search presets... (e.g., basket, marathon)" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full flex-1 placeholder:text-zinc-400 rounded-sm" 
+              />
+              <div className="flex gap-1 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 hide-scrollbar shrink-0 ">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-sm text-xs font-semibold whitespace-nowrap transition-colors border border-zinc-900 ${
+                      selectedCategory === cat 
+                        ? 'bg-zinc-900 text-white' 
+                        : 'bg-white text-zinc-900 hover:bg-zinc-300'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Cards Grid */}
+            <div className="flex-1 overflow-y-auto p-4 bg-zinc-50/50">
+              {filteredPresets.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                  {filteredPresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        // Using mock matchformat data so the store consumes the module data.
+                        loadFromExisting({
+                          id: '',
+                          event_id: '',
+                          name: preset.name,
+                          match_type: preset.matchType,
+                          modules: preset.modules as any
+                        })
+                        setShowPresets(false)
+                      }}
+                      className="text-left bg-white p-4 border border-zinc-200 rounded-md hover:border-zinc-900 hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-zinc-900 flex flex-col h-full group"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h3 className="font-semibold text-zinc-900 group-hover:text-zinc-900 leading-tight">
+                            {preset.name}
+                          </h3>
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-100 text-zinc-500 uppercase tracking-wide shrink-0 mt-0.5">
+                            {preset.category}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-2 leading-relaxed line-clamp-2">
+                          {preset.description}
+                        </p>
+                      </div>
+                      
+                      <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-semibold bg-zinc-100 text-zinc-600 uppercase tracking-wider">
+                          {preset.matchType.replace(/_/g, ' ')}
+                        </span>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-semibold bg-zinc-100 text-zinc-600 uppercase tracking-wider">
+                          {preset.modules[0]?.type?.replace(/_/g, ' ') || 'NO ENGINE'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <p className="text-zinc-500 text-sm">No presets match your search for "{searchQuery}"</p>
+                  <button 
+                    onClick={() => { setSearchQuery(''); setSelectedCategory('All') }}
+                    className="mt-3 text-xs text-blue-600 hover:underline"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </section>
-
-      {/* Scoring Engine */}
-      <section>
-        <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mt-10 mb-1 px-1 text-center">
-          Scoring Engine
-        </p>
-        <p className="text-[11px] text-zinc-400 px-1 mb-4 leading-relaxed text-center">
-          This determines how the match is scored and how a winner is decided.
-        </p>
-        <div className="space-y-1">
-          {availableEngines.map((opt) => {
-            const active = engine.type === opt.value
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setEngine({ type: opt.value })}
-                className={[
-                  'w-full text-left px-3 py-2 rounded-sm border transition-colors',
-                  active
-                    ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-900  hover:bg-zinc-200',
-                ].join(' ')}
-              >
-                <p className="text-sm font-semibold leading-tight">{opt.label}</p>
-                <p className={['text-[11px] mt-0', active ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
-                  {opt.description}
-                </p>
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Add-ons */}
-      <section>
-        <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-1 text-center mt-8">
-          Add-on
-        </p>
-        <div className="space-y-1">
-          {/* Timer */}
-          <button
-            type="button"
-            onClick={() => setAddOn('timer', { enabled: !addOns.timer.enabled })}
-            className={[
-              'w-full text-left px-3 py-2 rounded-sm border transition-colors',
-              addOns.timer.enabled
-                ? 'border-zinc-900 bg-zinc-900 text-white'
-                : 'border-zinc-900  hover:bg-zinc-200',
-            ].join(' ')}
-          >
-            <p className="text-sm font-semibold leading-tight">Timer</p>
-            <p className={['text-[11px] mt-0', addOns.timer.enabled ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
-              count down/up
-            </p>
-          </button>
-
-          {/* Notes */}
-          <button
-            type="button"
-            onClick={() => setAddOn('notes', { enabled: !addOns.notes.enabled })}
-            className={[
-              'w-full text-left px-3 py-2 rounded-sm border transition-colors',
-              addOns.notes.enabled
-                ? 'border-zinc-900 bg-zinc-900 text-white'
-                : 'border-zinc-900  hover:bg-zinc-200',
-            ].join(' ')}
-          >
-            <p className="text-sm font-semibold leading-tight">Notes</p>
-            <p className={['text-[11px] mt-0', addOns.notes.enabled ? 'text-zinc-400' : 'text-zinc-500'].join(' ')}>
-              catatan operator
-            </p>
-          </button>
-        </div>
-      </section>
-
-    </div>
+      )}
+    </>
   )
 }
 
