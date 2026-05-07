@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { MatchFormat, Match } from '@/types/directus'
+import { upsertFormatAction } from '../_actions' 
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
@@ -81,15 +82,24 @@ export default function FormatBuilderPage() {
     setSaveError(null)
     try {
       const modules = buildModulesPayload()
-      const payload = { name: formatName.trim(), match_type: matchType, modules, event_id: eventId }
-      if (formatId) {
-        await directus.request(updateItem('match_formats', formatId, payload))
+      
+      // PANGGIL ACTION, BUKAN directus.request
+      const res = await upsertFormatAction({
+        id: formatId || undefined,
+        event_id: eventId,
+        name: formatName.trim(),
+        match_type: matchType,
+        modules: modules
+      })
+
+      if (res.success) {
+        router.push(`/events/${eventId}/formats`)
+        router.refresh()
       } else {
-        await directus.request(createItem('match_formats', payload))
+        setSaveError(res.error || 'Terjadi kesalahan yang tidak diketahui.')
       }
-      router.push(`/events/${eventId}/formats`)
-    } catch {
-      setSaveError('Gagal menyimpan format. Coba lagi.')
+    } catch (err) {
+      setSaveError('Terjadi kesalahan sistem. Coba lagi.')
     } finally {
       setSaving(false)
     }

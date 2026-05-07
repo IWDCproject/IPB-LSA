@@ -1,3 +1,5 @@
+"use client"
+
 import { create } from 'zustand'
 import type {
   MatchType,
@@ -107,12 +109,16 @@ export const useFormatBuilder = create<FormatBuilderState>((set, get) => ({
   setMatchType: (type) =>
     set((state) => {
       const validEngines = VALID_ENGINES[type]
-      const engineType   = validEngines.includes(state.engine.type)
+      
+      // Gunakan Type Assertion 'as EngineType' untuk meyakinkan TS
+      // atau gunakan operator '!' jika agan yakin index 0 pasti ada
+      const engineType = validEngines.includes(state.engine.type)
         ? state.engine.type
-        : validEngines[0]
+        : (validEngines[0] as EngineType) 
+
       return {
         matchType: type,
-        engine:    { ...state.engine, type: engineType },
+        engine: { ...state.engine, type: engineType },
       }
     }),
 

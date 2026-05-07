@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import FormatBuilderPage from '@/components/format-builder/FormatBuilderPage'
+import FormatBuilderPage from './FormatBuilderPage'
 
 export default function Page() {
   return (
