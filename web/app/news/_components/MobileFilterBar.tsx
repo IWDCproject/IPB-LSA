@@ -24,12 +24,8 @@ function FilterDropBtn({
         ...JK, flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
         gap: 5, padding: "9px 6px", borderRadius: 8, fontSize: 13, fontWeight: 700,
         cursor: "pointer", transition: "background 0.2s, color 0.2s, border-color 0.2s",
-        border: isActive
-          ? "1.5px solid rgba(255,255,255,0.7)"
-          : isOpen
-            ? "1.5px solid rgba(255,255,255,0.5)"
-            : "1.5px solid rgba(255,255,255,0.2)",
-        background: isActive ? "#fff" : isOpen ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)",
+        border: "1.5px solid rgba(255,255,255,0.7)",
+        background: isActive ? "#fff" : isOpen ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.1)",
         color: isActive ? BLUE : "#fff",
         position: "relative",
       }}
@@ -57,10 +53,9 @@ function FilterDropBtn({
 // ─── Check row ────────────────────────────────────────────────────────────────
 
 function CheckRow({
-  label, checked, onClick, symbol, symbolColor, dot, animIndex = 0,
+  label, checked, onClick, animIndex = 0,
 }: {
-  label: string; checked: boolean; onClick: () => void;
-  symbol?: string; symbolColor?: string; dot?: string; animIndex?: number;
+  label: string; checked: boolean; onClick: () => void; animIndex?: number;
 }) {
   return (
     <button
@@ -70,14 +65,12 @@ function CheckRow({
         padding: "9px 14px", background: "none", border: "none",
         cursor: "pointer", textAlign: "left",
         borderBottom: "1px solid rgba(255,255,255,0.05)",
-        // Stagger in
         opacity: 0,
         animation: `mob-item-in 220ms ease ${animIndex * 38}ms forwards`,
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "none"; }}
     >
-      {/* Checkbox */}
       <span style={{
         width: 18, height: 18, borderRadius: 5, flexShrink: 0,
         border: checked ? `2px solid ${YELLOW}` : "2px solid rgba(255,255,255,0.25)",
@@ -91,40 +84,28 @@ function CheckRow({
           </svg>
         )}
       </span>
-
-      {symbol && (
-        <span style={{ fontSize: 9, color: checked ? (symbolColor ?? YELLOW) : "rgba(255,255,255,0.35)", flexShrink: 0 }}>
-          {symbol}
-        </span>
-      )}
-
       <span style={{ ...JK, fontSize: 14, fontWeight: 600, color: checked ? "#fff" : "rgba(255,255,255,0.75)", flex: 1, lineHeight: 1.3 }}>
         {label}
       </span>
-
-      {dot && (
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: dot, flexShrink: 0 }} />
-      )}
     </button>
   );
 }
 
 // ─── Clear filter button (sits above CheckRows, gets animIndex 0) ─────────────
 
-function ClearBtn({ onClick }: { onClick: () => void }) {
+function ClearBtn({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
     <button
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       style={{
         ...JK, width: "100%", padding: "9px 16px", background: "none", border: "none",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        cursor: "pointer", textAlign: "center", fontSize: 11, fontWeight: 700,
-        color: "rgba(255,255,255,0.4)", letterSpacing: "0.08em", textTransform: "uppercase",
-        opacity: 0,
-        animation: "mob-item-in 220ms ease 0ms forwards",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
+        cursor: disabled ? "default" : "pointer", textAlign: "center", fontSize: 11, fontWeight: 700,
+        color: disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.4)",
+        letterSpacing: "0.08em", textTransform: "uppercase",
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.75)"; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)"; }}
+      onMouseEnter={e => { if (!disabled) (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.75)"; }}
+      onMouseLeave={e => { if (!disabled) (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)"; }}
     >
       Hapus filter
     </button>
@@ -151,6 +132,7 @@ export function MobileFilterBar({
   events, sort, setSort,
 }: MobileFilterBarProps) {
   const [openPanel, setOpenPanel] = useState<"status" | "event" | "sort" | null>(null);
+  const [eventSearch, setEventSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -163,10 +145,20 @@ export function MobileFilterBar({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const toggle = (panel: "status" | "event" | "sort") =>
-    setOpenPanel(v => v === panel ? null : panel);
+  const toggle = (panel: "status" | "event" | "sort") => {
+    setOpenPanel(v => {
+      if (v === panel) { setEventSearch(""); return null; }
+      if (panel !== "event") setEventSearch("");
+      return panel;
+    });
+  };
 
   const sortLabel = sort === "-published_at" ? "Terbaru" : "Terlama";
+
+  const sortedEvents = [...events].sort((a, b) => a.name.localeCompare(b.name));
+  const filteredEvents = eventSearch.trim()
+    ? sortedEvents.filter(ev => ev.name.toLowerCase().includes(eventSearch.toLowerCase()))
+    : sortedEvents;
 
   // Re-key the panel on each open so animations re-trigger when switching tabs
   const [panelKey, setPanelKey] = useState(0);
@@ -210,8 +202,8 @@ export function MobileFilterBar({
             backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
             border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 10, boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
-            overflow: "hidden", maxHeight: 300, overflowY: "auto",
-            // Height grow + fade
+            display: "flex", flexDirection: "column",
+            maxHeight: 300, overflow: "hidden",
             transformOrigin: "top",
             animation: "mob-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
           }}
@@ -219,54 +211,87 @@ export function MobileFilterBar({
           {/* Status panel */}
           {openPanel === "status" && (
             <>
-              {activeStatuses.size > 0 && <ClearBtn onClick={() => setActiveStatuses(new Set())} />}
-              {STATUS_OPTIONS.map((s, i) => (
-                <CheckRow
-                  key={s.key}
-                  animIndex={activeStatuses.size > 0 ? i + 1 : i}
-                  label={s.label}
-                  checked={activeStatuses.has(s.key)}
-                  onClick={() => toggleStatus(s.key)}
-                  symbol={s.symbol}
-                  symbolColor={s.color}
-                />
-              ))}
+              <div style={{ overflowY: "auto", flex: 1 }}>
+                {STATUS_OPTIONS.map((s, i) => (
+                  <CheckRow
+                    key={s.key} animIndex={i}
+                    label={s.label}
+                    checked={activeStatuses.has(s.key)}
+                    onClick={() => toggleStatus(s.key)}
+                  />
+                ))}
+              </div>
+              <ClearBtn onClick={() => setActiveStatuses(new Set())} disabled={activeStatuses.size === 0} />
             </>
           )}
 
           {/* Event panel */}
           {openPanel === "event" && (
             <>
-              {activeEventSlugs.size > 0 && <ClearBtn onClick={() => setActiveEventSlugs(new Set())} />}
-              {events.length === 0 && (
-                <div style={{ ...JK, padding: "16px", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
-                  Tidak ada event
+              {/* Search bar — pinned, doesn't scroll */}
+              <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ position: "absolute", left: 9, pointerEvents: "none" }}>
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Cari event..."
+                    value={eventSearch}
+                    onChange={e => setEventSearch(e.target.value)}
+                    style={{
+                      ...JK, width: "100%", paddingLeft: 28, paddingRight: eventSearch ? 26 : 10,
+                      paddingTop: 6, paddingBottom: 6,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      borderRadius: 6, color: "#fff", fontSize: 12, outline: "none",
+                    }}
+                  />
+                  {eventSearch && (
+                    <button onClick={() => setEventSearch("")} style={{
+                      position: "absolute", right: 6, background: "none", border: "none",
+                      cursor: "pointer", color: "rgba(255,255,255,0.4)", lineHeight: 1, fontSize: 14,
+                    }}>×</button>
+                  )}
                 </div>
-              )}
-              {events.map((ev, i) => (
-                <CheckRow
-                  key={ev.slug}
-                  animIndex={activeEventSlugs.size > 0 ? i + 1 : i}
-                  label={ev.name}
-                  checked={activeEventSlugs.has(ev.slug)}
-                  onClick={() => toggleEvent(ev.slug)}
-                  dot={ev.status === "ongoing" ? "#dc2626" : ev.status === "upcoming" ? YELLOW : "rgba(255,255,255,0.4)"}
-                />
-              ))}
+              </div>
+
+              {/* Scrollable list */}
+              <div style={{ overflowY: "auto", flex: 1 }}>
+                {filteredEvents.length === 0 && (
+                  <div style={{ ...JK, padding: "16px", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
+                    Tidak ada event
+                  </div>
+                )}
+                {filteredEvents.map((ev, i) => (
+                  <CheckRow
+                    key={ev.slug} animIndex={i}
+                    label={ev.name}
+                    checked={activeEventSlugs.has(ev.slug)}
+                    onClick={() => toggleEvent(ev.slug)}
+                  />
+                ))}
+              </div>
+              <ClearBtn onClick={() => setActiveEventSlugs(new Set())} disabled={activeEventSlugs.size === 0} />
             </>
           )}
 
           {/* Sort panel */}
           {openPanel === "sort" && (
-            ([[ "-published_at", "Terbaru"], ["published_at", "Terlama"]] as [SortValue, string][]).map(([val, label], i) => (
-              <CheckRow
-                key={val}
-                animIndex={i}
-                label={label}
-                checked={sort === val}
-                onClick={() => { setSort(val); setOpenPanel(null); }}
-              />
-            ))
+            <>
+              <div style={{ overflowY: "auto", flex: 1 }}>
+                {([[ "-published_at", "Terbaru"], ["published_at", "Terlama"]] as [SortValue, string][]).map(([val, label], i) => (
+                  <CheckRow
+                    key={val} animIndex={i}
+                    label={label}
+                    checked={sort === val}
+                    onClick={() => { setSort(val); setOpenPanel(null); }}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

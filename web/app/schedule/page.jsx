@@ -1,5 +1,5 @@
 import { getMatches, getNews } from "@/lib/directus";
-import SchedulePageClient from "./_components/SchedulePageClient";
+import SchedulePageClient from "./SchedulePageClient";
 
 export const dynamic = "force-dynamic";
 

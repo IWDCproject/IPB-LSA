@@ -4,7 +4,30 @@ import React, { useState, useRef, useEffect } from "react";
 import { calcAvg, getEngine, resolveWinnerName } from "./scoreUtils";
 import type { MappedMatch } from "../../_types";
 
-// --- Slot Animation System -----------------------------------------------------
+// --- Badge Color Config -------------------------------------------------------
+
+export type BadgeColors = {
+  badgeBg:   string   // inactive pill background
+  labelText: string   // "Set 1", "Jud. 1", "Avg" labels
+  valueText: string   // score numbers
+  mutedText: string   // separators, "--" placeholder
+}
+
+export const LIGHT_BADGE_COLORS: BadgeColors = {
+  badgeBg:   "rgba(0,0,0,0.06)",
+  labelText: "#676767",
+  valueText: "#111111",
+  mutedText: "#aaaaaa",
+}
+
+export const DARK_BADGE_COLORS: BadgeColors = {
+  badgeBg:   "rgba(255,255,255,0.1)",
+  labelText: "rgba(255,255,255,0.55)",
+  valueText: "#ffffff",
+  mutedText: "rgba(255,255,255,0.35)",
+}
+
+// --- Slot Animation System ---------------------------------------------------
 
 export function AnimatedDigit({ char, delay = 0 }: { char: string; delay?: number }) {
   const [state, setState] = useState<{ cur: string; prev: string | null; gen: number }>({
@@ -54,7 +77,6 @@ export function AnimatedDigit({ char, delay = 0 }: { char: string; delay?: numbe
           {prev}
         </span>
       )}
-
       <span
         key={`in-${gen}`}
         className={`flex items-center justify-center${isAnimating ? " animate-digit-slot-in" : ""}`}
@@ -65,7 +87,7 @@ export function AnimatedDigit({ char, delay = 0 }: { char: string; delay?: numbe
   );
 }
 
-// --- AnimatedScore -------------------------------------------------------------
+// --- AnimatedScore -----------------------------------------------------------
 
 export function AnimatedScore({ value }: { value: string }) {
   return (
@@ -77,7 +99,7 @@ export function AnimatedScore({ value }: { value: string }) {
   );
 }
 
-// --- ScoreCellWrapper ----------------------------------------------------------
+// --- ScoreCellWrapper --------------------------------------------------------
 // key={id} causes React to remount, restarting the CSS animation automatically.
 
 function ScoreCellWrapper({ id, children }: { id: string; children: React.ReactNode }) {
@@ -88,7 +110,7 @@ function ScoreCellWrapper({ id, children }: { id: string; children: React.ReactN
   );
 }
 
-// --- Live badge ---------------------------------------------------------------
+// --- Live badge --------------------------------------------------------------
 
 export function SolidLiveBadge() {
   return (
@@ -98,26 +120,33 @@ export function SolidLiveBadge() {
   );
 }
 
-// --- Set-based score display --------------------------------------------------
+// --- Set-based score display -------------------------------------------------
 
 interface SetScoreProps {
   live:     any;
   compact?: boolean;
+  colors?:  BadgeColors;
 }
 
-export function ScoreSetsLive({ live, compact = false }: SetScoreProps) {
+export function ScoreSetsLive({ live, compact = false, colors = LIGHT_BADGE_COLORS }: SetScoreProps) {
   const setScore = live?.setScore ?? [0, 0];
   const setLog   = live?.setLog   ?? [];
 
   const SetPill = ({ s, i }: { s: any; i: number }) => (
-    <div className={`bg-[#FFF8D6] border border-[#FFC936] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}>
-      <div className="font-jakarta text-[9px] font-bold text-[#CA8A04] mb-0.5">Set {i + 1}</div>
-      <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
-        <span className={s.home > s.away ? "border-b border-[#111] pb-[1px]" : ""}>
+    <div
+      className={`border border-[#FFC936] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
+      style={{ background: "rgba(255,201,54,0.15)" }}
+    >
+      <div className="font-jakarta text-[9px] font-bold mb-0.5" style={{ color: "#CA8A04" }}>Set {i + 1}</div>
+      <div
+        className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
+        style={{ color: colors.valueText }}
+      >
+        <span className={s.home > s.away ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
           <AnimatedScore value={String(s.home)} />
         </span>
-        <span className="font-extrabold text-[#676767] px-0.5"> : </span>
-        <span className={s.away > s.home ? "border-b border-[#111] pb-[1px]" : ""}>
+        <span className="font-extrabold px-0.5" style={{ color: colors.mutedText }}> : </span>
+        <span className={s.away > s.home ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
           <AnimatedScore value={String(s.away)} />
         </span>
       </div>
@@ -128,7 +157,6 @@ export function ScoreSetsLive({ live, compact = false }: SetScoreProps) {
 
   return (
     <div className={`flex items-center ${compact ? "gap-1" : "gap-1.5"}`}>
-      {/* LEFT BIG PILL */}
       <div className={pillClass}>
         <span className={setScore[0] > setScore[1] ? "border-b border-[#111] pb-0.5" : ""}>
           <AnimatedScore value={String(setScore[0]).padStart(2, "0")} />
@@ -140,7 +168,6 @@ export function ScoreSetsLive({ live, compact = false }: SetScoreProps) {
         : setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)
       }
 
-      {/* RIGHT BIG PILL */}
       <div className={pillClass}>
         <span className={setScore[1] > setScore[0] ? "border-b border-[#111] pb-0.5" : ""}>
           <AnimatedScore value={String(setScore[1]).padStart(2, "0")} />
@@ -150,19 +177,26 @@ export function ScoreSetsLive({ live, compact = false }: SetScoreProps) {
   );
 }
 
-export function ScoreSetsFinished({ live, compact = false }: SetScoreProps) {
+export function ScoreSetsFinished({ live, compact = false, colors = LIGHT_BADGE_COLORS }: SetScoreProps) {
   const setLog = live?.setLog ?? [];
   return (
     <div className={`flex items-center flex-wrap ${compact ? "gap-1" : "gap-1.5"}`}>
       {setLog.map((s: any, i: number) => (
-        <div key={i} className={`bg-[#f3f4f6] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}>
-          <div className="font-jakarta text-[9px] font-semibold text-[#676767] mb-0.5">Set {i + 1}</div>
-          <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
-            <span className={s.home > s.away ? "border-b border-[#111] pb-[1px]" : ""}>
+        <div
+          key={i}
+          className={`rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
+          style={{ background: colors.badgeBg }}
+        >
+          <div className="font-jakarta text-[9px] font-semibold mb-0.5" style={{ color: colors.labelText }}>Set {i + 1}</div>
+          <div
+            className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
+            style={{ color: colors.valueText }}
+          >
+            <span className={s.home > s.away ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
               <AnimatedScore value={String(s.home)} />
             </span>
-            <span className="font-extrabold text-[#676767] px-0.5"> : </span>
-            <span className={s.away > s.home ? "border-b border-[#111] pb-[1px]" : ""}>
+            <span className="font-extrabold px-0.5" style={{ color: colors.mutedText }}> : </span>
+            <span className={s.away > s.home ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
               <AnimatedScore value={String(s.away)} />
             </span>
           </div>
@@ -172,16 +206,17 @@ export function ScoreSetsFinished({ live, compact = false }: SetScoreProps) {
   );
 }
 
-// --- Judge score cells --------------------------------------------------------
+// --- Judge score cells -------------------------------------------------------
 
 interface JudgeCellsProps {
   live:     any;
   engine:   any;
   isLive:   boolean;
   compact?: boolean;
+  colors?:  BadgeColors;
 }
 
-function JudgeCells({ live, engine, isLive, compact = false }: JudgeCellsProps) {
+function JudgeCells({ live, engine, isLive, compact = false, colors = LIGHT_BADGE_COLORS }: JudgeCellsProps) {
   const scores: number[]   = live?.judgeScores ?? [];
   const judgeCount: number = engine?.config?.num_judges ?? scores.length;
 
@@ -198,14 +233,19 @@ function JudgeCells({ live, engine, isLive, compact = false }: JudgeCellsProps) 
           return (
             <div
               key={i}
-              className={`border border-[#FFC936] rounded-[6px] text-center transition-[background] duration-300
-                ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}
-                ${hasScore ? "bg-[#FFC936]" : "bg-transparent"}`}
+              className={`border border-[#FFC936] rounded-[6px] text-center transition-[background] duration-300 ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
+              style={{ background: hasScore ? "#FFC936" : "transparent" }}
             >
-              <div className={`font-jakarta text-[9px] font-bold mb-0.5 transition-[color] duration-300 ${hasScore ? "text-[#92400E]" : "text-[#CA8A04]"}`}>
+              <div
+                className="font-jakarta text-[9px] font-bold mb-0.5 transition-[color] duration-300"
+                style={{ color: hasScore ? "#92400E" : "#CA8A04" }}
+              >
                 Jud. {i + 1}
               </div>
-              <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
+              <div
+                className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
+                style={{ color: "#111" }}
+              >
                 <AnimatedScore value={label} />
               </div>
             </div>
@@ -213,12 +253,21 @@ function JudgeCells({ live, engine, isLive, compact = false }: JudgeCellsProps) 
         }
 
         return (
-          <div key={i} className={`bg-[#f3f4f6] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}>
-            <div className="font-jakarta text-[9px] font-semibold text-[#676767] mb-0.5">Jud. {i + 1}</div>
-            <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
+          <div
+            key={i}
+            className={`rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
+            style={{ background: colors.badgeBg }}
+          >
+            <div className="font-jakarta text-[9px] font-semibold mb-0.5" style={{ color: colors.labelText }}>
+              Jud. {i + 1}
+            </div>
+            <div
+              className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
+              style={{ color: colors.valueText }}
+            >
               {hasScore
                 ? <AnimatedScore value={label} />
-                : <span className="text-[#aaa]">--</span>
+                : <span style={{ color: colors.mutedText }}>--</span>
               }
             </div>
           </div>
@@ -228,12 +277,12 @@ function JudgeCells({ live, engine, isLive, compact = false }: JudgeCellsProps) 
   );
 }
 
-// --- JudgeScoreBadge — finished state -----------------------------------------
+// --- JudgeScoreBadge — finished state ----------------------------------------
 
 export function JudgeScoreBadge({
-  live, engine, compact = false,
+  live, engine, compact = false, colors = LIGHT_BADGE_COLORS,
 }: {
-  live: any; engine: any; compact?: boolean;
+  live: any; engine: any; compact?: boolean; colors?: BadgeColors;
 }) {
   const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
@@ -242,25 +291,34 @@ export function JudgeScoreBadge({
   return (
     <div className={`flex items-center flex-wrap ${compact ? "gap-1" : "gap-1.5"}`}>
       <div className={`flex items-center ${compact ? "gap-1" : "gap-1.5"}`}>
-        <div className={`bg-[#f3f4f6] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}>
-          <div className="font-jakarta text-[9px] font-semibold text-[#676767] mb-0.5">Avg</div>
-          <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
+        <div
+          className={`rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
+          style={{ background: colors.badgeBg }}
+        >
+          <div className="font-jakarta text-[9px] font-semibold mb-0.5" style={{ color: colors.labelText }}>Avg</div>
+          <div
+            className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
+            style={{ color: colors.valueText }}
+          >
             <AnimatedScore value={result} />
           </div>
         </div>
-        <span className={`font-jakarta font-extrabold text-[#aaa] shrink-0 ${compact ? "text-xs" : "text-sm"}`}>:</span>
+        <span
+          className={`font-jakarta font-extrabold shrink-0 ${compact ? "text-xs" : "text-sm"}`}
+          style={{ color: colors.mutedText }}
+        >:</span>
       </div>
-      <JudgeCells live={live} engine={engine} isLive={false} compact={compact} />
+      <JudgeCells live={live} engine={engine} isLive={false} compact={compact} colors={colors} />
     </div>
   );
 }
 
-// --- JudgeScoreLive -----------------------------------------------------------
+// --- JudgeScoreLive ----------------------------------------------------------
 
 export function JudgeScoreLive({
-  live, engine, compact = false,
+  live, engine, compact = false, colors = LIGHT_BADGE_COLORS,
 }: {
-  live: any; engine: any; compact?: boolean;
+  live: any; engine: any; compact?: boolean; colors?: BadgeColors;
 }) {
   const scores: number[] = live?.judgeScores ?? [];
   const method           = engine?.config?.method ?? "avg";
@@ -273,29 +331,41 @@ export function JudgeScoreLive({
   return (
     <div className={`flex items-center flex-wrap ${compact ? "gap-1" : "gap-1.5"}`}>
       <div className={`flex items-center ${compact ? "gap-1" : "gap-1.5"}`}>
-        <div className={`bg-[#FFF8D6] border border-[#FFC936] rounded-[6px] text-center transition-[background] duration-300 ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}>
+        <div
+          className={`border border-[#FFC936] rounded-[6px] text-center transition-[background] duration-300 ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
+          style={{ background: "rgba(255,201,54,0.15)" }}
+        >
           <div className="font-jakarta text-[9px] font-bold text-[#CA8A04] mb-0.5">Avg</div>
-          <div className={`font-jakarta font-extrabold text-[#111] flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}>
+          <div
+            className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
+            style={{ color: "#111" }}
+          >
             {hasAny
               ? <AnimatedScore value={result} />
               : <span className="text-[#CA8A04]">--</span>
             }
           </div>
         </div>
-        <span className={`font-jakarta font-extrabold text-[#aaa] shrink-0 ${compact ? "text-xs" : "text-sm"}`}>:</span>
+        <span
+          className={`font-jakarta font-extrabold shrink-0 ${compact ? "text-xs" : "text-sm"}`}
+          style={{ color: colors.mutedText }}
+        >:</span>
       </div>
-      <JudgeCells live={live} engine={engine} isLive={true} compact={compact} />
+      <JudgeCells live={live} engine={engine} isLive={true} compact={compact} colors={colors} />
     </div>
   );
 }
 
-// --- ManualPickBadge ----------------------------------------------------------
+// --- ManualPickBadge ---------------------------------------------------------
 
-export function ManualPickBadge({ match }: { match: MappedMatch }) {
+export function ManualPickBadge({ match, colors = LIGHT_BADGE_COLORS }: { match: MappedMatch; colors?: BadgeColors }) {
   const winner = resolveWinnerName(match);
   if (!winner) return null;
   return (
-    <div className="font-jakarta text-[13px] font-extrabold text-[#111] bg-[#f3f4f6] rounded-[6px] px-4 py-1">
+    <div
+      className="font-jakarta text-[13px] font-extrabold rounded-[6px] px-4 py-1"
+      style={{ background: colors.badgeBg, color: colors.valueText }}
+    >
       {winner} Wins
     </div>
   );
@@ -303,24 +373,27 @@ export function ManualPickBadge({ match }: { match: MappedMatch }) {
 
 // --- MiddleBadge -------------------------------------------------------------
 
-export function MiddleBadge({ match }: { match: MappedMatch }) {
+export function MiddleBadge({ match, colors = LIGHT_BADGE_COLORS }: { match: MappedMatch; colors?: BadgeColors }) {
   const isH2H = (match.competition_category?.format_id as any)?.match_type === "head_to_head";
   return (
-    <div className="font-jakarta text-[13px] font-extrabold text-[#aaa] bg-[#f3f4f6] rounded-[6px] px-4 py-1 whitespace-nowrap min-w-[50px] text-center">
+    <div
+      className="font-jakarta text-[13px] font-extrabold rounded-[6px] px-4 py-1 whitespace-nowrap min-w-[50px] text-center"
+      style={{ background: colors.badgeBg, color: colors.mutedText }}
+    >
       {isH2H ? "vs" : "--"}
     </div>
   );
 }
 
-// --- ScoreCell ----------------------------------------------------------------
+// --- ScoreCell ---------------------------------------------------------------
 
-export function ScoreCell({ match, compact = false }: { match: MappedMatch; compact?: boolean }) {
+export function ScoreCell({ match, compact = false, colors = LIGHT_BADGE_COLORS }: { match: MappedMatch; compact?: boolean; colors?: BadgeColors }) {
   const engine     = getEngine(match.competition_category?.format_id);
   const live       = match.live_state ?? {};
   const isLive     = match.status === "live";
   const isUpcoming = match.status === "upcoming";
 
-  if (isUpcoming) return <MiddleBadge match={match} />;
+  if (isUpcoming) return <MiddleBadge match={match} colors={colors} />;
 
   const swapKey = `${match.status}-${engine?.type ?? "none"}`;
 
@@ -330,9 +403,15 @@ export function ScoreCell({ match, compact = false }: { match: MappedMatch; comp
       const a = live.awayScore ?? 0;
       return (
         <ScoreCellWrapper id={swapKey}>
-          <div className={`flex items-center gap-2 rounded-[6px] px-4 py-1 font-jakarta text-sm font-extrabold text-[#111] ${isLive ? "bg-[#FFF8D6] border border-[#FFC936]" : "bg-[#f3f4f6] border border-transparent"}`}>
+          <div
+            className={`flex items-center gap-2 rounded-[6px] px-4 py-1 font-jakarta text-sm font-extrabold border ${isLive ? "border-[#FFC936]" : "border-transparent"}`}
+            style={{
+              background: isLive ? "rgba(255,201,54,0.15)" : colors.badgeBg,
+              color:      colors.valueText,
+            }}
+          >
             <AnimatedScore value={String(h).padStart(2, "0")} />
-            <span className={`text-sm font-extrabold ${isLive ? "text-[#CA8A04]" : "text-[#aaa]"}`}>-</span>
+            <span className={`text-sm font-extrabold`} style={{ color: isLive ? "#CA8A04" : colors.mutedText }}>-</span>
             <AnimatedScore value={String(a).padStart(2, "0")} />
           </div>
         </ScoreCellWrapper>
@@ -343,8 +422,8 @@ export function ScoreCell({ match, compact = false }: { match: MappedMatch; comp
       return (
         <ScoreCellWrapper id={swapKey}>
           {isLive
-            ? <ScoreSetsLive live={live} compact={compact} />
-            : <ScoreSetsFinished live={live} compact={compact} />}
+            ? <ScoreSetsLive    live={live} compact={compact} colors={colors} />
+            : <ScoreSetsFinished live={live} compact={compact} colors={colors} />}
         </ScoreCellWrapper>
       );
 
@@ -352,8 +431,8 @@ export function ScoreCell({ match, compact = false }: { match: MappedMatch; comp
       return (
         <ScoreCellWrapper id={swapKey}>
           {isLive
-            ? <JudgeScoreLive live={live} engine={engine} compact={compact} />
-            : <JudgeScoreBadge live={live} engine={engine} compact={compact} />}
+            ? <JudgeScoreLive  live={live} engine={engine} compact={compact} colors={colors} />
+            : <JudgeScoreBadge live={live} engine={engine} compact={compact} colors={colors} />}
         </ScoreCellWrapper>
       );
 
@@ -363,7 +442,7 @@ export function ScoreCell({ match, compact = false }: { match: MappedMatch; comp
 
     case "manual_pick":
       if (isLive) return <ScoreCellWrapper id={swapKey}><SolidLiveBadge /></ScoreCellWrapper>;
-      return <ScoreCellWrapper id={swapKey}><ManualPickBadge match={match} /></ScoreCellWrapper>;
+      return <ScoreCellWrapper id={swapKey}><ManualPickBadge match={match} colors={colors} /></ScoreCellWrapper>;
 
     default:
       return null;

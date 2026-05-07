@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import { useBlurImages } from "@/hooks/useBlurImages";
 import type { NewsItem, EventWithNews } from "./_newsTypes";
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
+// --- Hooks --------------------------------------------------------------------
 
 function useContainerWidth(ref: React.RefObject<HTMLElement | null>): number {
   const [width, setWidth] = useState(0);
@@ -26,7 +26,7 @@ function desktopPad(cw: number) {
   return Math.min(160, Math.max(40, cw * 0.0833));
 }
 
-// ─── Global animation keyframes (referenced by all child components) ──────────
+// --- Global animation keyframes (referenced by all child components) ----------
 
 const NP_CSS = `
   @keyframes np-up       { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
@@ -34,14 +34,14 @@ const NP_CSS = `
   @keyframes np-slide-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 `;
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+// --- Props --------------------------------------------------------------------
 
 interface Props {
   latestNews: NewsItem[];
   events:     EventWithNews[];
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
+// --- Root ---------------------------------------------------------------------
 
 export default function NewsPageClient({ latestNews, events }: Props) {
   const rootRef  = useRef<HTMLDivElement | null>(null);
@@ -81,7 +81,7 @@ export default function NewsPageClient({ latestNews, events }: Props) {
     <div ref={rootRef} style={{ overflowX: "hidden" }}>
       <style dangerouslySetInnerHTML={{ __html: NP_CSS }} />
 
-      {/* ── 1. Latest Stories ─────────────────────────────────────────── */}
+      {/* -- 1. Latest Stories ------------------------------------------- */}
       <LatestStoriesSection
         latestNews={latestNews}
         cw={cw}
@@ -89,7 +89,7 @@ export default function NewsPageClient({ latestNews, events }: Props) {
         pad={pad}
       />
 
-      {/* ── 2. Content section (By Event | Semua Berita tabs) ─────────── */}
+      {/* -- 2. Content section (By Event | Semua Berita tabs) ----------- */}
       <ContentSection
         events={events}
         isMobile={isMobile}
