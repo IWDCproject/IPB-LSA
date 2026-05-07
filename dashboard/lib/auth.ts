@@ -16,8 +16,8 @@ type DirectusUserRow = {
 }
 
 function toUserRole(roleName: string): UserRole {
-  if (roleName === 'superadmin') return 'super_admin'
-  return 'operator'
+  if (roleName === 'SuperAdmin' || roleName === 'Administrator') return 'SuperAdmin'
+  return 'PJ Ormawa'
 }
 
 function extractRoleName(role: DirectusUserRow['role']): string {
