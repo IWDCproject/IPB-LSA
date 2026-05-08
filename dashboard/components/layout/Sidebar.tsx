@@ -46,11 +46,11 @@ function NavLink({
       href={href}
       style={{ paddingLeft: `${8 + indent * 8}px` }}
       className={cn(
-        'flex items-center rounded-lg py-2.5 pr-3 pl-3 text-sm',
+        'flex items-center rounded-lg py-2.5 pr-3 pl-3 text-sm transition-all duration-200 ease-in-out',
         bold ? 'font-[800]' : 'font-medium',
         active
-          ? 'bg-zinc-900 text-white shadow-md'
-          : 'text-foreground/60 hover:bg-muted hover:text-foreground'
+          ? 'bg-zinc-900 hover:bg-zinc-800 text-white shadow-md'
+          : 'text-foreground/60 hover:bg-muted hover:text-foreground hover:translate-x-1'
       )}
     >
       {label}
@@ -78,10 +78,13 @@ function SectionGroup({
   bold?:     boolean
 }) {
   const rowBase = cn(
-    'flex items-center rounded-lg transition-colors',
+    'flex items-center rounded-lg transition-all duration-200 ease-in-out',
     active
-      ? 'bg-zinc-900 text-white shadow-md'
-      : 'text-foreground/60 hover:bg-muted hover:text-foreground'
+      ? 'bg-zinc-900 hover:bg-zinc-800 text-white shadow-md'
+      : [
+          'text-foreground/60 hover:bg-muted hover:text-foreground',
+          href && 'hover:translate-x-1'
+        ]
   )
 
   const labelClass = cn(
@@ -173,19 +176,19 @@ export function Sidebar() {
   const displayName = isInEvent ? (currentEventName ?? sidebarEvent?.name) : sidebarEvent?.name
 
   const eventSubPages = displaySlug
-    ? [
+    ?[
         { label: 'Matches',      href: `/events/${displaySlug}/matches`      },
         { label: 'Formats',      href: `/events/${displaySlug}/formats`      },
         { label: 'Participants', href: `/events/${displaySlug}/participants`  },
         { label: 'Settings',     href: `/events/${displaySlug}/settings`     },
       ]
-    : []
+    :[]
 
   return (
     <aside className="flex w-[240px] shrink-0 flex-col bg-transparent">
 
       {/* -- Brand --------------------------------------------------------- */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 transition-transform duration-300 hover:scale-[1.01]">
         <Image
           src="/IWDC-logo.svg"
           width={200}
