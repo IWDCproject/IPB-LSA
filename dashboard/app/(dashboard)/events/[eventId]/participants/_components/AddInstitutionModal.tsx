@@ -25,23 +25,41 @@ const inputCls =
 // --- Component ----------------------------------------------------------------
 
 export default function AddInstitutionModal({ isOpen, onClose, eventId, onSuccess, editingInstitution }: Props) {
-  const [name, setName]         = useState('')
-  const [color, setColor]       = useState('#1A3D6E')
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [saving, setSaving]     = useState(false)
+  const [name, setName]               = useState('')
+  const [color, setColor]             = useState('#1A3D6E')
+  const [logoFile, setLogoFile]       = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [saving, setSaving]           = useState(false)
 
   // Populate fields in edit mode
   useEffect(() => {
     if (isOpen && editingInstitution) {
       setName(editingInstitution.name)
       setColor(editingInstitution.color || '#1A3D6E')
-      setLogoFile(null) // Can't pre-populate file input
+      setLogoFile(null)
+      // Show existing logo from Directus if available
+      if (editingInstitution.logo) {
+        const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL
+        setLogoPreview(`${directusUrl}/assets/${editingInstitution.logo}`)
+      } else {
+        setLogoPreview(null)
+      }
     } else if (isOpen && !editingInstitution) {
       setName('')
       setColor('#1A3D6E')
       setLogoFile(null)
+      setLogoPreview(null)
     }
   }, [isOpen, editingInstitution])
+
+  // Revoke object URL on cleanup to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (logoPreview && logoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(logoPreview)
+      }
+    }
+  }, [logoPreview])
 
   // Close on Escape
   const handleKeyDown = useCallback(
@@ -52,6 +70,19 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
     if (isOpen) document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, handleKeyDown])
+
+  const handleLogoChange = (file: File | null) => {
+    // Revoke previous object URL if it was a blob
+    if (logoPreview && logoPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(logoPreview)
+    }
+    setLogoFile(file)
+    if (file) {
+      setLogoPreview(URL.createObjectURL(file))
+    } else {
+      setLogoPreview(null)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!name.trim()) return
@@ -71,6 +102,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
       if (res.success) {
         setName('')
         setLogoFile(null)
+        setLogoPreview(null)
         setColor('#1A3D6E')
         onSuccess()
         onClose()
@@ -140,6 +172,34 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
           {/* Logo */}
           <div>
             <label htmlFor="inst-logo" className={labelCls}>Logo</label>
+
+            {/* Preview image — shown when a file is selected or editing has an existing logo */}
+            {logoPreview && (
+              <div className="mt-1.5 mb-2 flex items-center gap-3">
+                <div className="h-16 w-16 shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 overflow-hidden flex items-center justify-center">
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    className="h-full w-full object-contain p-1"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {logoFile && (
+                    <span className="text-xs font-medium text-zinc-600 truncate max-w-[200px]">
+                      {logoFile.name}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleLogoChange(null)}
+                    className="text-[11px] font-semibold text-red-500 hover:text-red-600 transition-colors text-left"
+                  >
+                    Hapus logo
+                  </button>
+                </div>
+              </div>
+            )}
+
             <label
               htmlFor="inst-logo"
               className="mt-1.5 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 text-sm font-semibold text-zinc-400 transition-colors hover:border-zinc-400 hover:bg-white"
@@ -150,14 +210,14 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
                 />
               </svg>
               <span className={logoFile ? 'text-zinc-700' : ''}>
-                {logoFile ? logoFile.name : 'Pilih gambar…'}
+                {logoFile ? 'Ganti gambar…' : 'Pilih gambar…'}
               </span>
               <input
                 id="inst-logo"
                 type="file"
                 accept="image/*"
                 className="sr-only"
-                onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                onChange={(e) => handleLogoChange(e.target.files?.[0] || null)}
               />
             </label>
           </div>

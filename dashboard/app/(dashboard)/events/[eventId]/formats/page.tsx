@@ -88,11 +88,9 @@ export default function FormatsPage() {
             { 
               key: 'modules', label: 'Modules', 
               render: (v) => (
-                <div className="flex gap-1">
-                  {(v as FormatModule[]).map((m, i) => (
-                    <Badge key={i} variant="secondary" className="text-[10px] font-bold">{moduleLabel(m)}</Badge>
-                  ))}
-                </div>
+                <span className="text-sm text-zinc-700">
+                  {(v as FormatModule[]).map((m) => `[${moduleLabel(m)}]`).join(' ')}
+                </span>
               ) 
             },
             {
@@ -112,6 +110,7 @@ export default function FormatsPage() {
           countLabel="formats"
           caption="Match Formats"
         />
+        <p className="text-xs text-zinc-400 mt-2">Format pertandingan menentukan modul, sistem penilaian, dan aturan penyelesaian skor.</p>
       </div>
 
       {/* --- Section Kategori --- */}
@@ -123,7 +122,6 @@ export default function FormatsPage() {
         
         <DataTable<CompetitionCategory>
           columns={[
-            { key: 'display_order', label: '#', className: 'w-10 font-normal text-zinc-400' },
             { key: 'name', label: 'Nama Kategori' },
             { key: 'participant_type', label: 'Tipe', render: (v) => PARTICIPANT_TYPE_LABEL[v as ParticipantType] },
             { 
@@ -161,6 +159,7 @@ export default function FormatsPage() {
           countLabel="kategori"
           caption="Kategori Kompetisi"
         />
+        <p className="text-xs text-zinc-400 mt-2">Kategori kompetisi untuk event ini, setiap kategori ditetapkan satu format pertandingan.</p>
       </div>
 
       
