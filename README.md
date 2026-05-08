@@ -21,9 +21,9 @@ Platform manajemen event dan live scoring untuk program IPB Lucky Sport & Art, k
 
 ```
 IPB-LSA/
-├── web/          # Public site (Next.js)
-├── dashboard/    # Admin dashboard (Next.js)
-└── backend/      # API & CMS (Directus)
+├-- web/          # Public site (Next.js)
+├-- dashboard/    # Admin dashboard (Next.js)
+└-- backend/      # API & CMS (Directus)
 ```
 
 ---

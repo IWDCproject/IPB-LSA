@@ -11,7 +11,7 @@ export type FormatPreset = {
 }
 
 export const PRESETS: FormatPreset[] =[
-  // ─── SPORTS: BALL GAMES ────────────────────────────────────────────────────────
+  // --- SPORTS: BALL GAMES --------------------------------------------------------
   {
     id: 'futsal',
     name: 'Futsal',
@@ -61,7 +61,7 @@ export const PRESETS: FormatPreset[] =[
     ],
   },
   
-  // ─── SPORTS: RACQUET & NET ───────────────────────────────────────────────────
+  // --- SPORTS: RACQUET & NET ---------------------------------------------------
   {
     id: 'badminton',
     name: 'Badminton',
@@ -141,7 +141,7 @@ export const PRESETS: FormatPreset[] =[
     ],
   },
 
-  // ─── SPORTS: MARTIAL ARTS & COMBAT ─────────────────────────────────────────
+  // --- SPORTS: MARTIAL ARTS & COMBAT -----------------------------------------
   {
     id: 'kumite',
     name: 'Karate (Kumite)',
@@ -285,7 +285,7 @@ export const PRESETS: FormatPreset[] =[
     ],
   },
 
-  // ─── SPORTS: RACES & ATHLETICS ─────────────────────────────────────────────
+  // --- SPORTS: RACES & ATHLETICS ---------------------------------------------
   {
     id: 'sprint',
     name: 'Lari Sprint 100m',
@@ -358,7 +358,7 @@ export const PRESETS: FormatPreset[] =[
     ],
   },
 
-  // ─── SPORTS: TRADITIONAL / PORSENI ─────────────────────────────────────────
+  // --- SPORTS: TRADITIONAL / PORSENI -----------------------------------------
   {
     id: 'gobak_sodor',
     name: 'Gobak Sodor / Hadang',
@@ -384,7 +384,7 @@ export const PRESETS: FormatPreset[] =[
     ],
   },
 
-  // ─── E-SPORTS ──────────────────────────────────────────────────────────────
+  // --- E-SPORTS --------------------------------------------------------------
   {
     id: 'mlbb',
     name: 'Mobile Legends (MLBB)',
@@ -465,7 +465,7 @@ export const PRESETS: FormatPreset[] =[
     ],
   },
 
-  // ─── ARTS & CREATIVE ───────────────────────────────────────────────────────
+  // --- ARTS & CREATIVE -------------------------------------------------------
   {
     id: 'padus',
     name: 'Paduan Suara / Choir',
@@ -593,7 +593,7 @@ export const PRESETS: FormatPreset[] =[
     ],
   },
 
-  // ─── MISC & ACADEMICS ──────────────────────────────────────────────────────
+  // --- MISC & ACADEMICS ------------------------------------------------------
   {
     id: 'debat',
     name: 'Debat',

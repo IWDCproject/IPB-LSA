@@ -215,41 +215,41 @@ graph LR
 
 ```
 events/[slug]/
-├── page.tsx                           # 🔧 Server component - data fetching + metadata
-├── EventDetailClient.tsx              # 💫 Client orchestrator - tabs + animations
-├── _types.ts                          # 📦 All TypeScript interfaces & types
+├-- page.tsx                           # 🔧 Server component - data fetching + metadata
+├-- EventDetailClient.tsx              # 💫 Client orchestrator - tabs + animations
+├-- _types.ts                          # 📦 All TypeScript interfaces & types
 │
-├── _components/
-│   ├── EventDetailHeader.tsx          # 🎨 Header, banner, tab buttons, status badge
+├-- _components/
+│   ├-- EventDetailHeader.tsx          # 🎨 Header, banner, tab buttons, status badge
 │   │
-│   ├── tabs/                          # 📑 Main content sections (user selectable)
-│   │   ├── OverviewTab.tsx            # Home - panels layout with smart sizing
-│   │   ├── MatchesTab.tsx             # All matches with filtering & sorting
-│   │   ├── ParticipantsTab.tsx        # Teams/players with member popups
-│   │   └── NewsTab.tsx                # Articles feed view
+│   ├-- tabs/                          # 📑 Main content sections (user selectable)
+│   │   ├-- OverviewTab.tsx            # Home - panels layout with smart sizing
+│   │   ├-- MatchesTab.tsx             # All matches with filtering & sorting
+│   │   ├-- ParticipantsTab.tsx        # Teams/players with member popups
+│   │   └-- NewsTab.tsx                # Articles feed view
 │   │
-│   ├── panels/                        # 🧩 Reusable container components
-│   │   ├── Panel.tsx                  # Base: PanelCard, PanelTitle, EmptyState
-│   │   ├── AboutPanel.tsx             # Event description & contacts
-│   │   ├── CountdownPanel.tsx         # Phase countdown timer
-│   │   ├── TimelinePanel.tsx          # Event phases timeline
-│   │   ├── MatchesPanels.tsx          # Upcoming & results snippets
-│   │   └── LatestStoriesSection.tsx   # News preview cards
+│   ├-- panels/                        # 🧩 Reusable container components
+│   │   ├-- Panel.tsx                  # Base: PanelCard, PanelTitle, EmptyState
+│   │   ├-- AboutPanel.tsx             # Event description & contacts
+│   │   ├-- CountdownPanel.tsx         # Phase countdown timer
+│   │   ├-- TimelinePanel.tsx          # Event phases timeline
+│   │   ├-- MatchesPanels.tsx          # Upcoming & results snippets
+│   │   └-- LatestStoriesSection.tsx   # News preview cards
 │   │
-│   ├── match/                         # ⚽ Score display utilities
-│   │   ├── ScoreBadges.tsx            # Score components (badges, cells)
-│   │   └── scoreUtils.ts              # Score formatting & helpers
+│   ├-- match/                         # ⚽ Score display utilities
+│   │   ├-- ScoreBadges.tsx            # Score components (badges, cells)
+│   │   └-- scoreUtils.ts              # Score formatting & helpers
 │   │
-│   └── shared/                        # 🎯 Shared utilities & styles
-│       ├── Animations.ts              # Keyframe definitions & timing
-│       ├── UseTabTransition.ts        # Tab animation state hook
-│       ├── ErrorBoundary.tsx          # Error catching wrapper
-│       ├── tokens.ts                  # Design tokens (colors, fonts)
-│       ├── NewsCardSkeleton.tsx       # Loading placeholder
-│       └── NewsPlaceholder.tsx        # Empty state UI
+│   └-- shared/                        # 🎯 Shared utilities & styles
+│       ├-- Animations.ts              # Keyframe definitions & timing
+│       ├-- UseTabTransition.ts        # Tab animation state hook
+│       ├-- ErrorBoundary.tsx          # Error catching wrapper
+│       ├-- tokens.ts                  # Design tokens (colors, fonts)
+│       ├-- NewsCardSkeleton.tsx       # Loading placeholder
+│       └-- NewsPlaceholder.tsx        # Empty state UI
 │
-└── hooks/
-    └── useMatchState.ts               # 🔄 Live match polling hook
+└-- hooks/
+    └-- useMatchState.ts               # 🔄 Live match polling hook
 
 ```
 

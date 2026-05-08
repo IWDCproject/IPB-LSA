@@ -6,8 +6,8 @@
 ## Architecture
 
 ```
-Admin Dashboard (Next.js) ──REST PATCH──► Directus ──SQL──► PostgreSQL
-Public Website (Next.js)  ◄──WS subscribe──
+Admin Dashboard (Next.js) --REST PATCH--► Directus --SQL--► PostgreSQL
+Public Website (Next.js)  ◄--WS subscribe--
 ```
 
 **Realtime pattern:** operator writes `live_state` via `PATCH /items/matches/{id}` → public display subscribes via WebSocket and receives updates automatically. Subscribe only to `fields: ["live_state"]` — never the full row.
@@ -18,16 +18,16 @@ Public Website (Next.js)  ◄──WS subscribe──
 
 ```
 directus_users (ormawa / superadmin)
-└── events
-    ├── competition_categories
-    │   ├── match_formats            ← scoring engine config, assigned to a category
-    │   ├── participants             ← athletes or teams
-    │   └── matches
-    │       ├── live_state           ← realtime JSONB state
-    │       └── match_participants[] ← junction table for open matches
-    ├── institutions                 ← universities / clubs, referenced by participants
-    ├── event_phases                 ← public event timeline
-    └── news                         ← articles tied to the event
+└-- events
+    ├-- competition_categories
+    │   ├-- match_formats            ← scoring engine config, assigned to a category
+    │   ├-- participants             ← athletes or teams
+    │   └-- matches
+    │       ├-- live_state           ← realtime JSONB state
+    │       └-- match_participants[] ← junction table for open matches
+    ├-- institutions                 ← universities / clubs, referenced by participants
+    ├-- event_phases                 ← public event timeline
+    └-- news                         ← articles tied to the event
 
 activity_logs                        ← platform-wide audit trail
 app_settings                         ← global config

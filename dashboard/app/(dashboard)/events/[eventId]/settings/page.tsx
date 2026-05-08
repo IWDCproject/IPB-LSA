@@ -24,7 +24,7 @@ import {
   deleteEventPhaseAction,
 } from './_actions'
 
-// ─── Shared primitives ───────────────────────────────────────────────────────
+// --- Shared primitives -------------------------------------------------------
 
 function SectionCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
@@ -171,7 +171,7 @@ const TEXTAREA   = 'w-full p-3 rounded-lg text-sm bg-zinc-50/50 border border-zi
 const SELECT     = 'w-full h-9 px-3 rounded-lg border border-zinc-200 text-sm bg-zinc-50/50 outline-none cursor-pointer hover:bg-zinc-100 transition-colors'
 const TAB_HEADER = 'flex items-center justify-between'
 
-// ─── 1. Info Tab ─────────────────────────────────────────────────────────────
+// --- 1. Info Tab -------------------------------------------------------------
 
 function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false)
@@ -373,7 +373,7 @@ function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) 
   )
 }
 
-// ─── 2. Timeline Tab ─────────────────────────────────────────────────────────
+// --- 2. Timeline Tab ---------------------------------------------------------
 
 const DOT_SIZE = 14
 const LINE_Y   = 60
@@ -592,7 +592,7 @@ function TimelineTab({ eventId, phases, onRefresh }: { eventId: string; phases: 
   )
 }
 
-// ─── 3. Danger Tab ───────────────────────────────────────────────────────────
+// --- 3. Danger Tab -----------------------------------------------------------
 
 function DangerTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false)
@@ -664,7 +664,7 @@ function DangerTab({ event, onRefresh }: { event: Event; onRefresh: () => void }
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// --- Main Page ----------------------------------------------------------------
 
 export default function SettingsPage() {
   const params  = useParams()

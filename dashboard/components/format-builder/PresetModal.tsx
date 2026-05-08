@@ -4,19 +4,19 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useFormatBuilder } from '@/stores/formatBuilder'
 import { PRESETS } from '@/lib/formatPresets'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// --- Types -------------------------------------------------------------------
 
 interface PresetModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-// ─── Shared label style (same across all modals) ──────────────────────────────
+// --- Shared label style (same across all modals) ------------------------------
 
 const labelCls =
   'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// --- Component ----------------------------------------------------------------
 
 export function PresetModal({ isOpen, onClose }: PresetModalProps) {
   const { loadFromExisting }    = useFormatBuilder()
@@ -55,7 +55,7 @@ export function PresetModal({ isOpen, onClose }: PresetModalProps) {
     >
       <div className="bg-white w-full max-w-5xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
 
-        {/* ── Header ── */}
+        {/* -- Header -- */}
         <div className="px-6 pt-6 pb-5 border-b border-zinc-100 flex items-start justify-between gap-4 shrink-0">
           <div>
             <h2 className="text-base font-bold text-zinc-900">Choose a Preset</h2>
@@ -74,7 +74,7 @@ export function PresetModal({ isOpen, onClose }: PresetModalProps) {
           </button>
         </div>
 
-        {/* ── Search & Filter ── */}
+        {/* -- Search & Filter -- */}
         <div className="px-6 py-3 border-b border-zinc-100 flex flex-col sm:flex-row gap-2 items-center shrink-0">
           {/* Search input */}
           <div className="relative w-full flex-1">
@@ -114,7 +114,7 @@ export function PresetModal({ isOpen, onClose }: PresetModalProps) {
           </div>
         </div>
 
-        {/* ── Cards Grid ── */}
+        {/* -- Cards Grid -- */}
         <div className="flex-1 overflow-y-auto p-6 bg-zinc-50/40">
           {filteredPresets.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">

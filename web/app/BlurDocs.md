@@ -13,15 +13,15 @@ The blur system generates layered, Sharp-processed blur effects for background i
 
 ```
 layout.jsx
-  └── <BlurProvider>             ← global, zero config, lives here forever
+  └-- <BlurProvider>             ← global, zero config, lives here forever
 
 Any section / component:
-  └── useBlurImages(manifest)    ← the only thing devs ever touch
-        ├── registers images with the shared worker on mount
-        ├── skips images already processed (cross-page bitmap cache)
-        └── returns { bitmaps, isReady }
+  └-- useBlurImages(manifest)    ← the only thing devs ever touch
+        ├-- registers images with the shared worker on mount
+        ├-- skips images already processed (cross-page bitmap cache)
+        └-- returns { bitmaps, isReady }
 
-  └── <BlurOverlay isReady={isReady} />   ← optional curtain, drop anywhere
+  └-- <BlurOverlay isReady={isReady} />   ← optional curtain, drop anywhere
 ```
 
 ---

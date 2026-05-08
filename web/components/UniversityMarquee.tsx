@@ -42,7 +42,7 @@ export default function UniversityMarquee() {
 
   const isMobile = cw < 1024;
 
-  // ─── Fade edges: smooth clamp on both mobile and desktop ─────────────────
+  // --- Fade edges: smooth clamp on both mobile and desktop -----------------
   // Desktop: clamp(40px, 8.33vw, 160px) — unchanged
   // Mobile:  clamp(16px, 6vw, 40px)     — tighter so content isn't over-masked
   const fadeStart = isMobile
@@ -52,7 +52,7 @@ export default function UniversityMarquee() {
     ? Math.round(Math.min(56,  Math.max(24, cw * 0.085)))
     : Math.round(Math.min(200, Math.max(60, cw * 0.1042)));
 
-  // ─── Token values: desktop unchanged, mobile uses CSS clamp() ────────────
+  // --- Token values: desktop unchanged, mobile uses CSS clamp() ------------
   // logoHeight  — desktop: 35px fixed | mobile: clamp(28px, 7vw, 35px)
   //   375px → 7vw = 26px → clamped to 28px
   //   500px → 7vw = 35px → hits max, stays there until desktop takes over

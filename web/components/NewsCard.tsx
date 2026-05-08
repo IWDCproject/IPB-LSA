@@ -11,7 +11,7 @@ const EASE = "cubic-bezier(0, 1, 0.2, 1)";
 const YELLOW = "#FFC936";
 const BLUE = "#0D26C2";
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// --- Skeleton -----------------------------------------------------------------
 
 function Bone({ width, height, delay = "0s", radius = 4 }: {
   width: string | number; height: number; delay?: string; radius?: number;
@@ -97,7 +97,7 @@ export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
   );
 }
 
-// ─── Slot text animation ──────────────────────────────────────────────────────
+// --- Slot text animation ------------------------------------------------------
 
 function SlotText({ children, isHovered }: { children: string; isHovered: boolean }) {
   const chars = children.split("");
@@ -132,7 +132,7 @@ function SlotText({ children, isHovered }: { children: string; isHovered: boolea
   );
 }
 
-// ─── News Card ────────────────────────────────────────────────────────────────
+// --- News Card ----------------------------------------------------------------
 
 export default function NewsCard({ item, isMobile = false }: { item: any; isMobile?: boolean }) {
   const [isHovered, setIsHovered] = useState(false);

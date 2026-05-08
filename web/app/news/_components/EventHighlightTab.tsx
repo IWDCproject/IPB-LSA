@@ -12,14 +12,14 @@ export type { EventWithNews };
 
 const HIDE_SCROLLBAR = `.nhscroll::-webkit-scrollbar{display:none}.nhscroll{-ms-overflow-style:none;scrollbar-width:none}`;
 
-// ─── Animation constants ───────────────────────────────────────────────────────
+// --- Animation constants -------------------------------------------------------
 // Section-level stagger (each event section is large, use wider spacing)
 const SEC_BASE    = 60;
 const SEC_STAGGER = 90; // ms between sections (capped at 4 max delay)
 
 type FilterTab = "all" | EventStatus;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// --- Constants ----------------------------------------------------------------
 
 const STATUS_ORDER: Record<EventStatus, number> = { ongoing: 0, upcoming: 1, concluded: 2 };
 
@@ -47,7 +47,7 @@ interface Props {
   pad:      number;
 }
 
-// ─── Status pill ──────────────────────────────────────────────────────────────
+// --- Status pill --------------------------------------------------------------
 
 function StatusPill({ status }: { status: EventStatus }) {
   const { label, bg, border, color } = STATUS_CONFIG[status];
@@ -66,7 +66,7 @@ function StatusPill({ status }: { status: EventStatus }) {
   );
 }
 
-// ─── Filter tabs ──────────────────────────────────────────────────────────────
+// --- Filter tabs --------------------------------------------------------------
 
 function FilterTabs({ active, onChange, isMobile }: { active: FilterTab; onChange: (t: FilterTab) => void; isMobile?: boolean }) {
   return (
@@ -96,7 +96,7 @@ function FilterTabs({ active, onChange, isMobile }: { active: FilterTab; onChang
   );
 }
 
-// ─── Desktop grid ─────────────────────────────────────────────────────────────
+// --- Desktop grid -------------------------------------------------------------
 
 function EventNewsDesktopGrid({ news }: { news: NewsItem[] }) {
   const router    = useRouter();
@@ -130,7 +130,7 @@ function EventNewsDesktopGrid({ news }: { news: NewsItem[] }) {
   );
 }
 
-// ─── Mobile horizontal scroll ─────────────────────────────────────────────────
+// --- Mobile horizontal scroll -------------------------------------------------
 
 const MOB_FADE_W = 24;
 
@@ -197,7 +197,7 @@ function EventNewsMobileScroll({ news, pad }: { news: NewsItem[]; pad: number })
   );
 }
 
-// ─── Section head ─────────────────────────────────────────────────────────────
+// --- Section head -------------------------------------------------------------
 
 function SectionHead({ event, isMobile }: { event: EventWithNews; isMobile: boolean }) {
   return (
@@ -231,7 +231,7 @@ function SectionHead({ event, isMobile }: { event: EventWithNews; isMobile: bool
   );
 }
 
-// ─── Event section ────────────────────────────────────────────────────────────
+// --- Event section ------------------------------------------------------------
 
 function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; pad: number; isMobile: boolean; index: number }) {
   const secDelay = `${SEC_BASE + Math.min(index, 4) * SEC_STAGGER}ms`;
@@ -287,7 +287,7 @@ function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; p
   );
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+// --- Empty state --------------------------------------------------------------
 
 function EmptyState({ filter }: { filter: FilterTab }) {
   const messages: Record<FilterTab, string> = {
@@ -309,7 +309,7 @@ function EmptyState({ filter }: { filter: FilterTab }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// --- Main ---------------------------------------------------------------------
 
 export default function EventHighlightTab({ events, isMobile, pad }: Props) {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");

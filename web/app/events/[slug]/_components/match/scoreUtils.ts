@@ -1,6 +1,6 @@
 import type { MappedMatch } from "../../_types";
 
-// ─── Score calculation ────────────────────────────────────────────────────────
+// --- Score calculation --------------------------------------------------------
 
 export function calcAvg(scores: number[] = [], method = "avg"): number {
   if (!scores.length) return 0;
@@ -16,7 +16,7 @@ export function getEngine(fmt: any) {
   return fmt?.modules?.[0] ?? null;
 }
 
-// ─── Date formatting ──────────────────────────────────────────────────────────
+// --- Date formatting ----------------------------------------------------------
 
 /**
  * Long format — includes weekday. Used for date-group headers in MatchesTab
@@ -48,7 +48,7 @@ export function fmtTime(iso: string | null | undefined): string {
   });
 }
 
-// ─── Grouping ─────────────────────────────────────────────────────────────────
+// --- Grouping -----------------------------------------------------------------
 
 /** Groups matches by their date using `fmtDateLong` — for MatchesTab. */
 export function groupByDateLong(matches: MappedMatch[]): Map<string, MappedMatch[]> {
@@ -66,7 +66,7 @@ export function groupByDateShort(matches: MappedMatch[]): Map<string, MappedMatc
   }, new Map<string, MappedMatch[]>());
 }
 
-// ─── Winner resolution ────────────────────────────────────────────────────────
+// --- Winner resolution --------------------------------------------------------
 
 /** UUID v4 regex — used to distinguish stored UUIDs from plain-text winner names. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import type { MatchFormat, Match } from '@/types/directus'
 import { upsertFormatAction } from '../_actions' 
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
+// --- Main Page --------------------------------------------------------------
 
 export default function FormatBuilderPage() {
   const { eventId }   = useParams<{ eventId: string }>()
@@ -129,17 +129,17 @@ export default function FormatBuilderPage() {
     // Full-height 3-column layout: Left | Center | Right
     <div className="flex h-full overflow-hidden">
 
-      {/* ── Left sidebar ─────────────────────────────────────────────── */}
+      {/* -- Left sidebar ----------------------------------------------- */}
       <div className="w-56 shrink-0 flex flex-col border-r border-zinc-200 bg-white overflow-y-auto">
         <LeftSidebar />
       </div>
 
-      {/* ── Center config ────────────────────────────────────────────── */}
+      {/* -- Center config ---------------------------------------------- */}
       <div className="flex-1 overflow-y-auto bg-white">
         <CenterConfigPanel />
       </div>
 
-      {/* ── Right preview ────────────────────────────────────────────── */}
+      {/* -- Right preview ---------------------------------------------- */}
       {/*
         IMPORTANT: outer div must NOT have overflow-y-auto — that would make
         the sticky save footer scroll away with the content.

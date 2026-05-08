@@ -278,7 +278,7 @@ const LS = {
     notes: '',
   }),
 
-  // ── H2H score_timed ──
+  // -- H2H score_timed --
   timedLive: ({ homeScore, awayScore, secs, periodIdx = 0, periodPhase = 'active' }) => ({
     matchStatus: 'live',
     homeScore, awayScore,
@@ -300,7 +300,7 @@ const LS = {
     notes,
   }),
 
-  // ── H2H score_sets ──
+  // -- H2H score_sets --
   setsLive: ({ setIdx, setScore, setsWon, setLog, secs }) => ({
     matchStatus: 'live',
     setIdx, setScore, setsWon, setLog,
@@ -318,7 +318,7 @@ const LS = {
     notes: '',
   }),
 
-  // ── Solo judge_scores ──
+  // -- Solo judge_scores --
   judgeLive: ({ scores, notes = '' }) => ({
     matchStatus: 'live',
     judgeScores: scores,
@@ -332,7 +332,7 @@ const LS = {
     notes,
   }),
 
-  // ── Solo / Open finish_time ──
+  // -- Solo / Open finish_time --
   timeLive: ({ timeLog, rankings, secs }) => ({
     matchStatus: 'live',
     timeLog, rankings,
@@ -344,7 +344,7 @@ const LS = {
     timerRunning: false, timerSecs: secs,
   }),
 
-  // ── Open manual_pick ──
+  // -- Open manual_pick --
   pickUpcoming: () => ({ matchStatus: 'upcoming', rankings: [], timerRunning: false, timerSecs: 0 }),
   pickLive: ({ rankings, secs }) => ({
     matchStatus: 'live',
@@ -359,7 +359,7 @@ const LS = {
     notes: '',
   }),
 
-  // ── EDGE CASES ──
+  // -- EDGE CASES --
   // Corrupted timer (timerRunning=true but no timerLastStarted) — tests frontend resilience
   corruptedTimer: ({ homeScore, awayScore }) => ({
     matchStatus: 'live',
@@ -495,7 +495,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
     // Edge: category exists but has 0 matches (tests empty state)
     const c1_unassigned  = await client.request(createItem('competition_categories', { event_id: e1.id, format_id: f1_kata.id, name: 'Kata Beregu Junior (Pending Format)', participant_type: 'team', display_order: 8 }));
 
-    // ── Kata Perorangan Putra — 8 participants, full bracket ──
+    // -- Kata Perorangan Putra — 8 participants, full bracket --
     const mkp = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', {
@@ -542,7 +542,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       scheduled_at: offsetHours(3), home_participant_id: mkp[0].id,
     }));
 
-    // ── Kata Perorangan Putri — finished, live, upcoming ──
+    // -- Kata Perorangan Putri — finished, live, upcoming --
     const mkpi = [];
     for (let i = 0; i < 6; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_kata_putri.id, institution_id: i1[i % i1.length], name: generateName(), seed: i + 1 }));
@@ -562,7 +562,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       if (!isUpcoming) denormQueue.push(m.id);
     }
 
-    // ── Kata Beregu — teams ──
+    // -- Kata Beregu — teams --
     const kbTeams = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', {
@@ -585,7 +585,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       live_state: LS.upcoming(),
     }));
 
-    // ── Kumite -60kg — full bracket 8 athletes + DRAW edge case ──
+    // -- Kumite -60kg — full bracket 8 athletes + DRAW edge case --
     const kk60 = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_k60.id, institution_id: i1[i % i1.length], name: generateName(), seed: i + 1 }));
@@ -634,7 +634,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       live_state: LS.upcoming(),
     }));
 
-    // ── Kumite -55kg — smaller, all finished ──
+    // -- Kumite -55kg — smaller, all finished --
     const kk55 = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_k55.id, institution_id: i1[i % i1.length], name: generateName(), seed: i + 1 }));
@@ -651,7 +651,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       denormQueue.push(m.id);
     }
 
-    // ── Kumite -67kg — 2 periods ──
+    // -- Kumite -67kg — 2 periods --
     const kk67 = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_k67.id, institution_id: i1[i % i1.length], name: generateName() }));
@@ -665,7 +665,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
     }));
     denormQueue.push(m_k67_live.id);
 
-    // ── Kumite Putri -50kg — CANCELLED edge case ──
+    // -- Kumite Putri -50kg — CANCELLED edge case --
     const kw50 = [];
     for (let i = 0; i < 2; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_kw50.id, institution_id: i1[i], name: generateName() }));
@@ -1491,7 +1491,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     const c6_write  = await client.request(createItem('competition_categories', { event_id: e6.id, format_id: f6_write.id, name: 'Karya Tulis Ilmiah', participant_type: 'individual', display_order: 5 }));
     const c6_visual = await client.request(createItem('competition_categories', { event_id: e6.id, format_id: f6_visual.id, name: 'Seni Rupa Digital', participant_type: 'individual', display_order: 6 }));
 
-    // ── Vocal Solo Pop — 15 performers, staggered schedule ──
+    // -- Vocal Solo Pop — 15 performers, staggered schedule --
     // Round 1 (10 performers): 8 finished, 1 live, 1 upcoming
     // Round 2 (5 performers): all upcoming
     const vocalNotes = [
@@ -1531,7 +1531,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       if (isFinished || isLive) denormQueue.push(m.id);
     }
 
-    // ── Vocal Solo Jazz — 6 performers, all finished ──
+    // -- Vocal Solo Jazz — 6 performers, all finished --
     for (let i = 0; i < 6; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c6_vocalj.id, institution_id: i6[i % i6.length], name: generateName() }));
       const scores = [randomInt(72, 94), randomInt(72, 94), randomInt(72, 94)];
@@ -1544,7 +1544,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       denormQueue.push(m.id);
     }
 
-    // ── Tari Tradisional — 10 performers, mix ──
+    // -- Tari Tradisional — 10 performers, mix --
     const dancePerformers = [];
     for (let i = 0; i < 10; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c6_dance.id, institution_id: i6[i % i6.length], name: generateName() }));
@@ -1566,7 +1566,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       if (!isUpcoming) denormQueue.push(m.id);
     }
 
-    // ── Tari Modern Tim — 4 teams, all finished ──
+    // -- Tari Modern Tim — 4 teams, all finished --
     const danceTeams = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', {
@@ -1587,7 +1587,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       denormQueue.push(m.id);
     }
 
-    // ── Karya Tulis Ilmiah — open/manual_pick ──
+    // -- Karya Tulis Ilmiah — open/manual_pick --
     const writeParticipants = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', {
@@ -1609,7 +1609,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     await client.request(createItems('match_participants', writeParticipants.map((p, i) => ({ match_id: m6_write.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m6_write.id);
 
-    // ── Seni Rupa Digital — open/manual_pick, partially ranked (live) ──
+    // -- Seni Rupa Digital — open/manual_pick, partially ranked (live) --
     const visualParticipants = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', {

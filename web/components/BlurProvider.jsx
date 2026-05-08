@@ -1,5 +1,5 @@
 "use client";
-// ─── BlurProvider ───────────────────────────────────────────────────────────
+// --- BlurProvider -----------------------------------------------------------
 //
 // Global provider. Place once in layout.jsx — wraps the entire app.
 // Does NOT accept a manifest. Pages register their own images via useBlurImages().
@@ -27,7 +27,7 @@ export default function BlurProvider({ children }) {
   const workerRef    = useRef(null);
   const submittedRef = useRef(new Set()); // all keys currently sent to the worker
 
-  // ── Lazy worker init ──────────────────────────────────────────────────────
+  // -- Lazy worker init ------------------------------------------------------
   function getWorker() {
     if (workerRef.current) return workerRef.current;
 
@@ -77,7 +77,7 @@ export default function BlurProvider({ children }) {
     return worker;
   }
 
-  // ── register ──────────────────────────────────────────────────────────────
+  // -- register --------------------------------------------------------------
   // Filters out already-submitted images before sending to the worker.
   // Safe to call multiple times with overlapping manifests.
   const register = useCallback((images) => {
@@ -99,7 +99,7 @@ export default function BlurProvider({ children }) {
     });
   }, []);
 
-  // ── unregister ────────────────────────────────────────────────────────────
+  // -- unregister ------------------------------------------------------------
   // Intentional no-op. Bitmaps are kept as a permanent cache so that navigating
   // back to a page never re-processes images that were already blurred.
   // The memory footprint is bounded by the number of unique images in the app.

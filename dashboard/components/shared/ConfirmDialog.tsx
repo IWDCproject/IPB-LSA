@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// --- Types -------------------------------------------------------------------
 
 type Props = {
   trigger: React.ReactNode
@@ -14,7 +14,7 @@ type Props = {
   onConfirm: () => void | Promise<void>
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// --- Component ----------------------------------------------------------------
 
 export function ConfirmDialog({
   trigger,
@@ -61,13 +61,13 @@ export function ConfirmDialog({
         >
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
 
-            {/* ── Header ── */}
+            {/* -- Header -- */}
             <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
               <h2 className="text-base font-bold text-zinc-900">{title}</h2>
               <p className="mt-1 text-sm text-zinc-500 leading-relaxed break-words">{description}</p>
             </div>
 
-            {/* ── Footer ── */}
+            {/* -- Footer -- */}
             <div className="px-6 pb-5 pt-4 border-t border-zinc-100 flex justify-end gap-2">
               <Button
                 variant="noBorder"

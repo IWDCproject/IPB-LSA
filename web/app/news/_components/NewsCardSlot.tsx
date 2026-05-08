@@ -5,7 +5,7 @@ import NewsCard, { NewsCardSkeleton } from "@/components/NewsCard";
 import { JK, YELLOW, NAVY, DUR, EASE, BASE, STAGGER } from "./_newsConstants";
 import type { NewsItem } from "./_newsTypes";
 
-// ─── Placeholder card — fills empty grid slots in the last row ────────────────
+// --- Placeholder card — fills empty grid slots in the last row ----------------
 
 export function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
   return (
@@ -35,7 +35,7 @@ export function NewsPlaceholder({ isMobile = false }: { isMobile?: boolean }) {
   );
 }
 
-// ─── Card slot — skeleton/card crossfade + staggered slide-up ─────────────────
+// --- Card slot — skeleton/card crossfade + staggered slide-up -----------------
 // Each slot is a CSS grid stack (gridArea: "1/1") so skeleton and real card
 // occupy the same space and crossfade cleanly.
 
@@ -107,7 +107,7 @@ export function CardSlot({ index, item, isPlaceholder, ready, showSkeleton, isMo
   );
 }
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
+// --- Pagination ---------------------------------------------------------------
 
 function PaginationBtn({
   label, active, disabled, onClick,

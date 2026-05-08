@@ -14,7 +14,7 @@ interface Props {
   pad:      number;
 }
 
-// ─── Tab definitions ──────────────────────────────────────────────────────────
+// --- Tab definitions ----------------------------------------------------------
 
 const TABS: { key: ContentTab; label: string; icon: React.ReactNode }[] = [
   {
@@ -40,7 +40,7 @@ const TABS: { key: ContentTab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-// ─── Tab bar CSS ──────────────────────────────────────────────────────────────
+// --- Tab bar CSS --------------------------------------------------------------
 // Trapezoid tab shape via perspective transform — no SVG/pseudo-element hacks.
 
 const TAB_BAR_CSS = `
@@ -118,7 +118,7 @@ const TAB_BAR_CSS = `
   }
 `;
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// --- Main ---------------------------------------------------------------------
 
 export default function ContentSection({ events, isMobile, pad }: Props) {
   const [activeTab, setActiveTab] = useState<ContentTab>("byEvent");

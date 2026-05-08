@@ -40,7 +40,7 @@ export interface DirectusNewsFilter {
   event_id?:     { status?: { _in: string[] }; slug?: { _in: string[] } };
 }
 
-// ─── Data-fetching contract types ─────────────────────────────────────────────
+// --- Data-fetching contract types ---------------------------------------------
 // Explicit in/out shapes for getAllNewsFiltered so the UI component and the
 // directus module stay in sync without either side inspecting the other's
 // internals.  Update both if the API contract changes.

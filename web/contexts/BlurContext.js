@@ -1,5 +1,5 @@
 "use client";
-// ─── BlurContext ────────────────────────────────────────────────────────────
+// --- BlurContext ------------------------------------------------------------
 //
 // Global context for the blur system. Consumed via useBlur() internally,
 // but most components should use the higher-level useBlurImages() hook instead.

@@ -1,11 +1,11 @@
 "use client";
-// ─── useBlurImages ──────────────────────────────────────────────────────────
+// --- useBlurImages ----------------------------------------------------------
 //
 // The primary API for any component that needs blurred images.
 // Registers images with the shared worker on mount, returns bitmaps + ready state.
 //
 // USAGE
-// ──────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------
 //   const manifest = useMemo(() => [
 //     {
 //       url:           getAssetUrl(event.card_image),  // full Directus asset URL
@@ -24,7 +24,7 @@
 //   const cardData = bitmaps[url]?.eventcard; // { bitmap: ImageBitmap }
 //
 // NOTES
-// ──────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------
 //   - Wrap your manifest in useMemo() to keep it stable across renders.
 //     useBlurImages() uses the manifest's content as a dependency, so an
 //     unstable reference will re-register on every render.

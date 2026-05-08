@@ -27,14 +27,14 @@ import {
   readItems, updateItem,
 } from '@directus/sdk';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+// --- Config -------------------------------------------------------------------
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL   ?? 'http://localhost:7777';
 const TOKEN        = process.env.DIRECTUS_TOKEN ?? 'ECH98IbvMYhkTbPM2sYWKsjeib3Bpgo2';
 
 const client = createDirectus(DIRECTUS_URL).with(rest()).with(staticToken(TOKEN));
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
+// --- Utilities ----------------------------------------------------------------
 
 const sleep      = (ms)       => new Promise(r => setTimeout(r, ms));
 const randomInt  = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -61,7 +61,7 @@ const args = (() => {
   return out;
 })();
 
-// ─── Directus helpers ─────────────────────────────────────────────────────────
+// --- Directus helpers ---------------------------------------------------------
 
 /**
  * PATCH both status and the full live_state in one request.
@@ -87,7 +87,7 @@ const MATCH_FIELDS = [
   'participants.position',
 ];
 
-// ─── Engine simulators ────────────────────────────────────────────────────────
+// --- Engine simulators --------------------------------------------------------
 
 /**
  * score_timed — increment homeScore/awayScore point by point.
@@ -344,7 +344,7 @@ async function simManualPick(match, engineCfg, participants) {
   console.log(`    ✅ winner: ${finalRankings[0]?.name}`);
 }
 
-// ─── Orchestrator ─────────────────────────────────────────────────────────────
+// --- Orchestrator -------------------------------------------------------------
 
 /**
  * Normalise a raw Directus match row into the shape the sim functions expect.
@@ -412,7 +412,7 @@ async function simulate(raw) {
   }
 }
 
-// ─── Entry point ──────────────────────────────────────────────────────────────
+// --- Entry point --------------------------------------------------------------
 
 async function main() {
   const { event: eventSlug, match: matchId, one } = args;

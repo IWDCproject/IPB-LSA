@@ -184,7 +184,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-[240px] shrink-0 flex-col bg-transparent">
 
-      {/* ── Brand ───────────────────────────────────────────────────────── */}
+      {/* -- Brand --------------------------------------------------------- */}
       <div className="px-4 py-4">
         <Image
           src="/IWDC-logo.svg"
@@ -196,7 +196,7 @@ export function Sidebar() {
         />
       </div>
 
-      {/* ── Navigation ──────────────────────────────────────────────────── */}
+      {/* -- Navigation ---------------------------------------------------- */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
 
         <NavLink href="/" label="Dashboard" active={isOnDashboard} bold />
@@ -282,7 +282,7 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* ── User footer ─────────────────────────────────────────────────── */}
+      {/* -- User footer --------------------------------------------------- */}
       <UserMenu />
     </aside>
   )

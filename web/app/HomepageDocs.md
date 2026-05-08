@@ -96,20 +96,20 @@ app/api/
 
 ```
 layout.jsx (server)
-  └── <BlurProvider>                  ← global, lazy worker, in layout forever
-        └── <SmoothScroller>          ← Lenis
-              ├── <Header />
-              └── <main>
-                    └── page.js (server) ← fetches events, matches, stats, news
-                          └── <CurtainWrapper>
-                                ├── <HeroSection />          z-index: 1 (fixed)
-                                ├── <StatSection />          z-index: 2
-                                ├── <MatchSection />         z-index: 2
-                                ├── <TimelineSection />      z-index: 2 (sticky)
-                                │     ├── <EventTimeline />  ← desktop (container W ≥ 900)
-                                │     └── <VerticalTimeline /> ← mobile (W < 900)
-                                └── <NewsSection />          z-index: 3
-                                      └── <Footer />
+  └-- <BlurProvider>                  ← global, lazy worker, in layout forever
+        └-- <SmoothScroller>          ← Lenis
+              ├-- <Header />
+              └-- <main>
+                    └-- page.js (server) ← fetches events, matches, stats, news
+                          └-- <CurtainWrapper>
+                                ├-- <HeroSection />          z-index: 1 (fixed)
+                                ├-- <StatSection />          z-index: 2
+                                ├-- <MatchSection />         z-index: 2
+                                ├-- <TimelineSection />      z-index: 2 (sticky)
+                                │     ├-- <EventTimeline />  ← desktop (container W ≥ 900)
+                                │     └-- <VerticalTimeline /> ← mobile (W < 900)
+                                └-- <NewsSection />          z-index: 3
+                                      └-- <Footer />
 ```
 
 ---
