@@ -22,6 +22,10 @@ const labelCls =
 const inputCls =
   'mt-1.5 h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white'
 
+// --- Helpers -----------------------------------------------------------------
+
+const isValidHex = (hex: string) => /^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)
+
 // --- Component ----------------------------------------------------------------
 
 export default function AddInstitutionModal({ isOpen, onClose, eventId, onSuccess, editingInstitution }: Props) {
@@ -154,10 +158,10 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
           <div>
             <label htmlFor="inst-color" className={labelCls}>Warna (Hex)</label>
             <div className="mt-1.5 flex items-center gap-2">
-              {/* Color preview swatch */}
+              {/* Color preview swatch - validated to prevent CSS injection */}
               <div
                 className="h-10 w-10 shrink-0 rounded-lg border border-zinc-200"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: isValidHex(color) ? color : 'transparent' }}
               />
               <input
                 id="inst-color"
