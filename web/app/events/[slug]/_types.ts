@@ -132,13 +132,19 @@ export interface MappedCompetitionCategory {
 }
 
 export interface MatchLiveState {
-  winner?:     string | null;
-  homeScore?:  number;
-  awayScore?:  number;
-  setScore?:   [number, number];
-  setLog?:     Array<{ home: number; away: number }>;
+  winner?:      string | null;
+  homeScore?:   number;
+  awayScore?:   number;
+  setScore?:    [number, number];
+  // Updated to match the canonical SetLogEntry shape written by the dashboard
+  setLog?:      Array<{
+    set:       number;
+    homeScore: number;
+    awayScore: number;
+    winner:    'home' | 'away';
+  }>;
   judgeScores?: number[];
-  timeLog?:    TimeLogEntry[];
+  timeLog?:     TimeLogEntry[];
   [key: string]: unknown;
 }
 

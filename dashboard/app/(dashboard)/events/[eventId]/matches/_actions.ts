@@ -4,6 +4,7 @@
 import { auth } from '@/lib/auth'
 import { createDirectus, rest, staticToken, createItem, updateItem, deleteItems, readItems } from '@directus/sdk'
 import { revalidatePath } from 'next/cache'
+import { DEFAULT_LIVE_STATE } from '@/lib/liveStateDefaults'
 
 const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
   .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))

@@ -181,7 +181,7 @@ export default function MatchesPage() {
             className="px-0 py-0 h-auto font-bold text-zinc-900 hover:text-zinc-600"
             onClick={(e) => {
               e.stopPropagation()
-              router.push(`/events/${eventId}/matches/${row.id}/control`)
+              router.push(`/events/${eventId}/matches/${row.id}`)
             }}
           >
             Operate <ExternalLink className=" h-3.5 w-3.5" />
@@ -299,7 +299,7 @@ export default function MatchesPage() {
                 countLabel={group.matches.length === 1 ? "match" : "matches"}
                 columns={getColumns(group.matchType)}
                 data={group.matches}
-                onRowClick={(row) => router.push(`/events/${eventId}/matches/${row.id}/control`)}
+                onRowClick={(row) => router.push(`/events/${eventId}/matches/${row.id}`)}
               />
             </div>
           ))}

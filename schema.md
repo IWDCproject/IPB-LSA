@@ -342,6 +342,10 @@ CREATE TABLE app_settings (
 
 ## `live_state` shape
 
+### SPARSE JSON ARCHITECTURE:
+live_state defaults to an empty object {} in the database. Keys are only added when an operator interacts with a specific module.
+Rule for Frontend Clients: Never assume these keys exist. Always use default fallbacks when reading (e.g., const { homeScore = 0 } = liveState). Do not bloat the database by initializing unused engine keys.
+
 ```json
 {
   "matchStatus": "upcoming | live | finished",

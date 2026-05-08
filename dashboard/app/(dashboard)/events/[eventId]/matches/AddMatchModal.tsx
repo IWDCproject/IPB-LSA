@@ -119,8 +119,8 @@ export function AddMatchModal({
       try {
         const res = await directus.request(
           readItems('competition_categories', {
-            filter: { event_id: { _eq: eventId } },
-            fields: ['id', 'name', 'format_id.match_type'] as any,
+            filter: { event_id: { slug: { _eq: eventId } } },
+            fields:['id', 'name', 'format_id.match_type'] as any,
           })
         )
         setCategories(
@@ -141,7 +141,9 @@ export function AddMatchModal({
   useEffect(() => {
     if (!isOpen) return
     if (matchToEdit) {
-      setCategoryId(matchToEdit.competition_category_id?.id || '')
+      const toId = (v: any) => (v && typeof v === 'object' ? v.id : v) || ''
+      
+      setCategoryId(toId(matchToEdit.competition_category_id))
       setMatchName(matchToEdit.match_name || '')
       setRound(matchToEdit.round || '')
       setVenue(matchToEdit.venue || '')
@@ -156,10 +158,10 @@ export function AddMatchModal({
           setMinPart(d.getMinutes().toString().padStart(2, '0'))
         } else { setDatePart(''); setHourPart('10'); setMinPart('00') }
       } else { setDatePart(''); setHourPart('10'); setMinPart('00') }
-      setParticipantA(matchToEdit.home_participant_id?.id || '')
-      setParticipantB(matchToEdit.away_participant_id?.id || '')
-      setParticipantSolo(matchToEdit.home_participant_id?.id || '')
-      const pids = matchToEdit.participants?.map((p: any) => p.participant_id?.id).filter(Boolean) || []
+      setParticipantA(toId(matchToEdit.home_participant_id))
+      setParticipantB(toId(matchToEdit.away_participant_id))
+      setParticipantSolo(toId(matchToEdit.home_participant_id))
+      const pids = matchToEdit.participants?.map((p: any) => toId(p.participant_id)).filter(Boolean) ||[]
       setSelectedIds(pids)
     } else {
       setCategoryId(''); setMatchName(''); setRound(''); setVenue('')
