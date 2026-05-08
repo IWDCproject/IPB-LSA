@@ -19,8 +19,9 @@ import AddParticipantModal from './_components/AddParticipantModal'
 
 // --- Types -----------------------------------------------------
 
-type MappedParticipant = Omit<RawParticipant, 'institution_id'> & {
+type MappedParticipant = Omit<RawParticipant, 'institution_id' | 'members'> & {
   institution: (Institution & { logo_url: string | null }) | null
+  members: Array<{ name: string }> | null
 }
 
 type CategoryWithFormat = CompetitionCategory & {
@@ -47,9 +48,34 @@ export default function ParticipantsPage() {
   const [isInstModalOpen, setInstModalOpen] = useState(false)
   const [isPartModalOpen, setPartModalOpen] = useState(false)
   
+  // Edit state
+  const [editingInstitution, setEditingInstitution] = useState<Institution | null>(null)
+  const [editingParticipant, setEditingParticipant] = useState<MappedParticipant | null>(null)
+  
   // Memaksa fetch ulang setelah create modal berhasil tanpa reload page
   const [refreshKey, setRefreshKey] = useState(0)
   const handleRefresh = () => setRefreshKey(k => k + 1)
+  
+  // Handlers for edit buttons
+  const handleEditInstitution = (institution: Institution) => {
+    setEditingInstitution(institution)
+    setInstModalOpen(true)
+  }
+  
+  const handleEditParticipant = (participant: MappedParticipant) => {
+    setEditingParticipant(participant)
+    setPartModalOpen(true)
+  }
+  
+  const handleCloseInstModal = () => {
+    setInstModalOpen(false)
+    setEditingInstitution(null)
+  }
+  
+  const handleClosePartModal = () => {
+    setPartModalOpen(false)
+    setEditingParticipant(null)
+  }
 
   // --- Data Fetching ---
 
@@ -88,9 +114,10 @@ export default function ParticipantsPage() {
 
   // Mapping FK response Directus agar jadi bentuk object utuh di frontend
   const participants = useMemo<MappedParticipant[]>(() => {
-    if (!rawParticipants) return[]
+    if (!rawParticipants) return []
     return rawParticipants.map(p => ({
       ...p,
+      members: (p.members as Array<{ name: string }> | null) ?? null,
       institution: p.institution_id ? {
         ...(p.institution_id as unknown as Institution),
         logo_url: getAssetUrl((p.institution_id as any).logo)
@@ -228,8 +255,11 @@ export default function ParticipantsPage() {
                   key: '_actions', 
                   label: 'Action', 
                   className: 'text-right',
-                  render: () => (
-                    <div className="flex items-center justify-end text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer">
+                  render: (_, row) => (
+                    <div 
+                      onClick={() => handleEditInstitution(row)}
+                      className="flex items-center justify-end text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer"
+                    >
                       Edit <ExternalLink className="ml-1 h-3.5 w-3.5" />
                     </div>
                   )
@@ -271,7 +301,20 @@ export default function ParticipantsPage() {
                     </span>
                   )
                 },
-                { key: 'name', label: 'Name' },
+                { 
+                  key: 'name', 
+                  label: 'Name',
+                  render: (_, row) => (
+                    <div>
+                      <div className="font-semibold">{row.name}</div>
+                      {row.members && (row.members as Array<{ name: string }>).length > 0 && (
+                        <div className="text-xs text-zinc-500 mt-0.5 max-w-[400px] truncate">
+                          {(row.members as Array<{ name: string }>).map(m => m.name).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )
+                },
                 { 
                   key: 'institution', 
                   label: 'Institution',
@@ -281,8 +324,11 @@ export default function ParticipantsPage() {
                   key: '_actions', 
                   label: 'Action', 
                   className: 'text-right',
-                  render: () => (
-                    <div className="flex items-center justify-end text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer">
+                  render: (_, row) => (
+                    <div 
+                      onClick={() => handleEditParticipant(row)}
+                      className="flex items-center justify-end text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer"
+                    >
                       Edit <ExternalLink className="ml-1 h-3.5 w-3.5" />
                     </div>
                   )
@@ -302,17 +348,19 @@ export default function ParticipantsPage() {
       {/* --- Modals --- */}
       <AddInstitutionModal 
         isOpen={isInstModalOpen}
-        onClose={() => setInstModalOpen(false)}
+        onClose={handleCloseInstModal}
         eventId={eventId}
         onSuccess={handleRefresh}
+        editingInstitution={editingInstitution}
       />
       
       <AddParticipantModal
         isOpen={isPartModalOpen}
-        onClose={() => setPartModalOpen(false)}
+        onClose={handleClosePartModal}
         eventId={eventId}
         preselectedCategoryId={!isInstitutionsActive && activeCategory ? activeCategory.id : undefined}
         onSuccess={handleRefresh}
+        editingParticipant={editingParticipant}
       />
     </div>
   )

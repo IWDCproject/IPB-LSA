@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createInstitutionAction } from '../_actions'
+import { createInstitutionAction, updateInstitutionAction } from '../_actions'
 import { Button } from '@/components/ui/button'
 
 // --- Types -------------------------------------------------------------------
@@ -11,6 +11,7 @@ type Props = {
   onClose: () => void
   eventId: string
   onSuccess: () => void
+  editingInstitution?: { id: string; name: string; color?: string | null; logo?: string | null } | null
 }
 
 // --- Shared field styles ------------------------------------------------------
@@ -23,11 +24,24 @@ const inputCls =
 
 // --- Component ----------------------------------------------------------------
 
-export default function AddInstitutionModal({ isOpen, onClose, eventId, onSuccess }: Props) {
+export default function AddInstitutionModal({ isOpen, onClose, eventId, onSuccess, editingInstitution }: Props) {
   const [name, setName]         = useState('')
   const [color, setColor]       = useState('#1A3D6E')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [saving, setSaving]     = useState(false)
+
+  // Populate fields in edit mode
+  useEffect(() => {
+    if (isOpen && editingInstitution) {
+      setName(editingInstitution.name)
+      setColor(editingInstitution.color || '#1A3D6E')
+      setLogoFile(null) // Can't pre-populate file input
+    } else if (isOpen && !editingInstitution) {
+      setName('')
+      setColor('#1A3D6E')
+      setLogoFile(null)
+    }
+  }, [isOpen, editingInstitution])
 
   // Close on Escape
   const handleKeyDown = useCallback(
@@ -48,8 +62,12 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
       formData.append('eventId', eventId)
       formData.append('color', color)
       if (logoFile) formData.append('logo', logoFile)
+      if (editingInstitution) formData.append('institutionId', editingInstitution.id)
 
-      const res = await createInstitutionAction(formData)
+      const res = editingInstitution
+        ? await updateInstitutionAction(formData)
+        : await createInstitutionAction(formData)
+        
       if (res.success) {
         setName('')
         setLogoFile(null)
@@ -60,7 +78,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
         alert(res.error)
       }
     } catch (error) {
-      console.error('Failed to add institution:', error)
+      console.error('Failed to save institution:', error)
     } finally {
       setSaving(false)
     }
@@ -77,9 +95,11 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
 
         {/* -- Header -- */}
         <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
-          <h2 className="text-base font-bold text-zinc-900">Tambah Institusi</h2>
+          <h2 className="text-base font-bold text-zinc-900">
+            {editingInstitution ? 'Edit Institusi' : 'Tambah Institusi'}
+          </h2>
           <p className="mt-0.5 text-xs text-zinc-400">
-            Isi data institusi untuk event ini.
+            {editingInstitution ? 'Ubah data institusi.' : 'Isi data institusi untuk event ini.'}
           </p>
         </div>
 
@@ -153,7 +173,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
             onClick={handleSubmit}
             disabled={saving || !name.trim()}
           >
-            {saving ? 'Menyimpan...' : 'Simpan'}
+            {saving ? 'Menyimpan...' : (editingInstitution ? 'Perbarui' : 'Simpan')}
           </Button>
         </div>
 

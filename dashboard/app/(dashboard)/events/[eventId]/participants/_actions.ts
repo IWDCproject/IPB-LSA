@@ -44,6 +44,33 @@ export async function createParticipantAction(payload: any) {
   }
 }
 
+export async function updateParticipantAction(participantId: string, payload: any) {
+  const session = await auth()
+  
+  if (!session || !session.user) {
+    return { success: false, error: 'Unauthorized: Silakan login kembali.' }
+  }
+
+  const userRole = session.user.role
+  
+  if (userRole !== 'SuperAdmin' && userRole !== 'PJ Ormawa') {
+     return { success: false, error: `Forbidden: Role anda (${userRole}) tidak punya akses.` }
+  }
+
+  try {
+    const { updateItem } = await import('@directus/sdk')
+    await adminDirectus.request(updateItem('participants', participantId, payload))
+    revalidatePath(`/events/[eventId]/participants`, 'page')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Server Action Error:', error)
+    return { 
+      success: false, 
+      error: error.errors?.[0]?.message || 'Gagal memperbarui data.' 
+    }
+  }
+}
+
 export async function createInstitutionAction(formData: FormData) {
   const session = await auth()
 
@@ -88,5 +115,57 @@ export async function createInstitutionAction(formData: FormData) {
   } catch (error: any) {
     console.error('Institution Action Error:', error)
     return { success: false, error: 'Gagal menambah institusi' }
+  }
+}
+
+export async function updateInstitutionAction(formData: FormData) {
+  const session = await auth()
+
+  if (!session || !session.user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  if (session.user.role !== 'SuperAdmin' && session.user.role !== 'PJ Ormawa') {
+    return { success: false, error: 'Forbidden' }
+  }
+
+  try {
+    const { updateItem } = await import('@directus/sdk')
+    const institutionId = formData.get('institutionId') as string
+    const name = formData.get('name') as string
+    const eventId = formData.get('eventId') as string
+    const color = formData.get('color') as string
+    const logoFile = formData.get('logo') as File | null
+
+    let logoId: string | null | undefined = undefined
+
+    // Only update logo if a new file was uploaded
+    if (logoFile && logoFile.size > 0) {
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', logoFile)
+      
+      const uploadedFile = await adminDirectus.request(uploadFiles(uploadFormData))
+      logoId = uploadedFile.id
+    }
+
+    // Update record
+    const updateData: any = {
+      name: name,
+      color: color || null,
+    }
+    
+    if (logoId !== undefined) {
+      updateData.logo = logoId
+    }
+
+    await adminDirectus.request(
+      updateItem('institutions', institutionId, updateData)
+    )
+
+    revalidatePath(`/events/[eventId]/participants`, 'page')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Institution Update Error:', error)
+    return { success: false, error: 'Gagal memperbarui institusi' }
   }
 }
