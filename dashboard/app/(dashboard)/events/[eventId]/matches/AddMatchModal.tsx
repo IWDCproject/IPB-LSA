@@ -1,15 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { directus } from '@/lib/directus'
 import { readItems } from '@directus/sdk'
 import type { MatchType } from '@/types/directus'
-import { Search } from 'lucide-react'
 import { createMatchAction, updateMatchAction } from './_actions'
 
-// --- Types -----------------------------------------------------
+// --- Types -------------------------------------------------------------------
 
 type CategoryOption = {
   id: string
@@ -31,38 +36,86 @@ type AddMatchModalProps = {
   matchToEdit?: any | null
 }
 
-// --- Komponen Utama --------------------------------------------
+// --- Shared field styles ------------------------------------------------------
 
-export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit }: AddMatchModalProps) {
-  const[loading, setLoading] = useState(false)
+const labelCls =
+  'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
+
+// Chevron SVG encoded inline — right-padded so icon never clips the border
+const chevronSvg =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2371717a' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")"
+
+const inputBase =
+  'h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white'
+
+const selectBase = [
+  inputBase,
+  'appearance-none pr-9',
+  `bg-[image:${chevronSvg}]`,
+  'bg-[length:1rem_1rem] bg-[right_0.75rem_center] bg-no-repeat',
+].join(' ')
+
+// --- Component ----------------------------------------------------------------
+
+export function AddMatchModal({
+  isOpen,
+  onClose,
+  eventId,
+  onSuccess,
+  matchToEdit,
+}: AddMatchModalProps) {
+  const [loading, setLoading]       = useState(false)
   const [categories, setCategories] = useState<CategoryOption[]>([])
   const [participants, setParticipants] = useState<ParticipantOption[]>([])
 
-  // Form states
-  const [categoryId, setCategoryId] = useState('')
-  const [matchName, setMatchName] = useState('')
-  const [round, setRound] = useState('')
-  const [venue, setVenue] = useState('')
-  
-  // Pisah state tanggal dan waktu
-  const [datePart, setDatePart] = useState('')
-  const [hourPart, setHourPart] = useState('10')
-  const[minPart, setMinPart] = useState('00')
-
-  // Participant states
-  const[participantA, setParticipantA] = useState('')
+  // Form state
+  const [categoryId, setCategoryId]     = useState('')
+  const [matchName, setMatchName]       = useState('')
+  const [round, setRound]               = useState('')
+  const [venue, setVenue]               = useState('')
+  const [datePart, setDatePart]         = useState('')
+  const [hourPart, setHourPart]         = useState('10')
+  const [minPart, setMinPart]           = useState('00')
+  const [participantA, setParticipantA] = useState('')
   const [participantB, setParticipantB] = useState('')
-  const[participantSolo, setParticipantSolo] = useState('')
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
+  const [participantSolo, setParticipantSolo] = useState('')
+  const [selectedIds, setSelectedIds]   = useState<string[]>([])
+  const [searchQuery, setSearchQuery]   = useState('')
+
+  // Refs for date picker + time auto-advance
+  const dateRef = useRef<HTMLInputElement>(null)
+  const hourRef = useRef<HTMLInputElement>(null)
+  const minRef  = useRef<HTMLInputElement>(null)
+
+  // Time input helpers — digits only, auto-advance, clamp on blur
+  const handleHourChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 2)
+    setHourPart(raw)
+    if (raw.length === 2) minRef.current?.focus()
+  }, [])
+  const handleHourBlur = useCallback(() => {
+    if (!hourPart) { setHourPart('00'); return }
+    const n = Math.min(parseInt(hourPart, 10), 23)
+    setHourPart(n.toString().padStart(2, '0'))
+  }, [hourPart])
+
+  const handleMinChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 2)
+    setMinPart(raw)
+  }, [])
+  const handleMinBlur = useCallback(() => {
+    if (!minPart) { setMinPart('00'); return }
+    const n = Math.min(parseInt(minPart, 10), 59)
+    setMinPart(n.toString().padStart(2, '0'))
+  }, [minPart])
 
   const selectedCategory = categories.find((c) => c.id === categoryId)
-  const matchType = selectedCategory?.matchType
+  const matchType        = selectedCategory?.matchType
 
-  // 1. Fetch Kategori
+  // 1. Fetch categories
   useEffect(() => {
     if (!isOpen) return
-    const fetchCategories = async () => {
+    const fetch = async () => {
       try {
         const res = await directus.request(
           readItems('competition_categories', {
@@ -70,82 +123,61 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
             fields: ['id', 'name', 'format_id.match_type'] as any,
           })
         )
-        const mapped = res.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          matchType: c.format_id?.match_type || 'open',
-        }))
-        setCategories(mapped)
+        setCategories(
+          res.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            matchType: c.format_id?.match_type || 'open',
+          }))
+        )
       } catch (err) {
         console.error('Gagal mengambil kategori', err)
       }
     }
-    fetchCategories()
+    fetch()
   }, [isOpen, eventId])
 
-  // 2. Pre-fill data jika matchToEdit ada
+  // 2. Pre-fill for edit
   useEffect(() => {
-    if (isOpen) {
-      if (matchToEdit) {
-        setCategoryId(matchToEdit.competition_category_id?.id || '')
-        setMatchName(matchToEdit.match_name || '')
-        setRound(matchToEdit.round || '')
-        setVenue(matchToEdit.venue || '')
-        
-        if (matchToEdit.scheduled_at) {
-          const d = new Date(matchToEdit.scheduled_at)
-          if (!isNaN(d.getTime())) {
-            const year = d.getFullYear()
-            const month = String(d.getMonth() + 1).padStart(2, '0')
-            const day = String(d.getDate()).padStart(2, '0')
-            setDatePart(`${year}-${month}-${day}`)
-            setHourPart(d.getHours().toString().padStart(2, '0'))
-            setMinPart(d.getMinutes().toString().padStart(2, '0'))
-          } else {
-            setDatePart('')
-            setHourPart('10')
-            setMinPart('00')
-          }
-        } else {
-          setDatePart('')
-          setHourPart('10')
-          setMinPart('00')
-        }
-
-        setParticipantA(matchToEdit.home_participant_id?.id || '')
-        setParticipantB(matchToEdit.away_participant_id?.id || '')
-        setParticipantSolo(matchToEdit.home_participant_id?.id || '')
-        
-        const pids = matchToEdit.participants?.map((p: any) => p.participant_id?.id).filter(Boolean) ||[]
-        setSelectedIds(pids)
-      } else {
-        setCategoryId('')
-        setMatchName('')
-        setRound('')
-        setVenue('')
-        setDatePart('')
-        setHourPart('10')
-        setMinPart('00')
-        setParticipantA('')
-        setParticipantB('')
-        setParticipantSolo('')
-        setSelectedIds([])
-      }
+    if (!isOpen) return
+    if (matchToEdit) {
+      setCategoryId(matchToEdit.competition_category_id?.id || '')
+      setMatchName(matchToEdit.match_name || '')
+      setRound(matchToEdit.round || '')
+      setVenue(matchToEdit.venue || '')
+      if (matchToEdit.scheduled_at) {
+        const d = new Date(matchToEdit.scheduled_at)
+        if (!isNaN(d.getTime())) {
+          const y  = d.getFullYear()
+          const mo = String(d.getMonth() + 1).padStart(2, '0')
+          const dy = String(d.getDate()).padStart(2, '0')
+          setDatePart(`${y}-${mo}-${dy}`)
+          setHourPart(d.getHours().toString().padStart(2, '0'))
+          setMinPart(d.getMinutes().toString().padStart(2, '0'))
+        } else { setDatePart(''); setHourPart('10'); setMinPart('00') }
+      } else { setDatePart(''); setHourPart('10'); setMinPart('00') }
+      setParticipantA(matchToEdit.home_participant_id?.id || '')
+      setParticipantB(matchToEdit.away_participant_id?.id || '')
+      setParticipantSolo(matchToEdit.home_participant_id?.id || '')
+      const pids = matchToEdit.participants?.map((p: any) => p.participant_id?.id).filter(Boolean) || []
+      setSelectedIds(pids)
+    } else {
+      setCategoryId(''); setMatchName(''); setRound(''); setVenue('')
+      setDatePart(''); setHourPart('10'); setMinPart('00')
+      setParticipantA(''); setParticipantB(''); setParticipantSolo('')
+      setSelectedIds([])
     }
-  },[isOpen, matchToEdit])
+  }, [isOpen, matchToEdit])
 
-  // 3. Fetch Participants ketika Category berubah
+  // 3. Fetch participants when category changes
   useEffect(() => {
-    if (!categoryId) {
-      setParticipants([])
-      return
-    }
-    const fetchParticipants = async () => {
+    if (!categoryId) { setParticipants([]); return }
+    const fetch = async () => {
       try {
         const res = await directus.request(
           readItems('participants', {
             filter: { competition_category_id: { _eq: categoryId } },
-            fields:['id', 'name', 'institution_id.name'] as any,
+            fields: ['id', 'name', 'institution_id.name'] as any,
             limit: -1,
           })
         )
@@ -156,31 +188,33 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
             institutionName: p.institution_id?.name || 'Unknown',
           }))
         )
-
-        // Hanya reset partisipan form jika kategori diubah manual 
-        // (Bukan kategori bawaan dari matchToEdit)
-        const isEditingSameCategory = matchToEdit && matchToEdit.competition_category_id?.id === categoryId
+        const isEditingSameCategory =
+          matchToEdit && matchToEdit.competition_category_id?.id === categoryId
         if (!isEditingSameCategory) {
-          setParticipantA('')
-          setParticipantB('')
-          setParticipantSolo('')
-          setSelectedIds([])
+          setParticipantA(''); setParticipantB('')
+          setParticipantSolo(''); setSelectedIds([])
         }
       } catch (err) {
         console.error('Gagal mengambil partisipan', err)
       }
     }
-    fetchParticipants()
+    fetch()
   }, [categoryId, matchToEdit])
+
+  const handleClose = () => {
+    setCategoryId(''); setMatchName(''); setRound(''); setVenue('')
+    setDatePart(''); setHourPart('10'); setMinPart('00')
+    setParticipantA(''); setParticipantB(''); setParticipantSolo('')
+    setSelectedIds([])
+    onClose()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!categoryId || !venue || !datePart) return
-    
     setLoading(true)
     try {
       const combinedIso = new Date(`${datePart}T${hourPart}:${minPart}:00`).toISOString()
-
       const payload: any = {
         competition_category_id: categoryId,
         match_name: matchName || null,
@@ -190,7 +224,6 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
         home_participant_id: null,
         away_participant_id: null,
       }
-
       if (matchType === 'head_to_head') {
         payload.home_participant_id = participantA || null
         payload.away_participant_id = participantB || null
@@ -199,17 +232,11 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
       } else if (matchType === 'open') {
         payload.participant_ids = selectedIds
       }
-
-      const res = matchToEdit 
+      const res = matchToEdit
         ? await updateMatchAction(matchToEdit.id, payload)
         : await createMatchAction(payload)
-
-      if (res.success) {
-        onSuccess()
-        handleClose()
-      } else {
-        alert(res.error)
-      }
+      if (res.success) { onSuccess(); handleClose() }
+      else alert(res.error)
     } catch (err) {
       console.error(err)
       alert('Terjadi kesalahan sistem')
@@ -218,109 +245,104 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
     }
   }
 
-  const handleClose = () => {
-    setCategoryId('')
-    setMatchName('')
-    setRound('')
-    setVenue('')
-    setDatePart('')
-    setHourPart('10')
-    setMinPart('00')
-    setParticipantA('')
-    setParticipantB('')
-    setParticipantSolo('')
-    setSelectedIds([])
-    onClose()
-  }
+  const toggleOpenParticipant = (id: string) =>
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id])
 
-  const toggleOpenParticipant = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    )
-  }
+  const toggleAllOpenParticipants = () =>
+    setSelectedIds(selectedIds.length === participants.length ? [] : participants.map((p) => p.id))
 
-  const toggleAllOpenParticipants = () => {
-    if (selectedIds.length === participants.length) {
-      setSelectedIds([])
-    } else {
-      setSelectedIds(participants.map((p) => p.id))
-    }
-  }
-
-  const filteredParticipants = participants.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.institutionName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredParticipants = participants.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.institutionName.toLowerCase().includes(searchQuery.toLowerCase())
   )
-
-  // Styling helpers
-  const inputBase = "flex h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all placeholder:text-zinc-400"
-  const selectBase = `${inputBase} pr-10 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_0.75rem_center] bg-no-repeat`
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-white p-6 shadow-xl border border-zinc-200 rounded-xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">{matchToEdit ? 'Edit Match' : 'Add a Match'}</DialogTitle>
-          <DialogDescription className="hidden">Mengelola data match</DialogDescription>
-        </DialogHeader>
+      {/*
+        To enable backdrop-blur on this Dialog, update your dialog.tsx overlay to add:
+          className="... backdrop-blur-sm"
+        on the <DialogPrimitive.Overlay> element.
+      */}
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-white p-0 shadow-2xl border-0 rounded-2xl">
+        {/* -- Header -- */}
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
+          <DialogTitle className="text-base font-bold text-zinc-900">
+            {matchToEdit ? 'Edit Match' : 'Add a Match'}
+          </DialogTitle>
+          <DialogDescription className="mt-0.5 text-xs text-zinc-400">
+            Lengkapi informasi pertandingan di bawah ini.
+          </DialogDescription>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-2">
-          {/* Main Info */}
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+          {/* -- Main Info -- */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Category */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Category*</label>
+              <label className={labelCls}>Category *</label>
               <select
                 required
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 className={selectBase}
               >
-                <option value="" disabled className="text-zinc-400">-- Select Category --</option>
+                <option value="" disabled>— Select Category —</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Scheduled at*</label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    required
-                    type="date"
-                    value={datePart}
-                    onChange={(e) => setDatePart(e.target.value)}
-                    className={`${inputBase}[&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
-                  />
-                </div>
 
-                <div className="flex items-center px-2 bg-zinc-50 border border-zinc-200 rounded-lg gap-1">
-                  <select 
-                    value={hourPart} 
-                    onChange={(e) => setHourPart(e.target.value)}
-                    className="bg-transparent text-sm font-bold outline-none cursor-pointer p-1"
-                  >
-                    {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </select>
-                  <span className="font-bold text-zinc-400">:</span>
-                  <select 
-                    value={minPart} 
-                    onChange={(e) => setMinPart(e.target.value)}
-                    className="bg-transparent text-sm font-bold outline-none cursor-pointer p-1"
-                  >
-                    {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
+            {/* Scheduled At */}
+            <div className="space-y-1.5">
+              <label className={labelCls}>Scheduled At *</label>
+              <div className="flex gap-2">
+                {/* Date — clicking anywhere opens the calendar via showPicker() */}
+                <input
+                  ref={dateRef}
+                  required
+                  type="date"
+                  value={datePart}
+                  onChange={(e) => setDatePart(e.target.value)}
+                  onClick={() => { try { dateRef.current?.showPicker() } catch {} }}
+                  onFocus={() => { try { dateRef.current?.showPicker() } catch {} }}
+                  className={`${inputBase} flex-1 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute`}
+                />
+
+                {/* Time — two plain text inputs, auto-advance on 2 digits */}
+                <div className="flex items-center gap-1 px-3 rounded-lg border border-zinc-200 bg-zinc-50 transition-all focus-within:border-zinc-900 focus-within:bg-white">
+                  <input
+                    ref={hourRef}
+                    type="text"
+                    inputMode="numeric"
+                    value={hourPart}
+                    onChange={handleHourChange}
+                    onBlur={handleHourBlur}
+                    placeholder="HH"
+                    maxLength={2}
+                    className="w-7 bg-transparent text-sm font-bold text-zinc-900 outline-none text-center placeholder:text-zinc-300"
+                  />
+                  <span className="text-zinc-300 font-bold select-none">:</span>
+                  <input
+                    ref={minRef}
+                    type="text"
+                    inputMode="numeric"
+                    value={minPart}
+                    onChange={handleMinChange}
+                    onBlur={handleMinBlur}
+                    placeholder="MM"
+                    maxLength={2}
+                    className="w-7 bg-transparent text-sm font-bold text-zinc-900 outline-none text-center placeholder:text-zinc-300"
+                  />
                 </div>
               </div>
             </div>
 
+            {/* Match Name */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Match Name</label>
+              <label className={labelCls}>Match Name</label>
               <input
                 type="text"
                 value={matchName}
@@ -330,8 +352,9 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
               />
             </div>
 
+            {/* Round */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Round</label>
+              <label className={labelCls}>Round</label>
               <input
                 type="text"
                 value={round}
@@ -341,8 +364,9 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
               />
             </div>
 
+            {/* Venue */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Venue*</label>
+              <label className={labelCls}>Venue *</label>
               <input
                 required
                 type="text"
@@ -354,105 +378,109 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
             </div>
           </div>
 
-          <hr className="border-zinc-200" />
+          {/* -- Divider -- */}
+          <hr className="border-zinc-100" />
 
-          {/* Participant Selectors */}
+          {/* -- Participant Selectors -- */}
           {matchType && (
             <div className="space-y-4">
-              {matchType !== 'open' ? (
+              {matchType !== 'open' && (
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold uppercase text-zinc-900">Pilih Participant</h3>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 px-2 py-0.5 rounded">Optional</span>
-                </div>
-              ) : null}
-
-              {matchType === 'head_to_head' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-zinc-400 uppercase">Contestant A</label>
-                    <select
-                      value={participantA}
-                      onChange={(e) => setParticipantA(e.target.value)}
-                      className={selectBase}
-                    >
-                      <option value="" className="text-zinc-400">- Kosongkan -</option>
-                      {participants.map((p) => (
-                        <option key={p.id} value={p.id} disabled={p.id === participantB}>
-                          {p.institutionName} – {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-zinc-400 uppercase">Contestant B</label>
-                    <select
-                      value={participantB}
-                      onChange={(e) => setParticipantB(e.target.value)}
-                      className={selectBase}
-                    >
-                      <option value="" className="text-zinc-400">- Kosongkan -</option>
-                      {participants.map((p) => (
-                        <option key={p.id} value={p.id} disabled={p.id === participantA}>
-                          {p.institutionName} – {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <label className={labelCls}>Pilih Participant</label>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded">
+                    Optional
+                  </span>
                 </div>
               )}
 
+              {/* Head to Head */}
+              {matchType === 'head_to_head' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: 'Contestant A', value: participantA, onChange: setParticipantA, disabledId: participantB },
+                    { label: 'Contestant B', value: participantB, onChange: setParticipantB, disabledId: participantA },
+                  ].map(({ label, value, onChange, disabledId }) => (
+                    <div key={label} className="space-y-1.5">
+                      <label className={labelCls}>{label}</label>
+                      <select
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className={selectBase}
+                      >
+                        <option value="">— Kosongkan —</option>
+                        {participants.map((p) => (
+                          <option key={p.id} value={p.id} disabled={p.id === disabledId}>
+                            {p.institutionName} – {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Solo */}
               {matchType === 'solo' && (
-                <div className="space-y-1.5 w-full md:w-1/2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase">Contestant</label>
+                <div className="space-y-1.5 md:w-1/2">
+                  <label className={labelCls}>Contestant</label>
                   <select
                     value={participantSolo}
                     onChange={(e) => setParticipantSolo(e.target.value)}
                     className={selectBase}
                   >
-                    <option value="" className="text-zinc-400">- Kosongkan -</option>
+                    <option value="">— Kosongkan —</option>
                     {participants.map((p) => (
-                      <option key={p.id} value={p.id}>{p.institutionName} – {p.name}</option>
+                      <option key={p.id} value={p.id}>
+                        {p.institutionName} – {p.name}
+                      </option>
                     ))}
                   </select>
                 </div>
               )}
 
+              {/* Open / Multi-select */}
               {matchType === 'open' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Search className="h-4 w-4 text-zinc-400" />
-                      <h3 className="text-sm font-bold uppercase text-zinc-900">Select Participants ({selectedIds.length})</h3>
-                    </div>
-                    <Button type="button" variant="noBorder" onClick={toggleAllOpenParticipants} className="text-xs font-bold h-8">
-                      Select All ({participants.length})
-                    </Button>
+                    <label className={labelCls}>
+                      Select Participants ({selectedIds.length})
+                    </label>
+                    <button
+                      type="button"
+                      onClick={toggleAllOpenParticipants}
+                      className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors"
+                    >
+                      {selectedIds.length === participants.length ? 'Clear All' : `Select All (${participants.length})`}
+                    </button>
                   </div>
 
                   <input
                     type="text"
-                    placeholder={`Search ${participants.length} participants...`}
+                    placeholder={`Search ${participants.length} participants…`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className={`${inputBase} h-11`}
+                    className={inputBase}
                   />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-1 custom-scrollbar">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                     {filteredParticipants.map((p) => {
                       const isSelected = selectedIds.includes(p.id)
                       return (
-                        <div
+                        <button
                           key={p.id}
+                          type="button"
                           onClick={() => toggleOpenParticipant(p.id)}
-                          className={`cursor-pointer rounded-xl border p-4 transition-all ${
-                            isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg scale-[0.98]' : 'border-zinc-200 hover:border-zinc-300 bg-white text-zinc-900'
+                          className={`text-left rounded-lg border p-3 transition-all ${
+                            isSelected
+                              ? 'border-zinc-900 bg-zinc-900 text-white'
+                              : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300'
                           }`}
                         >
                           <div className="text-sm font-bold truncate">{p.name}</div>
-                          <div className={`text-xs truncate ${isSelected ? 'text-zinc-300' : 'text-zinc-400 font-medium'}`}>
+                          <div className={`text-xs font-medium truncate ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>
                             {p.institutionName}
                           </div>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -461,11 +489,12 @@ export function AddMatchModal({ isOpen, onClose, eventId, onSuccess, matchToEdit
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-zinc-200">
-            <Button type="button" variant="noBorder" onClick={handleClose} className="font-bold text-zinc-500">
+          {/* -- Footer -- */}
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100">
+            <Button type="button" variant="noBorder" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="filled" disabled={loading} className="min-w-[120px] font-bold">
+            <Button type="submit" variant="filled" disabled={loading} className="min-w-28">
               {loading ? 'Saving...' : (matchToEdit ? 'Save Changes' : 'Add Match')}
             </Button>
           </div>

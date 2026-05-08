@@ -56,7 +56,7 @@ export default function ParticipantsPage() {
   const { data: institutions, loading: loadingInst } = useDirectusFetch<Institution[]>(
     () => directus.request(
       readItems('institutions', {
-        filter: { event_id: { _eq: eventId } },
+        filter: { event_id: { slug: { _eq: eventId } } },
         limit: -1,
       })
     ) as Promise<Institution[]>,
@@ -66,7 +66,7 @@ export default function ParticipantsPage() {
   const { data: categories, loading: loadingCats } = useDirectusFetch<CategoryWithFormat[]>(
     () => directus.request(
       readItems('competition_categories', {
-        filter: { event_id: { _eq: eventId } },
+        filter: { event_id: { slug: { _eq: eventId } } },
         fields:['*', 'format_id.name', 'format_id.match_type'] as any,
         sort: ['display_order'],
         limit: -1,
@@ -78,7 +78,7 @@ export default function ParticipantsPage() {
   const { data: rawParticipants, loading: loadingPart } = useDirectusFetch<RawParticipant[]>(
     () => directus.request(
       readItems('participants', {
-        filter: { competition_category_id: { event_id: { _eq: eventId } } },
+        filter: { competition_category_id: { event_id: { slug: { _eq: eventId } } } },
         fields:['*', 'institution_id.*'] as any,
         limit: -1,
       })

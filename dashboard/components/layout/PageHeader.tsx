@@ -1,7 +1,12 @@
 import type { EventStatus, MatchStatus } from '@/types/directus'
 
+type Breadcrumb = {
+  label: string
+  href?: string
+}
+
 type Props = {
-  breadcrumbs: string[]
+  breadcrumbs: Breadcrumb[]
   title:       string
   status?:     EventStatus | MatchStatus
   actions?:    React.ReactNode
@@ -12,17 +17,31 @@ export function PageHeader({ breadcrumbs, title, status, actions }: Props) {
     <div>
       {breadcrumbs.length > 0 && (
         <div className="flex items-center gap-2 px-6 py-3 border-b border-zinc-200">
-          {breadcrumbs.map((crumb, i) => {
+          {breadcrumbs.map(({ label, href }, i) => {
             const isLast = i === breadcrumbs.length - 1
             return (
               <span key={i} className="flex items-center gap-2">
-                {i > 0 && <span className="text-muted-foreground/40 text-sm">›</span>}
-                <span className={isLast
-                  ? 'text-sm font-semibold text-foreground'
-                  : 'text-sm text-muted-foreground/50'
-                }>
-                  {crumb}
-                </span>
+                {i > 0 && (
+                  <span className="text-zinc-500 text-sm font-medium select-none">
+                    ›
+                  </span>
+                )}
+                {isLast ? (
+                  <span className="text-sm font-bold text-foreground">
+                    {label}
+                  </span>
+                ) : href ? (
+                  <a
+                    href={href}
+                    className="text-sm font-semibold text-zinc-500 hover:text-zinc-700 transition-colors"
+                  >
+                    {label}
+                  </a>
+                ) : (
+                  <span className="text-sm font-semibold text-zinc-500">
+                    {label}
+                  </span>
+                )}
               </span>
             )
           })}

@@ -30,11 +30,22 @@ export async function updateEventInfoAction(formData: FormData) {
   const eventId = formData.get('eventId') as string;
   try {
     const payload: any = {
-      name: formData.get('name'),
-      location: formData.get('location'),
-      description: formData.get('description'),
-      start_date: formData.get('start_date') || null,
-      end_date: formData.get('end_date') || null,
+      name:                  formData.get('name'),
+      location:              formData.get('location'),
+      description:           formData.get('description'),
+      start_date:            formData.get('start_date') || null,
+      end_date:              formData.get('end_date') || null,
+      slug:                  formData.get('slug'),
+      type:                  formData.get('type'),
+      is_published:          formData.get('is_published') === 'true',
+      is_registration_open:  formData.get('is_registration_open') === 'true',
+      contact_person_name:   formData.get('contact_person_name'),
+      contact_person_link:   formData.get('contact_person_link'),
+      contact_person_email:  formData.get('contact_person_email'),
+      url_pendaftaran:       formData.get('url_pendaftaran'),
+      url_guidebook:         formData.get('url_guidebook'),
+      instagram_url:         formData.get('instagram_url'),
+      website_url:           formData.get('website_url'),
     }
 
     const bannerFile = formData.get('banner_image') as File | null;

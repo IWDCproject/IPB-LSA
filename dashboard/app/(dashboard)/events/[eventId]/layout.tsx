@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, usePathname, useRouter } from 'next/navigation'
-import { readItem } from '@directus/sdk'
+import { useParams, usePathname } from 'next/navigation'
+import { readItems } from '@directus/sdk'
 import { directus } from '@/lib/directus'
 import type { EventStatus } from '@/types/directus'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useSidebarContext } from '@/components/layout/SidebarContext'
+import { useRouter } from '@/hooks/useRouter'
 
 const EVENT_TABS = [
   { label: 'Matches',                     segment: 'matches'      },
@@ -26,6 +27,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 type EventMeta = {
   name:   string
   status: EventStatus
+  slug:   string
 }
 
 export default function EventLayout({ children }: { children: React.ReactNode }) {
@@ -40,9 +42,14 @@ export default function EventLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     directus
-      .request(readItem('events', eventId, { fields: ['name', 'status'] }))
-      .then((e) => {
-        const meta = e as EventMeta
+      .request(readItems('events', {
+        filter: { slug: { _eq: eventId } },
+        fields: ['name', 'status', 'slug'],
+        limit:  1,
+      }))
+      .then((results) => {
+        const meta = results[0] as EventMeta
+        if (!meta) return
         setEventMeta(meta)
         setCurrentEventName(meta.name)
       })
@@ -56,10 +63,14 @@ export default function EventLayout({ children }: { children: React.ReactNode })
   // Breadcrumb for builder mode
   const segments = pathname.split('/').filter(Boolean)
   const afterEventId = segments.slice(segments.indexOf(eventId) + 1)
-  const builderBreadcrumbs = [
-    'Events',
-    eventMeta?.name ?? '...',
-    ...afterEventId.map((s) => SEGMENT_LABELS[s] ?? s),
+  const eventSlug = eventMeta?.slug ?? eventId
+  const builderBreadcrumbs: { label: string; href?: string }[] = [
+    { label: 'Events', href: '/events' },
+    { label: eventMeta?.name ?? '...', href: `/events/${eventSlug}/matches` },
+    ...afterEventId.map((s, i) => ({
+      label: SEGMENT_LABELS[s] ?? s,
+      href:  i < afterEventId.length - 1 ? `/events/${eventSlug}/${s}` : undefined,
+    })),
   ]
 
   return (
@@ -68,17 +79,27 @@ export default function EventLayout({ children }: { children: React.ReactNode })
         <>
           {/* Breadcrumb only, negated to flush with container edges */}
           <div className="-mx-6 -mt-6 flex items-center gap-2 px-6 py-3 border-b border-zinc-200 shrink-0">
-            {builderBreadcrumbs.map((crumb, i) => {
+          {builderBreadcrumbs.map(({ label, href }, i) => {
               const isLast = i === builderBreadcrumbs.length - 1
               return (
                 <span key={i} className="flex items-center gap-2">
-                  {i > 0 && <span className="text-muted-foreground/40 text-sm">›</span>}
-                  <span className={isLast
-                    ? 'text-sm font-semibold text-foreground'
-                    : 'text-sm text-muted-foreground/50'
-                  }>
-                    {crumb}
-                  </span>
+                  {i > 0 && (
+                    <span className="text-zinc-300 text-sm font-medium select-none">
+                      ›
+                    </span>
+                  )}
+                  {isLast ? (
+                    <span className="text-sm font-bold text-foreground">{label}</span>
+                  ) : href ? (
+                    <a
+                      href={href}
+                      className="text-sm font-semibold text-zinc-400 hover:text-zinc-700 transition-colors"
+                    >
+                      {label}
+                    </a>
+                  ) : (
+                    <span className="text-sm font-semibold text-zinc-400">{label}</span>
+                  )}
                 </span>
               )
             })}
@@ -93,7 +114,13 @@ export default function EventLayout({ children }: { children: React.ReactNode })
         <>
           <div className="-mx-6 -mt-6">
             <PageHeader
-              breadcrumbs={['Events', eventMeta?.name ?? '...']}
+              breadcrumbs={[
+                { label: 'Events', href: '/events' },
+                { label: eventMeta?.name ?? '...', href: `/events/${eventSlug}/matches` },
+                ...(SEGMENT_LABELS[activeSegment]
+                  ? [{ label: SEGMENT_LABELS[activeSegment] }]
+                  : []),
+              ]}
               title={eventMeta?.name ?? '...'}
               status={eventMeta?.status}
             />
@@ -105,7 +132,7 @@ export default function EventLayout({ children }: { children: React.ReactNode })
                   return (
                     <button
                       key={tab.segment}
-                      onClick={() => router.push(`/events/${eventId}/${tab.segment}`)}
+                      onClick={() => router.push(`/events/${eventSlug}/${tab.segment}`)}
                       className={[
                         'py-2.5 text-sm font-[600] transition-colors',
                         isActive

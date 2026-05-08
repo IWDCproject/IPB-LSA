@@ -92,7 +92,7 @@ export default function MatchesPage() {
     try {
       const data = await directus.request(
         readItems('matches', {
-          filter: { competition_category_id: { event_id: { _eq: eventId } } },
+          filter: { competition_category_id: { event_id: { slug: { _eq: eventId } } } },
           fields:[
             'id', 'status', 'scheduled_at', 'venue', 'match_name', 'round',
             'home_score', 'away_score', 'winner',

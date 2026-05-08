@@ -37,12 +37,12 @@ export default function FormatsPage() {
 
   // --- Data Fetch ---
   const { data: formats, loading: loadingFormats } = useDirectusFetch<MatchFormat[]>(
-    () => directus.request(readItems('match_formats', { filter: { event_id: { _eq: eventId } }, sort: ['name'] })) as Promise<MatchFormat[]>,
+    () => directus.request(readItems('match_formats', { filter: { event_id: { slug: { _eq: eventId } } }, sort: ['name'] })) as Promise<MatchFormat[]>,
     [eventId, tick]
   )
 
   const { data: categories, loading: loadingCategories } = useDirectusFetch<CompetitionCategory[]>(
-    () => directus.request(readItems('competition_categories', { filter: { event_id: { _eq: eventId } }, sort: ['display_order', 'name'] })) as Promise<CompetitionCategory[]>,
+    () => directus.request(readItems('competition_categories', { filter: { event_id: { slug: { _eq: eventId } } }, sort: ['display_order', 'name'] })) as Promise<CompetitionCategory[]>,
     [eventId, tick]
   )
 

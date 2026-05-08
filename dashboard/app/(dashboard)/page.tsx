@@ -5,7 +5,7 @@ export default function DashboardHomePage() {
     <div className="space-y-6">
       <div className="-mx-6 -mt-6">
         <PageHeader
-          breadcrumbs={['Dashboard']}
+          breadcrumbs={[{ label: 'Dashboard' }]}
           title="Jadwal Hari Ini"
         />
       </div>

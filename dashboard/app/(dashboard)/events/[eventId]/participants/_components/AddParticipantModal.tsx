@@ -1,22 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { readItems } from '@directus/sdk'
 import { directus } from '@/lib/directus'
-// --- IMPORT ACTION DI SINI ---
-import { createParticipantAction } from '../_actions' 
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { createParticipantAction } from '../_actions'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -25,8 +13,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+// --- Types -------------------------------------------------------------------
+
 type InstitutionOption = { id: string; name: string }
-type CategoryOption = { id: string; name: string }
+type CategoryOption    = { id: string; name: string }
 
 type Props = {
   isOpen: boolean
@@ -36,6 +26,16 @@ type Props = {
   preselectedCategoryId?: string
 }
 
+// --- Shared field styles ------------------------------------------------------
+
+const labelCls =
+  'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
+
+const inputCls =
+  'mt-1.5 h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white'
+
+// --- Component ----------------------------------------------------------------
+
 export default function AddParticipantModal({
   isOpen,
   onClose,
@@ -43,16 +43,15 @@ export default function AddParticipantModal({
   onSuccess,
   preselectedCategoryId,
 }: Props) {
-  const [name, setName] = useState('')
+  const [name, setName]               = useState('')
   const [institutionId, setInstitutionId] = useState<string>('')
-  const [categoryId, setCategoryId] = useState<string>(preselectedCategoryId || '')
-  const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
-
+  const [categoryId, setCategoryId]   = useState<string>(preselectedCategoryId || '')
+  const [notes, setNotes]             = useState('')
+  const [saving, setSaving]           = useState(false)
   const [institutions, setInstitutions] = useState<InstitutionOption[]>([])
-  const [categories, setCategories] = useState<CategoryOption[]>([])
+  const [categories, setCategories]   = useState<CategoryOption[]>([])
 
-  // Fetch data (Read) tetap pakai SDK Client karena Public Policy sudah di-set READ
+  // Fetch reference data
   useEffect(() => {
     if (!isOpen) return
     const fetchData = async () => {
@@ -78,6 +77,7 @@ export default function AddParticipantModal({
     fetchData()
   }, [isOpen, eventId])
 
+  // Reset on open
   useEffect(() => {
     if (isOpen) {
       setName('')
@@ -87,27 +87,28 @@ export default function AddParticipantModal({
     }
   }, [isOpen, preselectedCategoryId])
 
-  // --- BAGIAN YANG DIUBAH TOTAL ---
+  // Close on Escape
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() },
+    [onClose]
+  )
+  useEffect(() => {
+    if (isOpen) document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, handleKeyDown])
+
   const handleSubmit = async () => {
     if (!name.trim() || !categoryId) return
     setSaving(true)
-    
     try {
-      // Panggil Server Action, bukan directus.request!
       const res = await createParticipantAction({
         competition_category_id: categoryId,
         institution_id: (!institutionId || institutionId === 'none') ? null : institutionId,
         name: name.trim(),
         notes: notes.trim() || '',
       })
-
-      if (res.success) {
-        onSuccess()
-        onClose()
-      } else {
-        // Jika Server Action return error (misal auth gagal)
-        alert(res.error)
-      }
+      if (res.success) { onSuccess(); onClose() }
+      else alert(res.error)
     } catch (error) {
       console.error('Failed to add participant:', error)
     } finally {
@@ -115,21 +116,31 @@ export default function AddParticipantModal({
     }
   }
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Tambah Peserta</DialogTitle>
-          <DialogDescription>
-            Tambahkan peserta ke kategori yang dipilih.
-          </DialogDescription>
-        </DialogHeader>
+  if (!isOpen) return null
 
-        <div className="space-y-4">
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+
+        {/* -- Header -- */}
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
+          <h2 className="text-base font-bold text-zinc-900">Tambah Peserta</h2>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            Tambahkan peserta ke kategori yang dipilih.
+          </p>
+        </div>
+
+        {/* -- Body -- */}
+        <div className="px-6 py-5 space-y-4">
+
+          {/* Kategori */}
           <div>
-            <Label>Kategori</Label>
+            <label className={labelCls}>Kategori</label>
             <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger className="mt-1.5">
+              <SelectTrigger className="mt-1.5 h-10 rounded-lg border-zinc-200 bg-zinc-50 pr-4 text-sm font-semibold focus:border-zinc-900 focus:bg-white transition-all [&>span]:truncate">
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent>
@@ -139,21 +150,23 @@ export default function AddParticipantModal({
               </SelectContent>
             </Select>
           </div>
-          
+
+          {/* Nama */}
           <div>
-            <Label>Nama Peserta</Label>
-            <Input
-              className="mt-1.5"
+            <label className={labelCls}>Nama Peserta</label>
+            <input
+              className={inputCls}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nama peserta atau tim"
             />
           </div>
-          
+
+          {/* Institusi */}
           <div>
-            <Label>Institusi</Label>
+            <label className={labelCls}>Institusi</label>
             <Select value={institutionId} onValueChange={setInstitutionId}>
-              <SelectTrigger className="mt-1.5">
+              <SelectTrigger className="mt-1.5 h-10 rounded-lg border-zinc-200 bg-zinc-50 pr-4 text-sm font-semibold focus:border-zinc-900 focus:bg-white transition-all [&>span]:truncate">
                 <SelectValue placeholder="Pilih institusi (opsional)" />
               </SelectTrigger>
               <SelectContent>
@@ -164,11 +177,12 @@ export default function AddParticipantModal({
               </SelectContent>
             </Select>
           </div>
-          
+
+          {/* Catatan */}
           <div>
-            <Label>Catatan</Label>
-            <Input
-              className="mt-1.5"
+            <label className={labelCls}>Catatan</label>
+            <input
+              className={inputCls}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Opsional"
@@ -176,15 +190,21 @@ export default function AddParticipantModal({
           </div>
         </div>
 
-        <DialogFooter>
+        {/* -- Footer -- */}
+        <div className="px-6 pb-5 pt-4 border-t border-zinc-100 flex justify-end gap-2">
           <Button variant="noBorder" onClick={onClose}>
             Batal
           </Button>
-          <Button onClick={handleSubmit} disabled={saving || !name.trim() || !categoryId}>
+          <Button
+            variant="filled"
+            onClick={handleSubmit}
+            disabled={saving || !name.trim() || !categoryId}
+          >
             {saving ? 'Menyimpan...' : 'Simpan'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+
+      </div>
+    </div>
   )
 }

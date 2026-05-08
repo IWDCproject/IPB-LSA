@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useFormatBuilder } from '@/stores/formatBuilder'
 import { ScoreTimedConfig }   from './engines/ScoreTimedConfig'
 import { ScoreSetsConfig }    from './engines/ScoreSetsConfig'
 import { JudgeScoresConfig }  from './engines/JudgeScoresConfig'
 import { FinishTimeConfig, ManualPickConfig } from './engines/FinishTimeAndManualPickConfig'
+import { PresetModal } from './PresetModal' 
 import {
   Select,
   SelectContent,
@@ -16,9 +17,8 @@ import {
 import { Input }  from '@/components/ui/input'
 import { Label }  from '@/components/ui/label'
 import type { MatchType, EngineType, TimerMode } from '@/types/directus'
-import { PRESETS } from '@/lib/formatPresets' // <--- ADD IMPORT HERE
 
-// ─── Static data ─────────────────────────────────────────────────────────────
+// --- Static data -------------------------------------------------------------
 
 const MATCH_TYPE_OPTIONS: {
   value: MatchType
@@ -39,13 +39,13 @@ const ENGINE_OPTIONS: {
   {
     value: 'score_timed',
     label: 'Accumulating Score',
-    description: 'futsal, basket, silat, taekwondo...', // <-- Moved silat here
+    description: 'futsal, basket, silat, taekwondo...',
     matchTypes: ['head_to_head'],
   },
   {
     value: 'score_sets',
     label: 'Set-Based',
-    description: 'badminton, voli, tenis, takraw...', // <-- Removed silat, added takraw
+    description: 'badminton, voli, tenis, takraw...',
     matchTypes:['head_to_head'],
   },
   {
@@ -105,30 +105,15 @@ const ENGINE_CONFIG_COMPONENT: Record<EngineType, React.ComponentType> = {
   manual_pick:  ManualPickConfig,
 }
 
-// ─── Left Sidebar ─────────────────────────────────────────────────────────────
+// --- Left Sidebar -------------------------------------------------------------
 
 export function LeftSidebar() {
-  const { matchType, setMatchType, engine, setEngine, addOns, setAddOn, loadFromExisting } = useFormatBuilder()
-  
+  const { matchType, setMatchType, engine, setEngine, addOns, setAddOn } = useFormatBuilder()
   const [showPresets, setShowPresets] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('All')
 
   const availableEngines = ENGINE_OPTIONS.filter((e) =>
     e.matchTypes.includes(matchType)
   )
-
-  // Use memo to optimize filtering on search/category change
-  const filteredPresets = useMemo(() => {
-    return PRESETS.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            p.description.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCat = selectedCategory === 'All' || p.category === selectedCategory
-      return matchesSearch && matchesCat
-    })
-  }, [searchQuery, selectedCategory])
-
-  const categories =['All', ...Array.from(new Set(PRESETS.map(p => p.category)))]
 
   return (
     <>
@@ -248,115 +233,12 @@ export function LeftSidebar() {
         </section>
       </div>
 
-      {/* ── Presets Modal ─────────────────────────────────────────────────── */}
-      {showPresets && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
-              <div>
-                <h2 className="text-lg font-bold text-zinc-900">Choose a Preset</h2>
-                <p className="text-sm text-zinc-500">Pick a predefined configuration ({PRESETS.length} presets available).</p>
-              </div>
-              <button
-                onClick={() => setShowPresets(false)}
-                className="text-zinc-400 hover:text-zinc-700 p-2 rounded-md hover:bg-zinc-200 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-            
-            {/* Search & Filters */}
-            <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row gap-1 items-center justify-between bg-white ">
-              <Input 
-                autoFocus
-                placeholder="Search presets... (e.g., basket, marathon)" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full flex-1 placeholder:text-zinc-400 rounded-sm" 
-              />
-              <div className="flex gap-1 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 hide-scrollbar shrink-0 ">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-sm text-xs font-semibold whitespace-nowrap transition-colors border border-zinc-900 ${
-                      selectedCategory === cat 
-                        ? 'bg-zinc-900 text-white' 
-                        : 'bg-white text-zinc-900 hover:bg-zinc-300'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Cards Grid */}
-            <div className="flex-1 overflow-y-auto p-4 bg-zinc-50/50">
-              {filteredPresets.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                  {filteredPresets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      onClick={() => {
-                        // Using mock matchformat data so the store consumes the module data.
-                        loadFromExisting({
-                          id: '',
-                          event_id: '',
-                          name: preset.name,
-                          match_type: preset.matchType,
-                          modules: preset.modules as any
-                        })
-                        setShowPresets(false)
-                      }}
-                      className="text-left bg-white p-4 border border-zinc-200 rounded-md hover:border-zinc-900 hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-zinc-900 flex flex-col h-full group"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-zinc-900 group-hover:text-zinc-900 leading-tight">
-                            {preset.name}
-                          </h3>
-                          <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-100 text-zinc-500 uppercase tracking-wide shrink-0 mt-0.5">
-                            {preset.category}
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-500 mt-2 leading-relaxed line-clamp-2">
-                          {preset.description}
-                        </p>
-                      </div>
-                      
-                      <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-semibold bg-zinc-100 text-zinc-600 uppercase tracking-wider">
-                          {preset.matchType.replace(/_/g, ' ')}
-                        </span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-semibold bg-zinc-100 text-zinc-600 uppercase tracking-wider">
-                          {preset.modules[0]?.type?.replace(/_/g, ' ') || 'NO ENGINE'}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <p className="text-zinc-500 text-sm">No presets match your search for "{searchQuery}"</p>
-                  <button 
-                    onClick={() => { setSearchQuery(''); setSelectedCategory('All') }}
-                    className="mt-3 text-xs text-blue-600 hover:underline"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <PresetModal isOpen={showPresets} onClose={() => setShowPresets(false)} />
     </>
   )
 }
 
-// ─── Center Config Panel ─────────────────────────────────────────────────────
+// --- Center Config Panel -----------------------------------------------------
 
 export function CenterConfigPanel() {
   const { engine, addOns, setAddOn } = useFormatBuilder()
