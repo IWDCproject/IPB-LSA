@@ -19,7 +19,7 @@ export function getEngine(fmt: any) {
 // --- Date formatting ----------------------------------------------------------
 
 /**
- * Long format — includes weekday. Used for date-group headers in MatchesTab
+ * Long format - includes weekday. Used for date-group headers in MatchesTab
  * (the full-page tab view).
  * Example: "Sunday, 12 January 2025"
  */
@@ -31,7 +31,7 @@ export function fmtDateLong(iso: string | null | undefined): string {
 }
 
 /**
- * Short format — no weekday. Used for match card/panel rows in MatchesPanels.
+ * Short format - no weekday. Used for match card/panel rows in MatchesPanels.
  * Example: "12 January 2025"
  */
 export function fmtDateShort(iso: string | null | undefined): string {
@@ -50,7 +50,7 @@ export function fmtTime(iso: string | null | undefined): string {
 
 // --- Grouping -----------------------------------------------------------------
 
-/** Groups matches by their date using `fmtDateLong` — for MatchesTab. */
+/** Groups matches by their date using `fmtDateLong` - for MatchesTab. */
 export function groupByDateLong(matches: MappedMatch[]): Map<string, MappedMatch[]> {
   return matches.reduce((map, m) => {
     const key = fmtDateLong(m.scheduled_at);
@@ -58,7 +58,7 @@ export function groupByDateLong(matches: MappedMatch[]): Map<string, MappedMatch
   }, new Map<string, MappedMatch[]>());
 }
 
-/** Groups matches by their date using `fmtDateShort` — for MatchesPanels. */
+/** Groups matches by their date using `fmtDateShort` - for MatchesPanels. */
 export function groupByDateShort(matches: MappedMatch[]): Map<string, MappedMatch[]> {
   return matches.reduce((map, m) => {
     const key = m.scheduled_at ? fmtDateShort(m.scheduled_at) : "No Date";
@@ -68,7 +68,7 @@ export function groupByDateShort(matches: MappedMatch[]): Map<string, MappedMatc
 
 // --- Winner resolution --------------------------------------------------------
 
-/** UUID v4 regex — used to distinguish stored UUIDs from plain-text winner names. */
+/** UUID v4 regex - used to distinguish stored UUIDs from plain-text winner names. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -92,7 +92,7 @@ export function resolveWinnerName(match: MappedMatch): string | null {
     if (entry.participant_id?.id === winnerId) return entry.participant_id.name;
   }
 
-  // manual_pick may store the name directly — only treat it as a name if it
+  // manual_pick may store the name directly - only treat it as a name if it
   // is not a UUID (using the regex, not the fragile hyphen-presence check).
   if (typeof live.winner === "string" && !UUID_RE.test(live.winner)) {
     return live.winner;

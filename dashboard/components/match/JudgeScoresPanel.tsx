@@ -63,7 +63,7 @@ export default function JudgeScoresPanel({ liveState, onPatch, format }: EngineP
       </div>
 
       <div className="p-6">
-        {/* Judge boxes — Now wider (w-20) and bigger text */}
+        {/* Judge boxes - Now wider (w-20) and bigger text */}
         <div className="flex gap-3 justify-center flex-wrap">
           {Array.from({ length: numJudges }, (_, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">

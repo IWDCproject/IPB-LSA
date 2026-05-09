@@ -64,7 +64,7 @@ function useVisibleRowCount(
         if (row.getBoundingClientRect().bottom <= containerBottom + 2) {
           visible++;
         } else {
-          // Rows are in DOM order — once one is clipped, all subsequent are too.
+          // Rows are in DOM order - once one is clipped, all subsequent are too.
           break;
         }
       }

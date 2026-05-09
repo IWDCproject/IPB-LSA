@@ -32,13 +32,13 @@ const STATUS_COLOR_OPAQUE: Record<string, string> = {
 };
 
 function fmtDate(d: string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 // --- ScrollRow ---------------------------------------------------------------
 // Scrollable flex row with scroll-aware left/right fade masks.
-// Mask image is set imperatively via the DOM — must stay in JS.
+// Mask image is set imperatively via the DOM - must stay in JS.
 function ScrollRow({
   children,
   style,
@@ -193,16 +193,16 @@ export default function EventDetailHeader({
 
   // --- Meta -----------------------------------------------------------------
   const meta = [
-    { label: "Registration", value: event.registration_end_date ? `Until ${fmtDate(event.registration_end_date)}` : "—" },
-    { label: "Dates",        value: event.start_date ? `${fmtDate(event.start_date)} – ${fmtDate(event.end_date)}` : "—" },
-    { label: "Location",     value: event.location ?? "—" },
+    { label: "Registration", value: event.registration_end_date ? `Until ${fmtDate(event.registration_end_date)}` : "-" },
+    { label: "Dates",        value: event.start_date ? `${fmtDate(event.start_date)} – ${fmtDate(event.end_date)}` : "-" },
+    { label: "Location",     value: event.location ?? "-" },
   ];
 
   const videoId = getYouTubeID(event.url_youtube);
 
   // --- Animation delays -----------------------------------------------------
   // staggerSlideUp / staggerFadeIn return CSSProperties (opacity + animation
-  // string with a computed delay) — these must stay in style props.
+  // string with a computed delay) - these must stay in style props.
   const s = {
     badge:   staggerSlideUp(80,  PAGE_ENTER),
     title:   staggerSlideUp(160, PAGE_ENTER),
@@ -312,7 +312,7 @@ export default function EventDetailHeader({
             <span className="font-bold">{event.organiser}</span>
           </div>
 
-          {/* Desktop video — floats right of title block */}
+          {/* Desktop video - floats right of title block */}
           {!isMobile && videoId && (
             <div
               className="absolute top-0 right-0 rounded-lg overflow-hidden bg-black border-2 border-white z-10"
@@ -324,7 +324,7 @@ export default function EventDetailHeader({
               }}
             >
               <iframe
-                title={`${event.name} — YouTube video`}
+                title={`${event.name} - YouTube video`}
                 width="100%" height="100%"
                 src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -335,14 +335,14 @@ export default function EventDetailHeader({
         </div>
       </div>
 
-      {/* Mobile video — inline between title and meta */}
+      {/* Mobile video - inline between title and meta */}
       {isMobile && videoId && (
         <div
           className="w-full rounded-lg overflow-hidden bg-black border-2 border-white z-[5] mt-1"
           style={{ ...s.video, aspectRatio: "16/9" }}
         >
           <iframe
-            title={`${event.name} — YouTube video`}
+            title={`${event.name} - YouTube video`}
             width="100%" height="100%"
             src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
             allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -373,7 +373,7 @@ export default function EventDetailHeader({
         className="w-full min-w-0 overflow-visible -mb-5"
         style={{ marginTop: isMobile ? 16 : 30, ...s.tabRow }}
       >
-        {/* Hidden probe — measures natural combined width to decide layout */}
+        {/* Hidden probe - measures natural combined width to decide layout */}
         <div
           ref={probeRef}
           aria-hidden

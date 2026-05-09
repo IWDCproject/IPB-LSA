@@ -29,7 +29,7 @@ const pillIdle   = "bg-[#11194C] text-white border-blue-800/40 hover:bg-[#1A266B
 
 // --- Helpers ------------------------------------------------------------------
 
-// cn diduplikasi di ScheduleToolbar juga — idealnya dipindah ke @/lib/utils
+// cn diduplikasi di ScheduleToolbar juga - idealnya dipindah ke @/lib/utils
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

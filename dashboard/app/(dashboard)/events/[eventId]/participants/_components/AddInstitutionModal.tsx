@@ -34,6 +34,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
   const [logoFile, setLogoFile]       = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [saving, setSaving]           = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Populate fields in edit mode
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
       setLogoFile(null)
       setLogoPreview(null)
     }
+    setSubmitError(null)
   }, [isOpen, editingInstitution])
 
   // Revoke object URL on cleanup to avoid memory leaks
@@ -76,14 +78,23 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
   }, [isOpen, handleKeyDown])
 
   const handleLogoChange = (file: File | null) => {
-    // Revoke previous object URL if it was a blob
-    if (logoPreview && logoPreview.startsWith('blob:')) {
-      URL.revokeObjectURL(logoPreview)
-    }
-    setLogoFile(file)
+    // Note: blob URL revocation is handled exclusively by the useEffect cleanup
+    // below. Revoking here too would cause a double-revoke when logoPreview changes.
     if (file) {
+      const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+      if (!ALLOWED.has(file.type)) {
+        setSubmitError(`Tipe file tidak didukung: ${file.type}. Gunakan JPEG, PNG, WebP, atau GIF.`)
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setSubmitError('Ukuran file terlalu besar (maks 5 MB).')
+        return
+      }
+      setSubmitError(null)
+      setLogoFile(file)
       setLogoPreview(URL.createObjectURL(file))
     } else {
+      setLogoFile(null)
       setLogoPreview(null)
     }
   }
@@ -111,10 +122,10 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
         onSuccess()
         onClose()
       } else {
-        alert(res.error)
+        setSubmitError(res.error ?? 'Terjadi kesalahan.')
       }
-    } catch (error) {
-      console.error('Failed to save institution:', error)
+    } catch {
+      setSubmitError('Terjadi kesalahan. Silakan coba lagi.')
     } finally {
       setSaving(false)
     }
@@ -177,7 +188,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
           <div>
             <label htmlFor="inst-logo" className={labelCls}>Logo</label>
 
-            {/* Preview image — shown when a file is selected or editing has an existing logo */}
+            {/* Preview image - shown when a file is selected or editing has an existing logo */}
             {logoPreview && (
               <div className="mt-1.5 mb-2 flex items-center gap-3">
                 <div className="h-16 w-16 shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 overflow-hidden flex items-center justify-center">
@@ -226,6 +237,15 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
             </label>
           </div>
         </div>
+
+        {/* -- Submit error -- */}
+        {submitError && (
+          <div className="px-6 pb-3">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+              {submitError}
+            </p>
+          </div>
+        )}
 
         {/* -- Footer -- */}
         <div className="px-6 pb-5 pt-4 border-t border-zinc-100 flex justify-end gap-2">

@@ -37,14 +37,14 @@ export function ControlPanel({
   matchName, round,
 }: Props) {
   const router = useRouter()
-  // Using key={stateKey} in page.tsx manages the refresh, 
+  // Using key={stateKey} in page.tsx manages the refresh,
   const [liveState, setLiveState] = useState<LiveState>({
     ...DEFAULT_LIVE_STATE,
     ...(initialLiveState || {})
   })
-  const[isPending, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
 
-  // patch helper — optimistic update then server action
+  // patch helper - optimistic update then server action
   const patch = useCallback(async (partial: Partial<LiveState>) => {
     setLiveState((prev) => ({ ...prev, ...partial }))
     startTransition(async () => {
@@ -55,7 +55,7 @@ export function ControlPanel({
         console.error('patch failed:', res.error)
       }
     })
-  },[matchId, router])
+  }, [matchId, router])
 
   const timerModule = format.modules.find((m) => m.type === 'timer') as
     | { type: 'timer'; config: { mode: 'countdown' | 'stopwatch' | 'deadline'; duration?: number } }
@@ -74,7 +74,7 @@ export function ControlPanel({
   const status = liveState.matchStatus
   const isH2H = format.match_type === 'head_to_head'
 
-  // --- Auto-Calculation Logic (The Suggestion Engine) --------
+  // --- Auto-Calculation Logic (The Suggestion Engine) ---------
 
   let autoWinnerId: string | null = null
 
@@ -86,11 +86,18 @@ export function ControlPanel({
       else if (away > home) autoWinnerId = awayParticipant?.id ?? null
       else autoWinnerId = 'draw'
     } else if (engineType === 'score_sets') {
-      const home = liveState.setsWon?.[0] ?? 0
-      const away = liveState.setsWon?.[1] ?? 0
-      if (home > away) autoWinnerId = homeParticipant?.id ?? null
-      else if (away > home) autoWinnerId = awayParticipant?.id ?? null
-      else autoWinnerId = 'draw'
+      // FIX: was using setsWon[0] > setsWon[1] (leader-based), which incorrectly
+      // suggested a winner mid-match in formats like best-of-5 where someone can
+      // lead 2-1 without having clinched. Now only fires when a side reaches toWin.
+      const setsModule = format.modules.find((m) => m.type === 'score_sets') as
+        | { type: 'score_sets'; config: { sets_to_win: number } }
+        | undefined
+      const toWin = setsModule?.config.sets_to_win ?? 0
+      const home  = liveState.setsWon?.[0] ?? 0
+      const away  = liveState.setsWon?.[1] ?? 0
+      if (toWin > 0 && home >= toWin) autoWinnerId = homeParticipant?.id ?? null
+      else if (toWin > 0 && away >= toWin) autoWinnerId = awayParticipant?.id ?? null
+      // else: no suggestion - match still in progress, leave autoWinnerId as null
     }
   }
 
@@ -282,7 +289,7 @@ function MatchWinnerSelector({
   const isAway = activeWinner === awayParticipant?.id && awayParticipant != null
   const isDraw = activeWinner === 'draw'
 
-  const activeClasses = 'border-zinc-900 bg-zinc-900 text-white'
+  const activeClasses   = 'border-zinc-900 bg-zinc-900 text-white'
   const inactiveClasses = 'border-zinc-200 hover:border-zinc-900 bg-white text-zinc-800'
 
   return (
@@ -297,7 +304,7 @@ function MatchWinnerSelector({
 
       <div className="p-3">
         <div className="grid gap-2 grid-cols-3 items-stretch">
-          {[ 
+          {[
             { side: 'home', label: homeParticipant?.name ?? 'Home', active: isHome },
             { side: 'draw', label: 'Draw', active: isDraw },
             { side: 'away', label: awayParticipant?.name ?? 'Away', active: isAway }

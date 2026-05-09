@@ -18,7 +18,7 @@ const SidebarContext = createContext<SidebarContextValue>({
 })
 
 // ---------------------------------------------------------------------------
-// Provider — add this to app/(dashboard)/layout.tsx wrapping {children}
+// Provider - add this to app/(dashboard)/layout.tsx wrapping {children}
 // ---------------------------------------------------------------------------
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
@@ -32,7 +32,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Hook — used by Sidebar to read, and by event layout to write
+// Hook - used by Sidebar to read, and by event layout to write
 // ---------------------------------------------------------------------------
 
 export const useSidebarContext = () => useContext(SidebarContext)

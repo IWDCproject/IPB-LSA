@@ -10,35 +10,49 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
   }}).config
 
   // Provide local fallbacks so missing DB fields safely render as defaults
-  const { 
-    homeScore = 0, 
-    awayScore = 0, 
-    periodIdx = 0, 
-    periodPhase = 'idle' 
+  const {
+    homeScore = 0,
+    awayScore = 0,
+    periodIdx = 0,
+    periodPhase = 'idle',
   } = liveState
-  
+
   const periodTerm  = cfg.period_term  ?? 'Period'
   const periodCount = cfg.period_count ?? 1
   const hasPeriods  = cfg.has_periods
 
   async function adjustScore(side: 'home' | 'away', delta: number) {
-    const key   = side === 'home' ? 'homeScore' : 'awayScore'
-    const cur   = side === 'home' ? homeScore   : awayScore
+    const key = side === 'home' ? 'homeScore' : 'awayScore'
+    const cur = side === 'home' ? homeScore   : awayScore
     await onPatch({ [key]: Math.max(0, cur + delta) })
   }
 
+  // FIX: startPeriod now advances periodIdx when resuming from halftime.
+  // Previously, endPeriod advanced periodIdx (so "Period 2" showed during halftime of
+  // Period 1), and startPeriod just set 'active' without incrementing (so periodIdx
+  // was already wrong by the time the next period started).
   async function startPeriod() {
-    await onPatch({ periodPhase: 'active' })
-  }
-
-  async function endPeriod() {
-    const next = periodIdx + 1
-    if (next < periodCount) {
-      await onPatch({ periodPhase: 'halftime', periodIdx: next })
+    if (periodPhase === 'halftime') {
+      // Resuming after a break: advance to the next period index now.
+      await onPatch({ periodPhase: 'active', periodIdx: periodIdx + 1 })
     } else {
-      await onPatch({ periodPhase: 'halftime' })
+      // Starting the very first period from idle.
+      await onPatch({ periodPhase: 'active' })
     }
   }
+
+  // FIX: endPeriod no longer touches periodIdx. It only marks halftime.
+  // Previously it incremented periodIdx here, causing the header to show the
+  // wrong period number during the break and on the next startPeriod call.
+  async function endPeriod() {
+    await onPatch({ periodPhase: 'halftime' })
+  }
+
+  // Derived display values.
+  // During halftime, periodIdx still reflects the period that just finished.
+  // The *next* period to start is periodIdx + 1 (1-indexed: periodIdx + 2).
+  const isLastPeriodDone = periodPhase === 'halftime' && (periodIdx + 1) >= periodCount
+  const nextPeriodDisplay = periodIdx + 2  // used on the "Start" button during halftime
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm">
@@ -46,6 +60,7 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
         <p className="text-sm font-semibold text-zinc-900">{cfg.score_label || 'Score'}</p>
         {hasPeriods && (
           <span className="text-xs text-zinc-500">
+            {/* Show the period that is current or just finished - idx is always correct now */}
             {periodTerm} {periodIdx + 1}/{periodCount}
             <span className="ml-1.5 text-zinc-400 bg-zinc-100 rounded px-1.5 py-0.5">
               {periodPhase}
@@ -59,19 +74,25 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
           <span className="text-xs text-zinc-600">
             {periodTerm} {periodIdx + 1}
           </span>
-          {periodPhase === 'idle' || periodPhase === 'halftime' ? (
-            <button
-              onClick={startPeriod}
-              className="text-xs border border-zinc-300 rounded px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 transition-colors"
-            >
-              Start {periodTerm} {periodIdx + 1}
-            </button>
-          ) : (
+
+          {periodPhase === 'active' ? (
             <button
               onClick={endPeriod}
               className="text-xs border border-zinc-300 rounded px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 transition-colors"
             >
               End {periodTerm}
+            </button>
+          ) : isLastPeriodDone ? (
+            // FIX: last period is over - was previously showing "Start Period N+1"
+            // indefinitely, which allowed starting non-existent periods.
+            <span className="text-xs text-zinc-400 italic">All periods done</span>
+          ) : (
+            <button
+              onClick={startPeriod}
+              className="text-xs border border-zinc-300 rounded px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 transition-colors"
+            >
+              {/* FIX: during halftime the next period is idx+2 (1-indexed), not idx+1 */}
+              Start {periodTerm} {periodPhase === 'halftime' ? nextPeriodDisplay : periodIdx + 1}
             </button>
           )}
         </div>
@@ -106,15 +127,14 @@ function ScoreColumn({
   return (
     <div className="flex flex-col items-center gap-2">
       <p className="text-xs font-medium text-zinc-500">{label}</p>
-      
-      {/* Width increased to w-24 to match the Set panel and ensure alignment */}
+
       <button
         onClick={onPlus}
         className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors"
       >
         +
       </button>
-      
+
       <div className="w-24 h-24 border-2 border-zinc-300 rounded flex items-center justify-center bg-zinc-50">
         <span
           className="text-6xl text-zinc-900 font-[800] tabular-nums leading-none tracking-tight"
@@ -123,7 +143,7 @@ function ScoreColumn({
           {String(score).padStart(2, '0')}
         </span>
       </div>
-      
+
       <button
         onClick={onMinus}
         disabled={score <= 0}

@@ -43,8 +43,8 @@ export default function UniversityMarquee() {
   const isMobile = cw < 1024;
 
   // --- Fade edges: smooth clamp on both mobile and desktop -----------------
-  // Desktop: clamp(40px, 8.33vw, 160px) — unchanged
-  // Mobile:  clamp(16px, 6vw, 40px)     — tighter so content isn't over-masked
+  // Desktop: clamp(40px, 8.33vw, 160px) - unchanged
+  // Mobile:  clamp(16px, 6vw, 40px)     - tighter so content isn't over-masked
   const fadeStart = isMobile
     ? Math.round(Math.min(40,  Math.max(16, cw * 0.06)))
     : Math.round(Math.min(160, Math.max(40, cw * 0.0833)));
@@ -53,28 +53,28 @@ export default function UniversityMarquee() {
     : Math.round(Math.min(200, Math.max(60, cw * 0.1042)));
 
   // --- Token values: desktop unchanged, mobile uses CSS clamp() ------------
-  // logoHeight  — desktop: 35px fixed | mobile: clamp(28px, 7vw, 35px)
+  // logoHeight  - desktop: 35px fixed | mobile: clamp(28px, 7vw, 35px)
   //   375px → 7vw = 26px → clamped to 28px
   //   500px → 7vw = 35px → hits max, stays there until desktop takes over
   const logoHeight: number | string = isMobile
     ? "clamp(28px, 7vw, 35px)"
     : CONFIG.logoHeight;
 
-  // fontSize    — desktop: 10.4px fixed | mobile: clamp(9px, 2.4vw, 10.4px)
+  // fontSize    - desktop: 10.4px fixed | mobile: clamp(9px, 2.4vw, 10.4px)
   //   375px → 2.4vw = 9px (hits min)
   //   433px → 2.4vw = 10.4px → hits max
   const fontSize: number | string = isMobile
     ? "clamp(9px, 2.4vw, 10.4px)"
     : 10.4;
 
-  // itemGap (marginInline) — desktop: 12px | mobile: clamp(10px, 2.5vw, 12px)
+  // itemGap (marginInline) - desktop: 12px | mobile: clamp(10px, 2.5vw, 12px)
   //   375px → 9.4px → clamped to 10px
   //   480px → 12px  → hits max
   const itemGap: number | string = isMobile
     ? "clamp(10px, 2.5vw, 12px)"
     : CONFIG.itemGap;
 
-  // logo↔text gap (flex gap) — desktop: 12px | mobile: clamp(10px, 2.5vw, 12px)
+  // logo↔text gap (flex gap) - desktop: 12px | mobile: clamp(10px, 2.5vw, 12px)
   const logoTextGap: number | string = isMobile
     ? "clamp(10px, 2.5vw, 12px)"
     : 12;

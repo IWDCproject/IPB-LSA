@@ -23,7 +23,7 @@ interface MatchPatch {
  * applyUpdates ignores any IDs not in this event's match list, so no
  * server-side slug filtering is needed.
  *
- * Return shape is identical to the old WS-based hook — nothing downstream
+ * Return shape is identical to the old WS-based hook - nothing downstream
  * (EventDetailClient, MatchesTab) needs to change.
  */
 export function useMatchState(
@@ -60,7 +60,7 @@ export function useMatchState(
         const patches: MatchPatch[] = JSON.parse(event.data);
         if (Array.isArray(patches) && patches.length > 0) applyUpdates(patches);
       } catch {
-        // malformed frame — ignore
+        // malformed frame - ignore
       }
     };
 

@@ -77,8 +77,8 @@
 
 ### Image Optimization
 
-> ✅ **MatchesTab.tsx** — `Logo` and `OpenParticipants` converted (Wave 1)
-> 🔄 **Wave 2** — All remaining `<img>` tags converted to `<Image />`:
+> ✅ **MatchesTab.tsx** - `Logo` and `OpenParticipants` converted (Wave 1)
+> 🔄 **Wave 2** - All remaining `<img>` tags converted to `<Image />`:
 > `MatchCard.tsx`, `MatchesPanels.tsx`, `ParticipantsTab.tsx`, `EventsTable.tsx`,
 > `UniversityMarquee.tsx`, `StatCard.tsx`, `HeroSection.jsx`, `TimelineSection.jsx`
 
@@ -92,11 +92,11 @@ Replace with your production Directus hostname for production builds.
 
 ### React Hook Dependency Bugs
 
-> ✅ **MatchesTab.tsx** — `position` sort null guard (Wave 1)
+> ✅ **MatchesTab.tsx** - `position` sort null guard (Wave 1)
 > 🔄 **Wave 2** fixes:
-> - **HeroSection.jsx** — `displayIdx` added to `[activeIdx, mounted]` deps
-> - **NewsTab.tsx** — `COLUMNS` added to `[event.slug, page]` deps
-> - **BlurOverlay.jsx** — `lift` wrapped in `useCallback`, added to both effect deps
+> - **HeroSection.jsx** - `displayIdx` added to `[activeIdx, mounted]` deps
+> - **NewsTab.tsx** - `COLUMNS` added to `[event.slug, page]` deps
+> - **BlurOverlay.jsx** - `lift` wrapped in `useCallback`, added to both effect deps
 
 ### Remaining Performance Issues
 
@@ -110,7 +110,7 @@ Replace with your production Directus hostname for production builds.
     - **What:** `format_id` can be null for a match, breaks scoring silently
     - **Fix:** Require format selection; show validation error in dashboard
 
-12. **Time Off By One Hour During DST Transitions** *(low — Jakarta doesn't observe DST)*
+12. **Time Off By One Hour During DST Transitions** *(low - Jakarta doesn't observe DST)*
     - **File:** `scoreUtils.ts` (line 43)
     - **Fix:** Use UTC everywhere, format on client with explicit timezone
 
@@ -140,17 +140,17 @@ Replace with your production Directus hostname for production builds.
 
 ## Recommended Fix Order (remaining)
 
-**Wave 3 — ESLint build fix**
+**Wave 3 - ESLint build fix**
 - Need `package.json` + ESLint config file
 
-**Wave 4 — Polish & Stability**
-- `EventDetailClient.tsx` — debounce ResizeObserver thrashing
-- `directus.ts` — add `width/height/quality/format=webp` to `getAssetUrl()` query params
+**Wave 4 - Polish & Stability**
+- `EventDetailClient.tsx` - debounce ResizeObserver thrashing
+- `directus.ts` - add `width/height/quality/format=webp` to `getAssetUrl()` query params
 - Dynamic imports for `MatchesTab` and `NewsTab`
 - Stale data warning (#10 above)
 - `format_id` null validation (#11 above)
 
-**Wave 5 — Planned Upgrades**
+**Wave 5 - Planned Upgrades**
 - Implement WebSocket realtime system (architecture ready in hook)
 - Add test suite (unit, integration, E2E)
 - Add accessibility features (ARIA, keyboard navigation)

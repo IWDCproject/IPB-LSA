@@ -53,10 +53,10 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
   const debouncedSearch = useDebounce(searchInput, 350);
 
-  // -- Fetch — with skeleton show-delay + minimum display logic --------------
+  // -- Fetch - with skeleton show-delay + minimum display logic --------------
   // The `cancelled` flag guards against stale updates from rapid filter
   // changes.  The skeleton show/min-display timers are intentionally kept as
-  // they are — they implement the perceived-performance UX contract.
+  // they are - they implement the perceived-performance UX contract.
   useEffect(() => {
     let cancelled        = false;
     let skeletonShownAt: number | null = null;
@@ -140,7 +140,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
   }, [ready]);
 
   // Reset page on filter change (page is intentionally excluded from the dep
-  // array — we only want to react to *filter* changes, not page changes).
+  // array - we only want to react to *filter* changes, not page changes).
   const prevFilters = useRef({ debouncedSearch, activeStatuses, activeEventSlugs, sort });
   useEffect(() => {
     const prev = prevFilters.current;

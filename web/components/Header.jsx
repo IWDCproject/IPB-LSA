@@ -99,7 +99,7 @@ export default function Header() {
           })}
         </nav>
 
-        {/* Hamburger — mobile only */}
+        {/* Hamburger - mobile only */}
         <button
           className="min-[900px]:hidden flex flex-col justify-center items-center w-9 h-9 gap-[5px] shrink-0"
           onClick={() => setMenuOpen((o) => !o)}
@@ -112,7 +112,7 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile dropdown — absolute so it overlays and never affects document flow or scroll calculations */}
+      {/* Mobile dropdown - absolute so it overlays and never affects document flow or scroll calculations */}
       <div
         className={`min-[900px]:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-md overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-64" : "max-h-0"}`}
       >

@@ -1,4 +1,4 @@
-# IPB Lucky Sport & Art — Platform
+# IPB Lucky Sport & Art - Platform
 
 Platform manajemen event dan live scoring untuk program IPB Lucky Sport & Art, kolaborasi antara IWDC dan Ditmawa IPB University.
 
@@ -74,10 +74,10 @@ cp backend/.env.example backend/.env
 ## Konvensi Kode
 
 **Routing (Next.js App Router)**
-- `app/[route]/page.jsx` — entry point tiap halaman, dibuat setipis mungkin
-- `app/[route]/_components/` — komponen spesifik halaman tersebut
-- `components/` — komponen yang dipakai di lebih dari satu halaman
-- `lib/` — helper functions, API calls, socket client
+- `app/[route]/page.jsx` - entry point tiap halaman, dibuat setipis mungkin
+- `app/[route]/_components/` - komponen spesifik halaman tersebut
+- `components/` - komponen yang dipakai di lebih dari satu halaman
+- `lib/` - helper functions, API calls, socket client
 
 **Naming**
 - Komponen: PascalCase (`EventCard.jsx`)

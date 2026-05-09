@@ -1,6 +1,6 @@
 import type { LiveState, TimerMode } from '@/types/directus'
 
-// snapshot + elapsed — jangan PATCH tiap tick
+// snapshot + elapsed - jangan PATCH tiap tick
 export function calcCurrentSecs(live: LiveState, mode: TimerMode): number {
   const isStopwatch = mode === 'stopwatch'
   const snapshot    = Math.max(0, live.timerSecs ?? 0)

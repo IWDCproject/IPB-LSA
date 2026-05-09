@@ -64,7 +64,7 @@ function getSizes(isMain, compact, scale) {
   };
 }
 
-// Always cover-fit — mirrors CSS background-size: cover; background-position: center
+// Always cover-fit - mirrors CSS background-size: cover; background-position: center
 // so the blurred image aligns with the background image at any rendered size.
 function BitmapBlurLayer({ bitmap }) {
   const canvasRef = useRef(null);
@@ -254,7 +254,7 @@ const styles = {
     height:        arrowSize,
   }),
 
-  // Full-card overlay — bitmap is W×H, aligns with CSS background cover-crop
+  // Full-card overlay - bitmap is W×H, aligns with CSS background cover-crop
   blurContainer: {
     position:      "absolute",
     inset:         0,

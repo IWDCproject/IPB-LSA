@@ -42,8 +42,7 @@ export function UserMenu() {
 
       {/* Sign out */}
       <Button
-        variant="ghost"
-        size="icon"
+        variant="noBorder"
         className="shrink-0 text-muted-foreground hover:text-foreground"
         onClick={() => signOut({ callbackUrl: '/login' })}
       >

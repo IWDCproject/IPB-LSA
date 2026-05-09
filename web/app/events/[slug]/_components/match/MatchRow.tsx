@@ -6,7 +6,7 @@ import { MiddleBadge, ScoreCell, AnimatedScore, LIGHT_BADGE_COLORS, DARK_BADGE_C
 import type { BadgeColors } from "../match/ScoreBadges";
 import type { MappedMatch } from "../../_types";
 
-// Canonical setLog entry shape — must match SetLogEntry in the admin project's directus.ts.
+// Canonical setLog entry shape - must match SetLogEntry in the admin project's directus.ts.
 // Defined locally here because MatchRow lives in the public website project.
 type SetLogEntry = {
   set:       number

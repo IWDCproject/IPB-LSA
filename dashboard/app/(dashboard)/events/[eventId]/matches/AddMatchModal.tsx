@@ -41,7 +41,7 @@ type AddMatchModalProps = {
 const labelCls =
   'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
 
-// Chevron SVG encoded inline — right-padded so icon never clips the border
+// Chevron SVG encoded inline - right-padded so icon never clips the border
 const chevronSvg =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2371717a' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")"
 
@@ -87,7 +87,7 @@ export function AddMatchModal({
   const hourRef = useRef<HTMLInputElement>(null)
   const minRef  = useRef<HTMLInputElement>(null)
 
-  // Time input helpers — digits only, auto-advance, clamp on blur
+  // Time input helpers - digits only, auto-advance, clamp on blur
   const handleHourChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 2)
     setHourPart(raw)
@@ -218,19 +218,19 @@ export function AddMatchModal({
     try {
       const combinedIso = new Date(`${datePart}T${hourPart}:${minPart}:00`).toISOString()
       const payload: any = {
+        eventSlug: eventId,
         competition_category_id: categoryId,
         match_name: matchName || null,
         round: round || null,
         venue,
         scheduled_at: combinedIso,
-        home_participant_id: null,
-        away_participant_id: null,
       }
       if (matchType === 'head_to_head') {
         payload.home_participant_id = participantA || null
         payload.away_participant_id = participantB || null
       } else if (matchType === 'solo') {
         payload.home_participant_id = participantSolo || null
+        payload.away_participant_id = null
       } else if (matchType === 'open') {
         payload.participant_ids = selectedIds
       }
@@ -290,7 +290,7 @@ export function AddMatchModal({
                 onChange={(e) => setCategoryId(e.target.value)}
                 className={selectBase}
               >
-                <option value="" disabled>— Select Category —</option>
+                <option value="" disabled>- Select Category -</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -301,7 +301,7 @@ export function AddMatchModal({
             <div className="space-y-1.5">
               <label className={labelCls}>Scheduled At *</label>
               <div className="flex gap-2">
-                {/* Date — clicking anywhere opens the calendar via showPicker() */}
+                {/* Date - clicking anywhere opens the calendar via showPicker() */}
                 <input
                   ref={dateRef}
                   required
@@ -313,7 +313,7 @@ export function AddMatchModal({
                   className={`${inputBase} flex-1 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute`}
                 />
 
-                {/* Time — two plain text inputs, auto-advance on 2 digits */}
+                {/* Time - two plain text inputs, auto-advance on 2 digits */}
                 <div className="flex items-center gap-1 px-3 rounded-lg border border-zinc-200 bg-zinc-50 transition-all focus-within:border-zinc-900 focus-within:bg-white">
                   <input
                     ref={hourRef}
@@ -409,7 +409,7 @@ export function AddMatchModal({
                         onChange={(e) => onChange(e.target.value)}
                         className={selectBase}
                       >
-                        <option value="">— Kosongkan —</option>
+                        <option value="">- Kosongkan -</option>
                         {participants.map((p) => (
                           <option key={p.id} value={p.id} disabled={p.id === disabledId}>
                             {p.institutionName} – {p.name}
@@ -430,7 +430,7 @@ export function AddMatchModal({
                     onChange={(e) => setParticipantSolo(e.target.value)}
                     className={selectBase}
                   >
-                    <option value="">— Kosongkan —</option>
+                    <option value="">- Kosongkan -</option>
                     {participants.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.institutionName} – {p.name}

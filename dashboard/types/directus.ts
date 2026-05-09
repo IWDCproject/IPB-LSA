@@ -36,7 +36,7 @@ export type SetLogEntry = {
 // id is optional to remain compatible with legacy DB rows that predate this field.
 
 export type TimeLogEntry = {
-  id?:  string   // participant UUID — optional for legacy rows
+  id?:  string   // participant UUID - optional for legacy rows
   name: string
   time: string   // e.g. "1m 30s" or "1m 30s 250ms"
 }

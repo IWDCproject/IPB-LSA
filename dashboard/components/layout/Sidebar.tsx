@@ -59,47 +59,29 @@ function NavLink({
 }
 
 // ---------------------------------------------------------------------------
-// Always-expanded section group (no chevron, no toggle)
+// Always-expanded section group (Now non-clickable header)
 // ---------------------------------------------------------------------------
 
 function SectionGroup({
   label,
-  href,
-  active,
   children,
   indent = 0,
   bold = false,
 }: {
   label:     string
-  href?:     string
-  active:    boolean
   children?: React.ReactNode
   indent?:   number
   bold?:     boolean
 }) {
-  const rowBase = cn(
-    'flex items-center rounded-lg transition-all duration-200 ease-in-out',
-    active
-      ? 'bg-zinc-900 hover:bg-zinc-800 text-white shadow-md'
-      : [
-          'text-foreground/60 hover:bg-muted hover:text-foreground',
-          href && 'hover:translate-x-1'
-        ]
-  )
-
   const labelClass = cn(
-    'flex-1 pl-2 py-2.5 text-sm leading-none truncate',
+    'flex-1 pl-2 py-2.5 text-sm leading-none truncate text-foreground/60',
     bold ? 'font-[800]' : 'font-[600]'
   )
 
   return (
     <div style={{ paddingLeft: `${indent * 8}px` }}>
-      <div className={rowBase}>
-        {href ? (
-          <Link href={href} className={labelClass}>{label}</Link>
-        ) : (
-          <span className={labelClass}>{label}</span>
-        )}
+      <div className="flex items-center">
+        <span className={labelClass}>{label}</span>
       </div>
       {children && <div className="mt-0.5 space-y-0.5">{children}</div>}
     </div>
@@ -126,18 +108,14 @@ export function Sidebar() {
     (session?.user as any)?.isSuperAdmin === true
 
   const isOnDashboard  = pathname === '/'
-  const isOnEvents     = pathname.startsWith('/events')
-  const isOnArticles   = pathname.startsWith('/articles')
   const isOnAccessCtrl = pathname.startsWith('/access-control')
 
   const eventMatch     = pathname.match(/^\/events\/([^/]+)/)
   const currentEventId = eventMatch?.[1]   // slug from URL
   const isInEvent      = !!currentEventId
 
-  // The event shown in sidebar — either current URL event or last/latest
   const [sidebarEvent, setSidebarEvent] = useState<StoredEvent | null>(null)
 
-  // Persist current event to localStorage whenever we navigate into one
   useEffect(() => {
     if (isInEvent && currentEventId && currentEventName) {
       const stored: StoredEvent = { slug: currentEventId, name: currentEventName }
@@ -146,7 +124,6 @@ export function Sidebar() {
     }
   }, [isInEvent, currentEventId, currentEventName])
 
-  // On mount (or when not in an event), load last event or fetch latest
   useEffect(() => {
     if (isInEvent) return
 
@@ -158,7 +135,6 @@ export function Sidebar() {
       } catch {}
     }
 
-    // No stored event — fetch the most recently created one
     directus
       .request(readItems('events', {
         fields: ['name', 'slug'],
@@ -187,7 +163,6 @@ export function Sidebar() {
   return (
     <aside className="flex w-[240px] shrink-0 flex-col bg-transparent">
 
-      {/* -- Brand --------------------------------------------------------- */}
       <div className="px-4 py-4 transition-transform duration-300 hover:scale-[1.01]">
         <Image
           src="/IWDC-logo.svg"
@@ -199,23 +174,22 @@ export function Sidebar() {
         />
       </div>
 
-      {/* -- Navigation ---------------------------------------------------- */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
 
         <NavLink href="/" label="Dashboard" active={isOnDashboard} bold />
 
         <SectionLabel>Content Management</SectionLabel>
 
-        <SectionGroup
-          label="Events"
-          href="/events"
-          active={pathname === '/events'}
-          bold
-        >
+        <SectionGroup label="Events" bold>
+          <NavLink
+            href="/events"
+            label="All Events"
+            active={pathname === '/events'}
+            indent={1}
+          />
           {displaySlug && displayName && (
             <SectionGroup
               label={displayName}
-              active={false}
               indent={1}
             >
               {eventSubPages.map((page) => (
@@ -231,12 +205,7 @@ export function Sidebar() {
           )}
         </SectionGroup>
 
-        <SectionGroup
-          label="Articles"
-          href="/articles"
-          active={false} 
-          bold
-        >
+        <SectionGroup label="Articles" bold>
           <NavLink
             href="/articles"
             label="All Articles"
@@ -253,21 +222,10 @@ export function Sidebar() {
 
         {showAdminSection && (
           <>
-            {/* spacer dikit */}
             <div style={{ height: '10px' }} />
             <SectionLabel>Super Admin Only</SectionLabel>
 
-            <NavLink
-              href="/settings"
-              label="Settings"
-              active={pathname === '/settings'}
-            />
-
-            <SectionGroup
-              label="Access Control"
-              active={isOnAccessCtrl}
-              bold
-            >
+            <SectionGroup label="Access Control" bold>
               <NavLink
                 href="/access-control/operators"
                 label="Operators"
@@ -280,12 +238,17 @@ export function Sidebar() {
                 active={pathname === '/access-control/activity-logs'}
                 indent={1}
               />
+              <NavLink
+                href="/settings"
+                label="Settings"
+                active={pathname === '/settings'}
+                indent={1}
+              />
             </SectionGroup>
           </>
         )}
       </nav>
 
-      {/* -- User footer --------------------------------------------------- */}
       <UserMenu />
     </aside>
   )

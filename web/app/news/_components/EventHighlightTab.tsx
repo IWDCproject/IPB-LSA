@@ -77,7 +77,7 @@ function FilterTabs({ active, onChange, isMobile }: { active: FilterTab; onChang
           onClick={() => onChange(key)}
           style={{
             ...JK,
-            // flex: "1 1 auto" — basis:auto means each button first claims its
+            // flex: "1 1 auto" - basis:auto means each button first claims its
             // natural text width, then leftover space is shared equally.
             // flex:1 shorthand sets basis:0 which makes all widths identical.
             ...(isMobile ? { flex: "1 1 auto", padding: "7px clamp(4px, 2vw, 12px)" } : { padding: "7px 16px" }),
@@ -241,7 +241,7 @@ function EventSection({ event, pad, isMobile, index }: { event: EventWithNews; p
       opacity: 0,
       animation: `np-slide-up ${DUR}ms ${EASE} ${secDelay} both`,
     }}>
-      {/* Banner blur — own overflow:hidden so it never clips the scroll row */}
+      {/* Banner blur - own overflow:hidden so it never clips the scroll row */}
       {event.banner_url && (
         <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
           <div style={{

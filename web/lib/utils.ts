@@ -1,6 +1,6 @@
 /**
  * Extracts the YouTube video ID from any standard YouTube URL.
- * Moved here from directus.ts — this is a pure string utility with no
+ * Moved here from directus.ts - this is a pure string utility with no
  * relationship to the Directus data layer.
  */
 export const getYouTubeID = (url: string | null | undefined): string | null => {

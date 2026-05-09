@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 
 
 // ---------------------------------------------------------------------------
-// @tiptap/extension-image shim — run: npm install @tiptap/extension-image
+// @tiptap/extension-image shim - run: npm install @tiptap/extension-image
 // ---------------------------------------------------------------------------
 import type { AnyExtension } from '@tiptap/core'
 declare module '@tiptap/core' {
@@ -42,7 +42,7 @@ import {
 import { YoutubeDialog, GDriveDialog, PreviewModal } from './_modals'
 
 // ---------------------------------------------------------------------------
-// CodeMirror 6 — raw HTML editor
+// CodeMirror 6 - raw HTML editor
 // run: npm install codemirror @codemirror/lang-html
 // ---------------------------------------------------------------------------
 import { EditorView, lineNumbers, drawSelection, highlightActiveLine, keymap } from '@codemirror/view'
@@ -117,7 +117,7 @@ function sanitizeHtml(html: string): string {
 /**
  * Adds indented line-breaks to a flat HTML string so raw mode is human-readable.
  * Block-level tags each get their own line; inline content stays inline.
- * This is intentionally lightweight — it's a display aid, not a full formatter.
+ * This is intentionally lightweight - it's a display aid, not a full formatter.
  */
 function prettyHtml(html: string): string {
   const BLOCK = /^(p|div|section|article|header|footer|main|aside|nav|h[1-6]|ul|ol|li|blockquote|pre|figure|figcaption|table|thead|tbody|tfoot|tr|th|td|hr|br|img|iframe|youtube-component)$/i
@@ -130,7 +130,7 @@ function prettyHtml(html: string): string {
   for (const token of tokens) {
     const tagMatch = token.match(/^<(\/?)([\w-]+)/)
     if (!tagMatch) {
-      // Text node — emit inline, trimming pure-whitespace chunks
+      // Text node - emit inline, trimming pure-whitespace chunks
       const t = token.replace(/\s+/g, ' ')
       if (t.trim()) out += t
       continue
@@ -309,14 +309,14 @@ const latteTheme = EditorView.theme({
 
 const latteHighlight = HighlightStyle.define([
   // HTML structure
-  { tag: t.tagName,          color: '#1e66f5', fontWeight: '500' }, // blue   — <p>, <div>…
-  { tag: t.angleBracket,     color: '#04a5e5' },                    // sky    — < >
-  { tag: t.attributeName,    color: '#8839ef' },                    // mauve  — href, class…
-  { tag: t.attributeValue,   color: '#40a02b' },                    // green  — "value"
-  { tag: t.string,           color: '#40a02b' },                    // green  — quoted strings
+  { tag: t.tagName,          color: '#1e66f5', fontWeight: '500' }, // blue   - <p>, <div>…
+  { tag: t.angleBracket,     color: '#04a5e5' },                    // sky    - < >
+  { tag: t.attributeName,    color: '#8839ef' },                    // mauve  - href, class…
+  { tag: t.attributeValue,   color: '#40a02b' },                    // green  - "value"
+  { tag: t.string,           color: '#40a02b' },                    // green  - quoted strings
   // Entities & special
-  { tag: t.character,             color: '#fe640b' },                    // peach  — &amp; &nbsp;
-  { tag: t.processingInstruction, color: '#e64553', fontStyle: 'italic' }, // red  — <!DOCTYPE>
+  { tag: t.character,             color: '#fe640b' },                    // peach  - &amp; &nbsp;
+  { tag: t.processingInstruction, color: '#e64553', fontStyle: 'italic' }, // red  - <!DOCTYPE>
   // Comments
   { tag: t.comment,          color: '#9ca0b0', fontStyle: 'italic' }, // overlay2
   // Fallback text
@@ -428,7 +428,7 @@ function EditorToolbar({ editor, onYoutube, onGDrive, rawMode, onToggleRaw }: {
   return (
     <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 bg-zinc-50 px-2 py-1.5">
       
-      {/* Rich-text controls — wrapped in a flex container so opacity/disabled state works */}
+      {/* Rich-text controls - wrapped in a flex container so opacity/disabled state works */}
       <div className={`flex flex-wrap items-center gap-0.5 transition-all duration-200 ${
         rawMode ? 'opacity-30 grayscale pointer-events-none select-none' : ''
       }`}>
@@ -485,7 +485,7 @@ function EditorToolbar({ editor, onYoutube, onGDrive, rawMode, onToggleRaw }: {
         </ToolbarBtn>
       </div>
 
-      {/* Raw HTML toggle — fully opaque and interactive on the right side */}
+      {/* Raw HTML toggle - fully opaque and interactive on the right side */}
       <div className="ml-auto">
         <ToolbarBtn
           title={rawMode ? 'Back to rich editor' : 'Edit raw HTML'}
@@ -583,7 +583,7 @@ export default function ArticleEditorPage({ params }: { params: { articleId: str
     ],
     editorProps: {
       attributes: {
-        // No prose class — custom <style> block below avoids Tailwind preflight fights.
+        // No prose class - custom <style> block below avoids Tailwind preflight fights.
         class: 'editor-content min-h-[480px] p-4 focus:outline-none',
       },
     },
@@ -603,7 +603,7 @@ export default function ArticleEditorPage({ params }: { params: { articleId: str
     directus
       .request(readItems('events', { fields: ['id', 'name'], sort: ['name'], limit: -1 }))
       .then((res) => { if (!cancelled) setEvents(res as { id: string; name: string }[]) })
-      .catch(() => { /* non-critical — events dropdown stays empty */ })
+      .catch(() => { /* non-critical - events dropdown stays empty */ })
     return () => { cancelled = true }
   }, [])
 

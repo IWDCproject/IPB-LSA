@@ -13,6 +13,10 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
   const maxSets  = cfg.max_sets    ?? 3
   const toWin    = cfg.sets_to_win ?? 2
 
+  // FIX: derive whether the match has already been decided so we can
+  // block starting new sets and showing win buttons after the fact.
+  const matchDecided = (setsWon[0] >= toWin) || (setsWon[1] >= toWin)
+
   async function adjustSetScore(side: 'home' | 'away', delta: number) {
     const idx  = side === 'home' ? 0 : 1
     const next = [...setScore] as [number, number]
@@ -37,18 +41,30 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
 
     const newSetLog: SetLogEntry[] = [...(setLog ?? []), entry]
 
+    // FIX: was always doing setIdx + 1, which overflowed past maxSets on the
+    // deciding set (e.g. showed "Set 4/3" in a best-of-3).
+    // When the match is now decided, keep setIdx on the current (deciding) set.
+    // When not yet decided, clamp to maxSets - 1 as a safety net.
+    const newMatchDecided = newSetsWon[0] >= toWin || newSetsWon[1] >= toWin
+    const nextSetIdx = newMatchDecided
+      ? setIdx
+      : Math.min(setIdx + 1, maxSets - 1)
+
+    // NOTE: pendingSetWinner was always written as null here and never set to a
+    // non-null value anywhere - it was dead code from a removed flow. Kept null
+    // to satisfy the DB schema but has no functional effect.
     await onPatch({
       setsWon:          newSetsWon,
       setLog:           newSetLog,
-      setIdx:           setIdx + 1,
+      setIdx:           nextSetIdx,
       setPhase:         'idle',
-      setScore:[0, 0],
+      setScore:         [0, 0],
       pendingSetWinner: null,
     })
   }
 
   async function reopenSet(n: number) {
-    const trimmedLog: SetLogEntry[] = (setLog ??[]).slice(0, n - 1)
+    const trimmedLog: SetLogEntry[] = (setLog ?? []).slice(0, n - 1)
     const newSetsWon = trimmedLog.reduce<[number, number]>(
       (acc, entry) => {
         acc[entry.winner === 'home' ? 0 : 1] += 1
@@ -76,14 +92,20 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
         <p className="text-sm font-semibold text-zinc-900">{cfg.score_label || 'Set Based Scores'}</p>
         <span className="text-xs text-zinc-500">
           {setTerm} {setIdx + 1}/{maxSets}
-          <span className="ml-1.5 text-zinc-400 bg-zinc-100 rounded px-1.5 py-0.5">{setPhase}</span>
+          <span className="ml-1.5 text-zinc-400 bg-zinc-100 rounded px-1.5 py-0.5">
+            {matchDecided ? 'finished' : setPhase}
+          </span>
         </span>
       </div>
 
       {/* period bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 bg-zinc-50">
         <WinDots won={setsWon[0]} needed={toWin} label="Home" />
-        {setPhase === 'idle' ? (
+
+        {/* FIX: hide start/win controls entirely when match is already decided */}
+        {matchDecided ? (
+          <span className="text-xs text-zinc-400 italic">Match decided</span>
+        ) : setPhase === 'idle' ? (
           <button
             onClick={startSet}
             className="text-xs border border-zinc-300 rounded px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 transition-colors"
@@ -118,6 +140,7 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
             />
           </div>
         )}
+
         <WinDots won={setsWon[1]} needed={toWin} label="Away" />
       </div>
 
@@ -180,8 +203,8 @@ function ScoreColumn({
   return (
     <div className="flex flex-col items-center gap-2">
       <p className="text-xs font-medium text-zinc-500">{label}</p>
-      <button 
-        onClick={onPlus} 
+      <button
+        onClick={onPlus}
         className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors"
       >
         +

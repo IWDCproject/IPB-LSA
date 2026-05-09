@@ -1,5 +1,5 @@
-# IPB Lucky Sport & Art — Schema
-> Directus (port 7777) over PostgreSQL. All PKs `UUID`. All timestamps UTC. Directus manages its own tables — only custom tables are defined here.
+# IPB Lucky Sport & Art - Schema
+> Directus (port 7777) over PostgreSQL. All PKs `UUID`. All timestamps UTC. Directus manages its own tables - only custom tables are defined here.
 
 ---
 
@@ -10,7 +10,7 @@ Admin Dashboard (Next.js) --REST PATCH--► Directus --SQL--► PostgreSQL
 Public Website (Next.js)  ◄--WS subscribe--
 ```
 
-**Realtime pattern:** operator writes `live_state` via `PATCH /items/matches/{id}` → public display subscribes via WebSocket and receives updates automatically. Subscribe only to `fields: ["live_state"]` — never the full row.
+**Realtime pattern:** operator writes `live_state` via `PATCH /items/matches/{id}` → public display subscribes via WebSocket and receives updates automatically. Subscribe only to `fields: ["live_state"]` - never the full row.
 
 ---
 
@@ -41,7 +41,7 @@ app_settings                         ← global config
 |---|---|
 | `directus_users` | Accounts. Custom field `organisation_name TEXT` added via Directus UI. |
 | `directus_files` | Asset storage. `institutions.logo`, `events.card_image`, `events.banner_image`, `news.thumbnail` all store `UUID` referencing this table. Render via `GET /assets/<uuid>`. |
-| `directus_revisions` | ⚠️ Disable for `matches` and `activity_logs` — see Setup. |
+| `directus_revisions` | ⚠️ Disable for `matches` and `activity_logs` - see Setup. |
 
 ---
 
@@ -147,7 +147,7 @@ Array JSONB. First element = scoring engine (exactly one). Optional add-ons foll
 
 | Add-on | Config | Notes |
 |---|---|---|
-| `timer` | `mode` (`countdown`\|`stopwatch`\|`deadline`), `duration` | `deadline` mode ignores `duration` — reads `timerTarget` ISO timestamp from `live_state` instead |
+| `timer` | `mode` (`countdown`\|`stopwatch`\|`deadline`), `duration` | `deadline` mode ignores `duration` - reads `timerTarget` ISO timestamp from `live_state` instead |
 | `notes` | `{}` | Compatible with all engines |
 
 ---
@@ -186,7 +186,7 @@ CREATE TABLE participants (
 );
 ```
 
-> ⚠️ FK column is named `institution_id`. Directus exposes this as `institution_id` in API responses — not `institution`. Use `institution_id.*` in field queries. Map to `institution` explicitly in the data layer:
+> ⚠️ FK column is named `institution_id`. Directus exposes this as `institution_id` in API responses - not `institution`. Use `institution_id.*` in field queries. Map to `institution` explicitly in the data layer:
 > ```js
 > const mapParticipant = (p) => p ? {
 >   ...p,
@@ -213,11 +213,11 @@ CREATE TABLE matches (
   away_participant_id     UUID    REFERENCES participants(id) ON DELETE SET NULL,
   CHECK (home_participant_id IS DISTINCT FROM away_participant_id),
 
-  -- Results — do not write directly from app; managed by trigger on live_state
+  -- Results - do not write directly from app; managed by trigger on live_state
   winner                  TEXT,
   rankings                JSONB,
 
-  -- Denormalised columns — managed by trigger, never write from app
+  -- Denormalised columns - managed by trigger, never write from app
   home_score              INTEGER DEFAULT 0,
   away_score              INTEGER DEFAULT 0,
   timer_secs              INTEGER DEFAULT 0,
@@ -313,7 +313,7 @@ CREATE TABLE activity_logs (
   entity_id   UUID,
   description TEXT    NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT now()
-  -- No updated_at — append-only
+  -- No updated_at - append-only
 );
 ```
 
@@ -394,7 +394,7 @@ Rule for Frontend Clients: Never assume these keys exist. Always use default fal
 | `judgeScores` | judge_scores | `[7.5, 8.2, 7.8, ...]` |
 | `timeLog` | finish_time | `[{ "name": "Reza", "time": "10:42.3" }]` |
 
-**Timer — never PATCH on every tick. Use snapshot + elapsed:**
+**Timer - never PATCH on every tick. Use snapshot + elapsed:**
 ```js
 function calcCurrentSecs(live, timerCfg) {
   const isStop   = timerCfg?.mode === "stopwatch";
@@ -419,7 +419,7 @@ Edge cases: `timerLastStarted` null + `timerRunning: true` → treat as stopped.
 
 ## SQL: Triggers
 
-### Denormalisation — `matches`
+### Denormalisation - `matches`
 
 > ⚠️ Runs on UPDATE only, not INSERT. Run an explicit UPDATE after seed INSERTs to populate denorm columns.
 
@@ -517,7 +517,7 @@ POST /policies  { "name": "superadmin",  "app_access": true, "admin_access": tru
 ```
 Get public policy UUID: `GET /policies` → find `name: "$t:public_label"`.
 
-**2. Ormawa permissions** — repeat for each collection with `"user_created": { "_eq": "$CURRENT_USER" }` filter:
+**2. Ormawa permissions** - repeat for each collection with `"user_created": { "_eq": "$CURRENT_USER" }` filter:
 ```http
 POST /permissions { "policy": "<ormawa-id>", "collection": "events", "action": "read", "permissions": { "user_created": { "_eq": "$CURRENT_USER" } } }
 ```
@@ -527,9 +527,9 @@ POST /permissions { "policy": "<ormawa-id>", "collection": "match_participants",
   "permissions": { "match_id": { "competition_category_id": { "event_id": { "user_created": { "_eq": "$CURRENT_USER" } } } } } }
 ```
 
-**3. Public policy** — READ only on `events`, `matches`, `match_participants`, `news`, `event_phases`, `participants`, `institutions`. No write.
+**3. Public policy** - READ only on `events`, `matches`, `match_participants`, `news`, `event_phases`, `participants`, `institutions`. No write.
 
-**4. ⚠️ Disable revisions for `matches` and `activity_logs`** — timer ticks = 1 PATCH/sec → ~72k revision rows per day with 10 live matches:
+**4. ⚠️ Disable revisions for `matches` and `activity_logs`** - timer ticks = 1 PATCH/sec → ~72k revision rows per day with 10 live matches:
 ```http
 PATCH /collections/matches        { "meta": { "accountability": null } }
 PATCH /collections/activity_logs  { "meta": { "accountability": null } }
@@ -553,12 +553,12 @@ WEBSOCKETS_HEARTBEAT_PERIOD=60
 
 ## Implementation Notes
 
-**Asset fields** — `institutions.logo`, `events.card_image`, `events.banner_image`, `news.thumbnail` all return `UUID`, not URLs. Always convert: `getAssetUrl(uuid)` → `http://<DIRECTUS_URL>/assets/<uuid>`. Returns null if uuid is null.
+**Asset fields** - `institutions.logo`, `events.card_image`, `events.banner_image`, `news.thumbnail` all return `UUID`, not URLs. Always convert: `getAssetUrl(uuid)` → `http://<DIRECTUS_URL>/assets/<uuid>`. Returns null if uuid is null.
 
-**`finish_time` + `rankings`** — the `finish_time` engine writes to `live_state.timeLog`, not `live_state.rankings`. App must explicitly populate `live_state.rankings` from `timeLog` order before closing the match (trigger reads from `rankings`, not `timeLog`).
+**`finish_time` + `rankings`** - the `finish_time` engine writes to `live_state.timeLog`, not `live_state.rankings`. App must explicitly populate `live_state.rankings` from `timeLog` order before closing the match (trigger reads from `rankings`, not `timeLog`).
 
-**Editing a live format** — `match_formats` can be assigned to multiple categories. If a format is edited while a match with `status = 'live'` uses it, the operator screen changes mid-match. Always check and warn.
+**Editing a live format** - `match_formats` can be assigned to multiple categories. If a format is edited while a match with `status = 'live'` uses it, the operator screen changes mid-match. Always check and warn.
 
-**`_ftName` / `_ftTime` are UI state** — keep in React state, not DB. Only PATCH `live_state` when operator presses "Log Time".
+**`_ftName` / `_ftTime` are UI state** - keep in React state, not DB. Only PATCH `live_state` when operator presses "Log Time".
 
-**Timezone** — all timestamps stored as UTC. Display conversion to WIB (UTC+7) is frontend responsibility.
+**Timezone** - all timestamps stored as UTC. Display conversion to WIB (UTC+7) is frontend responsibility.

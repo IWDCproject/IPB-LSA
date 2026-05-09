@@ -7,7 +7,7 @@ import Button from "@/components/Button";
 import UniversityMarquee from "@/components/UniversityMarquee";
 import { BB, JK, BLUE, NAVY } from "./_newsConstants";
 
-// Local subset type — intentionally narrow, documents what this component uses
+// Local subset type - intentionally narrow, documents what this component uses
 interface NewsItem {
   id:            string;
   title:         string;
@@ -51,7 +51,7 @@ function HoverCard({
     >
       {children}
 
-      {/* Border overlay — sits above the card image so it's always visible */}
+      {/* Border overlay - sits above the card image so it's always visible */}
       <div style={{
         position: "absolute", inset: 0,
         borderRadius: 10,
@@ -103,7 +103,7 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
   const rowH    = Math.min(260, Math.max(160, cw * 0.135));
   const [main, ...rest] = news;
 
-  // Build 4 small slots — real cards or ghosts
+  // Build 4 small slots - real cards or ghosts
   const smallSlots = Array.from({ length: 4 }, (_, i) => rest[i] ?? null);
 
   return (
@@ -113,7 +113,7 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
       gridTemplateRows: `${rowH}px ${rowH}px`,
       gap: 6,
     }}>
-      {/* Main slot — always 2 rows tall */}
+      {/* Main slot - always 2 rows tall */}
       <div style={{ gridRow: "1 / 3" }}>
         {main ? (
           <HoverCard
@@ -209,7 +209,7 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
   return (
     <section style={{ position: "relative", overflow: "hidden" }}>
 
-      {/* Layer 1 — Event banner as blurred hero background */}
+      {/* Layer 1 - Event banner as blurred hero background */}
       {eventBanner && (
         <div
           aria-hidden
@@ -227,7 +227,7 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
         />
       )}
 
-      {/* Layer 2 — Blue-to-deep-navy gradient scrim */}
+      {/* Layer 2 - Blue-to-deep-navy gradient scrim */}
       <div style={{
         position: "absolute", inset: 0,
         background: eventBanner
@@ -236,7 +236,7 @@ export default function LatestStoriesSection({ latestNews, cw, isMobile, pad }: 
         pointerEvents: "none",
       }} />
 
-      {/* Layer 3 — Batik pattern */}
+      {/* Layer 3 - Batik pattern */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: "100%", width: "100%",
         backgroundImage: "url(/Batik_Pattern_dark.svg)",

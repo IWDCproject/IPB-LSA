@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const news = await getNewsBySlug(params.eventSlug, params.newsSlug);
   if (!news) return {};
 
-  const title       = `${news.title} — IPB LSA`;
+  const title       = `${news.title} - IPB LSA`;
   const description = news.excerpt?.slice(0, 160) ?? news.title;
   const ogImage     = news.thumbnail_url ?? undefined;
 

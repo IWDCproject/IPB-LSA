@@ -107,7 +107,7 @@ export interface MappedNews {
   thumbnail_width:  number | null;
   thumbnail_height: number | null;
   category:         string | null;
-  // Always an object after mapping — NEWS_FIELDS always requests event_id.name,
+  // Always an object after mapping - NEWS_FIELDS always requests event_id.name,
   // so Directus never returns a bare ID string here. The string variant in the
   // raw RawNews shape is intentionally excluded from the mapped type.
   event_id:         { name: string; slug?: string; status?: string } | null;
@@ -126,7 +126,7 @@ export interface MappedCompetitionCategory {
     id:         string;
     name:       string;
     modules:    FormatModule[];
-    /** "head_to_head" | "open" | etc. — controls which participant layout to render */
+    /** "head_to_head" | "open" | etc. - controls which participant layout to render */
     match_type?: string | null;
   } | null;
 }

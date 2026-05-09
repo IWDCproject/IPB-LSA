@@ -60,7 +60,7 @@ export function PresetModal({ isOpen, onClose }: PresetModalProps) {
           <div>
             <h2 className="text-base font-bold text-zinc-900">Choose a Preset</h2>
             <p className="mt-0.5 text-xs text-zinc-400">
-              Pick a predefined configuration — {PRESETS.length} presets available.
+              Pick a predefined configuration - {PRESETS.length} presets available.
             </p>
           </div>
           <button

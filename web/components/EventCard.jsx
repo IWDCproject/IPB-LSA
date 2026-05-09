@@ -16,7 +16,7 @@ function BitmapBlurLayer({ bitmap }) {
     const draw = (w, h) => {
       const dpr = window.devicePixelRatio || 1;
 
-      // Only control the pixel buffer — never touch canvas.style.width/height.
+      // Only control the pixel buffer - never touch canvas.style.width/height.
       // CSS `width: 100%; height: 100%` keeps the display size correct.
       canvas.width  = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);

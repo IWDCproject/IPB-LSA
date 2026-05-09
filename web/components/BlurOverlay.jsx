@@ -55,7 +55,7 @@ export default function BlurOverlay({
       el.style.pointerEvents = "none";
     }
 
-    // Unmount after fade completes — frees DOM node and stops animation
+    // Unmount after fade completes - frees DOM node and stops animation
     setTimeout(() => setMounted(false), fadeMs);
   }, [fadeMs]);
 
@@ -68,7 +68,7 @@ export default function BlurOverlay({
     return () => clearTimeout(t);
   }, [isReady, minMs, lift]);
 
-  // Hard cap — always lift eventually regardless of isReady
+  // Hard cap - always lift eventually regardless of isReady
   useEffect(() => {
     const t = setTimeout(lift, maxMs);
     return () => clearTimeout(t);

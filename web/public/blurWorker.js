@@ -1,5 +1,5 @@
 // blurWorker.js
-// Unified blur worker — processes all image types in a single batch.
+// Unified blur worker - processes all image types in a single batch.
 
 const TTL = {
   hero:      30 * 24 * 60 * 60,
@@ -135,7 +135,7 @@ function applyLayer(destCtx, W, H, blurredBitmap, maskCanvas, tmp) {
 
   const tctx = tmp.getContext("2d");
 
-  // Reset state before reuse — a reused canvas retains the previous call's
+  // Reset state before reuse - a reused canvas retains the previous call's
   // destination-in composite mode and its pixel content without this.
   tctx.globalCompositeOperation = "source-over";
   tctx.clearRect(0, 0, W, H);
@@ -211,7 +211,7 @@ async function processHero(img) {
   // PERF: Route the sharp image through /api/blur (blur=0.3 = API minimum,
   // visually identical to unblurred) instead of fetching directly from Directus.
   // This gives the sharp image the same server-side disk cache as the blur
-  // layers — cold loads hit Directus once per image per server restart, warm
+  // layers - cold loads hit Directus once per image per server restart, warm
   // loads serve from disk in microseconds.
   //
   // Both calls use identical canW/canH params so the API returns the same
@@ -223,7 +223,7 @@ async function processHero(img) {
   ]);
 
   // Both sharpBitmap and blurMap were requested with the same w/h params so
-  // they have identical dimensions — read realW/realH directly from the bitmap.
+  // they have identical dimensions - read realW/realH directly from the bitmap.
   // This also guards against wrong naturalWidth/naturalHeight (same as the
   // canvasDimsFromBlurMap approach used in other processors).
   const realW = sharpBitmap.width;
@@ -261,7 +261,7 @@ async function processEventcard(img) {
   const blurMap = await fetchBlurMap(url, EVENTCARD_LAYERS, reqW, reqH, ttl);
 
   // FIX: use actual API-returned dimensions so the canvas AR matches the
-  // source image — even when naturalWidth/naturalHeight were missing.
+  // source image - even when naturalWidth/naturalHeight were missing.
   const { canW, canH } = canvasDimsFromBlurMap(blurMap);
 
   const bitmap = await compositeLayers(EVENTCARD_LAYERS, blurMap, canW, canH, "up");
@@ -301,7 +301,7 @@ async function processMatchcard(img) {
   const nh = img.naturalHeight || H;
   const { canW, canH } = insideDims(nw, nh, W, H);
 
-  // fetchBlurred returns the bitmap at whatever AR the API chose — that's fine
+  // fetchBlurred returns the bitmap at whatever AR the API chose - that's fine
   // here because matchcard has no gradient compositing; BitmapBlurLayer will
   // cover-fit it into the card just like the CSS background does.
   const bitmap = await fetchBlurred(url, 6, canW, canH, ttl);

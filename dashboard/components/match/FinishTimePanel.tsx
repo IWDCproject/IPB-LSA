@@ -141,7 +141,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
         {/* ── Results list ── */}
         <div>
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">
-            Results — {sortedLog.length} / {participants.length}
+            Results - {sortedLog.length} / {participants.length}
           </p>
 
           {sortedLog.length === 0 ? (

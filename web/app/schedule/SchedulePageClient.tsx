@@ -236,7 +236,7 @@ export default function SchedulePageClient() {
 
   const allGroups = useMemo(() => {
     if (!baseGroups) return null;
-    // No live updates yet — liveMatches is the same reference as stableMatches
+    // No live updates yet - liveMatches is the same reference as stableMatches
     if (liveMatches === stableMatches) return baseGroups;
     const liveById = new Map<string, any>(liveMatches.map((m: any) => [m.id, m]));
     return baseGroups.map(g => ({
@@ -432,7 +432,7 @@ export default function SchedulePageClient() {
           {/* -- MOBILE TOOLBAR ----------------------------------------------- */}
           <div ref={mobileFilterRef} className="relative flex flex-col gap-1.5 mb-3 md:hidden">
 
-            {/* Search — full width on top */}
+            {/* Search - full width on top */}
             <div className="relative group">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-yellow-400 transition-colors pointer-events-none"

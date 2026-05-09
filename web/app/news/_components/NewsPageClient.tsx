@@ -49,7 +49,7 @@ export default function NewsPageClient({ latestNews, events }: Props) {
   const isMobile = cw < 1024;
   const pad      = isMobile ? 20 : desktopPad(cw);
 
-  // Register latestNews thumbnails with the shared blur worker —
+  // Register latestNews thumbnails with the shared blur worker -
   // mirrors what NewsSection does on the homepage so HomepageNewsCard
   // receives blur bitmaps and renders with the same blurred background.
   const blurManifest = useMemo(() =>
@@ -72,7 +72,7 @@ export default function NewsPageClient({ latestNews, events }: Props) {
 
   useBlurImages(blurManifest);
 
-  // Don't render content until the real container width is known —
+  // Don't render content until the real container width is known -
   // prevents the one-frame flash where row heights are calculated from the
   // stale useState default.
   if (cw === 0) return <div ref={rootRef} style={{ overflowX: "hidden" }} />;

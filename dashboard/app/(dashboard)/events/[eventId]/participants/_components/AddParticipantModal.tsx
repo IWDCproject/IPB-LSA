@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { readItems } from '@directus/sdk'
 import { directus } from '@/lib/directus'
 import { createParticipantAction, updateParticipantAction } from '../_actions'
@@ -49,6 +49,7 @@ const inputCls =
 // --- Helpers -----------------------------------------------------------------
 
 const makeId = () => Math.random().toString(36).slice(2)
+const MAX_MEMBERS = 50
 
 // --- Sub-component: Team Members Editor --------------------------------------
 
@@ -65,7 +66,7 @@ function TeamMembersEditor({
 
   const addMember = () => {
     const trimmed = newName.trim()
-    if (!trimmed) return
+    if (!trimmed || members.length >= MAX_MEMBERS) return
     onChange([...members, { id: makeId(), name: trimmed }])
     setNewName('')
   }
@@ -94,7 +95,10 @@ function TeamMembersEditor({
 
   return (
     <div>
-      <label className={labelCls}>Anggota Tim</label>
+      <div className="flex items-baseline justify-between">
+        <label className={labelCls}>Anggota Tim</label>
+        <span className="text-[10px] text-zinc-400">{members.length} / {MAX_MEMBERS}</span>
+      </div>
 
       {/* Add row */}
       <div className="mt-1.5 flex gap-2">
@@ -108,7 +112,7 @@ function TeamMembersEditor({
         <button
           type="button"
           onClick={addMember}
-          disabled={!newName.trim()}
+          disabled={!newName.trim() || members.length >= MAX_MEMBERS}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white transition-colors hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <Plus className="h-4 w-4" />
@@ -208,40 +212,56 @@ export default function AddParticipantModal({
   const [notes, setNotes]                 = useState('')
   const [members, setMembers]             = useState<Member[]>([])
   const [saving, setSaving]               = useState(false)
+  const [submitError, setSubmitError]     = useState<string | null>(null)
   const [institutions, setInstitutions]   = useState<InstitutionOption[]>([])
   const [categories, setCategories]       = useState<CategoryOption[]>([])
+  const [loadingOptions, setLoadingOptions] = useState(false)
+  const [fetchError, setFetchError]       = useState<string | null>(null)
 
-  // Derived: currently selected category
-  const selectedCategory = categories.find(c => c.id === categoryId) ?? null
+  // Derived: memoised so Array.find doesn't re-run on every keystroke
+  const selectedCategory = useMemo(
+    () => categories.find(c => c.id === categoryId) ?? null,
+    [categories, categoryId],
+  )
   const isTeam = selectedCategory?.participant_type === 'team'
 
-  // Fetch reference data
-  // FIX: filter by slug (eventId from params is a slug, not a UUID)
+  // Fetch reference data - AbortController prevents setState after unmount
   useEffect(() => {
     if (!isOpen) return
+    const controller = new AbortController()
     const fetchData = async () => {
-      const [insts, cats] = await Promise.all([
-        directus.request(
-          readItems('institutions', {
-            filter: { event_id: { slug: { _eq: eventId } } },
-            fields: ['id', 'name'],
-            limit: -1,
-          })
-        ),
-        directus.request(
-          readItems('competition_categories', {
-            filter: { event_id: { slug: { _eq: eventId } } },
-            // FIX: also fetch participant_type so we can conditionally render the form
-            fields: ['id', 'name', 'participant_type'],
-            sort: ['display_order'],
-            limit: -1,
-          })
-        ),
-      ])
-      setInstitutions(insts as InstitutionOption[])
-      setCategories(cats as CategoryOption[])
+      setLoadingOptions(true)
+      setFetchError(null)
+      try {
+        const [insts, cats] = await Promise.all([
+          directus.request(
+            readItems('institutions', {
+              filter: { event_id: { slug: { _eq: eventId } } },
+              fields: ['id', 'name'],
+              limit: -1,
+            })
+          ),
+          directus.request(
+            readItems('competition_categories', {
+              filter: { event_id: { slug: { _eq: eventId } } },
+              fields: ['id', 'name', 'participant_type'],
+              sort: ['display_order'],
+              limit: -1,
+            })
+          ),
+        ])
+        if (controller.signal.aborted) return
+        setInstitutions(insts as InstitutionOption[])
+        setCategories(cats as CategoryOption[])
+      } catch {
+        if (controller.signal.aborted) return
+        setFetchError('Gagal memuat data. Silakan tutup dan buka kembali.')
+      } finally {
+        if (!controller.signal.aborted) setLoadingOptions(false)
+      }
     }
     fetchData()
+    return () => controller.abort()
   }, [isOpen, eventId])
 
   // Reset on open
@@ -267,13 +287,9 @@ export default function AddParticipantModal({
         setMembers([])
         setCategoryId(preselectedCategoryId || '')
       }
+      setSubmitError(null)
     }
   }, [isOpen, preselectedCategoryId, editingParticipant])
-
-  // Also reset members when category type changes
-  useEffect(() => {
-    setMembers([])
-  }, [categoryId])
 
   // Close on Escape
   const handleKeyDown = useCallback(
@@ -303,9 +319,9 @@ export default function AddParticipantModal({
         : await createParticipantAction(payload)
         
       if (res.success) { onSuccess(); onClose() }
-      else alert(res.error)
-    } catch (error) {
-      console.error('Failed to save participant:', error)
+      else setSubmitError(res.error ?? 'Terjadi kesalahan.')
+    } catch {
+      setSubmitError('Terjadi kesalahan. Silakan coba lagi.')
     } finally {
       setSaving(false)
     }
@@ -339,27 +355,37 @@ export default function AddParticipantModal({
         {/* -- Body (scrollable) -- */}
         <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
 
+          {/* Fetch error */}
+          {fetchError && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+              {fetchError}
+            </p>
+          )}
+
           {/* Kategori */}
           <div>
             <label className={labelCls}>Kategori</label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
+            <Select value={categoryId} onValueChange={(val) => { setCategoryId(val); setMembers([]); setSubmitError(null) }}>
               <SelectTrigger className="mt-1.5 h-10 rounded-lg border-zinc-200 bg-zinc-50 pr-4 text-sm font-semibold focus:border-zinc-900 focus:bg-white transition-all [&>span]:truncate">
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <span>{c.name}</span>
-                    <span className="ml-2 text-[10px] text-zinc-400 font-normal">
-                      ({c.participant_type === 'team' ? 'Tim' : 'Individu'})
-                    </span>
-                  </SelectItem>
-                ))}
+                {loadingOptions
+                  ? <SelectItem value="loading" disabled>Memuat...</SelectItem>
+                  : categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <span>{c.name}</span>
+                        <span className="ml-2 text-[10px] text-zinc-400 font-normal">
+                          ({c.participant_type === 'team' ? 'Tim' : 'Individu'})
+                        </span>
+                      </SelectItem>
+                    ))
+                }
               </SelectContent>
             </Select>
           </div>
 
-          {/* Nama — label changes based on type */}
+          {/* Nama - label changes based on type */}
           <div>
             <label className={labelCls}>
               {isTeam ? 'Nama Tim' : 'Nama Peserta'}
@@ -372,7 +398,7 @@ export default function AddParticipantModal({
             />
           </div>
 
-          {/* Team members — only shown when participant_type is team */}
+          {/* Team members - only shown when participant_type is team */}
           {isTeam && (
             <TeamMembersEditor members={members} onChange={setMembers} />
           )}
@@ -404,6 +430,15 @@ export default function AddParticipantModal({
             />
           </div>
         </div>
+
+        {/* -- Submit error -- */}
+        {submitError && (
+          <div className="px-6 pb-3 shrink-0">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+              {submitError}
+            </p>
+          </div>
+        )}
 
         {/* -- Footer -- */}
         <div className="px-6 pb-5 pt-4 border-t border-zinc-100 flex justify-end gap-2 shrink-0">

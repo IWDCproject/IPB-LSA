@@ -14,7 +14,7 @@
  * `sseStatus`   – 'connecting' | 'connected' | 'disconnected'
  *
  * The hook only patches matches it already knows about (by id).
- * Unknown ids from the stream are silently ignored — no extra data is fetched.
+ * Unknown ids from the stream are silently ignored - no extra data is fetched.
  * Re-connect is handled automatically by the browser's EventSource.
  */
 
@@ -63,7 +63,7 @@ export function useScheduleMatchState(rawMatches: any[]) {
     setLiveMatches(rawMatches);
   }, [rawMatches]);
 
-  // SSE subscription — single effect, one EventSource for the component lifetime
+  // SSE subscription - single effect, one EventSource for the component lifetime
   useEffect(() => {
     // Skip on SSR
     if (typeof window === "undefined") return;
@@ -79,7 +79,7 @@ export function useScheduleMatchState(rawMatches: any[]) {
           setLiveMatches(prev => applyUpdates(prev, updates));
         }
       } catch {
-        // Malformed frame — ignore
+        // Malformed frame - ignore
       }
     };
 
@@ -91,7 +91,7 @@ export function useScheduleMatchState(rawMatches: any[]) {
     return () => {
       es.close();
     };
-  }, []); // Intentionally empty — one persistent connection
+  }, []); // Intentionally empty - one persistent connection
 
   return { liveMatches, sseStatus };
 }

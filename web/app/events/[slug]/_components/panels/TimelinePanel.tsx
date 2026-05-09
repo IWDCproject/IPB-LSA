@@ -1,6 +1,6 @@
 "use client";
 
-// .tl-scroll::-webkit-scrollbar is defined in globals.css — the inline <style>
+// .tl-scroll::-webkit-scrollbar is defined in globals.css - the inline <style>
 // tag inside the mobile branch is removed.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
@@ -323,7 +323,7 @@ export default function TimelinePanel({ phases, isMobile }: { phases: any[]; isM
     <PanelCard>
       <PanelTitle>Event Timeline</PanelTitle>
 
-      {/* Sentinel — zero-height div always in DOM for stable ResizeObserver target */}
+      {/* Sentinel - zero-height div always in DOM for stable ResizeObserver target */}
       <div ref={sentinelRef} className="w-full h-0" />
 
       {/* ════ DESKTOP ═══════════════════════════════════════════════════════════
@@ -383,7 +383,7 @@ export default function TimelinePanel({ phases, isMobile }: { phases: any[]; isM
               className="tl-scroll overflow-x-auto"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
             >
-              {/* Rail — explicit JS-computed px width (not CSS minWidth) */}
+              {/* Rail - explicit JS-computed px width (not CSS minWidth) */}
               <div
                 className="relative min-h-[120px] overflow-visible"
                 style={{ width: mobRailWidth > 0 ? mobRailWidth : "100%" }}

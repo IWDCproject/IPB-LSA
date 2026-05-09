@@ -1,11 +1,11 @@
 # Blur System Documentation
-> IPB-LSA Web — `web/` (Next.js 14)
+> IPB-LSA Web - `web/` (Next.js 14)
 
 ---
 
 ## Overview
 
-The blur system generates layered, Sharp-processed blur effects for background images across the site. It is designed as an internal library: **one-time global setup, then a single hook per component** — no boilerplate per page.
+The blur system generates layered, Sharp-processed blur effects for background images across the site. It is designed as an internal library: **one-time global setup, then a single hook per component** - no boilerplate per page.
 
 ---
 
@@ -31,7 +31,7 @@ Any section / component:
 | File | Location | Role |
 |------|----------|------|
 | `BlurProvider.jsx` | `components/BlurProvider.jsx` | Global context provider. Spawns the Worker lazily on first `register()` call. Place once in `layout.jsx`. |
-| `BlurContext.js` | `contexts/BlurContext.js` | React context shape: `{ bitmaps, register, unregister }`. `unregister` is an intentional no-op — bitmaps are kept as a permanent cross-page cache. |
+| `BlurContext.js` | `contexts/BlurContext.js` | React context shape: `{ bitmaps, register, unregister }`. `unregister` is an intentional no-op - bitmaps are kept as a permanent cross-page cache. |
 | `useBlurImages.js` | `hooks/useBlurImages.js` | **Main dev-facing hook.** Registers manifest on mount, returns `{ bitmaps, isReady }`. |
 | `BlurOverlay.jsx` | `components/BlurOverlay.jsx` | Optional full-screen curtain that fades out when `isReady` is true. Has hard `maxMs` cap so it never blocks forever. |
 | `blurWorker.js` | `public/blurWorker.js` | Browser Web Worker. Handles image sizing, masking, compositing. Calls `/api/blur` per blur layer. |
@@ -76,7 +76,7 @@ Any section / component:
 |------|-------------|---------|--------|-----|
 | `hero` | 1200 × 800 | `HeroSection` full-page background | Multi-layer: bottom-up + left-edge + right-edge gradient composites | 30 days |
 | `eventcard` | 400 × 280 | `EventCard` in `HeroSection` strips + `VerticalTimeline` | 4-layer composited gradient (bottom-up) | 7 days |
-| `matchcard` | 400 × 280 | `MatchCard` in `MatchSection` | **Single flat blur at 6px — no compositing** | 7 days |
+| `matchcard` | 400 × 280 | `MatchCard` in `MatchSection` | **Single flat blur at 6px - no compositing** | 7 days |
 | `newscard` | 800 × 600 (featured), 400 × 300 (rest) | `NewsCard` in `NewsSection` | 4-layer composited gradient (top-down, lower half only) | 2 days |
 
 **Hero is special:** it returns both a `sharp` bitmap (pre-scaled original via `&width=1200&fit=inside`) and a `blurred` bitmap (edge composites). All other types return a single `bitmap`.
@@ -110,7 +110,7 @@ bitmaps[url]?.newscard  === { bitmap: ImageBitmap }
 }
 ```
 
-`naturalWidth`/`naturalHeight` come from Directus (`card_image.width`, `card_image.height`). The worker uses them for correct aspect-ratio scaling before compositing. If omitted, the worker falls back to `width`/`height` as the natural size — this will produce incorrect AR scaling if the target canvas dimensions differ from the image's real proportions.
+`naturalWidth`/`naturalHeight` come from Directus (`card_image.width`, `card_image.height`). The worker uses them for correct aspect-ratio scaling before compositing. If omitted, the worker falls back to `width`/`height` as the natural size - this will produce incorrect AR scaling if the target canvas dimensions differ from the image's real proportions.
 
 > **URL alignment is critical.** The `url` in the manifest must exactly match the key the consuming card component uses to look up `bitmaps[url]`. `EventCard` calls `getAssetUrl(card_image)` internally and uses that result as the key. Your manifest URL must be that same computed value.
 
@@ -186,10 +186,10 @@ Then add a processor function and register it in the `PROCESSORS` dispatch map a
 - **Filename format:** `{assetId}_{md5(url|blur|w|h)}.webp`
   - `assetId` is extracted from the Directus UUID in the URL path (`/assets/{uuid}`).
   - `md5` ensures uniqueness per (url, blur, w, h) combination.
-- **Writes are atomic** — written to `{filename}.tmp`, then renamed. A crash mid-write never leaves a corrupt file.
+- **Writes are atomic** - written to `{filename}.tmp`, then renamed. A crash mid-write never leaves a corrupt file.
 - On every read, `fs.stat()` checks `mtime` against the type's TTL. Expired → MISS → Sharp reruns.
-- **In-flight dedup** — an `IN_FLIGHT` Map prevents duplicate Sharp processes when concurrent requests hit the same uncached image. Second callers await the same Promise and receive `X-Cache: DEDUP`.
-- **Open-proxy protection** — only URLs starting with `NEXT_PUBLIC_DIRECTUS_URL` are accepted. Others get `403 Forbidden`.
+- **In-flight dedup** - an `IN_FLIGHT` Map prevents duplicate Sharp processes when concurrent requests hit the same uncached image. Second callers await the same Promise and receive `X-Cache: DEDUP`.
+- **Open-proxy protection** - only URLs starting with `NEXT_PUBLIC_DIRECTUS_URL` are accepted. Others get `403 Forbidden`.
 
 `X-Cache` response header values:
 
@@ -202,13 +202,13 @@ Then add a processor function and register it in the `PROCESSORS` dispatch map a
 
 ### Browser-side
 
-Blur images are served with `Cache-Control: public, max-age=31536000, immutable` (1 year). Return visitors never hit the server — the browser serves from local disk/memory cache.
+Blur images are served with `Cache-Control: public, max-age=31536000, immutable` (1 year). Return visitors never hit the server - the browser serves from local disk/memory cache.
 
 ### Cache Freshness
 
 `getAssetUrl()` appends `?v={uploaded_on}` to every Directus asset URL. When an image is updated in Directus, `uploaded_on` changes → URL changes → new MD5 key → new cache file written. The old file becomes an orphan and expires naturally via TTL.
 
-`uploaded_on` updates only when the **file binary is replaced**, not on metadata edits — so cache-busting is content-addressed and automatic.
+`uploaded_on` updates only when the **file binary is replaced**, not on metadata edits - so cache-busting is content-addressed and automatic.
 
 ### Cache Invalidation via Directus Webhook
 
@@ -220,7 +220,7 @@ For immediate invalidation (e.g. a news image is deleted before its TTL expires)
 
 **Body:** `{ "id": "<directus-asset-uuid>" }`
 
-Deletes all `.blur-cache` files whose name starts with that asset ID — all variants, all blur levels, in one pass.
+Deletes all `.blur-cache` files whose name starts with that asset ID - all variants, all blur levels, in one pass.
 
 **Directus setup:** Flows → trigger on `directus_files.items.update` and `directus_files.items.delete` → HTTP Webhook → `POST {YOUR_URL}/api/blur-invalidate` with the secret header and body `{ "id": "{{$trigger.keys[0]}}" }`.
 
@@ -230,7 +230,7 @@ Deletes all `.blur-cache` files whose name starts with that asset ID — all var
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `isReady` | boolean | — | Pass directly from `useBlurImages()`. Starts fade-out after `minMs` once true. |
+| `isReady` | boolean | - | Pass directly from `useBlurImages()`. Starts fade-out after `minMs` once true. |
 | `minMs` | number | `1000` | Minimum visible duration in ms. Prevents flash-of-overlay on cached images. |
 | `maxMs` | number | `6500` | Hard cap in ms. Lifts even if `isReady` never becomes true. |
 | `fadeMs` | number | `600` | Fade-out duration in ms. Component unmounts from DOM after fade completes. |
@@ -264,8 +264,8 @@ In dev, Sharp runs every request by design so blur changes appear without stale 
 ## Known Quirks
 
 - **`BlurProvider` must be in `layout.jsx`**, not `page.js`. Without it, `useBlur()` returns a no-op context and nothing processes.
-- **`page.js` is blur-free** — it's a clean server component that only fetches data and passes it to `CurtainWrapper`. Each section registers its own images.
-- **`mounted` in `HeroSection` is decoupled from `isReady`**. Content renders immediately; blur is progressive enhancement. Do not re-gate content rendering on blur readiness — it causes blank pages in dev.
+- **`page.js` is blur-free** - it's a clean server component that only fetches data and passes it to `CurtainWrapper`. Each section registers its own images.
+- **`mounted` in `HeroSection` is decoupled from `isReady`**. Content renders immediately; blur is progressive enhancement. Do not re-gate content rendering on blur readiness - it causes blank pages in dev.
 - **`unregister` is a no-op** by design. Bitmaps persist for the session as a cross-page cache. Navigating back never re-processes images. Memory footprint is bounded by unique images in the app.
-- **The worker is lazy** — spawned only on the first `register()` call. Pages with no blur images pay zero cost.
-- **`VerticalTimeline` uses `ev.image_url`** as the manifest URL key. This must match the URL that `EventCard` computes via `getAssetUrl(card_image)` — both must resolve to the same string for the context lookup to hit.
+- **The worker is lazy** - spawned only on the first `register()` call. Pages with no blur images pay zero cost.
+- **`VerticalTimeline` uses `ev.image_url`** as the manifest URL key. This must match the URL that `EventCard` computes via `getAssetUrl(card_image)` - both must resolve to the same string for the context lookup to hit.

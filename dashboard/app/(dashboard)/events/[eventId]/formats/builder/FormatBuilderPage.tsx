@@ -141,7 +141,7 @@ export default function FormatBuilderPage() {
 
       {/* -- Right preview ---------------------------------------------- */}
       {/*
-        IMPORTANT: outer div must NOT have overflow-y-auto — that would make
+        IMPORTANT: outer div must NOT have overflow-y-auto - that would make
         the sticky save footer scroll away with the content.
         Only the inner content div scrolls.
       */}
@@ -152,12 +152,12 @@ export default function FormatBuilderPage() {
           <p className="text-sm font-semibold text-zinc-900">Preview</p>
         </div>
 
-        {/* Preview cards — scrollable */}
+        {/* Preview cards - scrollable */}
         <div className="flex-1 p-4 space-y-3 overflow-y-auto min-h-0">
           <FormatPreview />
         </div>
 
-        {/* Sticky bottom: format name + save — always visible */}
+        {/* Sticky bottom: format name + save - always visible */}
         <div className="border-t border-zinc-200 bg-white p-4 space-y-2 shrink-0">
           {saveError && (
             <p className="text-xs text-red-500">{saveError}</p>

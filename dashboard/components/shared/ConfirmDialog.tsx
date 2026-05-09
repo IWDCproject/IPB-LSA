@@ -49,7 +49,7 @@ export function ConfirmDialog({
 
   return (
     <>
-      {/* Trigger — rendered inline, opens dialog on click */}
+      {/* Trigger - rendered inline, opens dialog on click */}
       <span onClick={() => setOpen(true)} className="contents">
         {trigger}
       </span>

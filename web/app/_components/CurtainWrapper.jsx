@@ -70,7 +70,7 @@ export default function CurtainWrapper({ events, matches, stats, news }) {
   }, []);
 
   // Use measured vh so inline styles and the JS parallax math use identical values.
-  // 100svh fallback (not 100vh) is stable on mobile — doesn't shift when the browser toolbar appears.
+  // 100svh fallback (not 100vh) is stable on mobile - doesn't shift when the browser toolbar appears.
   const sectionH  = vh ? `${vh - HEADER_HEIGHT}px`                         : `calc(100svh - ${HEADER_HEIGHT}px)`;
   const parallaxH = vh ? `${(vh - HEADER_HEIGHT) * (1 + PARALLAX_SPEED)}px` : `calc((100svh - ${HEADER_HEIGHT}px) * ${1 + PARALLAX_SPEED})`;
 

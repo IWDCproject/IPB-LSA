@@ -311,7 +311,7 @@ export function MatchCard({ match }: { match: any }) {
 
   return (
     <div ref={cardRef} style={{ ...S.card, background: hasBg ? undefined : "rgba(255,255,255,0.08)" }}>
-      {/* CSS blur background — no canvas, no bitmap needed */}
+      {/* CSS blur background - no canvas, no bitmap needed */}
       {hasBg && (
         <div style={{
           position: "absolute",

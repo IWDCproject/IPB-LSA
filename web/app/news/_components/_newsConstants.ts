@@ -1,5 +1,5 @@
 // Shared style tokens for the News page component tree.
-// Import from here — never redefine locally.
+// Import from here - never redefine locally.
 
 import type { EventStatus } from "./_newsTypes";
 

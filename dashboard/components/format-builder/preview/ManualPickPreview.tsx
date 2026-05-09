@@ -36,7 +36,7 @@ export function ManualPickPreview() {
     )
   }
 
-  // open — ranked
+  // open - ranked
   if (rankedOrder) {
     const positions = Array.from({ length: topN }, (_, i) => i)
     return (
@@ -64,7 +64,7 @@ export function ManualPickPreview() {
     )
   }
 
-  // open — unranked
+  // open - unranked
   const positions = Array.from({ length: topN }, (_, i) => i)
   return (
     <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">

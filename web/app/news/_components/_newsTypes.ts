@@ -33,7 +33,7 @@ export interface EventWithNews {
   news:         NewsItem[];
 }
 
-// Directus filter shape for news queries — narrow enough to prevent mistakes.
+// Directus filter shape for news queries - narrow enough to prevent mistakes.
 export interface DirectusNewsFilter {
   is_published:  { _eq: true };
   title?:        { _icontains: string };

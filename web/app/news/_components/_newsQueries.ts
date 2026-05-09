@@ -28,7 +28,7 @@ export const STATUS_RAW_MAP: Record<EventStatus, readonly string[]> = {
 
 export interface NewsFilterParams {
   debouncedSearch: string;
-  /** Already-expanded raw status strings — pass through STATUS_RAW_MAP first. */
+  /** Already-expanded raw status strings - pass through STATUS_RAW_MAP first. */
   rawStatuses:     string[];
   eventSlugs:      string[];
 }

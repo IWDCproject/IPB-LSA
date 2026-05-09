@@ -5,12 +5,12 @@
 // but most components should use the higher-level useBlurImages() hook instead.
 //
 // Shape:
-//   bitmaps    — map of url → { type: bitmapData }
+//   bitmaps    - map of url → { type: bitmapData }
 //                hero:      { sharp: ImageBitmap, blurred: ImageBitmap }
 //                others:    { bitmap: ImageBitmap }
 //
-//   register   — submit images to the shared worker for processing
-//   unregister — currently a no-op; kept for API symmetry and future use
+//   register   - submit images to the shared worker for processing
+//   unregister - currently a no-op; kept for API symmetry and future use
 //                (bitmaps are intentionally kept as a permanent cross-page cache)
 
 import { createContext, useContext } from "react";

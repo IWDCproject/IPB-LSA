@@ -66,16 +66,16 @@ export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
           {/* Body */}
           <div style={{ padding: bodyPad, flex: 1, display: "flex", flexDirection: "column" }}>
 
-            {/* Date — fontSize:12, line-height:normal ≈ 1.25 → ~15px */}
+            {/* Date - fontSize:12, line-height:normal ≈ 1.25 → ~15px */}
             <Bone width="30%" height={15} delay="0s" />
 
-            {/* Title — fontSize:18 × lineHeight:1.3 ≈ 23px/line */}
+            {/* Title - fontSize:18 × lineHeight:1.3 ≈ 23px/line */}
             <div style={{ marginTop: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 5 }}>
               <Bone width="92%" height={isMobile ? 17 : 23} delay="0.05s" />
               <Bone width="60%" height={isMobile ? 17 : 23} delay="0.09s" />
             </div>
 
-            {/* Excerpt — fontSize:14 × lineHeight:1.6 ≈ 22px/line (desktop only) */}
+            {/* Excerpt - fontSize:14 × lineHeight:1.6 ≈ 22px/line (desktop only) */}
             {!isMobile && (
               <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 4 }}>
                 <Bone width="100%" height={22} delay="0.12s" />
@@ -86,7 +86,7 @@ export function NewsCardSkeleton({ isMobile = false }: { isMobile?: boolean }) {
             {/* Divider */}
             <div style={{ height: 1, background: "#F3F4F6", width: "100%", marginTop: "auto" }} />
 
-            {/* Read more — SlotText is height:1.2em: desktop 15×1.2=18px, mobile 12×1.2≈14px */}
+            {/* Read more - SlotText is height:1.2em: desktop 15×1.2=18px, mobile 12×1.2≈14px */}
             <div style={{ paddingTop: isMobile ? 10 : 16 }}>
               <Bone width="28%" height={isMobile ? 14 : 18} delay="0.20s" />
             </div>
@@ -202,7 +202,7 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
           <div style={{ ...JK, fontSize: 12, color: "#9CA3AF", fontWeight: 600, marginBottom: 8 }}>
             {item.published_at
               ? new Date(item.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-              : "—"}
+              : "-"}
           </div>
           <div style={{
             ...JK, fontSize: titleSize, fontWeight: 800, color: "#06125C", lineHeight: 1.3, marginBottom: titleMB,

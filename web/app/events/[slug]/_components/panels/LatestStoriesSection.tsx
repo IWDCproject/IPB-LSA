@@ -20,7 +20,7 @@ export default function LatestStoriesSection({
   const displayNews = news.slice(0, 4);
 
   // Desktop: fill up to 4 items with placeholders.
-  // Mobile: single column — no placeholders needed to balance the grid.
+  // Mobile: single column - no placeholders needed to balance the grid.
   const placeholderCount = isMobile ? 0 : Math.max(0, 4 - displayNews.length);
   const placeholders     = Array.from({ length: placeholderCount });
 

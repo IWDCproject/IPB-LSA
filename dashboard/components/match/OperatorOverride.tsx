@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import type { LiveState } from '@/types/directus'
 
 // ---------------------------------------------------------------------------
-// Diff Algorithm — Simple DP to find changed lines (like Git diff)
+// Diff Algorithm - Simple DP to find changed lines (like Git diff)
 // ---------------------------------------------------------------------------
 function computeDiff(oldStr: string, newStr: string): ('unchanged' | 'changed')[] {
   const oldLines = oldStr.split('\n')
@@ -40,7 +40,7 @@ function computeDiff(oldStr: string, newStr: string): ('unchanged' | 'changed')[
 }
 
 // ---------------------------------------------------------------------------
-// JSON syntax highlighter — "Cute Pastel" Theme + Diff Backgrounds
+// JSON syntax highlighter - "Cute Pastel" Theme + Diff Backgrounds
 // ---------------------------------------------------------------------------
 function highlight(raw: string, diffStatuses?: ('unchanged' | 'changed')[]): string {
   const lines = raw.split('\n')
@@ -84,7 +84,7 @@ function highlight(raw: string, diffStatuses?: ('unchanged' | 'changed')[]): str
 }
 
 // ---------------------------------------------------------------------------
-// Validate JSON — returns error string or null
+// Validate JSON - returns error string or null
 // ---------------------------------------------------------------------------
 function validateJson(raw: string): string | null {
   if (!raw.trim()) return 'Empty input'
@@ -213,7 +213,7 @@ export function OperatorOverride({ liveState, onPatch }: Props) {
       setEditing(false)
       setExternalUpdate(false)
     } catch (e: any) {
-      setApplyError(e?.message ?? 'Server error — changes not saved')
+      setApplyError(e?.message ?? 'Server error - changes not saved')
     } finally {
       setIsApplying(false)
     }

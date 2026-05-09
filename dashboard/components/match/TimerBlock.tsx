@@ -31,7 +31,7 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
     return () => cancelAnimationFrame(rafRef.current)
   }, [liveState, mode])
 
-  // countdown habis — otomatis stop
+  // countdown habis - otomatis stop
   useEffect(() => {
     if (mode === 'countdown' && display <= 0 && liveState.timerRunning) {
       onPatch({

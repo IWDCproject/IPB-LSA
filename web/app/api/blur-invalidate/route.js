@@ -4,7 +4,7 @@
 // Deletes all .blur-cache files for the given asset ID immediately,
 // so the next request regenerates fresh blurs without waiting for TTL.
 //
-// SETUP — Directus Flow
+// SETUP - Directus Flow
 // -------------------------------------------------------------------------
 // 1. In Directus → Flows → Create Flow
 // 2. Trigger:    Event Hook → directus_files.items.update (and .delete)

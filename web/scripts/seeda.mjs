@@ -99,7 +99,7 @@ async function triggerDenorm(matchIds) {
 }
 
 // ==========================================
-// LIVE_STATE FACTORY — one place, all engines
+// LIVE_STATE FACTORY - one place, all engines
 // ==========================================
 const LS = {
   upcoming: () => ({ matchStatus: 'upcoming', timerRunning: false, timerSecs: 0 }),
@@ -194,13 +194,13 @@ const LS = {
   }),
 
   // -- EDGE CASES --
-  // Corrupted timer (timerRunning=true but no timerLastStarted) — tests frontend resilience
+  // Corrupted timer (timerRunning=true but no timerLastStarted) - tests frontend resilience
   corruptedTimer: ({ homeScore, awayScore }) => ({
     matchStatus: 'live',
     homeScore, awayScore,
     timerRunning: true, timerSecs: 90, timerLastStarted: null, // corrupt
   }),
-  // Countdown at zero — tests clamp to 0
+  // Countdown at zero - tests clamp to 0
   countdownExhausted: ({ homeScore, awayScore }) => ({
     matchStatus: 'live',
     homeScore, awayScore,
@@ -212,7 +212,7 @@ const LS = {
     homeScore, awayScore, winner: null,
     timerRunning: false, timerSecs: secs, timerLastStarted: null,
   }),
-  // Cancelled — live_state left as upcoming
+  // Cancelled - live_state left as upcoming
   cancelled: () => ({ matchStatus: 'upcoming', timerRunning: false, timerSecs: 0 }),
 };
 
@@ -221,7 +221,7 @@ const LS = {
 // ==========================================
 async function seed() {
   try {
-    console.log('🚀 ULTIMATE SEED v3 — FULL COVERAGE\n');
+    console.log('🚀 ULTIMATE SEED v3 - FULL COVERAGE\n');
 
     const me = await client.request(readMe());
     const myId = me.id;
@@ -239,12 +239,12 @@ async function seed() {
     const denormQueue = [];
 
     // ====================================================================
-    // EVENT 1: FORKI × IPB CUP 2026 — KARATE
+    // EVENT 1: FORKI × IPB CUP 2026 - KARATE
     // Formats: judge_scores + timer (solo kata), score_timed + timer (kumite)
     // Participants: 20 kata, 16 kumite (seeded bracket)
     // Matches: every status + cancelled + draw
     // ====================================================================
-    console.log('🥋 [1/6] FORKI × IPB CUP 2026 — Karate...');
+    console.log('🥋 [1/6] FORKI × IPB CUP 2026 - Karate...');
     const e1 = await client.request(createItem('events', {
       user_created: myId,
       name: 'FORKI × IPB CUP 2026',
@@ -327,7 +327,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
     // Edge: category exists but has 0 matches (tests empty state)
     const c1_unassigned  = await client.request(createItem('competition_categories', { event_id: e1.id, format_id: f1_kata.id, name: 'Kata Beregu Junior (Pending Format)', participant_type: 'team', display_order: 8 }));
 
-    // -- Kata Perorangan Putra — 8 participants, full bracket --
+    // -- Kata Perorangan Putra - 8 participants, full bracket --
     const mkp = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', {
@@ -338,7 +338,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       }));
       mkp.push(p);
     }
-    // Round 1 — all 4 pairs
+    // Round 1 - all 4 pairs
     const kata_r1_matches = [];
     for (let i = 0; i < 4; i++) {
       const scores = [randomFloat(7, 9.5), randomFloat(7, 9.5), randomFloat(7, 9.5), randomFloat(7, 9.5), randomFloat(7, 9.5)];
@@ -352,7 +352,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       kata_r1_matches.push(m);
       denormQueue.push(m.id);
     }
-    // Semifinal — 2 matches: 1 finished, 1 live
+    // Semifinal - 2 matches: 1 finished, 1 live
     const m_kata_sf1 = await client.request(createItem('matches', {
       competition_category_id: c1_kata_putra.id,
       status: 'finished', round: 'Semifinal', match_name: 'SF-1', venue: 'Tatami Utama',
@@ -367,14 +367,14 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       live_state: LS.judgeLive({ scores: [8.8, null, null, null, null], notes: 'Sedang tampil...' }),
     }));
     denormQueue.push(m_kata_sf2.id);
-    // Final — upcoming
+    // Final - upcoming
     await client.request(createItem('matches', {
       competition_category_id: c1_kata_putra.id,
       status: 'upcoming', round: 'Final', match_name: 'Grand Final', venue: 'Tatami Utama',
       scheduled_at: offsetHours(3), home_participant_id: mkp[0].id,
     }));
 
-    // -- Kata Perorangan Putri — finished, live, upcoming --
+    // -- Kata Perorangan Putri - finished, live, upcoming --
     const mkpi = [];
     for (let i = 0; i < 6; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_kata_putri.id, institution_id: i1[i % i1.length], name: generateName(), seed: i + 1 }));
@@ -394,7 +394,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       if (!isUpcoming) denormQueue.push(m.id);
     }
 
-    // -- Kata Beregu — teams --
+    // -- Kata Beregu - teams --
     const kbTeams = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', {
@@ -417,7 +417,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       live_state: LS.upcoming(),
     }));
 
-    // -- Kumite -60kg — full bracket 8 athletes + DRAW edge case --
+    // -- Kumite -60kg - full bracket 8 athletes + DRAW edge case --
     const kk60 = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_k60.id, institution_id: i1[i % i1.length], name: generateName(), seed: i + 1 }));
@@ -450,7 +450,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       live_state: LS.corruptedTimer({ homeScore: 1, awayScore: 1 }), // EDGE: corrupted timer
     }));
     denormQueue.push(m_k60_sf2.id);
-    // 3rd Place — DRAW edge case
+    // 3rd Place - DRAW edge case
     const m_k60_3rd = await client.request(createItem('matches', {
       competition_category_id: c1_k60.id, status: 'finished', round: 'Perebutan 3rd',
       venue: 'Tatami 2', scheduled_at: offsetHours(-5),
@@ -466,7 +466,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       live_state: LS.upcoming(),
     }));
 
-    // -- Kumite -55kg — smaller, all finished --
+    // -- Kumite -55kg - smaller, all finished --
     const kk55 = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_k55.id, institution_id: i1[i % i1.length], name: generateName(), seed: i + 1 }));
@@ -483,7 +483,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       denormQueue.push(m.id);
     }
 
-    // -- Kumite -67kg — 2 periods --
+    // -- Kumite -67kg - 2 periods --
     const kk67 = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_k67.id, institution_id: i1[i % i1.length], name: generateName() }));
@@ -497,7 +497,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
     }));
     denormQueue.push(m_k67_live.id);
 
-    // -- Kumite Putri -50kg — CANCELLED edge case --
+    // -- Kumite Putri -50kg - CANCELLED edge case --
     const kw50 = [];
     for (let i = 0; i < 2; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c1_kw50.id, institution_id: i1[i], name: generateName() }));
@@ -509,20 +509,20 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       home_participant_id: kw50[0], away_participant_id: kw50[1],
       live_state: LS.cancelled(),
     }));
-    // Edge: category exists but has 0 matches (c1_unassigned) — tests empty state
+    // Edge: category exists but has 0 matches (c1_unassigned) - tests empty state
 
     // News for E1
     await client.request(createItems('news', [
       {
         author_id: myId, event_id: e1.id, category: 'announcement', is_published: true,
-        published_at: offsetDays(-3), title: 'FORKI × IPB Cup 2026 Resmi Dibuka — Sistem Penjurian Elektronik WKF Diaktifkan',
+        published_at: offsetDays(-3), title: 'FORKI × IPB Cup 2026 Resmi Dibuka - Sistem Penjurian Elektronik WKF Diaktifkan',
         slug: 'e1-n1',
         excerpt: 'Untuk pertama kalinya dalam sejarah turnamen ini, sistem penjurian elektronik berstandar WKF digunakan secara penuh.',
         content: 'Turnamen FORKI × IPB Cup 2026 resmi dibuka dengan upacara megah yang dihadiri oleh Rektor IPB University dan perwakilan FORKI Pusat. Yang paling menarik perhatian adalah peluncuran sistem penjurian elektronik berstandar World Karate Federation (WKF), pertama kalinya diterapkan di kompetisi karate kampus tingkat nasional.\n\nSistem ini menggunakan tablet khusus untuk setiap juri, terintegrasi real-time dengan sistem skor digital yang ditampilkan di layar besar venue. Ketua FORKI Jawa Barat menyatakan bahwa langkah ini sangat signifikan dalam meningkatkan objektivitas penilaian, terutama untuk cabang Kata yang selama ini rentan terhadap subjektivitas.\n\n"Kami bangga IPB menjadi pelopor. Ini adalah warisan yang akan dicontoh oleh turnamen lain," ujar Ketua Panitia.',
       },
       {
         author_id: myId, event_id: e1.id, category: 'result', is_published: true,
-        published_at: offsetDays(-1), title: 'Dominasi IPB di Babak Penyisihan — 5 Atlet Melaju ke Semifinal',
+        published_at: offsetDays(-1), title: 'Dominasi IPB di Babak Penyisihan - 5 Atlet Melaju ke Semifinal',
         slug: 'e1-n2',
         excerpt: 'Tuan rumah IPB University menorehkan hasil impresif dengan 5 atletnya memastikan tempat di babak semifinal.',
         content: 'Hari kedua pelaksanaan babak penyisihan FORKI × IPB Cup 2026 menjadi milik tuan rumah. Lima atlet IPB University dari berbagai kelas berat berhasil melaju ke babak semifinal yang akan digelar besok.\n\nPenampilan paling memukau datang dari kelas Kumite Putra -60kg, di mana atlet andalan IPB berhasil mengakhiri pertandingan lebih cepat dari jadwal dengan kemenangan telak 8-0 melalui ippon yang tidak terbantahkan. Publik tuan rumah yang memadati gymnasium pun langsung meledak dalam sorak sorai.\n\nPerekrut nasional yang hadir sebagai peninjau resmi menyebut setidaknya dua nama dari turnamen ini berpotensi masuk radar seleksi Pelatnas PON mendatang.',
@@ -545,7 +545,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
         author_id: myId, event_id: e1.id, category: 'announcement', is_published: false, // EDGE: unpublished
         published_at: null, title: '[DRAFT] Rencana Ekspansi Kategori Tahun Depan',
         slug: 'e1-n5-draft',
-        excerpt: 'Draft internal — belum dipublish.',
+        excerpt: 'Draft internal - belum dipublish.',
         content: 'Draft artikel tentang rencana ekspansi kategori untuk edisi 2027.',
       },
     ]));
@@ -591,7 +591,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
     const i2 = await seedInstitutions(e2.id, 8);
 
     const f2_sets3 = await client.request(createItem('match_formats', {
-      event_id: e2.id, name: 'BWF — Best of 3 Sets',
+      event_id: e2.id, name: 'BWF - Best of 3 Sets',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_sets', config: { score_label: 'Poin', term: 'Set', max_sets: 3, sets_to_win: 2 } },
@@ -600,7 +600,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       ],
     }));
     const f2_sets5 = await client.request(createItem('match_formats', {
-      event_id: e2.id, name: 'BWF — Best of 5 Sets (Final)',
+      event_id: e2.id, name: 'BWF - Best of 5 Sets (Final)',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_sets', config: { score_label: 'Poin', term: 'Set', max_sets: 5, sets_to_win: 3 } },
@@ -613,13 +613,13 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
     const c2_ganda_p   = await client.request(createItem('competition_categories', { event_id: e2.id, format_id: f2_sets5.id, name: 'Ganda Putra', participant_type: 'team', display_order: 3 }));
     const c2_campuran  = await client.request(createItem('competition_categories', { event_id: e2.id, format_id: f2_sets3.id, name: 'Ganda Campuran', participant_type: 'team', display_order: 4 }));
 
-    // Tunggal Putra — 12 players, group stage + knockout
+    // Tunggal Putra - 12 players, group stage + knockout
     const tp_players = [];
     for (let i = 0; i < 12; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c2_tunggal_p.id, institution_id: i2[i % i2.length], name: generateName(), seed: i < 4 ? i + 1 : null }));
       tp_players.push(p.id);
     }
-    // Group stage — 6 matches all finished
+    // Group stage - 6 matches all finished
     const groupMatchups = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11]];
     for (const [hi, ai] of groupMatchups) {
       const hs = randomInt(17, 21); const as = randomInt(10, hs - 1);
@@ -635,7 +635,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       }));
       denormQueue.push(m.id);
     }
-    // QF — 2 finished, 2 live (one of them countdown exhausted)
+    // QF - 2 finished, 2 live (one of them countdown exhausted)
     const qf_pairs = [[0, 2], [4, 6], [8, 10], [1, 3]];
     for (let i = 0; i < 4; i++) {
       const [hi, ai] = qf_pairs[i];
@@ -666,7 +666,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       }));
     }
 
-    // Tunggal Putri — 4 players, minimal
+    // Tunggal Putri - 4 players, minimal
     const tw_players = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c2_tunggal_w.id, institution_id: i2[i % i2.length], name: generateName() }));
@@ -692,7 +692,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       home_participant_id: tw_players[0], away_participant_id: tw_players[2],
     }));
 
-    // Ganda Putra — teams
+    // Ganda Putra - teams
     const gp_teams = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', {
@@ -710,7 +710,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
     }));
     denormQueue.push(m_gp_f.id);
 
-    // Ganda Campuran — teams, upcoming only
+    // Ganda Campuran - teams, upcoming only
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', {
         competition_category_id: c2_campuran.id, institution_id: i2[i % i2.length],
@@ -725,11 +725,11 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
         published_at: offsetDays(-2), title: 'Rekor Smash 320km/jam Terpecahkan di GOR IPB',
         slug: 'e2-n1',
         excerpt: 'Alat ukur resmi PBSI mencatat kecepatan smash yang belum pernah terlihat di kompetisi kampus.',
-        content: 'Suasana GOR Badminton IPB seketika hening saat sebuah smash menghujam sisi lapangan lawan. Bukan hanya karena poin krusialnya, melainkan karena layar display kecepatan menunjukkan angka 320km/jam — rekor baru kompetisi kampus nasional.\n\nTechnical Delegate dari PBSI yang hadir langsung meminta verifikasi ulang alat ukur. Setelah dikonfirmasi dua kali, angka tersebut resmi dicatat sebagai rekor venue.\n\n"Kami memang menduga dia memiliki potensi luar biasa sejak seleksi awal, tapi angka ini benar-benar di luar perkiraan kami," kata pelatihnya.',
+        content: 'Suasana GOR Badminton IPB seketika hening saat sebuah smash menghujam sisi lapangan lawan. Bukan hanya karena poin krusialnya, melainkan karena layar display kecepatan menunjukkan angka 320km/jam - rekor baru kompetisi kampus nasional.\n\nTechnical Delegate dari PBSI yang hadir langsung meminta verifikasi ulang alat ukur. Setelah dikonfirmasi dua kali, angka tersebut resmi dicatat sebagai rekor venue.\n\n"Kami memang menduga dia memiliki potensi luar biasa sejak seleksi awal, tapi angka ini benar-benar di luar perkiraan kami," kata pelatihnya.',
       },
       {
         author_id: myId, event_id: e2.id, category: 'update', is_published: true,
-        published_at: offsetHours(-5), title: 'Tiket Hari Ketiga Ludes — Layar Tancap Disiapkan',
+        published_at: offsetHours(-5), title: 'Tiket Hari Ketiga Ludes - Layar Tancap Disiapkan',
         slug: 'e2-n2',
         excerpt: 'Kapasitas 1.500 kursi tidak cukup menampung animo suporter.',
         content: 'Seluruh tiket pertandingan hari ketiga IPB Badminton Cup 2026 terjual habis hanya dalam 2 jam setelah sistem ticketing online dibuka. Panitia terpaksa menyiapkan layar tancap berukuran 6x4 meter di pelataran luar GOR.\n\nAntusiasme yang membeludak ini tak lepas dari kualitas pertandingan yang disajikan sejak hari pertama. Beberapa pertandingan grup stage berlangsung hingga rubber set yang menegangkan.',
@@ -739,16 +739,16 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
         published_at: offsetHours(-1), title: 'Hasil Perempat Final: 6 Unggulan Melaju, 2 Sensasi Terjadi',
         slug: 'e2-n3',
         excerpt: 'Dua unggulan tumbang di babak perempat final, membuka peluang bagi kuda hitam.',
-        content: 'Babak perempat final IPB Badminton Cup 2026 menorehkan dua kejutan besar. Unggulan ke-3 dan ke-5 harus pulang lebih cepat setelah dikalahkan oleh pemain tak diunggulkan dari PTN luar Jawa.\n\nKekalahan unggulan ke-3 adalah yang paling mengejutkan — ia dikalahkan straight set 21-15, 21-18 dalam waktu kurang dari 40 menit oleh pemain asal Universitas Brawijaya yang baru pertama kali mengikuti turnamen ini.',
+        content: 'Babak perempat final IPB Badminton Cup 2026 menorehkan dua kejutan besar. Unggulan ke-3 dan ke-5 harus pulang lebih cepat setelah dikalahkan oleh pemain tak diunggulkan dari PTN luar Jawa.\n\nKekalahan unggulan ke-3 adalah yang paling mengejutkan - ia dikalahkan straight set 21-15, 21-18 dalam waktu kurang dari 40 menit oleh pemain asal Universitas Brawijaya yang baru pertama kali mengikuti turnamen ini.',
       },
     ]));
 
     // ====================================================================
-    // EVENT 3: IPB BERLARI 2026 — MARATHON
+    // EVENT 3: IPB BERLARI 2026 - MARATHON
     // Formats: finish_time + stopwatch (open, individual & team)
     // Participants: 20 (21K), 20 (10K), 10 (5K), 6 relay teams
     // ====================================================================
-    console.log('🏃 [3/6] IPB BERLARI 2026 — Marathon...');
+    console.log('🏃 [3/6] IPB BERLARI 2026 - Marathon...');
     const e3 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IPB BERLARI 2026',
@@ -756,7 +756,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       type: 'sport',
       status: 'finished',
       is_published: true,
-      location: 'Kampus IPB Dramaga — Hutan Penelitian',
+      location: 'Kampus IPB Dramaga - Hutan Penelitian',
       start_date: toDate(offsetDays(-7)),
       end_date: toDate(offsetDays(-7)),
       registration_end_date: offsetDays(-21),
@@ -783,7 +783,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     const i3 = await seedInstitutions(e3.id, 8);
 
     const f3_race = await client.request(createItem('match_formats', {
-      event_id: e3.id, name: 'Race — Finish Time ASC',
+      event_id: e3.id, name: 'Race - Finish Time ASC',
       match_type: 'open',
       modules: [
         { type: 'finish_time', config: { unit: 's', rank_order: 'asc' } },
@@ -791,7 +791,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
       ],
     }));
     const f3_relay = await client.request(createItem('match_formats', {
-      event_id: e3.id, name: 'Relay Race — Team Finish Time',
+      event_id: e3.id, name: 'Relay Race - Team Finish Time',
       match_type: 'open',
       modules: [
         { type: 'finish_time', config: { unit: 's', rank_order: 'asc' } },
@@ -806,7 +806,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     const c3_5k   = await client.request(createItem('competition_categories', { event_id: e3.id, format_id: f3_race.id, name: '5K Fun Run', participant_type: 'individual', display_order: 4 }));
     const c3_relay = await client.request(createItem('competition_categories', { event_id: e3.id, format_id: f3_relay.id, name: 'Relay 4×2.5K Tim', participant_type: 'team', display_order: 5 }));
 
-    // 21K Putra — 20 runners, all finished
+    // 21K Putra - 20 runners, all finished
     const p3_21k = [];
     for (let i = 0; i < 20; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c3_21k.id, institution_id: i3[i % i3.length], name: generateName() }));
@@ -825,7 +825,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     await client.request(createItems('match_participants', p3_21k.map((r, i) => ({ match_id: m3_21k.id, participant_id: r.id, position: i + 1 }))));
     denormQueue.push(m3_21k.id);
 
-    // 21K Putri — 10 runners, all finished
+    // 21K Putri - 10 runners, all finished
     const p3_21kw = [];
     for (let i = 0; i < 10; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c3_21kw.id, institution_id: i3[i % i3.length], name: generateName() }));
@@ -844,7 +844,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     await client.request(createItems('match_participants', p3_21kw.map((r, i) => ({ match_id: m3_21kw.id, participant_id: r.id, position: i + 1 }))));
     denormQueue.push(m3_21kw.id);
 
-    // 10K — 20 runners, finished (timeLog partially empty to test sparse log)
+    // 10K - 20 runners, finished (timeLog partially empty to test sparse log)
     const p3_10k = [];
     for (let i = 0; i < 20; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c3_10k.id, institution_id: i3[i % i3.length], name: generateName() }));
@@ -863,7 +863,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     await client.request(createItems('match_participants', p3_10k.map((r, i) => ({ match_id: m3_10k.id, participant_id: r.id, position: i + 1 }))));
     denormQueue.push(m3_10k.id);
 
-    // 5K — 10 runners, finished
+    // 5K - 10 runners, finished
     const p3_5k = [];
     for (let i = 0; i < 10; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c3_5k.id, institution_id: i3[i % i3.length], name: generateName() }));
@@ -882,7 +882,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     await client.request(createItems('match_participants', p3_5k.map((r, i) => ({ match_id: m3_5k.id, participant_id: r.id, position: i + 1 }))));
     denormQueue.push(m3_5k.id);
 
-    // Relay Team — 6 teams, finished
+    // Relay Team - 6 teams, finished
     const p3_relay = [];
     for (let i = 0; i < 6; i++) {
       const p = await client.request(createItem('participants', {
@@ -908,7 +908,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     await client.request(createItems('news', [
       {
         author_id: myId, event_id: e3.id, category: 'result', is_published: true,
-        published_at: offsetDays(-7), title: 'IPB Berlari 2026 Sukses Besar — Rekor Lintasan Terpecahkan!',
+        published_at: offsetDays(-7), title: 'IPB Berlari 2026 Sukses Besar - Rekor Lintasan Terpecahkan!',
         slug: 'e3-n1',
         excerpt: 'Event lari tahunan IPB berhasil melampaui target dengan 500+ peserta dan rekor waktu baru di kategori 21K.',
         content: 'IPB Berlari 2026 telah resmi berakhir dan menorehkan kesuksesan besar. Total 547 peserta dari 10 universitas berhasil menyelesaikan seluruh kategori, melampaui target awal 400 peserta.\n\nCapaian paling membanggakan adalah terpecahnya rekor lintasan 21K yang bertahan selama 3 tahun. Trek menantang yang melewati hutan konservasi, jalan aspal berbukit, dan lintasan tanah merah di Sektor 4 kampus berhasil ditaklukkan dalam waktu yang luar biasa.\n\nAcara ditutup dengan Awarding Ceremony yang hangat dan festival kuliner mahasiswa di pelataran GWW.',
@@ -923,11 +923,11 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     ]));
 
     // ====================================================================
-    // EVENT 4: IT-TODAY HACKTODAY 2026 — HACKATHON
+    // EVENT 4: IT-TODAY HACKTODAY 2026 - HACKATHON
     // Formats: manual_pick + timer (open, team)
     // Participants: 10 tim per kategori, 3 kategori
     // ====================================================================
-    console.log('💻 [4/6] IT-TODAY HACKTODAY 2026 — Hackathon...');
+    console.log('💻 [4/6] IT-TODAY HACKTODAY 2026 - Hackathon...');
     const e4 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IT-TODAY HACKTODAY 2026',
@@ -944,7 +944,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
       guidebook_url: 'https://ipb.link/hacktoday-guide',
       instagram_url: 'https://instagram.com/ittodayipb',
       website_url: 'https://ittoday.ipb.ac.id',
-      description: `IT-TODAY HACKTODAY 2026 adalah puncak kompetisi teknologi flagship milik IPB University yang mempertemukan developer, desainer, dan inovator muda berbakat dari berbagai universitas di Indonesia. Mengusung tema besar 'Digital Agriculture 4.0 — Feeding the Future', para peserta dituntut untuk merumuskan ide brilian dan mengubahnya menjadi produk digital yang fungsional.
+      description: `IT-TODAY HACKTODAY 2026 adalah puncak kompetisi teknologi flagship milik IPB University yang mempertemukan developer, desainer, dan inovator muda berbakat dari berbagai universitas di Indonesia. Mengusung tema besar 'Digital Agriculture 4.0 - Feeding the Future', para peserta dituntut untuk merumuskan ide brilian dan mengubahnya menjadi produk digital yang fungsional.
 
 Peserta akan dikarantina dan ditantang untuk membangun solusi berbasis teknologi tingkat tinggi seperti kecerdasan buatan (AI), Internet of Things (IoT), dan teknologi Web3 dalam batas waktu 24 jam non-stop. Solusi yang dirancang harus menyasar secara langsung pada masalah-masalah riil di sektor ketahanan pangan, pertanian presisi, dan rantai pasok agrikultur nasional.
 
@@ -962,7 +962,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     const i4 = await seedInstitutions(e4.id, 8);
 
     const f4_hack = await client.request(createItem('match_formats', {
-      event_id: e4.id, name: 'Hackathon — Manual Jury Pick Top 3',
+      event_id: e4.id, name: 'Hackathon - Manual Jury Pick Top 3',
       match_type: 'open',
       modules:[
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
@@ -971,7 +971,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
       ],
     }));
     const f4_ctf = await client.request(createItem('match_formats', {
-      event_id: e4.id, name: 'CTF — Automated Scoring',
+      event_id: e4.id, name: 'CTF - Automated Scoring',
       match_type: 'open',
       modules: [
         { type: 'manual_pick', config: { allow_draw: false, top_n: 5, ranked_order: true } },
@@ -1004,7 +1004,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
       return teams;
     };
 
-    // Web3 — all finished, top 3 declared
+    // Web3 - all finished, top 3 declared
     const p4_web3 = await genHackTeams(c4_web3.id);
     const m4_web3 = await client.request(createItem('matches', {
       competition_category_id: c4_web3.id, status: 'finished', venue: 'Ruang Sidang A',
@@ -1018,7 +1018,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     await client.request(createItems('match_participants', p4_web3.map((p, i) => ({ match_id: m4_web3.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m4_web3.id);
 
-    // AI AgriTech — finished, partial (only top 2 ranked, 3rd not declared)
+    // AI AgriTech - finished, partial (only top 2 ranked, 3rd not declared)
     const p4_ai = await genHackTeams(c4_ai.id);
     const m4_ai = await client.request(createItem('matches', {
       competition_category_id: c4_ai.id, status: 'finished', venue: 'Auditorium AHN',
@@ -1032,7 +1032,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     await client.request(createItems('match_participants', p4_ai.map((p, i) => ({ match_id: m4_ai.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m4_ai.id);
 
-    // IoT — finished
+    // IoT - finished
     const p4_iot = await genHackTeams(c4_iot.id, 8);
     const m4_iot = await client.request(createItem('matches', {
       competition_category_id: c4_iot.id, status: 'live', venue: 'Ruang Sidang B', // Changed to LIVE
@@ -1042,7 +1042,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     await client.request(createItems('match_participants', p4_iot.map((p, i) => ({ match_id: m4_iot.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m4_iot.id);
 
-    // CTF — finished, top 5
+    // CTF - finished, top 5
     const p4_ctf = await genHackTeams(c4_cyber.id, 12);
     const m4_ctf = await client.request(createItem('matches', {
       competition_category_id: c4_cyber.id, status: 'finished', venue: 'Lab Komputer 1',
@@ -1061,10 +1061,10 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     await client.request(createItems('news', [
       {
         author_id: myId, event_id: e4.id, category: 'announcement', is_published: true,
-        published_at: offsetDays(-5), title: 'IT-TODAY Hacktoday 2026 Dimulai — Tema "Digital Agriculture 4.0" Diumumkan',
+        published_at: offsetDays(-5), title: 'IT-TODAY Hacktoday 2026 Dimulai - Tema "Digital Agriculture 4.0" Diumumkan',
         slug: 'e4-n1',
         excerpt: 'Lebih dari 40 tim developer terbaik Indonesia berkumpul untuk 24 jam coding marathon.',
-        content: 'IT-TODAY HACKTODAY 2026 resmi dimulai hari ini di Auditorium AHN, Kampus IPB Dramaga. Ketua Panitia mengumumkan tema besar tahun ini: "Digital Agriculture 4.0 — Feeding the Future". Tema ini mengajak para developer untuk membangun solusi berbasis AI, IoT, Web3, dan Cybersecurity yang secara langsung menjawab tantangan ketahanan pangan nasional.\n\nTotal 42 tim dari 8 universitas telah lolos tahap seleksi administratif. Setiap tim diberi akses ke dataset eksklusif milik Institut Pertanian Bogor berupa data hasil panen, kondisi cuaca historis, dan data tanah dari 15 lokasi penelitian.\n\n"Kami ingin solusi yang bisa langsung diimplementasikan, bukan sekadar prototype cantik," tegas Direktur Kemahasiswaan IPB.',
+        content: 'IT-TODAY HACKTODAY 2026 resmi dimulai hari ini di Auditorium AHN, Kampus IPB Dramaga. Ketua Panitia mengumumkan tema besar tahun ini: "Digital Agriculture 4.0 - Feeding the Future". Tema ini mengajak para developer untuk membangun solusi berbasis AI, IoT, Web3, dan Cybersecurity yang secara langsung menjawab tantangan ketahanan pangan nasional.\n\nTotal 42 tim dari 8 universitas telah lolos tahap seleksi administratif. Setiap tim diberi akses ke dataset eksklusif milik Institut Pertanian Bogor berupa data hasil panen, kondisi cuaca historis, dan data tanah dari 15 lokasi penelitian.\n\n"Kami ingin solusi yang bisa langsung diimplementasikan, bukan sekadar prototype cantik," tegas Direktur Kemahasiswaan IPB.',
       },
       {
         author_id: myId, event_id: e4.id, category: 'news', is_published: true,
@@ -1084,11 +1084,11 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
 
     // ====================================================================
     // EVENT 5: IPB FUTSAL CUP 2026
-    // Status: upcoming (registration open) — tests countdown timer frontend
+    // Status: upcoming (registration open) - tests countdown timer frontend
     // Formats: score_timed + countdown + periods
     // Participants: 8 tim, grup stage sepenuhnya upcoming
     // ====================================================================
-    console.log('⚽ [5/6] IPB FUTSAL CUP 2026 — Upcoming with open registration...');
+    console.log('⚽ [5/6] IPB FUTSAL CUP 2026 - Upcoming with open registration...');
     const e5 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IPB FUTSAL CUP 2026',
@@ -1123,7 +1123,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
     const i5 = await seedInstitutions(e5.id, 8);
 
     const f5_futsal = await client.request(createItem('match_formats', {
-      event_id: e5.id, name: 'Futsal — 2×20 Menit',
+      event_id: e5.id, name: 'Futsal - 2×20 Menit',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_timed', config: { score_label: 'Gol', has_periods: true, period_count: 2, period_term: 'Babak' } },
@@ -1132,7 +1132,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
       ],
     }));
     const f5_penalty = await client.request(createItem('match_formats', {
-      event_id: e5.id, name: 'Futsal — Adu Penalti',
+      event_id: e5.id, name: 'Futsal - Adu Penalti',
       match_type: 'head_to_head',
       modules: [
         { type: 'manual_pick', config: { allow_draw: false, top_n: 1, ranked_order: false } },
@@ -1153,7 +1153,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
       }));
       futsal_teams_p.push(p.id);
     }
-    // Group A: 4 teams, Group B: 4 teams — all upcoming
+    // Group A: 4 teams, Group B: 4 teams - all upcoming
     const groupA = futsal_teams_p.slice(0, 4);
     const groupB = futsal_teams_p.slice(4, 8);
     const groupMatchupsFutsal = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
@@ -1184,12 +1184,12 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
           round: roundName, match_name: `${roundName} ${i + 1}`,
           venue: 'GOR Futsal IPB', scheduled_at: offsetDays(25 + round),
           live_state: LS.upcoming(),
-          // home/away intentionally null — participants TBD
+          // home/away intentionally null - participants TBD
         }));
       }
     }
 
-    // Putri — 4 teams, upcoming
+    // Putri - 4 teams, upcoming
     for (let i = 0; i < 4; i++) {
       await client.request(createItem('participants', {
         competition_category_id: c5_putri.id, institution_id: i5[i % i5.length],
@@ -1201,7 +1201,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
     await client.request(createItems('news', [
       {
         author_id: myId, event_id: e5.id, category: 'announcement', is_published: true,
-        published_at: offsetDays(-3), title: 'Registrasi IPB Futsal Cup 2026 Dibuka — Kuota Terbatas!',
+        published_at: offsetDays(-3), title: 'Registrasi IPB Futsal Cup 2026 Dibuka - Kuota Terbatas!',
         slug: 'e5-n1',
         excerpt: 'Pendaftaran resmi dibuka hari ini. Daftarkan tim kamu sebelum kuota habis.',
         content: 'Panitia IPB Futsal Cup 2026 resmi membuka pendaftaran peserta mulai hari ini. Kuota peserta dibatasi hanya 16 tim untuk kategori Putra dan 8 tim untuk kategori Putri demi menjaga kualitas pertandingan.\n\nPendaftaran dilakukan secara online melalui portal resmi dengan melampirkan daftar pemain (maks. 12 orang termasuk kiper), kartu mahasiswa aktif seluruh anggota, dan bukti transfer biaya pendaftaran.\n\nBerdasarkan pengalaman tahun lalu, kuota penuh dalam waktu kurang dari 2 minggu. Jangan sampai ketinggalan!',
@@ -1221,7 +1221,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
     // Participants: 15 vokal, 10 dance, 8 writing, 8 visual art
     // Status: active, is_published, all phases
     // ====================================================================
-    console.log('🎤 [6/6] IPB ART FESTIVAL 2026 — Arts...');
+    console.log('🎤 [6/6] IPB ART FESTIVAL 2026 - Arts...');
     const e6 = await client.request(createItem('events', {
       user_created: myId,
       name: 'IPB ART FESTIVAL 2026',
@@ -1248,16 +1248,16 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     await client.request(createItems('event_phases',[
       { event_id: e6.id, label: 'Audisi Online', description: 'Tahap penyaringan awal secara daring di mana seluruh pendaftar kategori seni pertunjukan wajib mengunggah video penampilan orisinal mereka. Kurator ahli akan menilai bakat dasar dan potensi panggung dari setiap kandidat.', date_start: toDate(offsetDays(-30)), time_start: '00:00', status: 'done', display_order: 1 },
       { event_id: e6.id, label: 'Pengumuman Lolos Audisi', description: 'Publikasi daftar resmi berisi 50 peserta atau tim yang berhak melaju ke panggung utama (Live Show). Peserta terpilih juga akan mendapatkan jadwal pembekalan teknis panggung dan arahan logistik dari panitia pelaksana.', date_start: toDate(offsetDays(-14)), time_start: '12:00', status: 'done', display_order: 2 },
-      { event_id: e6.id, label: 'Hari 1 — Karya Tulis & Seni Rupa', description: 'Pembukaan resmi festival yang difokuskan pada presentasi mendalam karya tulis ilmiah (KTI) serta peresmian pameran galeri Seni Rupa Digital. Pengunjung dapat berinteraksi langsung dengan kreator di area exhibition hall.', date_start: toDate(offsetDays(-2)), time_start: '09:00', status: 'done', display_order: 3 },
-      { event_id: e6.id, label: 'Hari 2 — Tari & Vokal (Top 10)', description: 'Malam pertunjukan fase penyisihan live, menampilkan aksi 10 peserta terbaik dari kategori tari tradisional, tari modern, dan vokal solo. Panggung mulai memanas saat dewan juri melakukan kurasi ketat untuk menentukan finalis.', date_start: toDate(offsetDays(-1)), time_start: '19:00', status: 'done', display_order: 4 },
-      { event_id: e6.id, label: 'Hari 3 — Grand Finale Vokal & Tari', description: 'Malam puncak kompetisi pertunjukan seni. Para finalis terpilih akan memberikan penampilan pamungkas (all-out) yang dipadukan dengan aransemen live orkestra dan efek visual panggung tingkat tinggi untuk mengunci penilaian juri.', date_start: toDate(offsetDays(0)), time_start: '19:00', status: 'current', display_order: 5 },
+      { event_id: e6.id, label: 'Hari 1 - Karya Tulis & Seni Rupa', description: 'Pembukaan resmi festival yang difokuskan pada presentasi mendalam karya tulis ilmiah (KTI) serta peresmian pameran galeri Seni Rupa Digital. Pengunjung dapat berinteraksi langsung dengan kreator di area exhibition hall.', date_start: toDate(offsetDays(-2)), time_start: '09:00', status: 'done', display_order: 3 },
+      { event_id: e6.id, label: 'Hari 2 - Tari & Vokal (Top 10)', description: 'Malam pertunjukan fase penyisihan live, menampilkan aksi 10 peserta terbaik dari kategori tari tradisional, tari modern, dan vokal solo. Panggung mulai memanas saat dewan juri melakukan kurasi ketat untuk menentukan finalis.', date_start: toDate(offsetDays(-1)), time_start: '19:00', status: 'done', display_order: 4 },
+      { event_id: e6.id, label: 'Hari 3 - Grand Finale Vokal & Tari', description: 'Malam puncak kompetisi pertunjukan seni. Para finalis terpilih akan memberikan penampilan pamungkas (all-out) yang dipadukan dengan aransemen live orkestra dan efek visual panggung tingkat tinggi untuk mengunci penilaian juri.', date_start: toDate(offsetDays(0)), time_start: '19:00', status: 'current', display_order: 5 },
       { event_id: e6.id, label: 'Malam Awarding', description: 'Gala penutup rangkaian festival. Agenda utamanya adalah pengumuman juara umum dari seluruh kategori seni, penyematan medali, dan konser penutup (guest star performance) untuk merayakan keberhasilan bersama.', date_start: toDate(offsetDays(2)), time_start: '19:00', status: 'upcoming', display_order: 6 },
     ]));
 
     const i6 = await seedInstitutions(e6.id, 8);
 
     const f6_vocal = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Vocal Solo — 3 Juri (Avg)',
+      event_id: e6.id, name: 'Vocal Solo - 3 Juri (Avg)',
       match_type: 'solo',
       modules: [
         { type: 'judge_scores', config: { num_judges: 3, method: 'avg', score_min: 0, score_max: 100, step: 1 } },
@@ -1265,7 +1265,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       ],
     }));
     const f6_dance = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Tari — 5 Juri (Drop Extremes)',
+      event_id: e6.id, name: 'Tari - 5 Juri (Drop Extremes)',
       match_type: 'solo',
       modules: [
         { type: 'judge_scores', config: { num_judges: 5, method: 'drop_extremes', score_min: 0, score_max: 100, step: 0.5 } },
@@ -1274,7 +1274,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       ],
     }));
     const f6_write = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Karya Tulis — Submission Time',
+      event_id: e6.id, name: 'Karya Tulis - Submission Time',
       match_type: 'open',
       modules: [
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
@@ -1282,7 +1282,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       ],
     }));
     const f6_visual = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Seni Rupa — Panel Juri',
+      event_id: e6.id, name: 'Seni Rupa - Panel Juri',
       match_type: 'open',
       modules:[
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
@@ -1297,7 +1297,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     const c6_write  = await client.request(createItem('competition_categories', { event_id: e6.id, format_id: f6_write.id, name: 'Karya Tulis Ilmiah', participant_type: 'individual', display_order: 5 }));
     const c6_visual = await client.request(createItem('competition_categories', { event_id: e6.id, format_id: f6_visual.id, name: 'Seni Rupa Digital', participant_type: 'individual', display_order: 6 }));
 
-    // -- Vocal Solo Pop — 15 performers, staggered schedule --
+    // -- Vocal Solo Pop - 15 performers, staggered schedule --
     // Round 1 (10 performers): 8 finished, 1 live, 1 upcoming
     // Round 2 (5 performers): all upcoming
     const vocalNotes = [
@@ -1337,7 +1337,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       if (isFinished || isLive) denormQueue.push(m.id);
     }
 
-    // -- Vocal Solo Jazz — 6 performers, all finished --
+    // -- Vocal Solo Jazz - 6 performers, all finished --
     for (let i = 0; i < 6; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c6_vocalj.id, institution_id: i6[i % i6.length], name: generateName() }));
       const scores = [randomInt(72, 94), randomInt(72, 94), randomInt(72, 94)];
@@ -1350,7 +1350,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       denormQueue.push(m.id);
     }
 
-    // -- Tari Tradisional — 10 performers, mix --
+    // -- Tari Tradisional - 10 performers, mix --
     const dancePerformers = [];
     for (let i = 0; i < 10; i++) {
       const p = await client.request(createItem('participants', { competition_category_id: c6_dance.id, institution_id: i6[i % i6.length], name: generateName() }));
@@ -1372,7 +1372,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       if (!isUpcoming) denormQueue.push(m.id);
     }
 
-    // -- Tari Modern Tim — 4 teams, all finished --
+    // -- Tari Modern Tim - 4 teams, all finished --
     const danceTeams = [];
     for (let i = 0; i < 4; i++) {
       const p = await client.request(createItem('participants', {
@@ -1393,7 +1393,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       denormQueue.push(m.id);
     }
 
-    // -- Karya Tulis Ilmiah — open/manual_pick --
+    // -- Karya Tulis Ilmiah - open/manual_pick --
     const writeParticipants = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', {
@@ -1415,7 +1415,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     await client.request(createItems('match_participants', writeParticipants.map((p, i) => ({ match_id: m6_write.id, participant_id: p.id, position: i + 1 }))));
     denormQueue.push(m6_write.id);
 
-    // -- Seni Rupa Digital — open/manual_pick, partially ranked (live) --
+    // -- Seni Rupa Digital - open/manual_pick, partially ranked (live) --
     const visualParticipants = [];
     for (let i = 0; i < 8; i++) {
       const p = await client.request(createItem('participants', {
@@ -1460,12 +1460,12 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
         published_at: offsetHours(-2), title: 'Tari Tradisional: Penampil ke-5 Raih Skor Tertinggi Sementara',
         slug: 'e6-n4',
         excerpt: 'Tarian dari daerah asal penampil yang dibawakan dengan sangat autentik memikat seluruh juri.',
-        content: 'Kompetisi Tari Tradisional memasuki babak yang semakin panas. Penampil ke-5 yang membawakan tari tradisional dari daerahnya dengan kostum yang sangat autentik dan gerakan yang sangat presisi berhasil merebut skor tertinggi sementara dari panel lima juri.\n\nDua dari lima juri bahkan memberikan skor sempurna untuk aspek keaslian budaya dan ketepatan gerak. "Saya sangat terkesan dengan kedalaman pemahaman budayanya. Ini bukan sekadar meniru gerakan — ia benar-benar menghayati jiwa tarian ini," ujar juri senior.',
+        content: 'Kompetisi Tari Tradisional memasuki babak yang semakin panas. Penampil ke-5 yang membawakan tari tradisional dari daerahnya dengan kostum yang sangat autentik dan gerakan yang sangat presisi berhasil merebut skor tertinggi sementara dari panel lima juri.\n\nDua dari lima juri bahkan memberikan skor sempurna untuk aspek keaslian budaya dan ketepatan gerak. "Saya sangat terkesan dengan kedalaman pemahaman budayanya. Ini bukan sekadar meniru gerakan - ia benar-benar menghayati jiwa tarian ini," ujar juri senior.',
       },
     ]));
 
     // ====================================================================
-    // BONUS: GLOBAL PLATFORM NEWS (event_id = null) — edge case
+    // BONUS: GLOBAL PLATFORM NEWS (event_id = null) - edge case
     // ====================================================================
     await client.request(createItems('news', [
       {
@@ -1474,14 +1474,14 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
         title: 'Platform IPB Lucky Sport & Art Resmi Diluncurkan',
         slug: 'platform-launch',
         excerpt: 'Platform digital real-time untuk seluruh kompetisi olahraga dan seni IPB kini hadir.',
-        content: 'Institut Pertanian Bogor dengan bangga mengumumkan peluncuran resmi platform IPB Lucky Sport & Art — sebuah ekosistem digital terpadu yang mengelola, menyiarkan, dan mengarsipkan seluruh kegiatan kompetisi olahraga dan seni mahasiswa IPB.\n\nPlatform ini menggabungkan sistem manajemen pertandingan real-time, scoreboard langsung, dan portal berita terpadu dalam satu antarmuka yang mudah diakses oleh seluruh sivitas akademika, peserta, dan masyarakat umum.',
+        content: 'Institut Pertanian Bogor dengan bangga mengumumkan peluncuran resmi platform IPB Lucky Sport & Art - sebuah ekosistem digital terpadu yang mengelola, menyiarkan, dan mengarsipkan seluruh kegiatan kompetisi olahraga dan seni mahasiswa IPB.\n\nPlatform ini menggabungkan sistem manajemen pertandingan real-time, scoreboard langsung, dan portal berita terpadu dalam satu antarmuka yang mudah diakses oleh seluruh sivitas akademika, peserta, dan masyarakat umum.',
       },
       {
         author_id: myId, event_id: e1.id, category: 'news', is_published: false, // EDGE: unpublished global news
         published_at: null,
         title: '[DRAFT] Rencana Roadmap Platform Q3 2026',
         slug: 'platform-roadmap-q3-draft',
-        excerpt: 'Draft roadmap internal — belum untuk publik.',
+        excerpt: 'Draft roadmap internal - belum untuk publik.',
         content: 'Draft berisi rencana fitur bracket generator, notifikasi push, dan integrasi single sign-on.',
       },
     ]));
@@ -1529,7 +1529,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     }
 
     // ====================================================================
-    // DENORMALIZATION — trigger PGSQL trigger for all finished/live matches
+    // DENORMALIZATION - trigger PGSQL trigger for all finished/live matches
     // ====================================================================
     console.log('\n⚙️  Running denormalization...');
     await triggerDenorm(denormQueue);
@@ -1542,12 +1542,12 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     console.log('COVERAGE SUMMARY:');
     console.log('');
     console.log('EVENTS (6):');
-    console.log('  [1] FORKI × IPB Cup 2026       — sport, active,    karate');
-    console.log('  [2] IPB Badminton Cup 2026      — sport, active,    badminton');
-    console.log('  [3] IPB Berlari 2026            — sport, finished,  marathon');
-    console.log('  [4] IT-TODAY Hacktoday 2026     — sport, finished,  hackathon');
-    console.log('  [5] IPB Futsal Cup 2026         — sport, upcoming,  futsal (reg open)');
-    console.log('  [6] IPB Art Festival 2026       — arts,  active,    performing arts');
+    console.log('  [1] FORKI × IPB Cup 2026       - sport, active,    karate');
+    console.log('  [2] IPB Badminton Cup 2026      - sport, active,    badminton');
+    console.log('  [3] IPB Berlari 2026            - sport, finished,  marathon');
+    console.log('  [4] IT-TODAY Hacktoday 2026     - sport, finished,  hackathon');
+    console.log('  [5] IPB Futsal Cup 2026         - sport, upcoming,  futsal (reg open)');
+    console.log('  [6] IPB Art Festival 2026       - arts,  active,    performing arts');
     console.log('');
     console.log('FORMATS COVERED:');
     console.log('  ✅ judge_scores (drop_extremes, avg, 3-juri, 5-juri)');
@@ -1560,10 +1560,10 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     console.log('  ✅ open match WITHOUT timer (hackathon)');
     console.log('');
     console.log('MATCH STATUSES:');
-    console.log('  ✅ upcoming    — solo, h2h, open');
-    console.log('  ✅ live        — all format types');
-    console.log('  ✅ finished    — all format types + draw + null winner');
-    console.log('  ✅ cancelled   — Kumite Putri -50kg Final');
+    console.log('  ✅ upcoming    - solo, h2h, open');
+    console.log('  ✅ live        - all format types');
+    console.log('  ✅ finished    - all format types + draw + null winner');
+    console.log('  ✅ cancelled   - Kumite Putri -50kg Final');
     console.log('');
     console.log('EDGE CASES:');
     console.log('  ✅ timerRunning=true, timerLastStarted=null (corrupted timer)');

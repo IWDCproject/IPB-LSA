@@ -13,12 +13,12 @@ const MAX_IN_FLIGHT  = 50;
 const IN_FLIGHT      = new Map();
 
 // Hard cap on upstream response body (10 MB).
-// This is the primary decompression-bomb defence — a 10 MB compressed file
+// This is the primary decompression-bomb defence - a 10 MB compressed file
 // cannot realistically expand to more than a few hundred MP.
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
 // Secondary pixel-count check as a belt-and-suspenders guard.
-// Set to 25 MP — comfortably above any real-world CMS photography
+// Set to 25 MP - comfortably above any real-world CMS photography
 // (4K = 8.3 MP, DSLR full-frame at 24 MP, medium-format at ~50 MP).
 const MAX_PIXELS = 25_000_000;
 
@@ -38,7 +38,7 @@ function validateUrl(rawUrl) {
     return { ok: false, msg: "Invalid URL" };
   }
 
-  // Only allow safe protocols — blocks file://, gopher://, dict://, etc.
+  // Only allow safe protocols - blocks file://, gopher://, dict://, etc.
   if (!["https:", "http:"].includes(parsed.protocol)) {
     return { ok: false, msg: "Forbidden" };
   }
@@ -47,7 +47,7 @@ function validateUrl(rawUrl) {
   // The original code skipped the guard entirely when the var was absent.
   const allowedOrigin = process.env.NEXT_PUBLIC_DIRECTUS_URL;
   if (!allowedOrigin) {
-    console.error("[blur] NEXT_PUBLIC_DIRECTUS_URL is not set — all requests blocked");
+    console.error("[blur] NEXT_PUBLIC_DIRECTUS_URL is not set - all requests blocked");
     return { ok: false, msg: "Forbidden" };
   }
 
@@ -98,7 +98,7 @@ async function writeCacheAtomic(filePath, buf) {
 // ---------------------------------------------------------------------------
 // readCacheSafe
 //
-// PERF: stat-first approach — check mtime before reading the file body.
+// PERF: stat-first approach - check mtime before reading the file body.
 // Previously both operations ran in parallel (Promise.all), which read the
 // entire file content even for expired entries that would be immediately
 // discarded.  On a warm cache with many expired files this wasted significant
@@ -119,7 +119,7 @@ async function readCacheSafe(filePath, ttlSeconds) {
       return null;
     }
 
-    // Step 2: file is fresh — read it.
+    // Step 2: file is fresh - read it.
     const buf = await fs.readFile(filePath);
     if (buf.length === 0) {
       await fs.unlink(filePath).catch(() => {});
@@ -127,7 +127,7 @@ async function readCacheSafe(filePath, ttlSeconds) {
     }
     return buf;
   } catch {
-    // File doesn't exist or unreadable — treat as miss.
+    // File doesn't exist or unreadable - treat as miss.
     await fs.unlink(filePath).catch(() => {});
     return null;
   }
@@ -148,7 +148,7 @@ async function runSharp(url, blur, w, h) {
     throw Object.assign(new Error("Image not found"), { status: 404 });
   }
   if (!res.ok) {
-    // Don't echo the upstream status code — use a generic message.
+    // Don't echo the upstream status code - use a generic message.
     throw Object.assign(new Error("Upstream error"), { status: 502 });
   }
 
@@ -182,7 +182,7 @@ async function runSharp(url, blur, w, h) {
   const inputBuf = Buffer.concat(chunks);
 
   // Check pixel budget before full decode to catch decompression bombs.
-  // sharp.metadata() reads only the image header — no full decompression.
+  // sharp.metadata() reads only the image header - no full decompression.
   const meta        = await sharp(inputBuf).metadata();
   const inputPixels = (meta.width ?? 0) * (meta.height ?? 0);
   if (inputPixels > MAX_PIXELS) {

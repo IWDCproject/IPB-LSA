@@ -83,7 +83,7 @@ const ENGINE_INFO: Record<EngineType, { title: string; body: string }> = {
   },
   finish_time: {
     title: 'Finish Time',
-    body: 'Record a finish time for each participant. Rank by fastest (races) or latest (rare — e.g. endurance hold).',
+    body: 'Record a finish time for each participant. Rank by fastest (races) or latest (rare - e.g. endurance hold).',
   },
   manual_pick: {
     title: 'Manual Pick',

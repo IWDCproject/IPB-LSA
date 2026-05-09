@@ -1,7 +1,7 @@
 # Homepage System Documentation
 **IPB University Sports Event Platform**
 
-> For the `/` route — covers layout, scroll system, blur pipeline, image pipeline, every section component, and live data hooks.
+> For the `/` route - covers layout, scroll system, blur pipeline, image pipeline, every section component, and live data hooks.
 
 ---
 
@@ -31,7 +31,7 @@
 | Animation | GSAP (scroll triggers, float tweens, entrance animations) |
 | Scroll | Framer Motion `useScroll` + `useTransform` for parallax. Lenis for smooth wheel. |
 | Blur pipeline | Web Worker + OffscreenCanvas + ImageBitmap + server-side Sharp + disk cache |
-| CMS | Directus (fully connected — no mock data) |
+| CMS | Directus (fully connected - no mock data) |
 | Fonts | Bebas Neue (display), Plus Jakarta Sans (body) |
 | Styling | Inline styles + Tailwind utility classes (mixed) |
 
@@ -123,7 +123,7 @@ Read carefully before touching anything in `CurtainWrapper`.
 | Layer | z-index | Position |
 |---|---|---|
 | HeroSection | 1 (inside motion.div) | `position: fixed`, top: 65px |
-| heroSpacerRef div | — | Normal flow, reserves scroll height |
+| heroSpacerRef div | - | Normal flow, reserves scroll height |
 | StatSection + MatchSection | 2 | `position: relative` |
 | TimelineSection | 2 | `position: sticky, top: 65px` |
 | NewsSection | 3 | `position: relative, minHeight: sectionH` |
@@ -132,11 +132,11 @@ Read carefully before touching anything in `CurtainWrapper`.
 
 Two parallax transforms exist, both using Framer Motion `useScroll` + `useTransform`:
 
-**Hero parallax** — `heroSpacerRef` tracked from `start start` to `end start`. Hero moves UP at `PARALLAX_SPEED = 0.4` as you scroll past it.
+**Hero parallax** - `heroSpacerRef` tracked from `start start` to `end start`. Hero moves UP at `PARALLAX_SPEED = 0.4` as you scroll past it.
 
-**Timeline parallax** — `newsSectionRef` tracked from `start end` to `start start`. `TimelineSection` moves up as NewsSection enters, creating a curtain-pull.
+**Timeline parallax** - `newsSectionRef` tracked from `start end` to `start start`. `TimelineSection` moves up as NewsSection enters, creating a curtain-pull.
 
-Both use `useTransform(() => ...)` with live `viewportH.current` inside the callback. Never capture viewport height in a closure — it changes on resize.
+Both use `useTransform(() => ...)` with live `viewportH.current` inside the callback. Never capture viewport height in a closure - it changes on resize.
 
 ```js
 const sectionH  = `calc(100vh - ${HEADER_HEIGHT}px)`;  // 65px header
@@ -149,7 +149,7 @@ The outer `motion.div` wrapping HeroSection uses `parallaxH` for room to transla
 
 `CurtainWrapper` attaches an `IntersectionObserver` to `heroSpacerRef`. When the spacer leaves the viewport, `heroPaused = true` is passed to HeroSection, which pauses its GSAP ticker and rotation interval.
 
-> **Why not IO on the hero div itself?** It's `position: fixed` — it never leaves the viewport, so IO always reports intersecting. The spacer in the normal flow is the proxy.
+> **Why not IO on the hero div itself?** It's `position: fixed` - it never leaves the viewport, so IO always reports intersecting. The spacer in the normal flow is the proxy.
 
 ---
 
@@ -159,17 +159,17 @@ See `blur-system-docs.md` for the full blur architecture. This section covers ho
 
 ### Why it exists
 
-CSS `backdrop-filter: blur()` is re-composited every frame. Pre-rendering blur into a static bitmap means the GPU composites a flat image — essentially free.
+CSS `backdrop-filter: blur()` is re-composited every frame. Pre-rendering blur into a static bitmap means the GPU composites a flat image - essentially free.
 
 ### Registration map
 
-Every section that uses blur calls `useBlurImages(manifest)` independently. There is no global manifest — `page.js` and `BlurProvider` are clean of blur logic.
+Every section that uses blur calls `useBlurImages(manifest)` independently. There is no global manifest - `page.js` and `BlurProvider` are clean of blur logic.
 
 | Section | Type registered | How |
 |---|---|---|
 | `HeroSection` | `hero` | `EVENTS.map(ev => ({ url: ev.image_url, type: "hero", ... }))` |
 | `TimelineSection` (EventTimeline) | `eventcard` | `rawEvents.map(ev => ({ url: getAssetUrl(ev.card_image), type: "eventcard", ... }))` |
-| `VerticalTimeline` | `eventcard` (no-op in practice — see Bugs) | `events.filter(ev => ev.image_url)...` |
+| `VerticalTimeline` | `eventcard` (no-op in practice - see Bugs) | `events.filter(ev => ev.image_url)...` |
 | `MatchSection` | `matchcard` | `rawMatches.filter(m => m.competition_category?.event_id?.card_image)...` |
 | `NewsSection` | `newscard` | `news.map((item, i) => ({ url: item.thumbnail_url, ... }))` |
 
@@ -188,7 +188,7 @@ bitmaps[url] = {
 }
 ```
 
-`isReady` is **not** in context. It is returned locally by each `useBlurImages()` call — true when all images in that hook's manifest are done.
+`isReady` is **not** in context. It is returned locally by each `useBlurImages()` call - true when all images in that hook's manifest are done.
 
 ### Loading overlay
 
@@ -210,7 +210,7 @@ const dw = bitmap.width * scale, dh = bitmap.height * scale;
 ctx.drawImage(bitmap, (w - dw) / 2, (h - dh) / 2, dw, dh);
 ```
 
-**Always use `ctx.drawImage()`, never `bitmaprenderer.transferFromImageBitmap()`** — the latter closes the bitmap after one use. Bitmaps are shared across multiple canvases via context.
+**Always use `ctx.drawImage()`, never `bitmaprenderer.transferFromImageBitmap()`** - the latter closes the bitmap after one use. Bitmaps are shared across multiple canvases via context.
 
 ---
 
@@ -236,7 +236,7 @@ ctx.drawImage(bitmap, (w - dw) / 2, (h - dh) / 2, dw, dh);
 | Ref | Purpose |
 |---|---|
 | `canvasRefs` | `{ "${id}_sharp": canvas, "${id}_blur": canvas }` per event |
-| `barRef` | Progress bar — written via `.style` directly, never setState |
+| `barRef` | Progress bar - written via `.style` directly, never setState |
 | `pausedRef` | Mirrors `paused` prop to avoid it in ticker dep array |
 | `tabVisRef` | Mirrors `document.hidden` for tab-switch gating |
 | `mobileScrollRef` | Horizontal card strip on mobile, programmatically scrolled to `activeIdx` |
@@ -245,7 +245,7 @@ ctx.drawImage(bitmap, (w - dw) / 2, (h - dh) / 2, dw, dh);
 
 **`mounted` state:** Flips `true` immediately on mount (`useEffect(() => setMounted(true), [])`). It is **not** gated on blur readiness. Blur arrives async and draws to canvas as bitmaps come in.
 
-**Canvas draw:** Uses `drawCover()` (cover-fit). See Bugs section — DPR scaling is missing here.
+**Canvas draw:** Uses `drawCover()` (cover-fit). See Bugs section - DPR scaling is missing here.
 
 **Mobile:** `isMobile = cw < 1024`. Card strip is a horizontal scroll container.
 
@@ -265,9 +265,9 @@ scale ≥ 1              → Stage 1: natural desktop layout
 scale < 0.547          → Stage 3: stacked column, CTA below cards, centered
 ```
 
-`STAGE3_THRESHOLD = 0.547` (not 0.65 — the old docs were wrong).
+`STAGE3_THRESHOLD = 0.547` (not 0.65 - the old docs were wrong).
 
-Stage 2 uses `transform: scale()` on the inner row inside a `position: relative` wrapper with a height equal to `CARD_H * scale`. This avoids reflow — the layout stays at natural size internally.
+Stage 2 uses `transform: scale()` on the inner row inside a `position: relative` wrapper with a height equal to `CARD_H * scale`. This avoids reflow - the layout stays at natural size internally.
 
 **Entrance:** `IntersectionObserver` at `threshold: 0.15`. Fires once, disconnects. 6 slots with `STAGGER = [0, 120, 240, 420, 540, 680]ms`. Keyframe `stat-intro` lives in `globals.css`.
 
@@ -343,7 +343,7 @@ Switches between `EventTimeline` (desktop) and `VerticalTimeline` (mobile) at **
 
 **Data:** `getNews({ limit: 5 })` from Directus. Real `thumbnail_url` with `?v=` cache-busting.
 
-**Blur registration:** `useBlurImages(newsManifest)`. Featured card uses `800×600`, others use `400×300`. `NewsCard` reads bitmaps directly from `useBlur()` — no prop pass-through.
+**Blur registration:** `useBlurImages(newsManifest)`. Featured card uses `800×600`, others use `400×300`. `NewsCard` reads bitmaps directly from `useBlur()` - no prop pass-through.
 
 ---
 
@@ -366,9 +366,9 @@ Used in: HeroSection strip, EventTimeline (desktop), VerticalTimeline (mobile).
 
 | Prop | Type | Default | Notes |
 |---|---|---|---|
-| `thumbnail_url` | string \| null | — | CSS background source and bitmap lookup key |
+| `thumbnail_url` | string \| null | - | CSS background source and bitmap lookup key |
 | `tag` | string \| null | `null` | Event name from `event_id.name` join |
-| `title` | string | — | |
+| `title` | string | - | |
 | `isMain` | bool | `false` | Large vs small variant |
 | `compact` | bool | `false` | Mobile size reduction |
 | `bitmap` | ImageBitmap \| null | `null` | Prop takes precedence over context |
@@ -381,11 +381,11 @@ Self-sizing: ResizeObserver reads actual `cardW`, scales font/padding as `Math.m
 
 ### MatchCard
 
-**Named export:** `export function MatchCard` — import as `import { MatchCard } from "..."`.
+**Named export:** `export function MatchCard` - import as `import { MatchCard } from "..."`.
 
 | Prop | Type | Default | Notes |
 |---|---|---|---|
-| `match` | object | — | Full match object from `getMatches()` |
+| `match` | object | - | Full match object from `getMatches()` |
 | `bitmap` | ImageBitmap \| null | `null` | Prop takes precedence over context |
 
 Background layers: CSS `backgroundImage` div (sharp) + `BitmapBlurLayer` canvas (blur) + gradient overlay + `cardInner` with inset border. `contain: "layout paint"` prevents style recalc escaping the card.
@@ -413,7 +413,7 @@ They never leave the viewport. Use a proxy element in normal flow (`heroSpacerRe
 Store in a ref array so IO + `visibilitychange` callbacks can pause/resume/kill them.
 
 **5. Reset tween ref arrays at effect top.**
-`floatTweensRef.current = []` before rebuilding. Strict Mode double-invokes effects — without reset the second run appends to stale refs.
+`floatTweensRef.current = []` before rebuilding. Strict Mode double-invokes effects - without reset the second run appends to stale refs.
 
 **6. `ctx.drawImage` not `transferFromImageBitmap`.**
 The latter closes the bitmap after one draw. Bitmaps are shared across multiple canvases from context.
@@ -432,7 +432,7 @@ All data fetched server-side in `page.js` via `Promise.all`. No mock data.
 
 ### Events
 ```js
-// getEvents() — for HeroSection + both timeline variants
+// getEvents() - for HeroSection + both timeline variants
 filter: { is_published: { _eq: true } }
 fields: ['*', 'user_created.organisation_name',
          'card_image.id', 'card_image.uploaded_on',
@@ -442,7 +442,7 @@ sort: ['start_date']
 
 ### Matches
 ```js
-// getMatches() — for MatchSection
+// getMatches() - for MatchSection
 filter: { status: { _in: ['live', 'upcoming'] } }
 // full nested: competition_category, format_id (with parsed modules),
 //              home/away participants + institution logos
@@ -451,12 +451,12 @@ sort: ['status', 'scheduled_at']
 
 ### Stats
 ```js
-// getStats() — parallel count queries on events, institutions, participants
+// getStats() - parallel count queries on events, institutions, participants
 ```
 
 ### News
 ```js
-// getNews({ limit: 5 }) — for NewsSection
+// getNews({ limit: 5 }) - for NewsSection
 filter: { is_published: { _eq: true } }
 fields: ['id', 'title', 'slug', 'excerpt',
          'thumbnail.id', 'thumbnail.uploaded_on', 'thumbnail.width', 'thumbnail.height',
@@ -484,7 +484,7 @@ competition_category.format_id = {
 
 ## 10. Known Constraints & Traps
 
-**`CurtainWrapper` is sacred.** Do not modify. The parallax math is fragile — one extra wrapper div or changed ref breaks scroll. Verify scrolling after any nearby change.
+**`CurtainWrapper` is sacred.** Do not modify. The parallax math is fragile - one extra wrapper div or changed ref breaks scroll. Verify scrolling after any nearby change.
 
 **`BlurProvider` is in `layout.jsx`, not `page.js`.** `page.js` is a clean server component. Never move blur logic back there.
 
@@ -496,7 +496,7 @@ competition_category.format_id = {
 
 **`FightBackground` plays once.** `hasStarted` ref locks playback. Requires both `visible=true` AND `isFullyVisible` (≥99% intersection ratio). Resets on play failure for retry.
 
-**`unregister` in BlurContext is a no-op.** Bitmaps persist for the session as a cross-page cache. Intentional — navigating back never re-processes.
+**`unregister` in BlurContext is a no-op.** Bitmaps persist for the session as a cross-page cache. Intentional - navigating back never re-processes.
 
 **StatSection images are static imports.** Do not add `1.jpg`, `2.jpg`, `3.jpg` to the blur manifest.
 
@@ -521,13 +521,13 @@ competition_category.format_id = {
 5. **Live ticker:**
    - Write to DOM refs, not state.
    - Gate on `visibleRef.current` and `tabVisRef.current`.
-   - Minimal dep arrays — use refs for frequently-changing values.
+   - Minimal dep arrays - use refs for frequently-changing values.
 
 ---
 
 ## 12. Bugs
 
-**1. `HeroSection.drawToCanvas` — not DPR-aware.**
+**1. `HeroSection.drawToCanvas` - not DPR-aware.**
 
 ```js
 // current (wrong on retina):
@@ -544,11 +544,11 @@ ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 drawCover(ctx, bitmap, w, h);
 ```
 
-Hero background canvases appear blurry on retina displays. The same DPR pattern is used correctly in `EventCard`, `NewsCard`, and `MatchCard` — HeroSection was missed.
+Hero background canvases appear blurry on retina displays. The same DPR pattern is used correctly in `EventCard`, `NewsCard`, and `MatchCard` - HeroSection was missed.
 
 ---
 
-**2. `NewsSection` — unguarded destructure.**
+**2. `NewsSection` - unguarded destructure.**
 
 ```js
 // current:
@@ -563,7 +563,7 @@ If `getNews()` returns an empty array, `main` is `undefined` and `main.thumbnail
 
 ---
 
-**3. `VerticalTimeline` — blur manifest always empty.**
+**3. `VerticalTimeline` - blur manifest always empty.**
 
 ```js
 // current (VerticalTimeline receives shaped events from shapeEvents(), which has no image_url field):
