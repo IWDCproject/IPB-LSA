@@ -234,7 +234,7 @@ export function Sidebar() {
         <SectionGroup
           label="Articles"
           href="/articles"
-          active={isOnArticles && pathname === '/articles'}
+          active={false} 
           bold
         >
           <NavLink
