@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EnginePanelProps } from './types'
 
 export default function JudgeScoresPanel({ liveState, onPatch, format }: EnginePanelProps) {
@@ -20,13 +20,54 @@ export default function JudgeScoresPanel({ liveState, onPatch, format }: EngineP
     () => Array.from({ length: numJudges }, (_, i) => liveState.judgeScores[i] ?? '')
   )
 
+  // FIX: drafts were initialised from liveState once at mount and never synced
+  // again. If another panel or operator overrode judge scores externally (e.g.
+  // via OperatorOverride), this component kept showing stale values.
+  //
+  // Strategy: track the last external value we saw. If the user hasn't modified
+  // drafts since the last external update (i.e. drafts still match the previous
+  // external snapshot), apply the incoming external values. If the user has local
+  // edits, preserve them and let them decide when to record.
+  const lastExternalScoresRef = useRef<(number | '')[]>(
+    Array.from({ length: numJudges }, (_, i) => liveState.judgeScores[i] ?? '')
+  )
+
+  useEffect(() => {
+    const incoming: (number | '')[] = Array.from(
+      { length: numJudges },
+      (_, i) => liveState.judgeScores[i] ?? ''
+    )
+
+    // Check whether the user has local edits compared to the last-seen external snapshot.
+    const hasLocalEdits = drafts.some(
+      (d, i) => d !== lastExternalScoresRef.current[i]
+    )
+
+    if (!hasLocalEdits) {
+      // No local changes — safe to track the incoming external state.
+      setDrafts(incoming)
+    }
+    // Always update the ref so the next comparison uses the latest external baseline.
+    lastExternalScoresRef.current = incoming
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(liveState.judgeScores)])
+
   function setDraft(i: number, val: string) {
     const parsed = parseFloat(val)
     const next   = [...drafts]
     if (val === '') {
       next[i] = ''
+    } else if (!isNaN(parsed)) {
+      // Clamp to [scoreMin, scoreMax].
+      const clamped = Math.min(scoreMax, Math.max(scoreMin, parsed))
+      // FIX: enforce step precision so inputs like "7.3" with step=0.5 snap to
+      // the nearest valid increment instead of accepting any float.
+      const snapped = step > 0
+        ? Math.round(clamped / step) * step
+        : clamped
+      next[i] = parseFloat(snapped.toFixed(10)) // avoid floating-point noise
     } else {
-      next[i] = isNaN(parsed) ? '' : Math.min(scoreMax, Math.max(scoreMin, parsed))
+      next[i] = ''
     }
     setDrafts(next)
   }
@@ -34,7 +75,7 @@ export default function JudgeScoresPanel({ liveState, onPatch, format }: EngineP
   function calcAverage(scores: number[]): number {
     if (scores.length === 0) return 0
     if (method === 'drop_extremes' && scores.length >= 3) {
-      const sorted = [...scores].sort((a, b) => a - b)
+      const sorted  = [...scores].sort((a, b) => a - b)
       const trimmed = sorted.slice(1, -1)
       return trimmed.reduce((a, b) => a + b, 0) / trimmed.length
     }
@@ -50,6 +91,8 @@ export default function JudgeScoresPanel({ liveState, onPatch, format }: EngineP
     if (!allFilled) return
     const scores = drafts as number[]
     await onPatch({ judgeScores: scores })
+    // Sync the ref so the next external update correctly sees no local edits.
+    lastExternalScoresRef.current = scores
   }
 
   return (
@@ -63,7 +106,6 @@ export default function JudgeScoresPanel({ liveState, onPatch, format }: EngineP
       </div>
 
       <div className="p-6">
-        {/* Judge boxes - Now wider (w-20) and bigger text */}
         <div className="flex gap-3 justify-center flex-wrap">
           {Array.from({ length: numJudges }, (_, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">
@@ -82,7 +124,6 @@ export default function JudgeScoresPanel({ liveState, onPatch, format }: EngineP
           ))}
         </div>
 
-        {/* Action Row */}
         <div className="flex items-center justify-between mt-8 pt-4 border-t border-zinc-100">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase text-zinc-400 font-bold leading-none mb-1">
@@ -92,7 +133,7 @@ export default function JudgeScoresPanel({ liveState, onPatch, format }: EngineP
               {average !== null ? average.toFixed(2) : '–'}
             </span>
           </div>
-          
+
           <button
             disabled={!allFilled}
             onClick={handleRecord}

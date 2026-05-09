@@ -9,12 +9,9 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
   }}).config
 
   const { setIdx, setPhase, setScore, setsWon, setLog } = liveState
-  const setTerm  = cfg.term        ?? 'Set'
-  const maxSets  = cfg.max_sets    ?? 3
-  const toWin    = cfg.sets_to_win ?? 2
-
-  // FIX: derive whether the match has already been decided so we can
-  // block starting new sets and showing win buttons after the fact.
+  const setTerm     = cfg.term        ?? 'Set'
+  const maxSets     = cfg.max_sets    ?? 3
+  const toWin       = cfg.sets_to_win ?? 2
   const matchDecided = (setsWon[0] >= toWin) || (setsWon[1] >= toWin)
 
   async function adjustSetScore(side: 'home' | 'away', delta: number) {
@@ -41,18 +38,11 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
 
     const newSetLog: SetLogEntry[] = [...(setLog ?? []), entry]
 
-    // FIX: was always doing setIdx + 1, which overflowed past maxSets on the
-    // deciding set (e.g. showed "Set 4/3" in a best-of-3).
-    // When the match is now decided, keep setIdx on the current (deciding) set.
-    // When not yet decided, clamp to maxSets - 1 as a safety net.
     const newMatchDecided = newSetsWon[0] >= toWin || newSetsWon[1] >= toWin
     const nextSetIdx = newMatchDecided
       ? setIdx
       : Math.min(setIdx + 1, maxSets - 1)
 
-    // NOTE: pendingSetWinner was always written as null here and never set to a
-    // non-null value anywhere - it was dead code from a removed flow. Kept null
-    // to satisfy the DB schema but has no functional effect.
     await onPatch({
       setsWon:          newSetsWon,
       setLog:           newSetLog,
@@ -102,7 +92,6 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 bg-zinc-50">
         <WinDots won={setsWon[0]} needed={toWin} label="Home" />
 
-        {/* FIX: hide start/win controls entirely when match is already decided */}
         {matchDecided ? (
           <span className="text-xs text-zinc-400 italic">Match decided</span>
         ) : setPhase === 'idle' ? (
@@ -151,6 +140,7 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
           score={setScore[0]}
           onPlus={() => adjustSetScore('home', 1)}
           onMinus={() => adjustSetScore('home', -1)}
+          disabled={matchDecided}
         />
         <div className="flex items-center justify-center px-4">
           <span className="text-xl font-bold text-zinc-300">VS</span>
@@ -160,6 +150,7 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
           score={setScore[1]}
           onPlus={() => adjustSetScore('away', 1)}
           onMinus={() => adjustSetScore('away', -1)}
+          disabled={matchDecided}
         />
       </div>
 
@@ -198,14 +189,15 @@ export default function ScoreSetsPanel({ liveState, onPatch, format }: EnginePan
 // --- Komponen kecil --------------------------------------------
 
 function ScoreColumn({
-  label, score, onPlus, onMinus,
-}: { label: string; score: number; onPlus: () => void; onMinus: () => void }) {
+  label, score, onPlus, onMinus, disabled,
+}: { label: string; score: number; onPlus: () => void; onMinus: () => void; disabled?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <p className="text-xs font-medium text-zinc-500">{label}</p>
       <button
         onClick={onPlus}
-        className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors"
+        disabled={disabled}
+        className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors disabled:opacity-30"
       >
         +
       </button>
@@ -219,7 +211,7 @@ function ScoreColumn({
       </div>
       <button
         onClick={onMinus}
-        disabled={score <= 0}
+        disabled={disabled || score <= 0}
         className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors disabled:opacity-30"
       >
         −

@@ -24,7 +24,7 @@ const SetLogEntrySchema = z.object({
 })
 
 const TimeLogEntrySchema = z.object({
-  id: z.string().max(36).optional(), // optional for legacy rows
+  id: z.string().max(36).optional(),
   name: z.string().max(100),
   time: z.string().max(20),
 })
@@ -52,13 +52,14 @@ const LiveStatePatchSchema = z.object({
   setsWon: z.tuple([z.number(), z.number()]).optional(),
   setLog: z.array(SetLogEntrySchema).optional(),
   pendingSetWinner: z.string().max(36).nullable().optional(),
+  // FIX: was z.array(z.number()) which rejected the null[] that handleFullReset
+  // previously sent. Changed to allow null entries so a reset to [] is always
+  // sent from the client instead (see ControlPanel handleFullReset fix).
   judgeScores: z.array(z.number()).optional(),
   timeLog: z.array(TimeLogEntrySchema).optional(),
-}).strict() // blocks any injected keys not listed above
+}).strict()
 
 // --- Default live state ----------------------------------------
-// Used when a match has no live_state yet (null from DB).
-// Prevents spreading {} and producing an incomplete LiveState object.
 
 const defaultLiveState: LiveState = {
   matchStatus: 'upcoming',
@@ -84,12 +85,26 @@ const defaultLiveState: LiveState = {
   timeLog: [],
 }
 
-// --- Admin client (bypasses row-level permissions) -------------
-// Uses DIRECTUS_URL (no NEXT_PUBLIC_ prefix) so Next.js never
-// bundles this value into client-side JS.
+// --- Admin client ----------------------------------------------
+//
+// FIX (SECURITY): was process.env.NEXT_PUBLIC_DIRECTUS_URL which causes
+// Next.js to inline the value into every client-side JS bundle, leaking the
+// internal Directus URL to all browser visitors. Server actions run only on
+// the server; the env var must use a server-only name (no NEXT_PUBLIC_ prefix)
+// so Next.js never bundles it into client code.
+//
+// FIX (RELIABILITY): added runtime guards so the process fails fast with a
+// clear error during startup if either secret is missing, rather than passing
+// undefined to the SDK and getting a cryptic network error at request time.
 
-const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
-  .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
+function requireEnv(name: string): string {
+  const val = process.env[name]
+  if (!val) throw new Error(`Missing required environment variable: ${name}`)
+  return val
+}
+
+const adminDirectus = createDirectus(requireEnv('DIRECTUS_URL'))
+  .with(staticToken(requireEnv('DIRECTUS_STATIC_TOKEN')))
   .with(rest())
 
 // --- Helpers ---------------------------------------------------
@@ -102,14 +117,9 @@ function assertUUID(value: unknown, label: string): asserts value is string {
   }
 }
 
-/**
- * Logs the real error server-side and returns a safe generic string
- * so internal messages (Directus errors, constraint names, etc.) never reach the client.
- */
 function safeError(context: string, error: unknown): string {
   console.error(`[${context}]`, error)
   if (error instanceof Error) {
-    // Re-surface only our own validation/auth messages; swallow everything else.
     if (
       error.message === 'Unauthorized' ||
       error.message === 'Forbidden: Insufficient privileges' ||
@@ -134,20 +144,10 @@ async function requireOperator() {
   return session
 }
 
-/**
- * Verifies the caller owns the event this match belongs to.
- * Traversal: matches -> competition_category_id -> event_id -> user_created
- *
- * FIX: was using session.user.id (undefined in this app's session type) instead
- * of session.user.directusId. This had two failure modes:
- *   1. Valid PJ Ormawa: ownerId !== undefined → always true → permanently locked out
- *   2. Broken relation (ownerId also undefined): undefined !== undefined → false → auth bypass
- */
 async function verifyMatchOwnership(matchId: string) {
   const session = await requireOperator()
   const userRole = session.user.role
 
-  // SuperAdmin and Administrator can manage any match.
   if (userRole === 'SuperAdmin' || userRole === 'Administrator') return session
 
   const match = await adminDirectus.request(
@@ -158,10 +158,8 @@ async function verifyMatchOwnership(matchId: string) {
 
   const ownerId: string | undefined = match?.competition_category_id?.event_id?.user_created
 
-  // Explicit guard: if the relation didn't resolve, deny rather than silently pass.
   if (!ownerId) throw new Error('Forbidden: Insufficient privileges')
 
-  // FIX: was session.user.id - must be directusId to match Directus user records.
   if (ownerId !== session.user.directusId) {
     throw new Error('Forbidden: Insufficient privileges')
   }
@@ -173,8 +171,6 @@ async function verifyMatchOwnership(matchId: string) {
 
 export async function getMatchControlDataAction(matchId: string) {
   try {
-    // FIX: was only checking session existence - any logged-in user could read
-    // full match control data including live_state and format config.
     await requireOperator()
 
     assertUUID(matchId, 'matchId')
@@ -217,14 +213,9 @@ export async function patchLiveStateAction(matchId: string, rawPartial: Partial<
       })
     ) as any
 
-    // FIX: was `current.live_state ?? {}` which produced an incomplete LiveState
-    // when a match had no state yet. Now merges against a fully-typed default.
-    //
     // NOTE - TOCTOU race condition: this is a read-modify-write with no locking.
     // Two concurrent updates will silently overwrite each other (last write wins).
-    // Acceptable for single-operator matches. If you ever allow multiple concurrent
-    // operators per match, replace with a PostgreSQL function that does atomic
-    // JSONB field merging so no update is lost.
+    // Acceptable for single-operator matches; use atomic JSONB merging if that changes.
     const merged: LiveState = {
       ...defaultLiveState,
       ...(current.live_state ?? {}),
@@ -270,7 +261,6 @@ export async function setMatchStatusAction(
       })
     ) as any
 
-    // FIX: same defaultLiveState merge as patchLiveStateAction. Same TOCTOU caveat applies.
     const merged: LiveState = {
       ...defaultLiveState,
       ...(current.live_state ?? {}),

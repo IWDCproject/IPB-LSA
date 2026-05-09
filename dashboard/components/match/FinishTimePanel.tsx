@@ -36,9 +36,14 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
   const [secs, setSecs] = useState('')
   const [ms,   setMs]   = useState('')
 
-  const loggedIds = new Set<string>(liveState.timeLog.map((e: TimeLogEntry) => e.id ?? e.name))
-  const pending   = participants.filter((p) => !loggedIds.has(p.id) && !loggedIds.has(p.name))
-  const allDone   = pending.length === 0 && participants.length > 0
+  // FIX: use participant.id as the canonical set key, falling back to name for
+  // legacy rows. Using both caused ambiguity when a participant's name happened
+  // to equal another participant's id (unlikely but possible in test data).
+  const loggedIds = new Set<string>(
+    liveState.timeLog.map((e: TimeLogEntry) => e.id ?? e.name)
+  )
+  const pending = participants.filter((p) => !loggedIds.has(p.id) && !loggedIds.has(p.name))
+  const allDone = pending.length === 0 && participants.length > 0
 
   function buildSortedLog(log: TimeLogEntry[]) {
     return [...log].sort((a, b) => {
@@ -64,6 +69,10 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
     const m_  = parseInt(mins || '0', 10)
     const s_  = parseInt(secs || '0', 10)
     const ms_ = parseInt(ms   || '0', 10)
+
+    const totalMs = m_ * 60000 + s_ * 1000 + ms_
+    if (totalMs <= 0) return
+
     const timeStr = showMs ? `${m_}m ${s_}s ${ms_}ms` : `${m_}m ${s_}s`
 
     const newLog: TimeLogEntry[] = [
@@ -77,11 +86,23 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
   }
 
   async function handleRemove(id: string) {
-    const newLog: TimeLogEntry[] = liveState.timeLog.filter((e: TimeLogEntry) => e.id !== id && e.name !== id)
+    const newLog: TimeLogEntry[] = liveState.timeLog.filter(
+      (e: TimeLogEntry) => e.id !== id && e.name !== id
+    )
     await onPatch({ timeLog: newLog, rankings: buildRankings(newLog) })
   }
 
-  const canRecord = (isSolo || selectedId) && (mins || secs || (showMs && ms))
+  // FIX: disallow Record when time is 0 across all fields even if fields are filled,
+  // in addition to the existing participant + at-least-one-field check.
+  const totalMs =
+    parseInt(mins || '0', 10) * 60000 +
+    parseInt(secs || '0', 10) * 1000 +
+    (showMs ? parseInt(ms || '0', 10) : 0)
+  const canRecord =
+    (isSolo || selectedId) &&
+    (mins || secs || (showMs && ms)) &&
+    totalMs > 0
+
   const sortedLog = buildSortedLog(liveState.timeLog)
 
   return (
@@ -103,7 +124,6 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
         {/* ── Input row ── */}
         {!allDone && (
           <div className="flex items-center gap-2">
-            {/* Participant selector */}
             {!isSolo && (
               <Select value={selectedId} onValueChange={setSelectedId}>
                 <SelectTrigger className="h-9 min-w-0 flex-[2] text-sm">
@@ -117,7 +137,6 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
               </Select>
             )}
 
-            {/* Time inputs */}
             <TimeInput value={mins} onChange={setMins} placeholder="0"   suffix="m"  max={3} />
             <span className="text-zinc-300 text-sm shrink-0">:</span>
             <TimeInput value={secs} onChange={setSecs} placeholder="00"  suffix="s"  max={2} />

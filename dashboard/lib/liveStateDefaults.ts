@@ -1,4 +1,6 @@
-export const DEFAULT_LIVE_STATE = {
+import { LiveState } from '@/types/directus'
+
+export const DEFAULT_LIVE_STATE: LiveState = {
   matchStatus:      'upcoming',
   winner:           null,
   rankings:[],

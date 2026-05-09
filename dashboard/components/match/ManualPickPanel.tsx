@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -34,10 +34,31 @@ export default function ManualPickPanel({
 
   const pool = top_n > 0 ? participants.slice(0, top_n) : participants
 
+  const savedRankings: Array<{ rank: number; id: string; name: string }> = liveState.rankings ?? []
+
   const [rankedIds, setRankedIds] = useState<string[]>(() =>
-    (liveState.rankings ?? []).map((r: { id: string }) => r.id)
+    savedRankings.map((r) => r.id)
   )
   const [addingId, setAddingId] = useState('')
+
+  const lastExternalIdsRef = useRef<string[]>(savedRankings.map((r) => r.id))
+
+  const hasUnsaved =
+    JSON.stringify(rankedIds) !== JSON.stringify(savedRankings.map((r) => r.id))
+
+  useEffect(() => {
+    const incomingIds = (liveState.rankings ?? []).map((r) => r.id)
+
+    // No local edits means rankedIds still matches our last-seen external baseline.
+    const hasLocalEdits =
+      JSON.stringify(rankedIds) !== JSON.stringify(lastExternalIdsRef.current)
+
+    if (!hasLocalEdits) {
+      setRankedIds(incomingIds)
+    }
+    lastExternalIdsRef.current = incomingIds
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(liveState.rankings)])
 
   const unranked = pool.filter((p) => !rankedIds.includes(p.id))
 
@@ -70,9 +91,9 @@ export default function ManualPickPanel({
       })
       .filter(Boolean) as Array<{ rank: number; id: string; name: string }>
     await onPatch({ rankings })
+    // Sync the ref so the next external update sees no local edits.
+    lastExternalIdsRef.current = rankedIds
   }
-
-  const savedRankings: Array<{ rank: number; id: string; name: string }> = liveState.rankings ?? []
 
   // ── Render: H2H ─────────────────────────────────────────────
 
@@ -163,10 +184,6 @@ export default function ManualPickPanel({
     return 'text-zinc-400'
   }
 
-  const hasUnsaved =
-    JSON.stringify(rankedIds) !==
-    JSON.stringify(savedRankings.map((r) => r.id))
-
   return (
     <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
       {/* Header */}
@@ -236,15 +253,10 @@ export default function ManualPickPanel({
                     key={id}
                     className="flex items-center gap-2.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5"
                   >
-                    {/* Rank badge */}
                     <span className={`text-xs font-bold w-6 tabular-nums shrink-0 ${rankLabel(i)}`}>
                       #{i + 1}
                     </span>
-
-                    {/* Name */}
                     <span className="flex-1 text-sm font-medium text-zinc-800 truncate">{p.name}</span>
-
-                    {/* Reorder (only when ranked_order is enabled) */}
                     {ranked_order && (
                       <div className="flex gap-0.5 shrink-0">
                         <button
@@ -265,8 +277,6 @@ export default function ManualPickPanel({
                         </button>
                       </div>
                     )}
-
-                    {/* Remove */}
                     <button
                       onClick={() => handleRemove(id)}
                       title="Remove"

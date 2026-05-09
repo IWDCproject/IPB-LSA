@@ -10,7 +10,7 @@ import type { LiveState, TimerMode } from '@/types/directus'
 type Props = {
   liveState: LiveState
   mode:      TimerMode
-  duration:  number        // initial secs (0 = stopwatch start)
+  duration:  number
   onPatch:   (partial: Partial<LiveState>) => Promise<void>
   disabled?: boolean
 }
@@ -21,8 +21,23 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
   const [display, setDisplay] = useState(() => calcCurrentSecs(liveState, mode))
   const rafRef                = useRef<number>(0)
 
-  // update display tiap frame tanpa PATCH
+  // FIX: was running a requestAnimationFrame loop unconditionally, even when the
+  // timer was stopped. This meant the RAF callback fired ~60 times/second for
+  // every TimerBlock on the page regardless of whether the timer was running —
+  // wasting CPU and battery with no visual benefit (the display value doesn't
+  // change while stopped).
+  //
+  // Now: when not running, set the display once and skip the loop entirely.
+  // When running, start the RAF loop and cancel it on cleanup.
   useEffect(() => {
+    cancelAnimationFrame(rafRef.current)
+
+    if (!liveState.timerRunning) {
+      // Timer is paused/stopped — snapshot the current value and bail.
+      setDisplay(calcCurrentSecs(liveState, mode))
+      return
+    }
+
     function tick() {
       setDisplay(calcCurrentSecs(liveState, mode))
       rafRef.current = requestAnimationFrame(tick)
@@ -31,18 +46,35 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
     return () => cancelAnimationFrame(rafRef.current)
   }, [liveState, mode])
 
-  // countdown habis - otomatis stop
+  // FIX: without a guard ref, this effect could call onPatch many times before
+  // the liveState prop updated. The RAF loop updates `display` at ~60fps; every
+  // frame where display <= 0 triggered a new PATCH request until the server
+  // responded and the component re-rendered with timerRunning = false.
+  //
+  // `stoppingRef` acts as a one-shot lock: set to true on the first stop call,
+  // reset after the patch resolves so the guard lifts if the timer is restarted.
+  const stoppingRef = useRef(false)
+
   useEffect(() => {
-    if (mode === 'countdown' && display <= 0 && liveState.timerRunning) {
+    if (
+      mode === 'countdown' &&
+      display <= 0 &&
+      liveState.timerRunning &&
+      !stoppingRef.current
+    ) {
+      stoppingRef.current = true
       onPatch({
-        timerRunning:      false,
-        timerSecs:         0,
-        timerLastStarted:  null,
+        timerRunning:     false,
+        timerSecs:        0,
+        timerLastStarted: null,
+      }).finally(() => {
+        stoppingRef.current = false
       })
     }
   }, [display, mode, liveState.timerRunning, onPatch])
 
-  const initSecs = mode === 'stopwatch' ? 0 : duration
+  const initSecs  = mode === 'stopwatch' ? 0 : duration
+  const isRunning = liveState.timerRunning
 
   async function handleStart() {
     const current = calcCurrentSecs(liveState, mode)
@@ -71,23 +103,21 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
     })
   }
 
-  const isRunning = liveState.timerRunning
-
   return (
     <div>
       <p className="text-xs font-medium text-zinc-500 mb-2">
         Timer <span className="text-zinc-400">({mode})</span>
       </p>
 
-      {/* display utama */}
-      <div className="text-5xl font-[800] text-zinc-900 tabular-nums tracking-tight mb-4"
-        style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+      <div
+        className="text-5xl font-[800] text-zinc-900 tabular-nums tracking-tight mb-4"
+        style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+      >
         {mode === 'deadline' && liveState.timerTarget
           ? formatDeadline(liveState.timerTarget)
           : formatSecs(display)}
       </div>
 
-      {/* kontrol */}
       <div className="flex gap-2">
         <Button
           variant="noBorder"
@@ -116,7 +146,6 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
         )}
       </div>
 
-      {/* flag log */}
       {(liveState.timerFlags?.length ?? 0) > 0 && (
         <div className="mt-3 space-y-0.5">
           {liveState.timerFlags.map((f, i) => (

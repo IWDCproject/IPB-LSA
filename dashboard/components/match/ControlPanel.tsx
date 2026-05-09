@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useTransition } from 'react'
+import { useCallback, useRef, useState, useTransition } from 'react'
 import { useRouter }        from 'next/navigation'
 import { ENGINE_PANELS }    from './engines'
 import { TimerBlock }       from './TimerBlock'
@@ -28,6 +28,17 @@ type Props = {
   round?:           string
 }
 
+// FIX: was typed `any`, which propagated silently wrong values and suppressed
+// TS errors for callers. Now fully typed so mismatches are caught at compile time.
+type MatchWinnerSelectorProps = {
+  explicitWinnerId: string | null
+  autoWinnerId:     string | null
+  homeParticipant:  Participant | null
+  awayParticipant:  Participant | null
+  onPatch:          (partial: Partial<LiveState>) => Promise<void>
+  disabled:         boolean
+}
+
 // --- Komponen utama --------------------------------------------
 
 export function ControlPanel({
@@ -37,22 +48,32 @@ export function ControlPanel({
   matchName, round,
 }: Props) {
   const router = useRouter()
-  // Using key={stateKey} in page.tsx manages the refresh,
   const [liveState, setLiveState] = useState<LiveState>({
     ...DEFAULT_LIVE_STATE,
-    ...(initialLiveState || {})
+    ...(initialLiveState || {}),
   })
   const [isPending, startTransition] = useTransition()
 
-  // patch helper - optimistic update then server action
+  // FIX: store the pre-patch snapshot so we can roll back if the server action fails.
+  // Without this, a failed PATCH leaves the UI in the optimistically-updated state
+  // indefinitely, showing data that was never persisted.
+  const prevLiveStateRef = useRef<LiveState | null>(null)
+
   const patch = useCallback(async (partial: Partial<LiveState>) => {
-    setLiveState((prev) => ({ ...prev, ...partial }))
+    setLiveState((prev) => {
+      prevLiveStateRef.current = prev
+      return { ...prev, ...partial }
+    })
     startTransition(async () => {
       const res = await patchLiveStateAction(matchId, partial)
       if (res.success) {
         router.refresh()
       } else {
         console.error('patch failed:', res.error)
+        // Roll back optimistic update to the state before this patch.
+        if (prevLiveStateRef.current) {
+          setLiveState(prevLiveStateRef.current)
+        }
       }
     })
   }, [matchId, router])
@@ -72,7 +93,7 @@ export function ControlPanel({
 
   const matchSubtitle = [categoryName, round].filter(Boolean).join(' · ')
   const status = liveState.matchStatus
-  const isH2H = format.match_type === 'head_to_head'
+  const isH2H  = format.match_type === 'head_to_head'
 
   // --- Auto-Calculation Logic (The Suggestion Engine) ---------
 
@@ -80,30 +101,38 @@ export function ControlPanel({
 
   if (isH2H) {
     if (engineType === 'score_timed') {
-      const home = liveState.homeScore ?? 0
-      const away = liveState.awayScore ?? 0
-      if (home > away) autoWinnerId = homeParticipant?.id ?? null
-      else if (away > home) autoWinnerId = awayParticipant?.id ?? null
-      else autoWinnerId = 'draw'
+      // FIX: was suggesting a winner based on score at any time, even mid-match
+      // (e.g. during Period 1 of 3). Now only fires after all periods are done to
+      // avoid showing a misleading "Home wins" badge during a halftime break.
+      const scoreModule = format.modules.find((m) => m.type === 'score_timed') as
+        | { type: 'score_timed'; config: { has_periods: boolean; period_count?: number } }
+        | undefined
+      const hasPeriods   = scoreModule?.config.has_periods ?? false
+      const periodCount  = scoreModule?.config.period_count ?? 1
+      const allDone = !hasPeriods ||
+        (liveState.periodPhase === 'halftime' && (liveState.periodIdx ?? 0) + 1 >= periodCount)
+
+      if (allDone) {
+        const home = liveState.homeScore ?? 0
+        const away = liveState.awayScore ?? 0
+        if (home > away)      autoWinnerId = homeParticipant?.id ?? null
+        else if (away > home) autoWinnerId = awayParticipant?.id ?? null
+        else                  autoWinnerId = 'draw'
+      }
     } else if (engineType === 'score_sets') {
-      // FIX: was using setsWon[0] > setsWon[1] (leader-based), which incorrectly
-      // suggested a winner mid-match in formats like best-of-5 where someone can
-      // lead 2-1 without having clinched. Now only fires when a side reaches toWin.
       const setsModule = format.modules.find((m) => m.type === 'score_sets') as
         | { type: 'score_sets'; config: { sets_to_win: number } }
         | undefined
       const toWin = setsModule?.config.sets_to_win ?? 0
       const home  = liveState.setsWon?.[0] ?? 0
       const away  = liveState.setsWon?.[1] ?? 0
-      if (toWin > 0 && home >= toWin) autoWinnerId = homeParticipant?.id ?? null
+      if (toWin > 0 && home >= toWin)      autoWinnerId = homeParticipant?.id ?? null
       else if (toWin > 0 && away >= toWin) autoWinnerId = awayParticipant?.id ?? null
-      // else: no suggestion - match still in progress, leave autoWinnerId as null
     }
   }
 
-  // The actual winner is the explicit override OR the auto-calculated one
   const explicitWinnerId = liveState.winner
-  const finalWinnerId = explicitWinnerId !== null ? explicitWinnerId : autoWinnerId
+  const finalWinnerId    = explicitWinnerId !== null ? explicitWinnerId : autoWinnerId
 
   // --- Status transitions ------------------------------------
 
@@ -115,57 +144,85 @@ export function ControlPanel({
       timerRunning:     false,
       timerLastStarted: null,
     }
-    setLiveState((prev) => ({ ...prev, ...partial }))
+    setLiveState((prev) => {
+      prevLiveStateRef.current = prev
+      return { ...prev, ...partial }
+    })
     startTransition(async () => {
       const res = await setMatchStatusAction(matchId, 'live', partial)
-      if (res.success) router.refresh()
+      if (res.success) {
+        router.refresh()
+      } else if (prevLiveStateRef.current) {
+        setLiveState(prevLiveStateRef.current)
+      }
     })
   }
 
   async function handleFinishMatch() {
     const partial: Partial<LiveState> = {
-      timerRunning: false, timerLastStarted: null,
+      timerRunning:     false,
+      timerLastStarted: null,
     }
-
-    // Capture the final winner so it persists into the DB on Finish
     if (isH2H && finalWinnerId !== null) {
       partial.winner = finalWinnerId
     }
-
-    setLiveState((prev) => ({ ...prev, ...partial, matchStatus: 'finished' }))
+    setLiveState((prev) => {
+      prevLiveStateRef.current = prev
+      return { ...prev, ...partial, matchStatus: 'finished' }
+    })
     startTransition(async () => {
       const res = await setMatchStatusAction(matchId, 'finished', partial)
-      if (res.success) router.refresh()
+      if (res.success) {
+        router.refresh()
+      } else if (prevLiveStateRef.current) {
+        setLiveState(prevLiveStateRef.current)
+      }
     })
   }
 
   async function handleContinue() {
-    setLiveState((prev) => ({ ...prev, matchStatus: 'live' }))
+    setLiveState((prev) => {
+      prevLiveStateRef.current = prev
+      return { ...prev, matchStatus: 'live' }
+    })
     startTransition(async () => {
       const res = await setMatchStatusAction(matchId, 'live')
-      if (res.success) router.refresh()
+      if (res.success) {
+        router.refresh()
+      } else if (prevLiveStateRef.current) {
+        setLiveState(prevLiveStateRef.current)
+      }
     })
   }
 
   async function handleFullReset() {
+    // FIX: was iterating Object.keys(liveState) with `as any`, which is fragile
+    // (misses new keys, includes unexpected runtime keys, resets judgeScores to
+    // null[] which fails the server's z.array(z.number()) schema). Now explicitly
+    // builds a clean reset from DEFAULT_LIVE_STATE with only the timer duration
+    // overridden, and resets judgeScores to [] (empty, valid array of numbers).
     const timerDuration = timerModule?.config.duration ?? 0
-    const next: any = {}
-    for (const k of Object.keys(liveState)) {
-      const key = k as keyof LiveState
-      if (key === 'matchStatus') next[key] = 'upcoming'
-      else if (key === 'timerSecs') next[key] = timerDuration
-      else if (key === 'judgeScores' && Array.isArray(liveState[key])) {
-        next[key] = (liveState[key] as any[]).map(() => null)
-      } else if (key in DEFAULT_LIVE_STATE) {
-        next[key] = (DEFAULT_LIVE_STATE as any)[key]
-      } else {
-        next[key] = liveState[key]
-      }
+    const next: LiveState = {
+      ...DEFAULT_LIVE_STATE,
+      matchStatus:      'upcoming',
+      timerSecs:        timerDuration,
+      timerRunning:     false,
+      timerLastStarted: null,
+      judgeScores:      [],
+      // Add this line to satisfy the strict union type:
+      periodPhase:      'idle', 
     }
-    setLiveState(next)
+    setLiveState((prev) => {
+      prevLiveStateRef.current = prev
+      return next
+    })
     startTransition(async () => {
       const res = await setMatchStatusAction(matchId, 'upcoming', next)
-      if (res.success) router.refresh()
+      if (res.success) {
+        router.refresh()
+      } else if (prevLiveStateRef.current) {
+        setLiveState(prevLiveStateRef.current)
+      }
     })
   }
 
@@ -275,50 +332,73 @@ export function ControlPanel({
 // --- Component: MatchWinnerSelector ----------------------------
 
 function MatchWinnerSelector({
-  explicitWinnerId, autoWinnerId, homeParticipant, awayParticipant, onPatch, disabled
-}: any) {
+  explicitWinnerId, autoWinnerId, homeParticipant, awayParticipant, onPatch, disabled,
+}: MatchWinnerSelectorProps) {
   async function pickWinner(side: 'home' | 'away' | 'draw' | 'clear') {
-    if (side === 'clear') { await onPatch({ winner: null }); return; }
-    const id = side === 'draw' ? 'draw' : side === 'home' ? (homeParticipant?.id ?? null) : (awayParticipant?.id ?? null);
-    await onPatch({ winner: id });
+    if (side === 'clear') { await onPatch({ winner: null }); return }
+    const id =
+      side === 'draw' ? 'draw'
+      : side === 'home' ? (homeParticipant?.id ?? null)
+      : (awayParticipant?.id ?? null)
+    await onPatch({ winner: id })
   }
 
-  const isOverridden = explicitWinnerId !== null
-  const activeWinner = isOverridden ? explicitWinnerId : autoWinnerId
-  const isHome = activeWinner === homeParticipant?.id && homeParticipant != null
-  const isAway = activeWinner === awayParticipant?.id && awayParticipant != null
-  const isDraw = activeWinner === 'draw'
+  const isOverridden  = explicitWinnerId !== null
+  const activeWinner  = isOverridden ? explicitWinnerId : autoWinnerId
+  const isHome        = homeParticipant != null && activeWinner === homeParticipant.id
+  const isAway        = awayParticipant != null && activeWinner === awayParticipant.id
+  const isDraw        = activeWinner === 'draw'
 
   const activeClasses   = 'border-zinc-900 bg-zinc-900 text-white'
   const inactiveClasses = 'border-zinc-200 hover:border-zinc-900 bg-white text-zinc-800'
+
+  const options = [
+    { side: 'home' as const, label: homeParticipant?.name ?? 'Home', active: isHome },
+    { side: 'draw' as const, label: 'Draw',                          active: isDraw },
+    { side: 'away' as const, label: awayParticipant?.name ?? 'Away', active: isAway },
+  ]
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm">
       <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-zinc-900">Match Resolution</p>
-          {isOverridden && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-zinc-300 bg-zinc-100 text-zinc-600 uppercase tracking-wider">Override</span>}
+          {isOverridden && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-zinc-300 bg-zinc-100 text-zinc-600 uppercase tracking-wider">
+              Override
+            </span>
+          )}
         </div>
-        {isOverridden && <button onClick={() => pickWinner('clear')} disabled={disabled} className="text-xs text-zinc-400 hover:text-zinc-900">Clear</button>}
+        {isOverridden && (
+          <button onClick={() => pickWinner('clear')} disabled={disabled} className="text-xs text-zinc-400 hover:text-zinc-900">
+            Clear
+          </button>
+        )}
       </div>
 
       <div className="p-3">
         <div className="grid gap-2 grid-cols-3 items-stretch">
-          {[
-            { side: 'home', label: homeParticipant?.name ?? 'Home', active: isHome },
-            { side: 'draw', label: 'Draw', active: isDraw },
-            { side: 'away', label: awayParticipant?.name ?? 'Away', active: isAway }
-          ].map((item) => (
+          {options.map((item) => (
             <ConfirmDialog
               key={item.side}
               trigger={
-                <button disabled={disabled} className={`w-full rounded-md border-2 py-3 px-2 text-xs font-bold transition-all ${item.active ? activeClasses : inactiveClasses}`}>
+                <button
+                  disabled={disabled}
+                  className={`w-full rounded-md border-2 py-3 px-2 text-xs font-bold transition-all ${item.active ? activeClasses : inactiveClasses}`}
+                >
                   <div className="truncate w-full">{item.label}</div>
-                  {item.active && <div className="text-[9px] font-bold mt-0.5 opacity-70 uppercase tracking-wider">{isOverridden ? 'Forced' : 'Auto'}</div>}
+                  {item.active && (
+                    <div className="text-[9px] font-bold mt-0.5 opacity-70 uppercase tracking-wider">
+                      {isOverridden ? 'Forced' : 'Auto'}
+                    </div>
+                  )}
                 </button>
               }
-              title="Set Winner" description={`Set result to ${item.label}?`}
-              confirmLabel="Confirm" variant="filled" onConfirm={() => pickWinner(item.side as any)}
+              title="Set Winner"
+              description={`Set result to ${item.label}?`}
+              confirmLabel="Confirm"
+              variant="filled"
+              onConfirm={() => pickWinner(item.side)}
             />
           ))}
         </div>

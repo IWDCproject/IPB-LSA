@@ -9,11 +9,10 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
     score_label: string; has_periods: boolean; period_term?: string; period_count?: number
   }}).config
 
-  // Provide local fallbacks so missing DB fields safely render as defaults
   const {
-    homeScore = 0,
-    awayScore = 0,
-    periodIdx = 0,
+    homeScore   = 0,
+    awayScore   = 0,
+    periodIdx   = 0,
     periodPhase = 'idle',
   } = liveState
 
@@ -21,38 +20,30 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
   const periodCount = cfg.period_count ?? 1
   const hasPeriods  = cfg.has_periods
 
+  const isLastPeriodDone =
+    hasPeriods &&
+    periodPhase === 'halftime' &&
+    (periodIdx + 1) >= periodCount
+
   async function adjustScore(side: 'home' | 'away', delta: number) {
     const key = side === 'home' ? 'homeScore' : 'awayScore'
     const cur = side === 'home' ? homeScore   : awayScore
     await onPatch({ [key]: Math.max(0, cur + delta) })
   }
 
-  // FIX: startPeriod now advances periodIdx when resuming from halftime.
-  // Previously, endPeriod advanced periodIdx (so "Period 2" showed during halftime of
-  // Period 1), and startPeriod just set 'active' without incrementing (so periodIdx
-  // was already wrong by the time the next period started).
   async function startPeriod() {
     if (periodPhase === 'halftime') {
-      // Resuming after a break: advance to the next period index now.
       await onPatch({ periodPhase: 'active', periodIdx: periodIdx + 1 })
     } else {
-      // Starting the very first period from idle.
       await onPatch({ periodPhase: 'active' })
     }
   }
 
-  // FIX: endPeriod no longer touches periodIdx. It only marks halftime.
-  // Previously it incremented periodIdx here, causing the header to show the
-  // wrong period number during the break and on the next startPeriod call.
   async function endPeriod() {
     await onPatch({ periodPhase: 'halftime' })
   }
 
-  // Derived display values.
-  // During halftime, periodIdx still reflects the period that just finished.
-  // The *next* period to start is periodIdx + 1 (1-indexed: periodIdx + 2).
-  const isLastPeriodDone = periodPhase === 'halftime' && (periodIdx + 1) >= periodCount
-  const nextPeriodDisplay = periodIdx + 2  // used on the "Start" button during halftime
+  const nextPeriodDisplay = periodIdx + 2
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm">
@@ -60,7 +51,6 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
         <p className="text-sm font-semibold text-zinc-900">{cfg.score_label || 'Score'}</p>
         {hasPeriods && (
           <span className="text-xs text-zinc-500">
-            {/* Show the period that is current or just finished - idx is always correct now */}
             {periodTerm} {periodIdx + 1}/{periodCount}
             <span className="ml-1.5 text-zinc-400 bg-zinc-100 rounded px-1.5 py-0.5">
               {periodPhase}
@@ -83,15 +73,12 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
               End {periodTerm}
             </button>
           ) : isLastPeriodDone ? (
-            // FIX: last period is over - was previously showing "Start Period N+1"
-            // indefinitely, which allowed starting non-existent periods.
             <span className="text-xs text-zinc-400 italic">All periods done</span>
           ) : (
             <button
               onClick={startPeriod}
               className="text-xs border border-zinc-300 rounded px-2 py-0.5 text-zinc-700 hover:bg-zinc-100 transition-colors"
             >
-              {/* FIX: during halftime the next period is idx+2 (1-indexed), not idx+1 */}
               Start {periodTerm} {periodPhase === 'halftime' ? nextPeriodDisplay : periodIdx + 1}
             </button>
           )}
@@ -104,6 +91,7 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
           score={homeScore}
           onPlus={() => adjustScore('home', 1)}
           onMinus={() => adjustScore('home', -1)}
+          disabled={isLastPeriodDone}
         />
         <div className="flex items-center justify-center px-4">
           <span className="text-xl font-bold text-zinc-300">VS</span>
@@ -113,6 +101,7 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
           score={awayScore}
           onPlus={() => adjustScore('away', 1)}
           onMinus={() => adjustScore('away', -1)}
+          disabled={isLastPeriodDone}
         />
       </div>
     </div>
@@ -122,15 +111,16 @@ export default function ScoreTimedPanel({ liveState, onPatch, format }: EnginePa
 // --- Komponen kecil --------------------------------------------
 
 function ScoreColumn({
-  label, score, onPlus, onMinus,
-}: { label: string; score: number; onPlus: () => void; onMinus: () => void }) {
+  label, score, onPlus, onMinus, disabled,
+}: { label: string; score: number; onPlus: () => void; onMinus: () => void; disabled?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <p className="text-xs font-medium text-zinc-500">{label}</p>
 
       <button
         onClick={onPlus}
-        className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors"
+        disabled={disabled}
+        className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors disabled:opacity-30"
       >
         +
       </button>
@@ -146,7 +136,7 @@ function ScoreColumn({
 
       <button
         onClick={onMinus}
-        disabled={score <= 0}
+        disabled={disabled || score <= 0}
         className="w-24 h-9 rounded bg-zinc-900 text-white text-xl font-bold hover:bg-zinc-700 transition-colors disabled:opacity-30"
       >
         −
