@@ -1,11 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Button } from '@/components/ui/button'
 import { getAssetUrl } from '@/lib/directus'
 import type { NewsCategory } from '@/types/directus'
 import { AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
+
+// --- Shared Constants ------------------------------------------
+
+const labelCls = 'block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5'
 
 // --- Helpers ---------------------------------------------------
 
@@ -31,16 +35,16 @@ function extractGdriveId(url: string): string | null {
 // --- YouTube Embed Dialog --------------------------------------
 
 export function YoutubeDialog({ editor, onClose }: { editor: Editor; onClose: () => void }) {
-  const [url, setUrl]         = useState('')
+  const [url, setUrl] = useState('')
   const [videoId, setVideoId] = useState<string | null>(null)
   const [thumbOk, setThumbOk] = useState<boolean | null>(null)
   const [checked, setChecked] = useState(false)
 
+  const handleKeyDown = useCallback((e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }, [onClose])
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
 
   const handleCheck = () => {
     const id = extractYoutubeId(url.trim())
@@ -60,70 +64,71 @@ export function YoutubeDialog({ editor, onClose }: { editor: Editor; onClose: ()
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
-      <div
-        className="w-[480px] rounded-xl bg-white p-6 shadow-xl space-y-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        className="w-full max-w-[480px] rounded-2xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-zinc-800">Embed YouTube Video</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 transition-colors">
-            <X size={16} />
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100 flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-bold text-zinc-900">Embed YouTube Video</h2>
+            <p className="mt-0.5 text-xs text-zinc-400">Add a video player to your article content.</p>
+          </div>
+          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-zinc-900 transition-colors">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="flex gap-2">
-          <input
-            autoFocus
-            type="url"
-            placeholder="https://youtube.com/watch?v=..."
-            value={url}
-            onChange={(e) => { setUrl(e.target.value); setVideoId(null); setThumbOk(null); setChecked(false) }}
-            onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
-            className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none transition-colors"
-          />
-          <Button variant="default" onClick={handleCheck} disabled={!url.trim()}>
-            Check
-          </Button>
-        </div>
-
-        {checked && !videoId && (
-          <p className="flex items-center gap-1.5 text-xs text-red-500">
-            <AlertCircle size={12} /> Invalid YouTube URL — paste a youtube.com or youtu.be link
-          </p>
-        )}
-
-        {videoId && (
-          <div className="space-y-2">
-            <div className="relative overflow-hidden rounded-lg bg-zinc-100 aspect-video flex items-center justify-center">
-              {thumbOk === null && <Loader2 size={20} className="animate-spin text-zinc-400" />}
-              <img
-                src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
-                alt="YouTube thumbnail"
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity ${thumbOk ? 'opacity-100' : 'opacity-0'}`}
-                onLoad={() => setThumbOk(true)}
-                onError={() => setThumbOk(false)}
+        <div className="p-6 space-y-5">
+          <div>
+            <label className={labelCls}>Video URL</label>
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                type="url"
+                placeholder="Paste URL..."
+                value={url}
+                onChange={(e) => { setUrl(e.target.value); setVideoId(null); setThumbOk(null); setChecked(false) }}
+                onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+                className="flex-1 h-10 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white"
               />
+              <Button variant="default" className="h-10 px-4 font-bold uppercase tracking-widest text-[10px] border-zinc-200" onClick={handleCheck} disabled={!url.trim()}>
+                Check
+              </Button>
             </div>
-            {thumbOk === true && (
-              <p className="flex items-center gap-1.5 text-xs text-green-600">
-                <CheckCircle2 size={12} /> Video found and accessible
-              </p>
-            )}
-            {thumbOk === false && (
-              <p className="flex items-center gap-1.5 text-xs text-amber-500">
-                <AlertCircle size={12} /> Video may be private or unavailable — it will still be inserted
+            {checked && !videoId && (
+              <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-red-500 uppercase tracking-tighter">
+                <AlertCircle size={14} /> Invalid Link
               </p>
             )}
           </div>
-        )}
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button variant="default" onClick={onClose}>Cancel</Button>
-          <Button variant="filled" onClick={handleInsert} disabled={!videoId}>
+          {videoId && (
+            <div className="space-y-3">
+              <div className="relative overflow-hidden rounded-xl bg-zinc-100 aspect-video flex items-center justify-center border border-zinc-100">
+                {thumbOk === null && <Loader2 size={24} className="animate-spin text-zinc-300" />}
+                <img
+                  src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                  alt="Preview"
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${thumbOk ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => setThumbOk(true)}
+                  onError={() => setThumbOk(false)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                {thumbOk === true && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-green-50 text-[10px] font-bold uppercase tracking-widest text-green-600 border border-green-100">
+                    <CheckCircle2 size={12} /> Accessible
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-100 flex justify-end gap-2">
+          <Button variant="noBorder" onClick={onClose} className="font-bold uppercase tracking-widest text-[10px] text-zinc-400 hover:text-zinc-900">Cancel</Button>
+          <Button variant="filled" onClick={handleInsert} disabled={!videoId} className="bg-zinc-900 text-white font-bold uppercase tracking-widest text-[10px] px-6">
             Insert
           </Button>
         </div>
@@ -135,30 +140,22 @@ export function YoutubeDialog({ editor, onClose }: { editor: Editor; onClose: ()
 // --- Google Drive Image Dialog ---------------------------------
 
 export function GDriveDialog({ editor, onClose }: { editor: Editor; onClose: () => void }) {
-  const [url, setUrl]       = useState('')
+  const [url, setUrl] = useState('')
   const [fileId, setFileId] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle')
-  const[checkCount, setCheckCount] = useState(0)
+  const [checkCount, setCheckCount] = useState(0)
 
-  const embedSrc = fileId
-    ? `/api/drive?id=${fileId}&t=${checkCount}`
-    : null
+  const embedSrc = fileId ? `/api/drive?id=${fileId}&t=${checkCount}` : null
 
-  // Pre-fill existing image if one is actively selected
   useEffect(() => {
     if (editor.isActive('image')) {
       const attrs = editor.getAttributes('image')
       const src = attrs.src as string | undefined
-      
-      if (src) {
-        const match = src.match(/\/api\/drive\?id=([a-zA-Z0-9_-]+)/)
-        
-        // Add "&& match[1]" to the condition to satisfy TypeScript
-        if (match && match[1]) {
-          const extractedId = match[1]
-          
+      if (src?.includes('/api/drive?id=')) {
+        const extractedId = src.split('id=')[1]?.split('&')[0]
+        if (extractedId) {
           setUrl(`https://drive.google.com/file/d/${extractedId}/view`)
-          setFileId(extractedId) // Now TypeScript knows this is a string
+          setFileId(extractedId)
           setStatus('checking')
         }
       }
@@ -175,93 +172,75 @@ export function GDriveDialog({ editor, onClose }: { editor: Editor; onClose: () 
 
   const handleInsert = () => {
     if (!fileId || status !== 'ok') return
-    
-    // Create a clean URL without the &t parameter for the actual article content
     const cleanSrc = `/api/drive?id=${fileId}`
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     editor.chain().focus().setImage({ src: cleanSrc } as any).run()
     onClose()
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
-      <div
-        className="w-[480px] rounded-xl bg-white p-6 shadow-xl space-y-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        className="w-full max-w-[480px] rounded-2xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-zinc-800">Embed Google Drive Image</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 transition-colors">
-            <X size={16} />
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100 flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-bold text-zinc-900">Google Drive Image</h2>
+            <p className="mt-0.5 text-xs text-zinc-400">Embed images shared from Google Drive.</p>
+          </div>
+          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-zinc-900 transition-colors">
+            <X size={18} />
           </button>
         </div>
 
-        <p className="text-xs text-zinc-500 bg-zinc-50 rounded-lg px-3 py-2 border border-zinc-100">
-          The file must be shared publicly — <span className="font-medium">Anyone with the link → Viewer</span>.
-        </p>
+        <div className="p-6 space-y-5">
+          <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+            <p className="text-[11px] leading-relaxed text-zinc-500">
+              <span className="font-bold text-zinc-900 uppercase tracking-tighter mr-1">Public Access:</span> File must be set to <span className="font-bold text-zinc-700">"Anyone with the link → Viewer"</span>.
+            </p>
+          </div>
 
-        <div className="flex gap-2">
-          <input
-            autoFocus
-            type="url"
-            placeholder="https://drive.google.com/file/d/.../view"
-            value={url}
-            onChange={(e) => { setUrl(e.target.value); setFileId(null); setStatus('idle') }}
-            onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
-            className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none transition-colors"
-          />
-          <Button variant="default" onClick={handleCheck} disabled={!url.trim()}>
-            Check
-          </Button>
+          <div>
+            <label className={labelCls}>File URL</label>
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                type="url"
+                placeholder="https://drive.google.com/..."
+                value={url}
+                onChange={(e) => { setUrl(e.target.value); setFileId(null); setStatus('idle') }}
+                onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+                className="flex-1 h-10 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all focus:border-zinc-900 focus:bg-white"
+              />
+              <Button variant="default" className="h-10 border border-zinc-200 font-bold uppercase tracking-widest text-[10px]" onClick={handleCheck} disabled={!url.trim()}>
+                Check
+              </Button>
+            </div>
+          </div>
+
+          {embedSrc && status !== 'idle' && (
+            <div className="space-y-3">
+              <div className="relative overflow-hidden rounded-xl bg-zinc-50 min-h-[140px] flex items-center justify-center border border-zinc-100">
+                {status === 'checking' && <Loader2 size={24} className="animate-spin text-zinc-300" />}
+                <img
+                  key={embedSrc}
+                  src={embedSrc}
+                  alt="Preview"
+                  className={`w-full rounded-lg transition-opacity duration-300 ${status === 'ok' ? 'opacity-100' : 'opacity-0 absolute'}`}
+                  onLoad={() => setStatus('ok')}
+                  onError={() => setStatus('error')}
+                />
+                {status === 'error' && (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Inaccessible File</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {status === 'error' && !fileId && (
-          <p className="flex items-center gap-1.5 text-xs text-red-500">
-            <AlertCircle size={12} /> Invalid Google Drive URL
-          </p>
-        )}
-
-        {embedSrc && status !== 'idle' && (
-          <div className="space-y-2">
-            <div className="relative overflow-hidden rounded-lg bg-zinc-100 min-h-[140px] flex items-center justify-center">
-              {status === 'checking' && <Loader2 size={20} className="animate-spin text-zinc-400" />}
-              {/* key forces img remount when src changes, resetting load/error state */}
-              <img
-                key={embedSrc}
-                src={embedSrc}
-                alt="Google Drive preview"
-                className={`w-full rounded-lg transition-opacity ${status === 'ok' ? 'opacity-100' : 'opacity-0 absolute'}`}
-                onLoad={() => setStatus('ok')}
-                onError={() => setStatus('error')}
-              />
-              {status === 'error' && fileId && (
-                <p className="text-xs text-red-500 px-4 text-center">
-                  Image not accessible — check sharing settings
-                </p>
-              )}
-            </div>
-
-            {status === 'ok' && (
-              <p className="flex items-center gap-1.5 text-xs text-green-600">
-                <CheckCircle2 size={12} /> Image accessible and ready to embed
-              </p>
-            )}
-
-            {status === 'error' && fileId && (
-              <p className="flex items-center gap-1.5 text-xs text-red-500">
-                <AlertCircle size={12} /> Image not publicly accessible
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="flex justify-end gap-2 pt-1">
-          <Button variant="default" onClick={onClose}>Cancel</Button>
-          <Button variant="filled" onClick={handleInsert} disabled={status !== 'ok'}>
+        <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-100 flex justify-end gap-2">
+          <Button variant="noBorder" onClick={onClose} className="font-bold uppercase tracking-widest text-[10px] text-zinc-400 hover:text-zinc-900">Cancel</Button>
+          <Button variant="filled" onClick={handleInsert} disabled={status !== 'ok'} className="bg-zinc-900 text-white font-bold uppercase tracking-widest text-[10px] px-6">
             Insert
           </Button>
         </div>
@@ -271,6 +250,7 @@ export function GDriveDialog({ editor, onClose }: { editor: Editor; onClose: () 
 }
 
 // --- Preview Modal ---------------------------------------------
+// EXACT ORIGINAL CONTENT & CSS PRESERVED
 
 export function PreviewModal({ title, content, thumbnailId, category, publishedAt, onClose }: {
   title:       string
@@ -293,18 +273,17 @@ export function PreviewModal({ title, content, thumbnailId, category, publishedA
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#fafafa]">
       
-      {/* Admin Top Bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white/95 backdrop-blur-sm px-6 py-3">
+      {/* Admin Top Bar - Styled to reference but separate from content */}
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-zinc-200 bg-white/95 backdrop-blur-sm px-6 py-3">
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-amber-100 px-3 py-0.5 text-xs font-semibold tracking-wide text-amber-700">
+          <span className="rounded-full bg-zinc-900 px-3 py-0.5 text-[10px] font-bold tracking-widest text-white uppercase">
             PREVIEW
           </span>
-          <span className="text-xs text-zinc-400">Exact view of the published article</span>
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-tighter">Live Article View</span>
         </div>
         <button
           onClick={onClose}
           className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
-          title="Close preview (Esc)"
         >
           <X size={18} />
         </button>

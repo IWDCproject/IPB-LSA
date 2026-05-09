@@ -38,7 +38,7 @@ export function PageHeader({ breadcrumbs, title, status, actions }: Props) {
 
       {/* Second Row: Only rendered if Title or Status exists */}
       {(title || status) && (
-        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-zinc-200">
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
           <div className="space-y-1">
             {status && <p className="text-sm italic text-zinc-400 font-medium">Event status: {status}</p>}
             {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
