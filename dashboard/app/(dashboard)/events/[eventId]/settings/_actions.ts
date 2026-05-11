@@ -81,11 +81,29 @@ async function requireEventOwnership(eventId: string) {
 async function revalidateEventCache(eventId: string) {
   try {
     const event = await adminDirectus.request(readItem('events', eventId, { fields: ['slug'] }))
+    
+    // Bust dashboard cache (same app)
     if (event?.slug) {
-      // SMART PURGE: Only rebuild the list and the specific event page
+      revalidatePath('/', 'layout')
       revalidatePath('/events')
       revalidatePath(`/events/${event.slug}`, 'layout')
       revalidatePath(`/events/${event.slug}/settings`, 'layout')
+    }
+
+    // Bust web app cache (separate Next.js instance)
+    const webUrl = process.env.WEB_APP_URL
+    const secret = process.env.REVALIDATE_SECRET
+    if (webUrl && secret) {
+      await fetch(`${webUrl}/api/revalidate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-revalidate-secret': secret,
+        },
+        body: JSON.stringify({ slug: event?.slug }),
+      }).catch(err => console.error('[revalidate] web app ping failed:', err.message))
+    } else {
+      console.warn('[revalidate] WEB_APP_URL or REVALIDATE_SECRET not set — web cache not busted')
     }
   } catch (err) {
     console.error("Cache bust failed", err)
@@ -189,6 +207,7 @@ export async function deleteEventAction(eventId: string) {
     await requireEventOwnership(eventId)
     await adminDirectus.request(deleteItem('events', eventId));
     
+    revalidatePath('/'); // Also bust homepage when an event is deleted
     revalidatePath('/events'); 
   } catch (err: any) {
     return { success: false, error: err.message }

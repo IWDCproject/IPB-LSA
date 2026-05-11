@@ -65,7 +65,10 @@ export const SLOT_LAYOUTS: SlotLayout[] = [
 
 const MONTHS_FULL  = ["January","February","March","April","May","June","July","August","September","October","November","December"] as const;
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] as const;
-const FINISHED_STATUSES = new Set(["finished","ended","past","done","complete","completed"]);
+
+// FIX (Bug 2): Added 'cancelled' — it's a valid EventStatus in the DB schema
+// but was missing here, causing cancelled events to appear as upcoming.
+const FINISHED_STATUSES = new Set(["finished","ended","past","done","complete","completed","cancelled"]);
 
 // --- Helpers ---------------------------------------------
 
@@ -94,11 +97,13 @@ function fmtShort(dateStr: string): string {
   return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
 }
 
-function getSubLabel(ev: RawEvent, isOngoing: boolean, isFinished: boolean): string {
+function getSubLabel(ev: RawEvent, isOngoing: boolean, isCancelled: boolean, isFinished: boolean): string {
   if (isOngoing) {
     const end = ev.end_date ? fmtRegDate(ev.end_date) : null;
     return end ? `Ends at\n${end}` : "Ongoing";
   }
+  // FIX: Cancelled events get their own label instead of "Ended at"
+  if (isCancelled) return "Cancelled";
   if (isFinished) {
     const at = ev.end_date ?? ev.start_date;
     return at ? `Ended at\n${fmtShort(at)}` : "Ended";
@@ -114,12 +119,15 @@ export function shapeEvents(rawEvents: RawEvent[] | null | undefined): TimelineE
   const src = rawEvents ?? [];
   const now = new Date();
 
-  const isActive   = (ev: RawEvent) => ev.status === "active" || ev.status === "live";
-  // Finished kalau status-nya masuk daftar, ATAU tanggal end/start sudah lewat
-  const isFinished = (ev: RawEvent) => {
+  const isActive    = (ev: RawEvent) => ev.status === "active" || ev.status === "live";
+  const isCancelled = (ev: RawEvent) => (ev.status ?? "").toLowerCase() === "cancelled";
+
+  // FIX (Bug 3): Date fallback now only uses end_date, NOT start_date.
+  // Using start_date caused 'upcoming' events whose start date had passed
+  // to be silently reclassified as finished, even with an explicit DB status.
+  const isFinished  = (ev: RawEvent) => {
     if (FINISHED_STATUSES.has((ev.status ?? "").toLowerCase())) return true;
-    const endDate = ev.end_date ? new Date(ev.end_date) : ev.start_date ? new Date(ev.start_date) : null;
-    return !isActive(ev) && endDate !== null && endDate < now;
+    return !isActive(ev) && ev.end_date != null && new Date(ev.end_date) < now;
   };
 
   const active   = src.filter(isActive);
@@ -133,11 +141,12 @@ export function shapeEvents(rawEvents: RawEvent[] | null | undefined): TimelineE
   const filled = [...pickedFinished, ...active, ...pickedUpcoming].slice(0, MAX_SLOTS);
   const padded: (RawEvent | null)[] = [...filled, ...Array(MAX_SLOTS - filled.length).fill(null)];
 
+  // lastActiveIdx is kept for drawCanvas — it tells the canvas how far along
+  // the path to draw the progress highlight. It is NOT used for card styling.
   const lastActiveIdx = padded.reduce<number>((acc, ev, i) => (ev && isActive(ev) ? i : acc), -1);
 
   return padded.map((ev, i) => {
     const slotLayout = SLOT_LAYOUTS[i];
-    const evIsActive = lastActiveIdx !== -1 && i <= lastActiveIdx;
 
     if (!ev) {
       return {
@@ -150,14 +159,23 @@ export function shapeEvents(rawEvents: RawEvent[] | null | undefined): TimelineE
       };
     }
 
-    const evIsFinished = isFinished(ev);
+    // FIX (Bug 1): evIsActive was `lastActiveIdx !== -1 && i <= lastActiveIdx`,
+    // which marked ALL prior slots as active too (yellow style + "ONGOING" notch).
+    // Must only be true for the event that is actually active by status.
+    const evIsActive    = isActive(ev);
+    const evIsCancelled = isCancelled(ev);
+    const evIsFinished  = isFinished(ev);
+
     return {
       ...ev,
       isPlaceholder: false as const,
+      // lastActiveIdx is exposed so TimelineSection can pass it to drawCanvas
+      // for the path progress line, independently of card styling.
+      _lastActiveIdx: lastActiveIdx,
       slot: { ...slotLayout, ...getSlotColors(evIsActive) },
       isActive: evIsActive,
       label: evIsActive ? "ONGOING" : (ev.start_date ? formatDateLabel(ev.start_date) : "TBA"),
-      subLabel: getSubLabel(ev, evIsActive, evIsFinished),
+      subLabel: getSubLabel(ev, evIsActive, evIsCancelled, evIsFinished),
     };
   });
 }
