@@ -8,27 +8,44 @@ const IS_DEV        = process.env.NODE_ENV === "development";
 const CACHE_DIR     = process.env.BLUR_CACHE_DIR ?? path.join(process.cwd(), ".blur-cache");
 const DEFAULT_TTL_S = 7 * 24 * 60 * 60;
 
-// Cap concurrent in-flight requests to prevent unbounded Map growth
 const MAX_IN_FLIGHT  = 50;
 const IN_FLIGHT      = new Map();
 
-// Hard cap on upstream response body (10 MB).
-// This is the primary decompression-bomb defence - a 10 MB compressed file
-// cannot realistically expand to more than a few hundred MP.
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
-
-// Secondary pixel-count check as a belt-and-suspenders guard.
-// Set to 25 MP - comfortably above any real-world CMS photography
-// (4K = 8.3 MP, DSLR full-frame at 24 MP, medium-format at ~50 MP).
 const MAX_PIXELS = 25_000_000;
 
 if (!IS_DEV) {
   await fs.mkdir(CACHE_DIR, { recursive: true });
+  sweepExpiredCache();
+  setInterval(sweepExpiredCache, 24 * 60 * 60 * 1000);
+}
+
+// ---------------------------------------------------------------------------
+// Expired cache sweep
+// Runs on cold start and every 24h. Cleans up orphaned files left behind
+// when images are replaced in Directus (old URL → new URL → old file never
+// requested again, so readCacheSafe never gets a chance to delete it).
+// ---------------------------------------------------------------------------
+async function sweepExpiredCache() {
+  try {
+    const files = await fs.readdir(CACHE_DIR);
+    await Promise.all(files.map(async (f) => {
+      if (!f.endsWith(".webp")) return;
+      const filePath = path.join(CACHE_DIR, f);
+      const stat = await fs.stat(filePath).catch(() => null);
+      if (!stat) return;
+      const ageSeconds = (Date.now() - stat.mtimeMs) / 1000;
+      if (ageSeconds > DEFAULT_TTL_S) {
+        await fs.unlink(filePath).catch(() => {});
+      }
+    }));
+  } catch (err) {
+    console.warn("[blur] sweep failed:", err.message);
+  }
 }
 
 // ---------------------------------------------------------------------------
 // URL validation
-// Fails CLOSED, protocol-allowlisted, hostname-exact, redirect-safe.
 // ---------------------------------------------------------------------------
 function validateUrl(rawUrl) {
   let parsed;
@@ -38,13 +55,10 @@ function validateUrl(rawUrl) {
     return { ok: false, msg: "Invalid URL" };
   }
 
-  // Only allow safe protocols - blocks file://, gopher://, dict://, etc.
   if (!["https:", "http:"].includes(parsed.protocol)) {
     return { ok: false, msg: "Forbidden" };
   }
 
-  // Fail CLOSED: if the allowlist env var isn't configured, block everything.
-  // The original code skipped the guard entirely when the var was absent.
   const allowedOrigin = process.env.NEXT_PUBLIC_DIRECTUS_URL;
   if (!allowedOrigin) {
     console.error("[blur] NEXT_PUBLIC_DIRECTUS_URL is not set - all requests blocked");
@@ -59,10 +73,6 @@ function validateUrl(rawUrl) {
     return { ok: false, msg: "Forbidden" };
   }
 
-  // Compare parsed hostnames, not raw strings.
-  // The original startsWith("https://assets.example.com") allowed
-  // "https://assets.example.com.evil.com/…" and
-  // "https://assets.example.com@evil.com/…".
   if (parsed.hostname !== allowedHost) {
     return { ok: false, msg: "Forbidden" };
   }
@@ -95,23 +105,8 @@ async function writeCacheAtomic(filePath, buf) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// readCacheSafe
-//
-// PERF: stat-first approach - check mtime before reading the file body.
-// Previously both operations ran in parallel (Promise.all), which read the
-// entire file content even for expired entries that would be immediately
-// discarded.  On a warm cache with many expired files this wasted significant
-// disk read bandwidth.  Now expired files are detected with a cheap stat()
-// call and deleted without ever reading their bytes.
-//
-// For cache hits (the common path on a warm server) the sequential stat →
-// read adds one extra syscall, but both ops are fast on hot page cache so
-// the difference is negligible vs. the savings on expired-file reads.
-// ---------------------------------------------------------------------------
 async function readCacheSafe(filePath, ttlSeconds) {
   try {
-    // Step 1: check age before spending I/O on the file body.
     const stat       = await fs.stat(filePath);
     const ageSeconds = (Date.now() - stat.mtimeMs) / 1000;
     if (ageSeconds > ttlSeconds) {
@@ -119,7 +114,6 @@ async function readCacheSafe(filePath, ttlSeconds) {
       return null;
     }
 
-    // Step 2: file is fresh - read it.
     const buf = await fs.readFile(filePath);
     if (buf.length === 0) {
       await fs.unlink(filePath).catch(() => {});
@@ -127,7 +121,6 @@ async function readCacheSafe(filePath, ttlSeconds) {
     }
     return buf;
   } catch {
-    // File doesn't exist or unreadable - treat as miss.
     await fs.unlink(filePath).catch(() => {});
     return null;
   }
@@ -137,8 +130,6 @@ async function readCacheSafe(filePath, ttlSeconds) {
 // Image fetch + processing
 // ---------------------------------------------------------------------------
 async function runSharp(url, blur, w, h) {
-  // redirect: "error" prevents a 301 from the allowlisted host bouncing
-  // the request to an internal/arbitrary URL.
   const res = await fetch(url, {
     signal:   AbortSignal.timeout(10_000),
     redirect: "error",
@@ -148,18 +139,14 @@ async function runSharp(url, blur, w, h) {
     throw Object.assign(new Error("Image not found"), { status: 404 });
   }
   if (!res.ok) {
-    // Don't echo the upstream status code - use a generic message.
     throw Object.assign(new Error("Upstream error"), { status: 502 });
   }
 
-  // Reject responses that are not images before reading the body.
   const contentType = res.headers.get("content-type") ?? "";
   if (!contentType.startsWith("image/")) {
     throw Object.assign(new Error("Upstream did not return an image"), { status: 502 });
   }
 
-  // Enforce a body size limit. Check Content-Length first for a fast reject,
-  // then enforce again while streaming so a spoofed header can't bypass it.
   const contentLength = Number(res.headers.get("content-length") ?? 0);
   if (contentLength > MAX_BODY_BYTES) {
     throw Object.assign(new Error("Image too large"), { status: 422 });
@@ -181,8 +168,6 @@ async function runSharp(url, blur, w, h) {
 
   const inputBuf = Buffer.concat(chunks);
 
-  // Check pixel budget before full decode to catch decompression bombs.
-  // sharp.metadata() reads only the image header - no full decompression.
   const meta        = await sharp(inputBuf).metadata();
   const inputPixels = (meta.width ?? 0) * (meta.height ?? 0);
   if (inputPixels > MAX_PIXELS) {
@@ -220,7 +205,6 @@ export async function GET(req) {
   if (!validation.ok) return new Response(validation.msg, { status: 403 });
   const safeUrl = validation.url ?? new URL(url).toString();
 
-  // Dev mode: skip disk cache but still enforce all security checks above.
   if (IS_DEV) {
     try {
       const buf = await runSharp(safeUrl, blur, w, h);
