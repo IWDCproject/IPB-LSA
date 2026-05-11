@@ -15,7 +15,7 @@ import {
 // CONFIGURATION
 // ==========================================
 const ADMIN_TOKEN = 'ECH98IbvMYhkTbPM2sYWKsjeib3Bpgo2';
-const UNSPLASH_KEY = 'tanya-gilang';
+const UNSPLASH_KEY = 'sO9Dv2XlOQSNswNbPeWTx1erXEdtfw4HO-Qbb84ggnI';
 // ^ Get a free key at https://unsplash.com/developers (instant approval, 50 req/hr)
 // Usage: UNSPLASH_KEY=your_access_key node scripts/seeder.mjs
 const client = createDirectus('http://localhost:7777').with(rest()).with(staticToken(ADMIN_TOKEN));
@@ -104,17 +104,15 @@ async function importImageFromUrl(keyword, title) {
       throw new Error('Set UNSPLASH_KEY env var. Free key at https://unsplash.com/developers');
     }
 
-    // Step 1 - ask Unsplash API for a relevant landscape photo (retry once on rate-limit)
+    // Step 1 - ask Unsplash API for a relevant landscape photo (skip on rate-limit)
     process.stdout.write(`   ⏳ "${title}"... `);
-    let apiRes;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      apiRes = await fetch(
-        'https://api.unsplash.com/photos/random?' +
-        `query=${encodeURIComponent(keyword)}&orientation=landscape&client_id=${UNSPLASH_KEY}`,
-      );
-      if (apiRes.status !== 403) break;
-      process.stdout.write('rate limited, waiting 62s... ');
-      await sleep(62000);
+    const apiRes = await fetch(
+      'https://api.unsplash.com/photos/random?' +
+      `query=${encodeURIComponent(keyword)}&orientation=landscape&client_id=${UNSPLASH_KEY}`,
+    );
+    if (apiRes.status === 429 || apiRes.status === 403) {
+      process.stdout.write('rate limited, skipping.\n');
+      return null;
     }
     if (!apiRes.ok) {
       const body = await apiRes.text();
@@ -260,7 +258,9 @@ async function triggerDenorm(matchIds) {
   if (!matchIds.length) return;
   console.log(`   ⚙️  Triggering denorm for ${matchIds.length} matches...`);
   for (const id of matchIds) {
-    await client.request(updateItem('matches', id, { updated_at: new Date().toISOString() }));
+    // Send a harmless no-op PATCH so the BEFORE UPDATE trigger fires
+    // without writing to a trigger-managed column directly.
+    await client.request(updateItem('matches', id, { _denorm_trigger: true }));
   }
 }
 
@@ -273,7 +273,9 @@ const LS = {
   deadlineLive: ({ rankings = [], targetHours = 24 }) => ({
     matchStatus: 'live',
     rankings,
-    timerRunning: true, 
+    timerRunning: true,
+    timerSecs: 0,
+    timerLastStarted: null,
     timerTarget: new Date(Date.now() + targetHours * 3600 * 1000).toISOString(),
     notes: '',
   }),
@@ -311,7 +313,7 @@ const LS = {
   setsFinished: ({ setsWon, setLog, winner, secs }) => ({
     matchStatus: 'finished',
     setIdx: setLog.length - 1,
-    setScore: [setLog.at(-1).home, setLog.at(-1).away],
+    setScore: [setLog.at(-1).homeScore, setLog.at(-1).awayScore],
     setsWon, setLog, winner,
     setPhase: 'idle', pendingSetWinner: null,
     timerRunning: false, timerSecs: secs, timerLastStarted: null,
@@ -433,7 +435,7 @@ async function seed() {
 Tahun ini, penyelenggara menghadirkan inovasi besar dengan menerapkan sistem penjurian elektronik berstandar World Karate Federation (WKF) secara penuh. Sistem ini memastikan transparansi, kecepatan, dan objektivitas maksimal di setiap pertandingan, baik di kategori Kata maupun Kumite.
 
 Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pameran perlengkapan olahraga, dan sesi temu sapa dengan legenda karate nasional, menjadikannya festival seni bela diri yang komprehensif bagi seluruh partisipan dan penonton.`,
-      contact_person: JSON.stringify({ name: 'Ahmad Fauzi', phone: '081234567890', email: 'karate@ipb.ac.id' }),
+      contact_person: { name: 'Ahmad Fauzi', phone: '081234567890', email: 'karate@ipb.ac.id' },
       card_image: e1Img, banner_image: e1Img,
     }));
 
@@ -449,7 +451,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
 
     // Formats
     const f1_kata = await client.request(createItem('match_formats', {
-      event_id: e1.id, name: 'Kata Perorangan – Drop Extremes',
+      event_id: e1.id, created_by: myId, name: 'Kata Perorangan – Drop Extremes',
       match_type: 'solo',
       modules: [
         { type: 'judge_scores', config: { num_judges: 5, method: 'drop_extremes', score_min: 5, score_max: 10, step: 0.1 } },
@@ -458,7 +460,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       ],
     }));
     const f1_kata_avg = await client.request(createItem('match_formats', {
-      event_id: e1.id, name: 'Kata Beregu – Average',
+      event_id: e1.id, created_by: myId, name: 'Kata Beregu – Average',
       match_type: 'solo',
       modules: [
         { type: 'judge_scores', config: { num_judges: 5, method: 'avg', score_min: 5, score_max: 10, step: 0.1 } },
@@ -466,7 +468,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       ],
     }));
     const f1_kumi = await client.request(createItem('match_formats', {
-      event_id: e1.id, name: 'Kumite – Timed No Periods',
+      event_id: e1.id, created_by: myId, name: 'Kumite – Timed No Periods',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_timed', config: { score_label: 'Poin', has_periods: false } },
@@ -475,7 +477,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       ],
     }));
     const f1_kumi_period = await client.request(createItem('match_formats', {
-      event_id: e1.id, name: 'Kumite – 2 Babak',
+      event_id: e1.id, created_by: myId, name: 'Kumite – 2 Babak',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_timed', config: { score_label: 'Poin', has_periods: true, period_count: 2, period_term: 'Babak' } },
@@ -569,7 +571,7 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
         competition_category_id: c1_kata_beregu.id,
         institution_id: i1[i],
         name: `Tim Kata ${UNIVERSITIES[i].name.split(' ')[0]}`,
-        members: JSON.stringify([{ name: generateName(), role: 'Anggota 1' }, { name: generateName(), role: 'Anggota 2' }, { name: generateName(), role: 'Anggota 3' }]),
+        members: [{ name: generateName(), role: 'Anggota 1' }, { name: generateName(), role: 'Anggota 2' }, { name: generateName(), role: 'Anggota 3' }],
       }));
       kbTeams.push(p);
     }
@@ -650,6 +652,15 @@ Selain pertandingan utama, turnamen ini juga menghadirkan seminar bela diri, pam
       }));
       denormQueue.push(m.id);
     }
+    // EDGE: countdown exhausted (score_timed) — timerSecs=0, match paused, ref yet to decide
+    const m_k55_exhausted = await client.request(createItem('matches', {
+      competition_category_id: c1_k55.id, status: 'live', round: 'Semifinal',
+      match_name: 'SF-3 (Overtime)',
+      venue: 'Tatami 3', scheduled_at: offsetHours(-2),
+      home_participant_id: kk55[0], away_participant_id: kk55[2],
+      live_state: LS.countdownExhausted({ homeScore: 3, awayScore: 3 }), // EDGE: countdown at zero
+    }));
+    denormQueue.push(m_k55_exhausted.id);
 
     // -- Kumite -67kg - 2 periods --
     const kk67 = [];
@@ -765,7 +776,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
     const i2 = await seedInstitutions(e2.id, 8);
 
     const f2_sets3 = await client.request(createItem('match_formats', {
-      event_id: e2.id, name: 'BWF - Best of 3 Sets',
+      event_id: e2.id, created_by: myId, name: 'BWF - Best of 3 Sets',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_sets', config: { score_label: 'Poin', term: 'Set', max_sets: 3, sets_to_win: 2 } },
@@ -774,7 +785,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       ],
     }));
     const f2_sets5 = await client.request(createItem('match_formats', {
-      event_id: e2.id, name: 'BWF - Best of 5 Sets (Final)',
+      event_id: e2.id, created_by: myId, name: 'BWF - Best of 5 Sets (Final)',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_sets', config: { score_label: 'Poin', term: 'Set', max_sets: 5, sets_to_win: 3 } },
@@ -803,18 +814,18 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
         home_participant_id: tp_players[hi], away_participant_id: tp_players[ai],
         live_state: LS.setsFinished({
           setsWon: [2, 0], winner: tp_players[hi],
-          setLog: [{ label: 'Set 1', home: 21, away: as }, { label: 'Set 2', home: hs, away: randomInt(10, 19) }],
+          setLog: [{ set: 1, homeScore: 21, awayScore: as, winner: 21 > as ? 'home' : 'away' }, { set: 2, homeScore: hs, awayScore: randomInt(10, 19), winner: hs > randomInt(10, 19) ? 'home' : 'away' }],
           secs: randomInt(1800, 3600),
         }),
       }));
       denormQueue.push(m.id);
     }
-    // QF - 2 finished, 2 live (one of them countdown exhausted)
+    // QF - 2 finished, 2 live (one of them has an exhausted/zeroed stopwatch timer)
     const qf_pairs = [[0, 2], [4, 6], [8, 10], [1, 3]];
     for (let i = 0; i < 4; i++) {
       const [hi, ai] = qf_pairs[i];
       const isLive = i === 2;
-      const isExhausted = i === 3; // EDGE: countdown at zero
+      const isExhausted = i === 3; // EDGE: stopwatch at zero (timer ran out mid-set)
       const hs = randomInt(18, 21); const as = randomInt(15, hs - 1);
       const m = await client.request(createItem('matches', {
         competition_category_id: c2_tunggal_p.id,
@@ -823,10 +834,11 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
         scheduled_at: offsetHours(-6 + i),
         home_participant_id: tp_players[hi], away_participant_id: tp_players[ai],
         live_state: isExhausted
-          ? LS.countdownExhausted({ homeScore: 0, awayScore: 0 })
+          // EDGE: setsLive with timerSecs=0 — stopwatch exhausted, match paused mid-set
+          ? LS.setsLive({ setIdx: 1, setScore: [11, 13], setsWon: [1, 0], setLog: [{ set: 1, homeScore: 21, awayScore: 18, winner: 'home' }], secs: 0 })
           : isLive
-            ? LS.setsLive({ setIdx: 1, setScore: [14, 18], setsWon: [1, 0], setLog: [{ label: 'Set 1', home: 21, away: hs }], secs: 1800 })
-            : LS.setsFinished({ setsWon: [2, 1], winner: tp_players[hi], setLog: [{ label: 'Set 1', home: 21, away: as }, { label: 'Set 2', home: 18, away: 21 }, { label: 'Set 3', home: hs, away: 15 }], secs: randomInt(2400, 4200) }),
+            ? LS.setsLive({ setIdx: 1, setScore: [14, 18], setsWon: [1, 0], setLog: [{ set: 1, homeScore: 21, awayScore: hs, winner: 21 > hs ? 'home' : 'away' }], secs: 1800 })
+            : LS.setsFinished({ setsWon: [2, 1], winner: tp_players[hi], setLog: [{ set: 1, homeScore: 21, awayScore: as, winner: 21 > as ? 'home' : 'away' }, { set: 2, homeScore: 18, awayScore: 21, winner: 18 > 21 ? 'home' : 'away' }, { set: 3, homeScore: hs, awayScore: 15, winner: hs > 15 ? 'home' : 'away' }], secs: randomInt(2400, 4200) }),
       }));
       denormQueue.push(m.id);
     }
@@ -850,7 +862,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       competition_category_id: c2_tunggal_w.id, status: 'finished', round: 'Semifinal',
       venue: 'Court 2', scheduled_at: offsetHours(-12),
       home_participant_id: tw_players[0], away_participant_id: tw_players[1],
-      live_state: LS.setsFinished({ setsWon: [2, 0], winner: tw_players[0], setLog: [{ label: 'Set 1', home: 21, away: 14 }, { label: 'Set 2', home: 21, away: 17 }], secs: 2800 }),
+      live_state: LS.setsFinished({ setsWon: [2, 0], winner: tw_players[0], setLog: [{ set: 1, homeScore: 21, awayScore: 14, winner: 21 > 14 ? 'home' : 'away' }, { set: 2, homeScore: 21, awayScore: 17, winner: 21 > 17 ? 'home' : 'away' }], secs: 2800 }),
     }));
     denormQueue.push(m_tw_sf.id);
     const m_tw_live = await client.request(createItem('matches', {
@@ -872,7 +884,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       const p = await client.request(createItem('participants', {
         competition_category_id: c2_ganda_p.id, institution_id: i2[i % i2.length],
         name: `PB ${UNIVERSITIES[i].name.split(' ')[0]}`,
-        members: JSON.stringify([{ name: generateName() }, { name: generateName() }]),
+        members: [{ name: generateName() }, { name: generateName() }],
       }));
       gp_teams.push(p.id);
     }
@@ -880,7 +892,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       competition_category_id: c2_ganda_p.id, status: 'finished', round: 'Final',
       venue: 'Main Court', scheduled_at: offsetHours(-4),
       home_participant_id: gp_teams[0], away_participant_id: gp_teams[1],
-      live_state: LS.setsFinished({ setsWon: [3, 2], winner: gp_teams[0], setLog: [{ label: 'Set 1', home: 21, away: 18 }, { label: 'Set 2', home: 18, away: 21 }, { label: 'Set 3', home: 21, away: 16 }, { label: 'Set 4', home: 17, away: 21 }, { label: 'Set 5', home: 21, away: 19 }], secs: 5400 }),
+      live_state: LS.setsFinished({ setsWon: [3, 2], winner: gp_teams[0], setLog: [{ set: 1, homeScore: 21, awayScore: 18, winner: 21 > 18 ? 'home' : 'away' }, { set: 2, homeScore: 18, awayScore: 21, winner: 18 > 21 ? 'home' : 'away' }, { set: 3, homeScore: 21, awayScore: 16, winner: 21 > 16 ? 'home' : 'away' }, { set: 4, homeScore: 17, awayScore: 21, winner: 17 > 21 ? 'home' : 'away' }, { set: 5, homeScore: 21, awayScore: 19, winner: 21 > 19 ? 'home' : 'away' }], secs: 5400 }),
     }));
     denormQueue.push(m_gp_f.id);
 
@@ -889,7 +901,7 @@ Dengan kapasitas GOR Badminton IPB yang mampu menampung ribuan penonton, IPB Bad
       const p = await client.request(createItem('participants', {
         competition_category_id: c2_campuran.id, institution_id: i2[i % i2.length],
         name: `Mixed ${UNIVERSITIES[i].name.split(' ')[0]}`,
-        members: JSON.stringify([{ name: generateName(), gender: 'M' }, { name: generateName(), gender: 'F' }]),
+        members: [{ name: generateName(), gender: 'M' }, { name: generateName(), gender: 'F' }],
       }));
     }
 
@@ -962,7 +974,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
     const i3 = await seedInstitutions(e3.id, 8);
 
     const f3_race = await client.request(createItem('match_formats', {
-      event_id: e3.id, name: 'Race - Finish Time ASC',
+      event_id: e3.id, created_by: myId, name: 'Race - Finish Time ASC',
       match_type: 'open',
       modules: [
         { type: 'finish_time', config: { unit: 's', rank_order: 'asc' } },
@@ -970,7 +982,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
       ],
     }));
     const f3_relay = await client.request(createItem('match_formats', {
-      event_id: e3.id, name: 'Relay Race - Team Finish Time',
+      event_id: e3.id, created_by: myId, name: 'Relay Race - Team Finish Time',
       match_type: 'open',
       modules: [
         { type: 'finish_time', config: { unit: 's', rank_order: 'asc' } },
@@ -1067,7 +1079,7 @@ Sejalan dengan visi Green Campus IPB University, event tahun ini mengusung pedom
       const p = await client.request(createItem('participants', {
         competition_category_id: c3_relay.id, institution_id: i3[i % i3.length],
         name: `Tim Relay ${UNIVERSITIES[i % i3.length].name.split(' ')[0]}`,
-        members: JSON.stringify([{ name: generateName(), leg: 1 }, { name: generateName(), leg: 2 }, { name: generateName(), leg: 3 }, { name: generateName(), leg: 4 }]),
+        members: [{ name: generateName(), leg: 1 }, { name: generateName(), leg: 2 }, { name: generateName(), leg: 3 }, { name: generateName(), leg: 4 }],
       }));
       p3_relay.push({ id: p.id, name: p.name, time: 1800 + randomInt(0, 600) });
     }
@@ -1146,7 +1158,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
     const i4 = await seedInstitutions(e4.id, 8);
 
     const f4_hack = await client.request(createItem('match_formats', {
-      event_id: e4.id, name: 'Hackathon - Manual Jury Pick Top 3',
+      event_id: e4.id, created_by: myId, name: 'Hackathon - Manual Jury Pick Top 3',
       match_type: 'open',
       modules:[
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
@@ -1155,7 +1167,7 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
       ],
     }));
     const f4_ctf = await client.request(createItem('match_formats', {
-      event_id: e4.id, name: 'CTF - Automated Scoring',
+      event_id: e4.id, created_by: myId, name: 'CTF - Automated Scoring',
       match_type: 'open',
       modules: [
         { type: 'manual_pick', config: { allow_draw: false, top_n: 5, ranked_order: true } },
@@ -1176,11 +1188,11 @@ Kompetisi ini lebih dari sekadar ajang unjuk kecepatan coding. Hacktoday 2026 ad
         const p = await client.request(createItem('participants', {
           competition_category_id: catId, institution_id: i4[i % i4.length],
           name: `${prefixes[i % prefixes.length]} ${suffixes[i % suffixes.length]}`,
-          members: JSON.stringify([
+          members: [
             { name: generateName(), role: 'Frontend' },
             { name: generateName(), role: 'Backend' },
             { name: generateName(), role: 'ML Engineer' },
-          ]),
+          ],
           notes: `Proposal: ${['Smart irrigation', 'Crop disease AI', 'Supply chain DeFi', 'Soil sensor mesh', 'Livestock tracking', 'Carbon credit NFT', 'Weather prediction', 'Pest detection CV', 'Yield forecast', 'Cold chain monitor'][i]}`,
         }));
         teams.push({ id: p.id, name: p.name });
@@ -1312,7 +1324,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
     const i5 = await seedInstitutions(e5.id, 8);
 
     const f5_futsal = await client.request(createItem('match_formats', {
-      event_id: e5.id, name: 'Futsal - 2×20 Menit',
+      event_id: e5.id, created_by: myId, name: 'Futsal - 2×20 Menit',
       match_type: 'head_to_head',
       modules: [
         { type: 'score_timed', config: { score_label: 'Gol', has_periods: true, period_count: 2, period_term: 'Babak' } },
@@ -1321,7 +1333,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
       ],
     }));
     const f5_penalty = await client.request(createItem('match_formats', {
-      event_id: e5.id, name: 'Futsal - Adu Penalti',
+      event_id: e5.id, created_by: myId, name: 'Futsal - Adu Penalti',
       match_type: 'head_to_head',
       modules: [
         { type: 'manual_pick', config: { allow_draw: false, top_n: 1, ranked_order: false } },
@@ -1338,7 +1350,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
       const p = await client.request(createItem('participants', {
         competition_category_id: c5_beregu.id, institution_id: i5[i % i5.length],
         name: futsalTeamNames[i],
-        members: JSON.stringify(Array.from({ length: 10 }, (_, j) => ({ name: generateName(), jersey: j + 1, position: j === 0 ? 'GK' : 'Player' }))),
+        members: Array.from({ length: 10 }, (_, j) => ({ name: generateName(), jersey: j + 1, position: j === 0 ? 'GK' : 'Player' })),
       }));
       futsal_teams_p.push(p.id);
     }
@@ -1383,7 +1395,7 @@ Kekuatan utama dari turnamen ini bukan hanya pada kualitas taktik dan skill atle
       await client.request(createItem('participants', {
         competition_category_id: c5_putri.id, institution_id: i5[i % i5.length],
         name: `${futsalTeamNames[i]} Putri`,
-        members: JSON.stringify(Array.from({ length: 8 }, () => ({ name: generateName() }))),
+        members: Array.from({ length: 8 }, () => ({ name: generateName() })),
       }));
     }
 
@@ -1451,7 +1463,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
     const i6 = await seedInstitutions(e6.id, 8);
 
     const f6_vocal = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Vocal Solo - 3 Juri (Avg)',
+      event_id: e6.id, created_by: myId, name: 'Vocal Solo - 3 Juri (Avg)',
       match_type: 'solo',
       modules: [
         { type: 'judge_scores', config: { num_judges: 3, method: 'avg', score_min: 0, score_max: 100, step: 1 } },
@@ -1459,7 +1471,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       ],
     }));
     const f6_dance = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Tari - 5 Juri (Drop Extremes)',
+      event_id: e6.id, created_by: myId, name: 'Tari - 5 Juri (Drop Extremes)',
       match_type: 'solo',
       modules: [
         { type: 'judge_scores', config: { num_judges: 5, method: 'drop_extremes', score_min: 0, score_max: 100, step: 0.5 } },
@@ -1468,7 +1480,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       ],
     }));
     const f6_write = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Karya Tulis - Submission Time',
+      event_id: e6.id, created_by: myId, name: 'Karya Tulis - Submission Time',
       match_type: 'open',
       modules: [
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
@@ -1476,7 +1488,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       ],
     }));
     const f6_visual = await client.request(createItem('match_formats', {
-      event_id: e6.id, name: 'Seni Rupa - Panel Juri',
+      event_id: e6.id, created_by: myId, name: 'Seni Rupa - Panel Juri',
       match_type: 'open',
       modules:[
         { type: 'manual_pick', config: { allow_draw: false, top_n: 3, ranked_order: true } },
@@ -1572,7 +1584,7 @@ Tahun ini, gedung utama Graha Widya Wisuda (GWW) disulap layaknya gedung konser 
       const p = await client.request(createItem('participants', {
         competition_category_id: c6_dancem.id, institution_id: i6[i % i6.length],
         name: `Dance Crew ${UNIVERSITIES[i].name.split(' ')[0]}`,
-        members: JSON.stringify(Array.from({ length: randomInt(5, 8) }, () => ({ name: generateName() }))),
+        members: Array.from({ length: randomInt(5, 8) }, () => ({ name: generateName() })),
       }));
       danceTeams.push(p.id);
     }
