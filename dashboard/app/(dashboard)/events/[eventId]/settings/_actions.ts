@@ -24,26 +24,24 @@ const EventUpdateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   location: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  start_date: z.string().nullable().optional(), // YYYY-MM-DD
-  end_date: z.string().nullable().optional(),   // YYYY-MM-DD
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
   slug: z.string().regex(/^[a-z0-9-]+$/, "Slug must be lowercase and hyphenated"),
   type: EventTypeSchema,
   is_published: z.boolean(),
   is_registration_open: z.boolean(),
-  // Maps to standard DB columns
   registration_url: z.string().nullable().optional(),
   guidebook_url: z.string().nullable().optional(),
   instagram_url: z.string().nullable().optional(),
   website_url: z.string().nullable().optional(),
 }).strict()
 
-// Phases Schema
 const PhaseSchema = z.object({
-  id: z.string().uuid().optional(), // optional for creates
+  id: z.string().uuid().optional(),
   label: z.string().min(1),
   description: z.string().optional(),
-  date_start: z.string(), // YYYY-MM-DD
-  time_start: z.string(), // HH:MM:SS
+  date_start: z.string(),
+  time_start: z.string(),
   display_order: z.number().optional()
 })
 
@@ -58,10 +56,8 @@ async function requireEventOwnership(eventId: string) {
     throw new Error('Forbidden')
   }
 
-  // SuperAdmins bypass ownership checks
   if (role === 'SuperAdmin' || role === 'Administrator') return session
 
-  // Verify ownership
   try {
     const event = await adminDirectus.request(
       readItem('events', eventId, { fields: ['user_created'] })
@@ -76,34 +72,36 @@ async function requireEventOwnership(eventId: string) {
   return session
 }
 
+// --- Web App Revalidation Helper -------------------------------
+
+async function pingWebRevalidate(slug?: string) {
+  const webUrl = process.env.WEB_APP_URL
+  const secret = process.env.REVALIDATE_SECRET
+  if (!webUrl || !secret) {
+    console.warn('[revalidate] WEB_APP_URL or REVALIDATE_SECRET not set — web cache not busted')
+    return
+  }
+  await fetch(`${webUrl}/api/revalidate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-revalidate-secret': secret,
+    },
+    body: JSON.stringify({ slug }),
+  }).catch(err => console.error('[revalidate] web app ping failed:', err.message))
+}
+
 // --- Cache Helper ----------------------------------------------
 
 async function revalidateEventCache(eventId: string) {
   try {
     const event = await adminDirectus.request(readItem('events', eventId, { fields: ['slug'] }))
-    
-    // Bust dashboard cache (same app)
     if (event?.slug) {
       revalidatePath('/', 'layout')
       revalidatePath('/events')
       revalidatePath(`/events/${event.slug}`, 'layout')
       revalidatePath(`/events/${event.slug}/settings`, 'layout')
-    }
-
-    // Bust web app cache (separate Next.js instance)
-    const webUrl = process.env.WEB_APP_URL
-    const secret = process.env.REVALIDATE_SECRET
-    if (webUrl && secret) {
-      await fetch(`${webUrl}/api/revalidate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-revalidate-secret': secret,
-        },
-        body: JSON.stringify({ slug: event?.slug }),
-      }).catch(err => console.error('[revalidate] web app ping failed:', err.message))
-    } else {
-      console.warn('[revalidate] WEB_APP_URL or REVALIDATE_SECRET not set — web cache not busted')
+      await pingWebRevalidate(event.slug)
     }
   } catch (err) {
     console.error("Cache bust failed", err)
@@ -134,7 +132,6 @@ export async function updateEventInfoAction(formData: FormData) {
   try {
     await requireEventOwnership(eventId)
 
-    // 1. Map raw FormData to an object for Zod validation
     const rawData = {
       name: formData.get('name'),
       location: formData.get('location') || null,
@@ -145,8 +142,8 @@ export async function updateEventInfoAction(formData: FormData) {
       type: formData.get('type'),
       is_published: formData.get('is_published') === 'true',
       is_registration_open: formData.get('is_registration_open') === 'true',
-      registration_url: formData.get('url_pendaftaran') || null, // FIX: mapped correctly
-      guidebook_url: formData.get('url_guidebook') || null,      // FIX: mapped correctly
+      registration_url: formData.get('url_pendaftaran') || null,
+      guidebook_url: formData.get('url_guidebook') || null,
       instagram_url: formData.get('instagram_url') || null,
       website_url: formData.get('website_url') || null,
     }
@@ -154,7 +151,6 @@ export async function updateEventInfoAction(formData: FormData) {
     const parsed = EventUpdateSchema.safeParse(rawData)
     if (!parsed.success) return { success: false, error: 'Invalid data submitted' }
 
-    // 2. Safely bundle the JSONB Contact Person field (FIX: Database alignment)
     const contactPersonJson = {
       name: formData.get('contact_person_name') || null,
       link: formData.get('contact_person_link') || null,
@@ -166,7 +162,6 @@ export async function updateEventInfoAction(formData: FormData) {
       contact_person: contactPersonJson
     }
 
-    // 3. Process images securely
     const bannerId = await uploadValidImage(formData.get('banner_image') as File | null)
     if (bannerId) payload.banner_image = bannerId
 
@@ -178,7 +173,6 @@ export async function updateEventInfoAction(formData: FormData) {
     
     return { success: true }
   } catch (err: any) {
-    // Handle specific postgres UNIQUE constraint error for slug
     if (err?.errors?.[0]?.extensions?.code === 'RECORD_NOT_UNIQUE') {
       return { success: false, error: 'Slug is already taken' }
     }
@@ -203,26 +197,31 @@ export async function updateEventStatusAction(eventId: string, rawStatus: unknow
 }
 
 export async function deleteEventAction(eventId: string) {
+  let slug: string | undefined
   try {
     await requireEventOwnership(eventId)
+
+    const event = await adminDirectus.request(
+      readItem('events', eventId, { fields: ['slug'] })
+    )
+    slug = event?.slug
+
     await adminDirectus.request(deleteItem('events', eventId));
-    
-    revalidatePath('/'); // Also bust homepage when an event is deleted
-    revalidatePath('/events'); 
+
+    revalidatePath('/', 'layout')
+    revalidatePath('/events')
+    await pingWebRevalidate(slug)
   } catch (err: any) {
     return { success: false, error: err.message }
   }
-  
-  // redirect must be outside the try/catch block because it throws a specific error Next.js needs to catch
+
   redirect('/events')
 }
 
-// ACTION BARU: Menyimpan semua timeline sekaligus (Batch)
 export async function saveTimelinePhasesAction(eventId: string, rawPhases: unknown) {
   try {
     await requireEventOwnership(eventId)
 
-    // Validate the array of phases
     const parsed = z.array(PhaseSchema).safeParse(rawPhases)
     if (!parsed.success) return { success: false, error: 'Invalid phase data' }
 
@@ -276,7 +275,6 @@ export async function deleteEventPhaseAction(eventId: string, phaseId: string) {
   try {
     await requireEventOwnership(eventId)
 
-    // Security check: Ensure the phase actually belongs to this event
     const phase = await adminDirectus.request(readItem('event_phases', phaseId, { fields: ['event_id'] }))
     if (phase.event_id !== eventId) {
       throw new Error('Phase does not belong to this event')

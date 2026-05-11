@@ -1,5 +1,6 @@
+// web/app/api/revalidate/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 const SECRET = process.env.REVALIDATE_SECRET
 
@@ -20,9 +21,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
+  revalidateTag('events')
   revalidatePath('/', 'layout')
   revalidatePath('/events')
+
   if (slug) {
+    revalidateTag(`event-${slug}`)
     revalidatePath(`/events/${slug}`, 'layout')
   }
 

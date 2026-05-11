@@ -27,6 +27,13 @@ const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
 const directusCached = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
   .with(rest({ onRequest: (options) => ({ ...options, next: { revalidate: 60 } }) }));
 
+// Tagged cached client factory - used for collections that need on-demand
+// invalidation via revalidateTag() (e.g. event images changed from dashboard).
+function taggedCachedClient(tags: string[]) {
+  return createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
+    .with(rest({ onRequest: (options) => ({ ...options, next: { revalidate: 60, tags } }) }));
+}
+
 export default directus;
 
 export const getAssetUrl = (
@@ -51,18 +58,13 @@ export const getAssetUrl = (
 };
 
 // --- STATUS_MAP ---------------------------------------------------------------
-// Maps raw Directus status strings (including legacy aliases) to the three
-// canonical frontend values. This is the single source of truth for status
-// normalization - a change here propagates everywhere automatically.
-// The EventDetailHeader status dictionaries use the canonical keys that this
-// map produces: "upcoming" | "ongoing" | "concluded".
 export const STATUS_MAP: Record<string, "upcoming" | "ongoing" | "concluded"> = {
   upcoming:  'upcoming',
   ongoing:   'ongoing',
-  active:    'ongoing',   // alias - remove if unused in Directus
+  active:    'ongoing',
   concluded: 'concluded',
-  finished:  'concluded', // alias - remove if unused in Directus
-  past:      'concluded', // alias - remove if unused in Directus
+  finished:  'concluded',
+  past:      'concluded',
 };
 
 // --- Mapping helpers ----------------------------------------------------------
@@ -138,7 +140,6 @@ const mapMatch = (m: any): MappedMatch => {
     });
   }
 
-  // Warn loudly - a null format_id means scoring is silently broken for this match.
   if (cat && !fmt) {
     console.warn('[mapMatch] match', m.id, 'has no format_id - scoring will be unavailable for category', cat.id);
   }
@@ -190,8 +191,6 @@ export const getMatches = async (): Promise<MappedMatch[]> => {
 };
 
 export const getMatchesByEvent = async (slug: string): Promise<MappedMatch[]> => {
-  // Intentionally no try-catch - let errors propagate to the API route
-  // so it can return a proper HTTP 500 instead of a silent empty array.e
   const res = await directus.request(readItems('matches', {
     filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
     fields: MATCH_FIELDS,
@@ -203,7 +202,7 @@ export const getMatchesByEvent = async (slug: string): Promise<MappedMatch[]> =>
 
 export const getEventsForListing = async () => {
   try {
-    return await directusCached.request(readItems('events', {
+    return await taggedCachedClient(['events']).request(readItems('events', {
       filter: { is_published: { _eq: true } },
       fields: ['*', 'user_created.organisation_name', 'card_image.*', 'banner_image.*'],
       sort:   ['start_date'],
@@ -234,7 +233,7 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
         filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
         fields: MATCH_FIELDS,
         sort:   ['status', 'scheduled_at'],
-        limit:  -1, // fetch all matches - hard limit of 50 would silently truncate
+        limit:  -1,
       })),
       // Cached client - news teaser (4 items) is stable data
       directusCached.request(readItems('news', {
@@ -255,8 +254,6 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
 
     return {
       ...event,
-      // Apply STATUS_MAP so all downstream components receive canonical status values.
-      // EventDetailHeader uses canonical keys ("upcoming" | "ongoing" | "concluded").
       status:     STATUS_MAP[event.status] ?? 'concluded',
       banner_url: getAssetUrl(event.banner_image),
       organiser:  event.user_created?.organisation_name ?? '',
@@ -273,9 +270,6 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
 
 // --- News ---------------------------------------------------------------------
 
-/** Cheap aggregate-only fetch for the News tab skeleton.
- *  Returns the number of items on the requested page so the skeleton can render
- *  the exact right number of cards. Fire in parallel with getNewsByEvent. */
 export const getNewsCountByEvent = async (
   eventSlug: string,
   page     = 1,
@@ -304,7 +298,6 @@ export const getNewsCountByEvent = async (
   }
 };
 
-/** Paginated news fetch for the News tab (items only). */
 export const getNewsByEvent = async (
   eventSlug: string,
   page     = 1,
@@ -425,9 +418,6 @@ const SCHEDULE_FIELDS = [
   'participants.participant_id.institution_id.*',
 ];
 
-/** Fetches matches for the /schedule page with optional date, category, and
- *  search filters. Defaults to a -30 day → +90 day window when no date range
- *  is supplied, matching the client's comment at the top of SchedulePageClient. */
 export const getMatchesSchedule = async (
   filter: ScheduleMatchFilter = { dateFrom: null, dateTo: null, category: null, search: null },
 ): Promise<{ items: MappedMatch[] }> => {
@@ -511,7 +501,7 @@ export const getNews = async ({ limit = 5 }: { limit?: number } = {}): Promise<M
 
 export const getEventsWithRecentNews = async () => {
   try {
-    const events = await directusCached.request(readItems('events', {
+    const events = await taggedCachedClient(['events']).request(readItems('events', {
       filter: { is_published: { _eq: true } },
       fields: ['id', 'name', 'slug', 'status', 'start_date', 'banner_image.*'],
       sort:   ['start_date'],
@@ -551,13 +541,11 @@ export const getEventsWithRecentNews = async () => {
 export const getAllNewsFiltered = async ({
   page     = 1,
   pageSize = 24,
-  filter   = {} as any, // intentional: callers pass DirectusNewsFilter which lacks an index signature
+  filter   = {} as any,
   sort     = '-published_at',
 }: {
   page?:     number;
   pageSize?: number;
-  // Intentionally `any` - callers pass a `DirectusNewsFilter` interface that
-  // lacks an index signature, which makes it incompatible with a typed Record.
   filter?:   any;
   sort?:     string;
 } = {}): Promise<{ items: MappedNews[]; total: number; totalPages: number }> => {
