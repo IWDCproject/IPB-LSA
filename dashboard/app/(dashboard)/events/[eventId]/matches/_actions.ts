@@ -2,23 +2,32 @@
 'use server'
 
 import { auth } from '@/lib/auth'
-import { 
-  createDirectus, 
-  rest, 
-  staticToken, 
-  createItem, 
-  createItems, 
-  updateItem, 
-  deleteItems, 
-  readItems, 
-  readItem 
+import {
+  createDirectus,
+  rest,
+  staticToken,
+  createItem,
+  createItems,
+  updateItem,
+  deleteItems,
+  readItems,
+  readItem
 } from '@directus/sdk'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
-  .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
-  .with(rest())
+
+function requireEnv(name: string): string {
+  const val = process.env[name]
+  if (!val) throw new Error(`Missing required environment variable: ${name}`)
+  return val
+}
+
+function createAdminClient() {
+  return createDirectus(requireEnv('DIRECTUS_URL'))
+    .with(staticToken(requireEnv('DIRECTUS_STATIC_TOKEN')))
+    .with(rest())
+}
 
 // --- Strict Runtime Payload Validation ---
 const MatchPayloadSchema = z.object({
@@ -53,9 +62,16 @@ const MatchPayloadSchema = z.object({
 
 export type MatchActionPayload = z.input<typeof MatchPayloadSchema>
 
+const OPERATOR_ROLES = ['SuperAdmin', 'Administrator', 'PJ Ormawa'] as const
+type OperatorRole = typeof OPERATOR_ROLES[number]
+
+function isOperator(role: string | undefined): role is OperatorRole {
+  return OPERATOR_ROLES.includes(role as OperatorRole)
+}
+
 export async function createMatchAction(payload: MatchActionPayload) {
   const session = await auth()
-  if (!session || (session.user.role !== 'SuperAdmin' && session.user.role !== 'PJ Ormawa')) {
+  if (!session || !isOperator(session.user.role)) {
     return { success: false, error: 'Unauthorized' }
   }
 
@@ -67,6 +83,8 @@ export async function createMatchAction(payload: MatchActionPayload) {
   const { eventSlug, participant_ids, ...matchData } = parsed.data
 
   try {
+    const adminDirectus = createAdminClient()
+
     // 1. Authorization: Verify Category Ownership
     if (session.user.role === 'PJ Ormawa') {
       const category = await adminDirectus.request(
@@ -80,16 +98,24 @@ export async function createMatchAction(payload: MatchActionPayload) {
     }
 
     // 2. Data Integrity: Validate Participants
-    const allIdsToCheck = [...(participant_ids || []), matchData.home_participant_id, matchData.away_participant_id].filter(Boolean) as string[]
+    const allIdsToCheck = [
+      ...(participant_ids ?? []),
+      matchData.home_participant_id,
+      matchData.away_participant_id,
+    ].filter(Boolean) as string[]
+
     if (allIdsToCheck.length > 0) {
+      const uniqueIds = Array.from(new Set(allIdsToCheck))
       const participants = await adminDirectus.request(
         readItems('participants', {
-          filter: { id: { _in: Array.from(new Set(allIdsToCheck)) } },
+          filter: { id: { _in: uniqueIds } },
           fields: ['id', 'competition_category_id']
         })
       ) as any[]
-      const allValid = participants.every(p => p.competition_category_id === matchData.competition_category_id)
-      if (!allValid || participants.length !== new Set(allIdsToCheck).size) {
+      const allValid = participants.every(
+        p => p.competition_category_id === matchData.competition_category_id
+      )
+      if (!allValid || participants.length !== uniqueIds.length) {
         return { success: false, error: 'Invalid participants for this category' }
       }
     }
@@ -101,23 +127,27 @@ export async function createMatchAction(payload: MatchActionPayload) {
 
     // 4. Junction Table
     if (participant_ids && participant_ids.length > 0) {
-      await adminDirectus.request(createItems('match_participants', participant_ids.map((pid, idx) => ({
-        match_id: match.id,
-        participant_id: pid,
-        position: idx + 1
-      }))))
+      await adminDirectus.request(
+        createItems('match_participants', participant_ids.map((pid, idx) => ({
+          match_id: match.id,
+          participant_id: pid,
+          position: idx + 1,
+        })))
+      )
     }
 
     revalidatePath(`/events/${eventSlug}/matches`, 'page')
     return { success: true }
   } catch (error) {
+    console.error('[createMatchAction]', error)
     return { success: false, error: 'Failed to create match' }
   }
 }
 
 export async function updateMatchAction(matchId: string, payload: MatchActionPayload) {
   const session = await auth()
-  if (!session || (session.user.role !== 'SuperAdmin' && session.user.role !== 'PJ Ormawa')) {
+  // FIX: same missing Administrator role as createMatchAction above.
+  if (!session || !isOperator(session.user.role)) {
     return { success: false, error: 'Unauthorized' }
   }
 
@@ -130,18 +160,27 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
   const { eventSlug, participant_ids, ...matchData } = parsed.data
 
   try {
+    const adminDirectus = createAdminClient()
+
     // 1. Fetch existing match + open participants in parallel
     const [existingMatch, existingJunctions] = await Promise.all([
       adminDirectus.request(
         readItem('matches', matchId, {
-          fields: ['status', 'home_participant_id', 'away_participant_id', 'competition_category_id.id', 'competition_category_id.event_id.user_created']
+          fields: [
+            'status',
+            'home_participant_id',
+            'away_participant_id',
+            'competition_category_id.event_id.user_created',
+          ]
         })
       ) as Promise<any>,
-      adminDirectus.request(readItems('match_participants', {
-        filter: { match_id: { _eq: matchId } },
-        fields: ['id', 'participant_id'],
-        sort: ['position'],
-      })) as Promise<{ id: string; participant_id: string }[]>,
+      adminDirectus.request(
+        readItems('match_participants', {
+          filter: { match_id: { _eq: matchId } },
+          fields: ['id', 'participant_id'],
+          sort: ['position'],
+        })
+      ) as Promise<{ id: string; participant_id: string }[]>,
     ])
 
     const existingOwner = existingMatch?.competition_category_id?.event_id?.user_created
@@ -151,9 +190,9 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
 
     // 2. State Lock: only block if participants actually changed
     if (existingMatch.status !== 'upcoming') {
-      const existingOpenIds  = existingJunctions.map((j) => j.participant_id).sort()
-      const incomingOpenIds  = [...(participant_ids ?? [])].sort()
-      const openChanged      = participant_ids !== undefined &&
+      const existingOpenIds = existingJunctions.map((j) => j.participant_id).sort()
+      const incomingOpenIds = [...(participant_ids ?? [])].sort()
+      const openChanged = participant_ids !== undefined &&
         JSON.stringify(incomingOpenIds) !== JSON.stringify(existingOpenIds)
 
       const homeChanged = matchData.home_participant_id !== undefined &&
@@ -170,22 +209,32 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
     await adminDirectus.request(updateItem('matches', matchId, matchData))
 
     // 4. Reconcile Open Participants
+    // NOTE: This is a non-atomic delete-then-recreate. If createItems fails
+    // after deleteItems succeeds, the match will have no participants. Directus
+    // doesn't expose transactions over REST, so this is an accepted limitation.
+    // A compensating re-insert is the safest recovery if this becomes a problem
+    // in practice (e.g. wrap in try/catch and attempt to restore existingJunctions).
     if (participant_ids !== undefined) {
       if (existingJunctions.length > 0) {
-        await adminDirectus.request(deleteItems('match_participants', existingJunctions.map(j => j.id)))
+        await adminDirectus.request(
+          deleteItems('match_participants', existingJunctions.map(j => j.id))
+        )
       }
       if (participant_ids.length > 0) {
-        await adminDirectus.request(createItems('match_participants', participant_ids.map((pid, idx) => ({
-          match_id: matchId,
-          participant_id: pid,
-          position: idx + 1
-        }))))
+        await adminDirectus.request(
+          createItems('match_participants', participant_ids.map((pid, idx) => ({
+            match_id: matchId,
+            participant_id: pid,
+            position: idx + 1,
+          })))
+        )
       }
     }
 
     revalidatePath(`/events/${eventSlug}/matches`, 'page')
     return { success: true }
   } catch (error) {
+    console.error('[updateMatchAction]', error)
     return { success: false, error: 'Update failed' }
   }
 }

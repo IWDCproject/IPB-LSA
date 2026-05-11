@@ -32,6 +32,9 @@ IPB-LSA/
 
 | Doc | Path |
 |---|---|
+| Setup lokal (Docker, env, migrasi, troubleshooting) | [`docs/setup.md`](docs/setup.md) |
+| Manual DB patches (jalankan ini kalau DB kamu sudah lama) | [`docs/db-patches.md`](docs/db-patches.md) |
+| Schema & arsitektur database | [`schema.md`](schema.md) |
 | Homepage system (layout, scroll, blur pipeline, semua section) | [`web/app/HomepageDocs.md`](web/app/HomepageDocs.md) |
 
 ---

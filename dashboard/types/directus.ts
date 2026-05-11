@@ -109,7 +109,7 @@ export type Match = {
   away_participant_id: string | null
   winner: string | null
   rankings: { rank: number; id: string; name: string }[] | null
-  live_state: LiveState
+  live_state: LiveState | null
   status: MatchStatus
 }
 

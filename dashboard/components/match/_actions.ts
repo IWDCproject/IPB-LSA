@@ -11,6 +11,7 @@ import {
 } from '@directus/sdk'
 import { z } from 'zod'
 import type { LiveState } from '@/types/directus'
+import { DEFAULT_LIVE_STATE } from '@/lib/liveStateDefaults'
 
 // --- Zod Runtime Validation Schemas ----------------------------
 
@@ -52,50 +53,21 @@ const LiveStatePatchSchema = z.object({
   setsWon: z.tuple([z.number(), z.number()]).optional(),
   setLog: z.array(SetLogEntrySchema).optional(),
   pendingSetWinner: z.string().max(36).nullable().optional(),
-  // FIX: was z.array(z.number()) which rejected the null[] that handleFullReset
-  // previously sent. Changed to allow null entries so a reset to [] is always
-  // sent from the client instead (see ControlPanel handleFullReset fix).
   judgeScores: z.array(z.number()).optional(),
   timeLog: z.array(TimeLogEntrySchema).optional(),
 }).strict()
 
-// --- Default live state ----------------------------------------
-
-const defaultLiveState: LiveState = {
-  matchStatus: 'upcoming',
-  winner: null,
-  rankings: null,
-  notes: '',
-  timerSecs: 0,
-  timerTarget: null,
-  timerLastStarted: null,
-  timerRunning: false,
-  timerFlags: [],
-  homeScore: 0,
-  awayScore: 0,
-  periodIdx: 0,
-  periodPhase: 'idle',
-  setIdx: 0,
-  setPhase: 'idle',
-  setScore: [0, 0],
-  setsWon: [0, 0],
-  setLog: [],
-  pendingSetWinner: null,
-  judgeScores: [],
-  timeLog: [],
-}
-
 // --- Admin client ----------------------------------------------
+//
+// FIX: was a module-level singleton — if env vars are missing, the error
+// throws at import time (before any action runs), producing a confusing
+// "module failed to load" crash rather than a clear env-var message.
+// Moved to a factory called inside each action so the error surface is clean.
 //
 // FIX (SECURITY): was process.env.NEXT_PUBLIC_DIRECTUS_URL which causes
 // Next.js to inline the value into every client-side JS bundle, leaking the
 // internal Directus URL to all browser visitors. Server actions run only on
-// the server; the env var must use a server-only name (no NEXT_PUBLIC_ prefix)
-// so Next.js never bundles it into client code.
-//
-// FIX (RELIABILITY): added runtime guards so the process fails fast with a
-// clear error during startup if either secret is missing, rather than passing
-// undefined to the SDK and getting a cryptic network error at request time.
+// the server; the env var must use a server-only name (no NEXT_PUBLIC_ prefix).
 
 function requireEnv(name: string): string {
   const val = process.env[name]
@@ -103,9 +75,11 @@ function requireEnv(name: string): string {
   return val
 }
 
-const adminDirectus = createDirectus(requireEnv('DIRECTUS_URL'))
-  .with(staticToken(requireEnv('DIRECTUS_STATIC_TOKEN')))
-  .with(rest())
+function createAdminClient() {
+  return createDirectus(requireEnv('DIRECTUS_URL'))
+    .with(staticToken(requireEnv('DIRECTUS_STATIC_TOKEN')))
+    .with(rest())
+}
 
 // --- Helpers ---------------------------------------------------
 
@@ -115,6 +89,24 @@ function assertUUID(value: unknown, label: string): asserts value is string {
   if (typeof value !== 'string' || !UUID_RE.test(value)) {
     throw new Error(`${label} bukan UUID yang valid.`)
   }
+}
+
+// FIX (CRASH): Directus may return a `json` column as a parsed object OR as a
+// raw JSON string depending on the column type and SDK version. Spreading a
+// string with `...someString` does NOT give you the parsed object — JS spreads
+// the string's character indices: `{ '0': '{', '1': '"', ... }`. That
+// corrupted object is then written back to Directus, which may reject it or
+// store garbage, manifesting as "cannot get array length of a scalar" when
+// Directus tries to process the malformed payload.
+function parseLiveState(raw: unknown): Partial<LiveState> {
+  if (!raw) return {}
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw) as Partial<LiveState> } catch { return {} }
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw as Partial<LiveState>
+  }
+  return {}
 }
 
 function safeError(context: string, error: unknown): string {
@@ -150,6 +142,7 @@ async function verifyMatchOwnership(matchId: string) {
 
   if (userRole === 'SuperAdmin' || userRole === 'Administrator') return session
 
+  const adminDirectus = createAdminClient()
   const match = await adminDirectus.request(
     readItem('matches', matchId, {
       fields: ['competition_category_id.event_id.user_created'],
@@ -171,10 +164,16 @@ async function verifyMatchOwnership(matchId: string) {
 
 export async function getMatchControlDataAction(matchId: string) {
   try {
-    await requireOperator()
-
+    // FIX: validate UUID *before* any DB call. Was missing entirely — any
+    // string (including SQL fragments) was passed straight to Directus.
     assertUUID(matchId, 'matchId')
 
+    // FIX (SECURITY): was requireOperator() only, meaning any logged-in
+    // PJ Ormawa could read the control data for any match in any event,
+    // not just their own. Changed to verifyMatchOwnership for consistency.
+    await verifyMatchOwnership(matchId)
+
+    const adminDirectus = createAdminClient()
     const match = await adminDirectus.request(
       readItem('matches', matchId, {
         fields: [
@@ -198,15 +197,19 @@ export async function getMatchControlDataAction(matchId: string) {
 
 export async function patchLiveStateAction(matchId: string, rawPartial: Partial<LiveState>) {
   try {
-    await verifyMatchOwnership(matchId)
-
+    // FIX (SECURITY): assertUUID was called *after* verifyMatchOwnership,
+    // which itself calls readItem with the unvalidated matchId. The UUID
+    // check must come first so no DB call ever receives unvalidated input.
     assertUUID(matchId, 'matchId')
+
+    await verifyMatchOwnership(matchId)
 
     const parsed = LiveStatePatchSchema.safeParse(rawPartial)
     if (!parsed.success) throw new Error('Invalid payload data')
 
     const partial = parsed.data as Partial<LiveState>
 
+    const adminDirectus = createAdminClient()
     const current = await adminDirectus.request(
       readItem('matches', matchId, {
         fields: ['live_state', 'competition_category_id.event_id'],
@@ -217,15 +220,20 @@ export async function patchLiveStateAction(matchId: string, rawPartial: Partial<
     // Two concurrent updates will silently overwrite each other (last write wins).
     // Acceptable for single-operator matches; use atomic JSONB merging if that changes.
     const merged: LiveState = {
-      ...defaultLiveState,
-      ...(current.live_state ?? {}),
+      ...DEFAULT_LIVE_STATE,
+      ...parseLiveState(current.live_state),  // FIX: safe parse (see parseLiveState)
       ...partial,
     }
 
     await adminDirectus.request(updateItem('matches', matchId, { live_state: merged }))
 
-    const eventId = current?.competition_category_id?.event_id
-    revalidatePath(`/events/${eventId}/matches/${matchId}/control`)
+    // FIX: eventId could be undefined if the relation wasn't expanded correctly
+    // (e.g. competition_category_id returned as a raw UUID string). Guard before
+    // calling revalidatePath to avoid caching a path like /events/undefined/...
+    const eventId: string | undefined = current?.competition_category_id?.event_id
+    if (eventId) {
+      revalidatePath(`/events/${eventId}/matches/${matchId}/control`)
+    }
 
     return { success: true as const, liveState: merged }
   } catch (error) {
@@ -239,9 +247,10 @@ export async function setMatchStatusAction(
   rawLiveStatePartial?: Partial<LiveState>,
 ) {
   try {
-    await verifyMatchOwnership(matchId)
-
+    // FIX (SECURITY): same assertUUID ordering bug as patchLiveStateAction.
     assertUUID(matchId, 'matchId')
+
+    await verifyMatchOwnership(matchId)
 
     const statusParsed = MatchStatusSchema.safeParse(rawStatus)
     if (!statusParsed.success) throw new Error('Invalid match status')
@@ -255,6 +264,7 @@ export async function setMatchStatusAction(
 
     const status = statusParsed.data
 
+    const adminDirectus = createAdminClient()
     const current = await adminDirectus.request(
       readItem('matches', matchId, {
         fields: ['live_state', 'competition_category_id.event_id'],
@@ -262,16 +272,19 @@ export async function setMatchStatusAction(
     ) as any
 
     const merged: LiveState = {
-      ...defaultLiveState,
-      ...(current.live_state ?? {}),
+      ...DEFAULT_LIVE_STATE,
+      ...parseLiveState(current.live_state),  // FIX: safe parse (see parseLiveState)
       ...partial,
       matchStatus: status,
     }
 
     await adminDirectus.request(updateItem('matches', matchId, { status, live_state: merged }))
 
-    const eventId = current?.competition_category_id?.event_id
-    revalidatePath(`/events/${eventId}/matches/${matchId}/control`)
+    // FIX: same undefined eventId guard as patchLiveStateAction.
+    const eventId: string | undefined = current?.competition_category_id?.event_id
+    if (eventId) {
+      revalidatePath(`/events/${eventId}/matches/${matchId}/control`)
+    }
 
     return { success: true as const, liveState: merged }
   } catch (error) {
