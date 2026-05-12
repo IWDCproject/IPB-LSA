@@ -175,6 +175,7 @@ const TAB_HEADER = 'flex items-center justify-between'
 
 function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
   const [form, setForm] = useState({
     name:                 event.name || '',
     location:             event.location || '',
@@ -227,13 +228,18 @@ function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) 
 
   const handleSave = async () => {
     setLoading(true)
+    setError(null)
     const data = new FormData()
     Object.entries(form).forEach(([k, v]) => data.append(k, String(v)))
     data.append('eventId', event.id)
     if (bannerFile) data.append('banner_image', bannerFile)
     if (cardFile)   data.append('card_image',   cardFile)
     const res = await updateEventInfoAction(data)
-    if (res.success) onRefresh()
+    if (res.success) {
+      onRefresh()
+    } else {
+      setError(res.error ?? 'Gagal menyimpan.')
+    }
     setLoading(false)
   }
 
@@ -244,9 +250,12 @@ function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) 
           <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Event Info Settings</h2>
           <p className="text-sm text-zinc-500 mt-1">Kelola identitas dan aset visual event Anda</p>
         </div>
-        <Button variant="filled" onClick={handleSave} disabled={loading} className="h-9 gap-2">
-          <Save className="h-4 w-4" /> {loading ? 'Saving...' : 'Save Info'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+          <Button variant="filled" onClick={handleSave} disabled={loading} className="h-9 gap-2">
+            <Save className="h-4 w-4" /> {loading ? 'Saving...' : 'Save Info'}
+          </Button>
+        </div>
       </div>
 
       {/* Core info */}

@@ -45,6 +45,13 @@ services:
       CORS_METHODS: "GET,POST,PATCH,DELETE"
       CORS_ALLOWED_HEADERS: "Content-Type,Authorization"
       PROJECT_NAME: "IPB-LSA"
+      STORAGE_LOCATIONS: "r2"
+      STORAGE_R2_DRIVER: "s3"
+      STORAGE_R2_KEY: "${R2_ACCESS_KEY_ID}"
+      STORAGE_R2_SECRET: "${R2_SECRET_ACCESS_KEY}"
+      STORAGE_R2_BUCKET: "ipb-lsa-uploads"
+      STORAGE_R2_ENDPOINT: "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+      STORAGE_R2_REGION: "auto"
     volumes:
       - ./uploads:/directus/uploads:z
       - ./extensions:/directus/extensions:z

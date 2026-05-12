@@ -431,10 +431,18 @@ BEGIN
   NEW.away_score  := COALESCE((NEW.live_state->>'awayScore')::int, 0);
   NEW.timer_secs  := COALESCE((NEW.live_state->>'timerSecs')::int, 0);
   NEW.winner      := NEW.live_state->>'winner';
-  NEW.rankings    := CASE
-    WHEN NEW.live_state ? 'rankings'
-     AND jsonb_array_length(NEW.live_state->'rankings') > 0
-    THEN NEW.live_state->'rankings'
+  -- Nested CASE required: PostgreSQL does not guarantee short-circuit
+  -- evaluation within a single WHEN A AND B, so jsonb_array_length can
+  -- be called even when rankings is JSON null → "cannot get array length
+  -- of a scalar". Outer WHEN confirms array type first; only then does
+  -- the inner WHEN call jsonb_array_length.
+  NEW.rankings := CASE
+    WHEN jsonb_typeof(NEW.live_state->'rankings') = 'array'
+    THEN CASE
+      WHEN jsonb_array_length(NEW.live_state->'rankings') > 0
+      THEN NEW.live_state->'rankings'
+      ELSE NULL
+    END
     ELSE NULL
   END;
   RETURN NEW;
