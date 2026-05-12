@@ -184,7 +184,7 @@ export default function MatchesPage() {
               router.push(`/events/${eventId}/matches/${row.id}`)
             }}
           >
-            Operate <ExternalLink className=" h-3.5 w-3.5" />
+            Scoring <ExternalLink className=" h-3.5 w-3.5" />
           </Button>
           <Button
           variant="noBorder"
