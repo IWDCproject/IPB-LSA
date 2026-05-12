@@ -1,21 +1,49 @@
 'use client'
 
+import { useState, useCallback, useEffect } from 'react'
 import { useFormatBuilder } from '@/stores/formatBuilder'
-import { ScoreTimedPreview } from './preview/ScoreTimedPreview'
-import { ScoreSetsPreview } from './preview/ScoreSetsPreview'
-import { JudgeScoresPreview } from './preview/JudgeScoresPreview'
-import { FinishTimePreview } from './preview/FinishTimePreview'
-import { ManualPickPreview } from './preview/ManualPickPreview'
+import type { LiveState } from '@/types/directus'
 import type { EngineType } from '@/types/directus'
 
-// --- Timer mock ------------------------------------------------
+// Real engine panels ─────────────────────────────────────────────────────────
+import FinishTimePanel from '@/components/match/FinishTimePanel'
+import ScoreTimedPanel from '@/components/match/ScoreTimedPanel'
+import ScoreSetsPanel  from '@/components/match/ScoreSetsPanel'
+import JudgeScoresPanel from '@/components/match/JudgeScoresPanel'
+import ManualPickPanel from '@/components/match/ManualPickPanel'
+
+// Mock-data builders ─────────────────────────────────────────────────────────
+import {
+  getMockParticipants,
+  getMockLiveState,
+  buildMockFormat,
+} from './previewMocks'
+
+// ---------------------------------------------------------------------------
+// Engine panel map
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ENGINE_PANELS: Record<EngineType, React.ComponentType<any>> = {
+  finish_time:  FinishTimePanel,
+  score_timed:  ScoreTimedPanel,
+  score_sets:   ScoreSetsPanel,
+  judge_scores: JudgeScoresPanel,
+  manual_pick:  ManualPickPanel,
+}
+
+// ---------------------------------------------------------------------------
+// Timer preview (kept as a local mock — TimerBlock needs a real socket)
+// ---------------------------------------------------------------------------
 
 function TimerPreview() {
   const { addOns } = useFormatBuilder()
   const { mode, duration } = addOns.timer
 
-  const isStopwatch = mode === 'stopwatch'
-  const modeLabel = mode === 'countdown' ? 'countdown' : mode === 'stopwatch' ? 'Stopwatch' : 'Deadline'
+  const isStopwatch  = mode === 'stopwatch'
+  const modeLabel    = mode === 'countdown' ? 'Countdown'
+                     : mode === 'stopwatch' ? 'Stopwatch'
+                     : 'Deadline'
 
   const countdownDisplay = (() => {
     const m = Math.floor(duration / 60).toString().padStart(2, '0')
@@ -54,7 +82,9 @@ function TimerPreview() {
   )
 }
 
-// --- Notes mock ------------------------------------------------
+// ---------------------------------------------------------------------------
+// Notes preview (kept as a local mock — OperatorNotes needs a real socket)
+// ---------------------------------------------------------------------------
 
 function NotesPreview() {
   return (
@@ -72,26 +102,41 @@ function NotesPreview() {
   )
 }
 
-// --- Engine → preview component map ----------------------------
-
-const ENGINE_PREVIEW: Record<EngineType, React.ComponentType> = {
-  score_timed:  ScoreTimedPreview,
-  score_sets:   ScoreSetsPreview,
-  judge_scores: JudgeScoresPreview,
-  finish_time:  FinishTimePreview,
-  manual_pick:  ManualPickPreview,
-}
-
-// --- Komponen utama --------------------------------------------
+// ---------------------------------------------------------------------------
+// FormatPreview — main export
+// ---------------------------------------------------------------------------
 
 export function FormatPreview() {
-  const { engine, addOns } = useFormatBuilder()
+  const { engine, matchType, addOns } = useFormatBuilder()
 
-  const PreviewComponent = ENGINE_PREVIEW[engine.type]
+  // Local liveState makes the real panel fully interactable in preview mode.
+  const [liveState, setLiveState] = useState<LiveState>(getMockLiveState)
+
+  // Reset state whenever the engine type switches so stale data from a
+  // previous engine type doesn't appear in the new one's panel.
+  useEffect(() => {
+    setLiveState(getMockLiveState())
+  }, [engine.type])
+
+  // Mirrors the real onPatch signature — merges partial updates into local state.
+  const onPatch = useCallback(async (partial: Partial<LiveState>) => {
+    setLiveState((prev) => ({ ...prev, ...partial }))
+  }, [])
+
+  const format       = buildMockFormat(engine, matchType)
+  const participants = getMockParticipants(matchType)
+  const Panel        = ENGINE_PANELS[engine.type]
 
   return (
     <div className="space-y-3">
-      <PreviewComponent />
+      <Panel
+        liveState={liveState}
+        onPatch={onPatch}
+        format={format}
+        participants={participants}
+        homeParticipant={participants[0] ?? null}
+        awayParticipant={participants[1] ?? null}
+      />
       {addOns.timer.enabled && <TimerPreview />}
       {addOns.notes.enabled && <NotesPreview />}
     </div>
