@@ -11,33 +11,33 @@ import type { EventStatus, SortValue, EventOption, NewsItem } from "./_newsTypes
 
 export type { EventStatus, SortValue, EventOption, NewsItem } from "./_newsTypes";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types --------------------------------------------------------------------
 
 interface Props {
   events:   EventOption[];
   isMobile: boolean;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// --- Constants ----------------------------------------------------------------
 
 const PAGE_SIZE = 24;
 
 const SKELETON_SHOW_DELAY_MS  = 200;
 const SKELETON_MIN_DISPLAY_MS = 200;
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// --- Main component -----------------------------------------------------------
 
 export default function AllNewsTab({ events, isMobile }: Props) {
   const router = useRouter();
 
-  // ── Filter state ──────────────────────────────────────────────────────────
+  // -- Filter state ----------------------------------------------------------
   const [searchInput,      setSearchInput]      = useState("");
   const [activeStatuses,   setActiveStatuses]   = useState<Set<EventStatus>>(new Set());
   const [activeEventSlugs, setActiveEventSlugs] = useState<Set<string>>(new Set());
   const [sort,             setSort]             = useState<SortValue>("-published_at");
   const [page,             setPage]             = useState(1);
 
-  // ── Data state ────────────────────────────────────────────────────────────
+  // -- Data state ------------------------------------------------------------
   const [items,           setItems]           = useState<NewsItem[] | null>(null);
   const [total,           setTotal]           = useState(0);
   const [totalPages,      setTotalPages]      = useState(0);
@@ -53,10 +53,10 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
   const debouncedSearch = useDebounce(searchInput, 350);
 
-  // ── Fetch — with skeleton show-delay + minimum display logic ──────────────
+  // -- Fetch - with skeleton show-delay + minimum display logic --------------
   // The `cancelled` flag guards against stale updates from rapid filter
   // changes.  The skeleton show/min-display timers are intentionally kept as
-  // they are — they implement the perceived-performance UX contract.
+  // they are - they implement the perceived-performance UX contract.
   useEffect(() => {
     let cancelled        = false;
     let skeletonShownAt: number | null = null;
@@ -140,7 +140,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
   }, [ready]);
 
   // Reset page on filter change (page is intentionally excluded from the dep
-  // array — we only want to react to *filter* changes, not page changes).
+  // array - we only want to react to *filter* changes, not page changes).
   const prevFilters = useRef({ debouncedSearch, activeStatuses, activeEventSlugs, sort });
   useEffect(() => {
     const prev = prevFilters.current;
@@ -155,7 +155,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
     }
   }, [debouncedSearch, activeStatuses, activeEventSlugs, sort]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // -- Handlers --------------------------------------------------------------
   const toggleStatus = useCallback((s: EventStatus) => {
     setActiveStatuses(prev => {
       const next = new Set(prev);
@@ -182,7 +182,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
 
   const handleTransitionEnd = () => setLockedHeight(null);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // -- Render ----------------------------------------------------------------
 
   const cols      = isMobile ? 1 : 4;
   const showGrid  = skeletonVisible || ready;
@@ -198,7 +198,7 @@ export default function AllNewsTab({ events, isMobile }: Props) {
   return (
     <div ref={topRef} style={{ paddingBottom: 60 }}>
 
-      {/* ── Header + filters ──────────────────────────────────────────────── */}
+      {/* -- Header + filters ------------------------------------------------ */}
       <div style={{
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
@@ -283,13 +283,13 @@ export default function AllNewsTab({ events, isMobile }: Props) {
         </div>
       </div>
 
-      {/* ── Divider ───────────────────────────────────────────────────────── */}
+      {/* -- Divider --------------------------------------------------------- */}
       <div style={{
         height: 1, background: "rgba(255,255,255,0.08)", marginBottom: 20,
         opacity: 0, animation: `np-slide-up ${DUR}ms ${EASE} ${BASE + STAGGER * 6}ms both`,
       }} />
 
-      {/* ── Card grid ─────────────────────────────────────────────────────── */}
+      {/* -- Card grid ------------------------------------------------------- */}
       <div
         ref={outerRef}
         onTransitionEnd={handleTransitionEnd}

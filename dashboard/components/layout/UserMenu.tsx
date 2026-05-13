@@ -19,9 +19,9 @@ export function UserMenu() {
     : (session.user.organisationName ?? name ?? email)
 
   return (
-    <div className="flex items-center gap-3 px-3 py-3 border-t">
+    <div className="flex items-center gap-3 px-3 py-3">
       {/* Avatar */}
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold select-none">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold select-none">
         {session.user.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -36,14 +36,13 @@ export function UserMenu() {
 
       {/* Identity */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-tight truncate">{roleLabel}</p>
+        <p className="text-sm font-bold truncate">{roleLabel}</p>
         <p className="text-xs text-muted-foreground leading-tight truncate">{email}</p>
       </div>
 
       {/* Sign out */}
       <Button
-        variant="ghost"
-        size="icon"
+        variant="noBorder"
         className="shrink-0 text-muted-foreground hover:text-foreground"
         onClick={() => signOut({ callbackUrl: '/login' })}
       >

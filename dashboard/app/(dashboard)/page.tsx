@@ -5,11 +5,11 @@ export default function DashboardHomePage() {
     <div className="space-y-6">
       <div className="-mx-6 -mt-6">
         <PageHeader
-          breadcrumbs={['Dashboard']}
+          breadcrumbs={[{ label: 'Dashboard' }]}
           title="Jadwal Hari Ini"
         />
       </div>
-      <p className="text-sm text-muted-foreground">Coming soon — Phase 8.</p>
+      <p className="text-sm text-muted-foreground">Coming soon - Phase 8.</p>
     </div>
   )
 }

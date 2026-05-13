@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const news = await getNewsBySlug(params.eventSlug, params.newsSlug);
   if (!news) return {};
 
-  const title       = `${news.title} — IPB LSA`;
+  const title       = `${news.title} - IPB LSA`;
   const description = news.excerpt?.slice(0, 160) ?? news.title;
   const ogImage     = news.thumbnail_url ?? undefined;
 
@@ -91,7 +91,7 @@ export default async function NewsDetailPage({ params }: Props) {
             <div className={styles.divider} />
           </header>
 
-          {/* ── Hero image ── */}
+          {/* -- Hero image -- */}
           <div className={styles.heroWrap}>
             {news.thumbnail_url ? (
               <Image
@@ -107,7 +107,7 @@ export default async function NewsDetailPage({ params }: Props) {
             )}
           </div>
 
-          {/* ── Article body ── */}
+          {/* -- Article body -- */}
           <div
             className={`${styles.body} prose`}
             dangerouslySetInnerHTML={{ __html: news.content ?? '' }}

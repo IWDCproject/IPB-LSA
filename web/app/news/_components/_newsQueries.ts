@@ -9,7 +9,7 @@
 
 import type { EventStatus, DirectusNewsFilter } from "./_newsTypes";
 
-// ─── Status alias map ─────────────────────────────────────────────────────────
+// --- Status alias map ---------------------------------------------------------
 
 /**
  * Maps each canonical EventStatus to the raw Directus status strings that
@@ -24,16 +24,16 @@ export const STATUS_RAW_MAP: Record<EventStatus, readonly string[]> = {
   concluded: ["concluded", "finished", "past"],
 } as const;
 
-// ─── Filter params type ───────────────────────────────────────────────────────
+// --- Filter params type -------------------------------------------------------
 
 export interface NewsFilterParams {
   debouncedSearch: string;
-  /** Already-expanded raw status strings — pass through STATUS_RAW_MAP first. */
+  /** Already-expanded raw status strings - pass through STATUS_RAW_MAP first. */
   rawStatuses:     string[];
   eventSlugs:      string[];
 }
 
-// ─── Filter builder ───────────────────────────────────────────────────────────
+// --- Filter builder -----------------------------------------------------------
 
 /**
  * Builds a Directus filter object for published news articles.

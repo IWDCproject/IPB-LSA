@@ -6,6 +6,15 @@ import { MiddleBadge, ScoreCell, AnimatedScore, LIGHT_BADGE_COLORS, DARK_BADGE_C
 import type { BadgeColors } from "../match/ScoreBadges";
 import type { MappedMatch } from "../../_types";
 
+// Canonical setLog entry shape - must match SetLogEntry in the admin project's directus.ts.
+// Defined locally here because MatchRow lives in the public website project.
+type SetLogEntry = {
+  set:       number
+  homeScore: number
+  awayScore: number
+  winner:    "home" | "away"
+}
+
 // --- Match Row Color Config ---------------------------------------------------
 
 export type MatchColors = {
@@ -51,7 +60,7 @@ function MobileScoreCell({ match, C, badgeColors }: { match: MappedMatch; C: Mat
     if (isLive) {
       const setScore  = live?.setScore ?? [0, 0];
       const setLog    = live?.setLog   ?? [];
-      const detailArr = setLog.map((s: any) => `${s.home}-${s.away}`);
+      const detailArr = setLog.map((s: SetLogEntry) => `${s.homeScore}-${s.awayScore}`);
       return (
         <div className="flex flex-col items-end gap-[3px] max-w-[88px]">
           <div className="flex items-center gap-1">
@@ -74,9 +83,9 @@ function MobileScoreCell({ match, C, badgeColors }: { match: MappedMatch; C: Mat
       );
     } else {
       const setLog    = live?.setLog ?? [];
-      const homeSets  = setLog.filter((s: any) => s.home > s.away).length;
-      const awaySets  = setLog.filter((s: any) => s.away > s.home).length;
-      const detailArr = setLog.map((s: any) => `${s.home}-${s.away}`);
+      const homeSets  = setLog.filter((s: SetLogEntry) => s.homeScore > s.awayScore).length;
+      const awaySets  = setLog.filter((s: SetLogEntry) => s.awayScore > s.homeScore).length;
+      const detailArr = setLog.map((s: SetLogEntry) => `${s.homeScore}-${s.awayScore}`);
       return (
         <div className="flex flex-col items-end gap-[3px] max-w-[88px]">
           <div className="flex items-center gap-1">

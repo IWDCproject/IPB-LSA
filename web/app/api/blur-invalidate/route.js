@@ -4,8 +4,8 @@
 // Deletes all .blur-cache files for the given asset ID immediately,
 // so the next request regenerates fresh blurs without waiting for TTL.
 //
-// SETUP — Directus Flow
-// ─────────────────────────────────────────────────────────────────────────
+// SETUP - Directus Flow
+// -------------------------------------------------------------------------
 // 1. In Directus → Flows → Create Flow
 // 2. Trigger:    Event Hook → directus_files.items.update (and .delete)
 // 3. Operation:  Webhook → POST → {YOUR_SITE}/api/blur-invalidate
@@ -13,7 +13,7 @@
 //    Body:       { "id": "{{$trigger.keys[0]}}" }
 //
 // ENV
-// ─────────────────────────────────────────────────────────────────────────
+// -------------------------------------------------------------------------
 // BLUR_INVALIDATE_SECRET=some-long-random-string
 // Add this to .env.local and your VPS environment.
 //
@@ -25,7 +25,7 @@ const CACHE_DIR = process.env.BLUR_CACHE_DIR ?? path.join(process.cwd(), ".blur-
 const SECRET    = process.env.BLUR_INVALIDATE_SECRET;
 
 export async function POST(req) {
-  // ── Auth ───────────────────────────────────────────────────────────────
+  // -- Auth ---------------------------------------------------------------
   if (!SECRET) {
     console.error("[blur-invalidate] BLUR_INVALIDATE_SECRET is not set");
     return new Response("Server misconfiguration", { status: 500 });
@@ -36,7 +36,7 @@ export async function POST(req) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // ── Parse body ─────────────────────────────────────────────────────────
+  // -- Parse body ---------------------------------------------------------
   let id;
   try {
     const body = await req.json();
@@ -49,7 +49,7 @@ export async function POST(req) {
     return new Response("Missing or invalid `id` field", { status: 400 });
   }
 
-  // ── Delete matching cache files ────────────────────────────────────────
+  // -- Delete matching cache files ----------------------------------------
   // Filenames are: {assetId}_{md5}.webp
   // So we just find all files whose name starts with the asset ID.
   let deleted = 0;

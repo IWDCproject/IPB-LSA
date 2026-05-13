@@ -1,5 +1,5 @@
 /**
- * /news — Editorial news index page
+ * /news - Editorial news index page
  * File must be named page.tsx (lowercase) for Next.js to pick it up as a route.
  */
 
@@ -7,7 +7,7 @@ import NewsPageClient from "./_components/NewsPageClient";
 import { getNews, getEventsWithRecentNews } from "@/lib/directus";
 
 export const metadata = {
-  title: "News — IPB LSA",
+  title: "News - IPB LSA",
   description: "Latest stories and event coverage from IPB LSA.",
 };
 

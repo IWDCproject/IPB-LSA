@@ -10,16 +10,16 @@
  *   node simulate-match.mjs --match <id>         simulate a single match by ID
  *   node simulate-match.mjs --event <slug> --one simulate one random upcoming match
  *
- * Environment (optional — defaults to seeder values):
+ * Environment (optional - defaults to seeder values):
  *   DIRECTUS_URL    (default: http://localhost:7777)
  *   DIRECTUS_TOKEN  (default: seeder admin token)
  *
  * Engines covered:
- *   score_timed   — homeScore/awayScore with optional periods + timer
- *   score_sets    — set-by-set play up to sets_to_win
- *   judge_scores  — judges reveal scores one by one
- *   finish_time   — participants finish at staggered times, rankings built
- *   manual_pick   — rankings revealed from last place to first (dramatic)
+ *   score_timed   - homeScore/awayScore with optional periods + timer
+ *   score_sets    - set-by-set play up to sets_to_win
+ *   judge_scores  - judges reveal scores one by one
+ *   finish_time   - participants finish at staggered times, rankings built
+ *   manual_pick   - rankings revealed from last place to first (dramatic)
  */
 
 import {
@@ -27,14 +27,14 @@ import {
   readItems, updateItem,
 } from '@directus/sdk';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+// --- Config -------------------------------------------------------------------
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL   ?? 'http://localhost:7777';
 const TOKEN        = process.env.DIRECTUS_TOKEN ?? 'ECH98IbvMYhkTbPM2sYWKsjeib3Bpgo2';
 
 const client = createDirectus(DIRECTUS_URL).with(rest()).with(staticToken(TOKEN));
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
+// --- Utilities ----------------------------------------------------------------
 
 const sleep      = (ms)       => new Promise(r => setTimeout(r, ms));
 const randomInt  = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -61,11 +61,11 @@ const args = (() => {
   return out;
 })();
 
-// ─── Directus helpers ─────────────────────────────────────────────────────────
+// --- Directus helpers ---------------------------------------------------------
 
 /**
  * PATCH both status and the full live_state in one request.
- * Always sends live_state as a complete object — Directus replaces the JSONB
+ * Always sends live_state as a complete object - Directus replaces the JSONB
  * field entirely, so partial sends would lose existing fields.
  */
 async function patch(matchId, live, status = undefined) {
@@ -87,10 +87,10 @@ const MATCH_FIELDS = [
   'participants.position',
 ];
 
-// ─── Engine simulators ────────────────────────────────────────────────────────
+// --- Engine simulators --------------------------------------------------------
 
 /**
- * score_timed — increment homeScore/awayScore point by point.
+ * score_timed - increment homeScore/awayScore point by point.
  * Supports optional periods and a timer add-on.
  */
 async function simScoreTimed(match, engineCfg, modules) {
@@ -148,7 +148,7 @@ async function simScoreTimed(match, engineCfg, modules) {
       }
       live = { ...live, periodPhase: 'halftime' };
       await patch(match.id, live);
-      console.log(`    ⏸  ${period_term} ${p + 1} break — score ${live.homeScore}-${live.awayScore}`);
+      console.log(`    ⏸  ${period_term} ${p + 1} break - score ${live.homeScore}-${live.awayScore}`);
       await sleep(600);
     }
   }
@@ -170,7 +170,7 @@ async function simScoreTimed(match, engineCfg, modules) {
 }
 
 /**
- * score_sets — simulate point-by-point within each set.
+ * score_sets - simulate point-by-point within each set.
  * Set ends when one side reaches target score with a 2-point lead (cap at 30).
  */
 async function simScoreSets(match, engineCfg) {
@@ -229,7 +229,7 @@ async function simScoreSets(match, engineCfg) {
 }
 
 /**
- * judge_scores — each judge reveals their score one by one.
+ * judge_scores - each judge reveals their score one by one.
  */
 async function simJudgeScores(match, engineCfg) {
   const { num_judges = 3, score_min = 0, score_max = 10, step = 0.1 } = engineCfg;
@@ -260,7 +260,7 @@ async function simJudgeScores(match, engineCfg) {
 }
 
 /**
- * finish_time — participants cross the finish line at staggered times.
+ * finish_time - participants cross the finish line at staggered times.
  * Builds rankings from timeLog order, then PATCHes rankings so the DB
  * trigger can sync winner.
  */
@@ -274,7 +274,7 @@ async function simFinishTime(match, engineCfg, participants) {
   // Randomise finish order
   const shuffled = [...participants].sort(() => Math.random() - 0.5);
 
-  // Starting base time — realistic range per unit
+  // Starting base time - realistic range per unit
   let baseTime = unit === 'ms'
     ? randomInt(60_000, 120_000)  // 1–2 min in ms
     : randomInt(600, 7_200);      // 10 min–2 hr in seconds
@@ -295,7 +295,7 @@ async function simFinishTime(match, engineCfg, participants) {
     console.log(`    🏁 ${p.name}: ${time}`);
   }
 
-  // Build rankings — timeLog is already in arrival order (ascending finish time)
+  // Build rankings - timeLog is already in arrival order (ascending finish time)
   const ordered = rank_order === 'asc' ? timeLog : [...timeLog].reverse();
   const rankings = ordered.map((entry, i) => ({
     rank: i + 1,
@@ -310,7 +310,7 @@ async function simFinishTime(match, engineCfg, participants) {
 }
 
 /**
- * manual_pick — operator picks final rankings.
+ * manual_pick - operator picks final rankings.
  * Simulates the dramatic reveal: reveals from last place upward.
  */
 async function simManualPick(match, engineCfg, participants) {
@@ -344,7 +344,7 @@ async function simManualPick(match, engineCfg, participants) {
   console.log(`    ✅ winner: ${finalRankings[0]?.name}`);
 }
 
-// ─── Orchestrator ─────────────────────────────────────────────────────────────
+// --- Orchestrator -------------------------------------------------------------
 
 /**
  * Normalise a raw Directus match row into the shape the sim functions expect.
@@ -383,7 +383,7 @@ async function simulate(raw) {
   const modules = match.modules;
 
   if (!modules.length) {
-    console.warn(`  ⚠️  match ${match.id} has no format modules — skipping`);
+    console.warn(`  ⚠️  match ${match.id} has no format modules - skipping`);
     return;
   }
 
@@ -408,11 +408,11 @@ async function simulate(raw) {
     case 'manual_pick':
       return simManualPick(match, engineCfg, match.participants);
     default:
-      console.warn(`    ⚠️  unknown engine "${engine.type}" — skipping`);
+      console.warn(`    ⚠️  unknown engine "${engine.type}" - skipping`);
   }
 }
 
-// ─── Entry point ──────────────────────────────────────────────────────────────
+// --- Entry point --------------------------------------------------------------
 
 async function main() {
   const { event: eventSlug, match: matchId, one } = args;
@@ -459,7 +459,7 @@ async function main() {
 
   console.log(`    Simulating ${targets.length} match(es) concurrently…`);
 
-  // Matches are independent — run them all in parallel so the live scoreboard
+  // Matches are independent - run them all in parallel so the live scoreboard
   // shows multiple simultaneous updates, which is the realistic scenario.
   await Promise.all(targets.map(simulate));
 

@@ -195,7 +195,7 @@ function CategoryChip({ ev }: { ev: EventListing }) {
 
 function CtaButton({ ev, small = false }: { ev: EventListing; small?: boolean }) {
   if (ev.status === "cancelled") return null;
-  // Always navigate to the event detail page — no external registration redirect.
+  // Always navigate to the event detail page - no external registration redirect.
   const href = `/events/${safeSlug(ev.slug)}`;
   return (
     <Button

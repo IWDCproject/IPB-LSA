@@ -277,7 +277,7 @@ function JudgeCells({ live, engine, isLive, compact = false, colors = LIGHT_BADG
   );
 }
 
-// --- JudgeScoreBadge — finished state ----------------------------------------
+// --- JudgeScoreBadge - finished state ----------------------------------------
 
 export function JudgeScoreBadge({
   live, engine, compact = false, colors = LIGHT_BADGE_COLORS,

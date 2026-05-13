@@ -10,7 +10,9 @@ type UseRoleReturn = {
 export function useRole(): UseRoleReturn {
   const { data: session } = useSession()
 
-  const isSuperAdmin = session?.user.role === 'super_admin'
+  const isSuperAdmin =
+    session?.user.role === 'SuperAdmin' ||
+    session?.user.role === 'Administrator'
 
   return {
     isSuperAdmin,

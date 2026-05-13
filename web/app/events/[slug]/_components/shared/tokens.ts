@@ -1,8 +1,8 @@
-// ─── Typography tokens ────────────────────────────────────────────────────────
+// --- Typography tokens --------------------------------------------------------
 export const JK = { fontFamily: "'Plus Jakarta Sans', sans-serif" } as const;
 export const BB = { fontFamily: "'Bebas Neue', sans-serif" }        as const;
 
-// ─── Color tokens ─────────────────────────────────────────────────────────────
+// --- Color tokens -------------------------------------------------------------
 export const NAVY        = "#06125C";
 export const ACCENT_BLUE = "#0D26C2";
 export const YELLOW      = "#FFC936";

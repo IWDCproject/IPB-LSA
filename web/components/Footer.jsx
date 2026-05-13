@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useEffect, useState } from "react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// --- Constants ----------------------------------------------------------------
 const DESKTOP_BP   = 1024;
 const SLOT_STAGGER = 18;
 const SLOT_DUR     = "0.5s";
@@ -24,7 +24,7 @@ const F = {
   body:    "'Plus Jakarta Sans', sans-serif",
 };
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// --- Hook ---------------------------------------------------------------------
 function useContainerWidth(ref) {
   const [width, setWidth] = useState(SCALE_START);
 
@@ -48,7 +48,7 @@ function useContainerWidth(ref) {
   return width;
 }
 
-// ─── Primitives ───────────────────────────────────────────────────────────────
+// --- Primitives ---------------------------------------------------------------
 function SlotText({ children, isHovered }) {
   const chars = String(children).split("");
   return (
@@ -121,7 +121,7 @@ function Divider() {
   return <div className="h-[1px] bg-white/10" />;
 }
 
-// ─── Blocks ───────────────────────────────────────────────────────────────────
+// --- Blocks -------------------------------------------------------------------
 function BrandingBlock({ compact = false }) {
   if (compact) {
     return (
@@ -210,7 +210,7 @@ function LocationBlock({ compact = false }) {
   );
 }
 
-// ─── Batik Overlay ────────────────────────────────────────────────────────────
+// --- Batik Overlay ------------------------------------------------------------
 function BatikOverlay() {
   const base = {
     backgroundImage:    "url('/Batik_Pattern_dark.svg')",
@@ -226,7 +226,7 @@ function BatikOverlay() {
   );
 }
 
-// ─── Layouts ──────────────────────────────────────────────────────────────────
+// --- Layouts ------------------------------------------------------------------
 function DesktopFooter({ cw }) {
   const s = Math.max(SCALE_FLOOR, Math.min(1, cw / SCALE_START));
 
@@ -301,7 +301,7 @@ function MobileFooter() {
   );
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
+// --- Root ---------------------------------------------------------------------
 export default function Footer() {
   const ref = useRef(null);
   const cw  = useContainerWidth(ref);

@@ -33,14 +33,14 @@ export interface EventWithNews {
   news:         NewsItem[];
 }
 
-// Directus filter shape for news queries — narrow enough to prevent mistakes.
+// Directus filter shape for news queries - narrow enough to prevent mistakes.
 export interface DirectusNewsFilter {
   is_published:  { _eq: true };
   title?:        { _icontains: string };
   event_id?:     { status?: { _in: string[] }; slug?: { _in: string[] } };
 }
 
-// ─── Data-fetching contract types ─────────────────────────────────────────────
+// --- Data-fetching contract types ---------------------------------------------
 // Explicit in/out shapes for getAllNewsFiltered so the UI component and the
 // directus module stay in sync without either side inspecting the other's
 // internals.  Update both if the API contract changes.

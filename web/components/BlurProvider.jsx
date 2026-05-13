@@ -1,7 +1,7 @@
 "use client";
-// ─── BlurProvider ───────────────────────────────────────────────────────────
+// --- BlurProvider -----------------------------------------------------------
 //
-// Global provider. Place once in layout.jsx — wraps the entire app.
+// Global provider. Place once in layout.jsx - wraps the entire app.
 // Does NOT accept a manifest. Pages register their own images via useBlurImages().
 //
 // Worker lifecycle:
@@ -23,11 +23,11 @@ import { BlurContext }                   from "../contexts/BlurContext";
 export default function BlurProvider({ children }) {
   const [bitmaps, setBitmaps] = useState({});
 
-  // Ref — not state — so register() never re-renders the tree
+  // Ref - not state - so register() never re-renders the tree
   const workerRef    = useRef(null);
   const submittedRef = useRef(new Set()); // all keys currently sent to the worker
 
-  // ── Lazy worker init ──────────────────────────────────────────────────────
+  // -- Lazy worker init ------------------------------------------------------
   function getWorker() {
     if (workerRef.current) return workerRef.current;
 
@@ -62,7 +62,7 @@ export default function BlurProvider({ children }) {
       console.warn("[BlurProvider] uncaught worker error:", e.message);
 
       // FIX: Null out the dead worker so the next getWorker() call spawns a
-      // fresh one. Previously workerRef kept pointing at the crashed worker —
+      // fresh one. Previously workerRef kept pointing at the crashed worker -
       // all subsequent postMessage() calls were silently dropped, and blur
       // stopped working for the rest of the session with no visible error.
       workerRef.current = null;
@@ -77,7 +77,7 @@ export default function BlurProvider({ children }) {
     return worker;
   }
 
-  // ── register ──────────────────────────────────────────────────────────────
+  // -- register --------------------------------------------------------------
   // Filters out already-submitted images before sending to the worker.
   // Safe to call multiple times with overlapping manifests.
   const register = useCallback((images) => {
@@ -99,7 +99,7 @@ export default function BlurProvider({ children }) {
     });
   }, []);
 
-  // ── unregister ────────────────────────────────────────────────────────────
+  // -- unregister ------------------------------------------------------------
   // Intentional no-op. Bitmaps are kept as a permanent cache so that navigating
   // back to a page never re-processes images that were already blurred.
   // The memory footprint is bounded by the number of unique images in the app.

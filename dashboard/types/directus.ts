@@ -8,7 +8,7 @@ export type ScoringMethod   = 'avg' | 'sum' | 'drop_extremes'
 export type TimerMode       = 'countdown' | 'stopwatch' | 'deadline'
 export type ParticipantType = 'individual' | 'team'
 export type NewsCategory    = 'announcement' | 'result' | 'news' | 'update'
-export type UserRole        = 'super_admin' | 'operator'
+export type UserRole        = 'SuperAdmin' | 'PJ Ormawa' | 'Administrator'
 
 // --- Module types ----------------------------------------------
 
@@ -20,6 +20,26 @@ export type FormatModule =
   | { type: 'manual_pick';  config: { allow_draw?: boolean; top_n?: number; ranked_order?: boolean } }
   | { type: 'timer';        config: { mode: TimerMode; duration?: number } }
   | { type: 'notes';        config: Record<string, never> }
+
+// --- Canonical setLog entry ------------------------------------
+// Written by ScoreSetsPanel.confirmSetWinner. Do NOT use other key names.
+
+export type SetLogEntry = {
+  set:       number           // 1-based set number
+  homeScore: number
+  awayScore: number
+  winner:    'home' | 'away'
+}
+
+// --- Canonical timeLog entry -----------------------------------
+// Written by FinishTimePanel. Always includes id from participants table.
+// id is optional to remain compatible with legacy DB rows that predate this field.
+
+export type TimeLogEntry = {
+  id?:  string   // participant UUID - optional for legacy rows
+  name: string
+  time: string   // e.g. "1m 30s" or "1m 30s 250ms"
+}
 
 // --- Collections -----------------------------------------------
 
@@ -89,7 +109,7 @@ export type Match = {
   away_participant_id: string | null
   winner: string | null
   rankings: { rank: number; id: string; name: string }[] | null
-  live_state: LiveState
+  live_state: LiveState | null
   status: MatchStatus
 }
 
@@ -104,7 +124,7 @@ export type MatchParticipant = {
 export type LiveState = {
   matchStatus: MatchStatus
   winner: string | null
-  rankings: { rank: number; id: string; name: string }[]
+  rankings: { rank: number; id: string; name: string }[] | null
   notes: string
   timerSecs: number
   timerTarget: string | null
@@ -119,10 +139,10 @@ export type LiveState = {
   setPhase: 'idle' | 'active' | 'ending'
   setScore: [number, number]
   setsWon: [number, number]
-  setLog: unknown[]
+  setLog: SetLogEntry[]
   pendingSetWinner: string | null
   judgeScores: number[]
-  timeLog: { name: string; time: string }[]
+  timeLog: TimeLogEntry[]
 }
 
 export type EventPhase = {

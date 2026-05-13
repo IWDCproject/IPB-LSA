@@ -1,0 +1,25 @@
+import { LiveState } from '@/types/directus'
+
+export const DEFAULT_LIVE_STATE: LiveState = {
+  matchStatus:      'upcoming',
+  winner:           null,
+  rankings:         null,
+  notes:            '',
+  timerSecs:        0,
+  timerTarget:      null,
+  timerLastStarted: null,
+  timerRunning:     false,
+  timerFlags:       [],
+  homeScore:        0,
+  awayScore:        0,
+  periodIdx:        0,
+  periodPhase:      'idle',
+  setIdx:           0,
+  setPhase:         'idle',
+  setScore:         [0, 0],
+  setsWon:          [0, 0],
+  setLog:           [],
+  pendingSetWinner: null,
+  judgeScores:      [],
+  timeLog:          [],
+}

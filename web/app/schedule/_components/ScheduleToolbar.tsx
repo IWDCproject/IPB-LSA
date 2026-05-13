@@ -15,7 +15,7 @@ export type CategoryTab = "ALL" | "sport" | "arts";
 
 // --- Helpers ------------------------------------------------------------------
 
-// cn diduplikasi di DateFilterBar juga — idealnya dipindah ke @/lib/utils
+// cn diduplikasi di DateFilterBar juga - idealnya dipindah ke @/lib/utils
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

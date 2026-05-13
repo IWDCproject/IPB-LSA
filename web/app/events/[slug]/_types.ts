@@ -107,7 +107,7 @@ export interface MappedNews {
   thumbnail_width:  number | null;
   thumbnail_height: number | null;
   category:         string | null;
-  // Always an object after mapping — NEWS_FIELDS always requests event_id.name,
+  // Always an object after mapping - NEWS_FIELDS always requests event_id.name,
   // so Directus never returns a bare ID string here. The string variant in the
   // raw RawNews shape is intentionally excluded from the mapped type.
   event_id:         { name: string; slug?: string; status?: string } | null;
@@ -126,19 +126,25 @@ export interface MappedCompetitionCategory {
     id:         string;
     name:       string;
     modules:    FormatModule[];
-    /** "head_to_head" | "open" | etc. — controls which participant layout to render */
+    /** "head_to_head" | "open" | etc. - controls which participant layout to render */
     match_type?: string | null;
   } | null;
 }
 
 export interface MatchLiveState {
-  winner?:     string | null;
-  homeScore?:  number;
-  awayScore?:  number;
-  setScore?:   [number, number];
-  setLog?:     Array<{ home: number; away: number }>;
+  winner?:      string | null;
+  homeScore?:   number;
+  awayScore?:   number;
+  setScore?:    [number, number];
+  // Updated to match the canonical SetLogEntry shape written by the dashboard
+  setLog?:      Array<{
+    set:       number;
+    homeScore: number;
+    awayScore: number;
+    winner:    'home' | 'away';
+  }>;
   judgeScores?: number[];
-  timeLog?:    TimeLogEntry[];
+  timeLog?:     TimeLogEntry[];
   [key: string]: unknown;
 }
 

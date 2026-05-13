@@ -14,7 +14,7 @@ interface Props {
   pad:      number;
 }
 
-// ─── Tab definitions ──────────────────────────────────────────────────────────
+// --- Tab definitions ----------------------------------------------------------
 
 const TABS: { key: ContentTab; label: string; icon: React.ReactNode }[] = [
   {
@@ -40,8 +40,8 @@ const TABS: { key: ContentTab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-// ─── Tab bar CSS ──────────────────────────────────────────────────────────────
-// Trapezoid tab shape via perspective transform — no SVG/pseudo-element hacks.
+// --- Tab bar CSS --------------------------------------------------------------
+// Trapezoid tab shape via perspective transform - no SVG/pseudo-element hacks.
 
 const TAB_BAR_CSS = `
   .cs-tab-rail {
@@ -118,7 +118,7 @@ const TAB_BAR_CSS = `
   }
 `;
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// --- Main ---------------------------------------------------------------------
 
 export default function ContentSection({ events, isMobile, pad }: Props) {
   const [activeTab, setActiveTab] = useState<ContentTab>("byEvent");
@@ -153,7 +153,7 @@ export default function ContentSection({ events, isMobile, pad }: Props) {
     }}>
       <style dangerouslySetInnerHTML={{ __html: TAB_BAR_CSS }} />
 
-      {/* Rail — full-width top stroke */}
+      {/* Rail - full-width top stroke */}
       <div className="cs-tab-rail" />
 
       {/* Batik overlay */}
@@ -188,7 +188,7 @@ export default function ContentSection({ events, isMobile, pad }: Props) {
         pointerEvents: "none",
       }} />
 
-      {/* Tab content — height locked during switches to prevent scroll jump */}
+      {/* Tab content - height locked during switches to prevent scroll jump */}
       <div
         ref={contentRef}
         style={{

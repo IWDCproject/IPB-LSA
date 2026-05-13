@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/hooks/useRouter'
 import { readItems, aggregate } from '@directus/sdk'
 import { ExternalLink } from 'lucide-react'
 import { directus } from '@/lib/directus'
@@ -51,7 +51,7 @@ export default function EventsPage() {
         const [events, institutionAgg, storyAgg] = await Promise.all([
           directus.request(
             readItems('events', {
-              fields: ['id', 'name', 'status', 'start_date', 'end_date', 'registration_end_date'],
+              fields: ['id', 'name', 'slug', 'status', 'start_date', 'end_date', 'registration_end_date'],
               sort:   ['-created_at'],
             })
           ),
@@ -108,7 +108,7 @@ export default function EventsPage() {
     <div>
       <div className="-mx-6 -mt-6">
         <PageHeader
-          breadcrumbs={['Events']}
+          breadcrumbs={[{ label: 'Events' }]}
           title="Events"
           actions={
             <Button onClick={() => router.push('/events/new')}>
@@ -124,7 +124,7 @@ export default function EventsPage() {
           countLabel="events"
           data={eventRows}
           loading={loading}
-          onRowClick={(row) => router.push(`/events/${row.id}/matches`)}
+          onRowClick={(row) => router.push(`/events/${row.slug}/matches`)}
           columns={[
             { key: 'name',                  label: 'Event Title' },
             { key: 'registration_end_date', label: 'Closed Regis',        render: fmtDate },

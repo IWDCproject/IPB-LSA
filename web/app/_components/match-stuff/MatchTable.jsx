@@ -13,7 +13,7 @@ function fmtDate(iso) {
   });
 }
 
-// ─── Grouping helpers ──────────────────────────────────────────────────────────
+// --- Grouping helpers ----------------------------------------------------------
 
 function groupByEvent(matches) {
   return matches.reduce((map, m) => {
@@ -38,7 +38,7 @@ function groupByDate(matches) {
   }, new Map());
 }
 
-// ─── Shared ────────────────────────────────────────────────────────────────────
+// --- Shared --------------------------------------------------------------------
 
 function GroupHeader({ label }) {
   return (
@@ -49,7 +49,7 @@ function GroupHeader({ label }) {
   );
 }
 
-// ─── MatchTable ────────────────────────────────────────────────────────────────
+// --- MatchTable ----------------------------------------------------------------
 
 export function MatchTable({
   matches = [],

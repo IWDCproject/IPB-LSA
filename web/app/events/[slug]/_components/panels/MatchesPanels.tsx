@@ -5,7 +5,7 @@ import { groupByDateShort as groupByDate } from "../match/scoreUtils";
 import type { MappedMatch } from "../../_types";
 import { MobileMatchRow } from "../match/MatchRow";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// --- Helpers ------------------------------------------------------------------
 
 function DateHeader({ label }: { label: string }) {
   return (
@@ -21,7 +21,7 @@ function DateHeader({ label }: { label: string }) {
 const CARD_BASE    = "bg-white rounded-xl px-5 py-4 flex flex-col flex-1 min-h-0";
 const MOBILE_LIMIT = 5;
 
-// ─── useVisibleRowCount ───────────────────────────────────────────────────────
+// --- useVisibleRowCount -------------------------------------------------------
 //
 // After every paint, walks the [data-match-row] elements inside `contentRef`
 // and counts how many have their bottom edge within the container's visible
@@ -64,7 +64,7 @@ function useVisibleRowCount(
         if (row.getBoundingClientRect().bottom <= containerBottom + 2) {
           visible++;
         } else {
-          // Rows are in DOM order — once one is clipped, all subsequent are too.
+          // Rows are in DOM order - once one is clipped, all subsequent are too.
           break;
         }
       }
@@ -85,14 +85,14 @@ function useVisibleRowCount(
   return count;
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types --------------------------------------------------------------------
 
 export interface MatchPanelProps {
   isMobile:     boolean;
   onTabChange?: () => void;
 }
 
-// ─── UpcomingMatchesPanel ─────────────────────────────────────────────────────
+// --- UpcomingMatchesPanel -----------------------------------------------------
 
 export function UpcomingMatchesPanel({
   upcoming, isMobile, desktopLimit = -1, onTabChange,
@@ -138,7 +138,7 @@ export function UpcomingMatchesPanel({
   );
 }
 
-// ─── LatestResultsPanel ───────────────────────────────────────────────────────
+// --- LatestResultsPanel -------------------------------------------------------
 
 export function LatestResultsPanel({
   finished, isMobile, desktopLimit = -1, onTabChange,

@@ -6,10 +6,10 @@ import { JK, YELLOW, BLUE, NAVY, DUR, EASE, BASE, STAGGER, DROPDOWN_KEYFRAMES, S
 export type { EventStatus, SortValue, EventOption } from "./_newsTypes";
 import type { EventStatus, SortValue, EventOption } from "./_newsTypes";
 
-// ─── Keyframes — injected once, scoped to this system ─────────────────────────
+// --- Keyframes - injected once, scoped to this system -------------------------
 // (DROPDOWN_KEYFRAMES imported from _newsConstants)
 
-// ─── Filter drop button ───────────────────────────────────────────────────────
+// --- Filter drop button -------------------------------------------------------
 
 function FilterDropBtn({
   label, count, isOpen, isActive, onClick,
@@ -50,7 +50,7 @@ function FilterDropBtn({
   );
 }
 
-// ─── Check row ────────────────────────────────────────────────────────────────
+// --- Check row ----------------------------------------------------------------
 
 function CheckRow({
   label, checked, onClick, animIndex = 0,
@@ -91,7 +91,7 @@ function CheckRow({
   );
 }
 
-// ─── Clear filter button (sits above CheckRows, gets animIndex 0) ─────────────
+// --- Clear filter button (sits above CheckRows, gets animIndex 0) -------------
 
 function ClearBtn({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
@@ -112,7 +112,7 @@ function ClearBtn({ onClick, disabled }: { onClick: () => void; disabled?: boole
   );
 }
 
-// ─── Mobile filter bar ────────────────────────────────────────────────────────
+// --- Mobile filter bar --------------------------------------------------------
 
 interface MobileFilterBarProps {
   activeStatuses:    Set<EventStatus>;
@@ -228,7 +228,7 @@ export function MobileFilterBar({
           {/* Event panel */}
           {openPanel === "event" && (
             <>
-              {/* Search bar — pinned, doesn't scroll */}
+              {/* Search bar - pinned, doesn't scroll */}
               <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
                 <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"

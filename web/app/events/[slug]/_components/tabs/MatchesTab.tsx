@@ -335,7 +335,7 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
                   <FilterBar   active={filter}  onChange={setFilter}  counts={filterCounts}  />
                   <GroupToggle active={groupBy} onChange={setGroupBy} groupCounts={groupCounts} />
                 </div>
-                {/* Layout toggle — vertical, spans both filter rows */}
+                {/* Layout toggle - vertical, spans both filter rows */}
                 <div className="flex flex-col bg-gray-100 rounded-lg p-[3px] gap-0.5">
                   <button
                     onClick={() => handleSetLayout("list")}
@@ -363,7 +363,7 @@ export default function MatchesTab({ event, isMobile, phase, lastUpdated, isPoll
         {filteredAndSorted.length === 0 ? (
           <EmptyState />
         ) : layout === "grid" ? (
-          // Grid layout — key berubah tiap filter/group/layout ganti biar animasi entrance muter ulang
+          // Grid layout - key berubah tiap filter/group/layout ganti biar animasi entrance muter ulang
           <div key={`${filter}-${groupBy}-grid`}>
             {(() => {
               let rowIdx = 0;

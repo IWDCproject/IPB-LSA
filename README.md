@@ -1,4 +1,4 @@
-# IPB Lucky Sport & Art — Platform
+# IPB Lucky Sport & Art - Platform
 
 Platform manajemen event dan live scoring untuk program IPB Lucky Sport & Art, kolaborasi antara IWDC dan Ditmawa IPB University.
 
@@ -21,9 +21,9 @@ Platform manajemen event dan live scoring untuk program IPB Lucky Sport & Art, k
 
 ```
 IPB-LSA/
-├── web/          # Public site (Next.js)
-├── dashboard/    # Admin dashboard (Next.js)
-└── backend/      # API & CMS (Directus)
+├-- web/          # Public site (Next.js)
+├-- dashboard/    # Admin dashboard (Next.js)
+└-- backend/      # API & CMS (Directus)
 ```
 
 ---
@@ -32,6 +32,9 @@ IPB-LSA/
 
 | Doc | Path |
 |---|---|
+| Setup lokal (Docker, env, migrasi, troubleshooting) | [`docs/setup.md`](docs/setup.md) |
+| Manual DB patches (jalankan ini kalau DB kamu sudah lama) | [`docs/db-patches.md`](docs/db-patches.md) |
+| Schema & arsitektur database | [`schema.md`](schema.md) |
 | Homepage system (layout, scroll, blur pipeline, semua section) | [`web/app/HomepageDocs.md`](web/app/HomepageDocs.md) |
 
 ---
@@ -74,10 +77,10 @@ cp backend/.env.example backend/.env
 ## Konvensi Kode
 
 **Routing (Next.js App Router)**
-- `app/[route]/page.jsx` — entry point tiap halaman, dibuat setipis mungkin
-- `app/[route]/_components/` — komponen spesifik halaman tersebut
-- `components/` — komponen yang dipakai di lebih dari satu halaman
-- `lib/` — helper functions, API calls, socket client
+- `app/[route]/page.jsx` - entry point tiap halaman, dibuat setipis mungkin
+- `app/[route]/_components/` - komponen spesifik halaman tersebut
+- `components/` - komponen yang dipakai di lebih dari satu halaman
+- `lib/` - helper functions, API calls, socket client
 
 **Naming**
 - Komponen: PascalCase (`EventCard.jsx`)

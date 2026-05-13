@@ -33,7 +33,7 @@ function isSameDay(a: Date, b: Date) {
 }
 
 function fmtField(d: Date | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 

@@ -76,7 +76,7 @@ export default function MatchSection({ matches: rawMatches }) {
   const fittingCount = Math.max(1, Math.floor(availableW / (MIN_CARD_W + CARD_GAP)));
   const visibleCount = Math.min(fittingCount, SHOW_MAX);
 
-  // kalau live kurang dari slot yang tersedia, jangan tampilkan kartu — pindahin ke tabel
+  // kalau live kurang dari slot yang tersedia, jangan tampilkan kartu - pindahin ke tabel
   const showLiveCards = liveMatches.length > 0 && liveMatches.length >= visibleCount;
   const cardMatches   = showLiveCards ? liveMatches.slice(0, visibleCount) : [];
 

@@ -33,7 +33,7 @@ export function DataTable<T extends { id: string }>({
   const hasHeader = caption !== undefined || count !== undefined
 
   return (
-    <div className="rounded-lg border border-zinc-200">
+    <div className="rounded-lg border border-zinc-200 shadow-md">
 
       {/* Card header */}
       {hasHeader && (
@@ -95,7 +95,7 @@ export function DataTable<T extends { id: string }>({
                 key={row.id}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  'hover:bg-zinc-50 transition-colors',
+                  'hover:bg-zinc-50',
                   onRowClick && 'cursor-pointer'
                 )}
               >
@@ -108,7 +108,7 @@ export function DataTable<T extends { id: string }>({
                   return (
                     <td
                       key={String(col.key)}
-                      className={cn('px-4 py-3 whitespace-nowrap font-semibold text-zinc-900', col.className)}
+                      className={cn('px-4 py-2.5 whitespace-nowrap font-semibold text-zinc-900', col.className)}
                     >
                       {col.render
                         ? col.render(value, row)

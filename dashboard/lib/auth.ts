@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import 'server-only'
+=======
+// lib/auth.ts
+>>>>>>> db071d3ae5a32ad9a4e3a1687e34b0da4d42101d
 import NextAuth, { getServerSession } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { createDirectus, rest, staticToken, readUsers } from '@directus/sdk'
@@ -6,6 +10,7 @@ import { redirect } from 'next/navigation'
 import { authConfig } from './auth.config'
 import type { UserRole } from '@/types/directus'
 
+// SDK Khusus Server untuk cek database saat login
 const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
   .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
   .with(rest())
@@ -16,13 +21,17 @@ type DirectusUserRow = {
   organisation_name: string | null
 }
 
+/**
+ * Mapping Role dari Directus ke Dashboard
+ */
 function toUserRole(roleName: string): UserRole {
-  if (roleName === 'superadmin') return 'super_admin'
-  return 'operator'
+  // Jika di Directus namanya Administrator atau SuperAdmin, jadikan SuperAdmin di app
+  if (roleName === 'SuperAdmin' || roleName === 'Administrator') return 'SuperAdmin'
+  return 'PJ Ormawa'
 }
 
 function extractRoleName(role: DirectusUserRow['role']): string {
-  if (typeof role === 'object') return role.name
+  if (typeof role === 'object' && role !== null) return role.name
   return ''
 }
 
@@ -37,6 +46,9 @@ export const authOptions = {
   callbacks: {
     ...authConfig.callbacks,
 
+    /**
+     * Jalur Pertama: Cek apakah email user terdaftar di Directus
+     */
     async signIn({ user }: { user: { email?: string | null } }) {
       if (!user.email) return false
       try {
@@ -48,44 +60,67 @@ export const authOptions = {
           })
         )) as unknown as DirectusUserRow[]
         return rows.length > 0
-      } catch {
+      } catch (error) {
+        console.error('Auth SignIn Error:', error)
         return false
       }
     },
 
+    /**
+     * Jalur Kedua: Ambil data Role & ID dari Directus, simpan di JWT
+     */
     async jwt({ token, account }: { token: any; account: any }) {
-      if (!account) return token
+      // Hanya jalankan fetch data Directus saat pertama kali login (account ada)
+      if (account && token.email) {
+        try {
+          const rows = (await adminDirectus.request(
+            readUsers({
+              filter: { email: { _eq: token.email } },
+              fields: ['id', 'role.name', 'organisation_name'],
+              limit: 1,
+            })
+          )) as unknown as DirectusUserRow[]
 
-      try {
-        const rows = (await adminDirectus.request(
-          readUsers({
-            filter: { email: { _eq: token.email as string } },
-            fields: ['id', 'role.name', 'organisation_name'],
-            limit: 1,
-          })
-        )) as unknown as DirectusUserRow[]
-
-        const directusUser = rows[0]
-        if (directusUser) {
-          token.directusId       = directusUser.id
-          token.role             = toUserRole(extractRoleName(directusUser.role))
-          token.organisationName = directusUser.organisation_name
+          const directusUser = rows[0]
+          if (directusUser) {
+            token.directusId       = directusUser.id
+            token.role             = toUserRole(extractRoleName(directusUser.role))
+            token.organisationName = directusUser.organisation_name
+          }
+        } catch (error) {
+          console.error('Auth JWT Error:', error)
         }
-      } catch {
-        // Token tetap ada tapi tanpa directusId/role
       }
-
       return token
+    },
+
+    /**
+     * Jalur Ketiga (PENTING): Memindahkan data dari JWT ke Session 
+     * agar bisa dibaca oleh helper auth() di Server Action
+     */
+    async session({ session, token }: { session: any; token: any }) {
+      if (token && session.user) {
+        session.user.directusId = token.directusId
+        session.user.role = token.role
+        session.user.organisationName = token.organisationName
+      }
+      return session
     },
   },
 }
 
-// Named exports agar kompatibel dengan import di seluruh app
+// Handler untuk API Route /api/auth/[...nextauth]
 const handler = NextAuth(authOptions)
 export const handlers = { GET: handler, POST: handler }
 
+/**
+ * Helper Utama: Gunakan ini di Server Actions atau Server Components
+ */
 export const auth = () => getServerSession(authOptions)
 
+/**
+ * Helper Sign In
+ */
 export async function signIn(provider: string, options?: { redirectTo?: string }) {
   const params = new URLSearchParams()
   if (options?.redirectTo) params.set('callbackUrl', options.redirectTo)

@@ -1,0 +1,267 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { createInstitutionAction, updateInstitutionAction } from '../_actions'
+import { Button } from '@/components/ui/button'
+
+// --- Types -------------------------------------------------------------------
+
+type Props = {
+  isOpen: boolean
+  onClose: () => void
+  eventId: string
+  onSuccess: () => void
+  editingInstitution?: { id: string; name: string; color?: string | null; logo?: string | null } | null
+}
+
+// --- Shared field styles ------------------------------------------------------
+
+const labelCls =
+  'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
+
+const inputCls =
+  'mt-1.5 h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white'
+
+// --- Helpers -----------------------------------------------------------------
+
+const isValidHex = (hex: string) => /^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)
+
+// --- Component ----------------------------------------------------------------
+
+export default function AddInstitutionModal({ isOpen, onClose, eventId, onSuccess, editingInstitution }: Props) {
+  const [name, setName]               = useState('')
+  const [color, setColor]             = useState('#1A3D6E')
+  const [logoFile, setLogoFile]       = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [saving, setSaving]           = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // Populate fields in edit mode
+  useEffect(() => {
+    if (isOpen && editingInstitution) {
+      setName(editingInstitution.name)
+      setColor(editingInstitution.color || '#1A3D6E')
+      setLogoFile(null)
+      // Show existing logo from Directus if available
+      if (editingInstitution.logo) {
+        const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL
+        setLogoPreview(`${directusUrl}/assets/${editingInstitution.logo}`)
+      } else {
+        setLogoPreview(null)
+      }
+    } else if (isOpen && !editingInstitution) {
+      setName('')
+      setColor('#1A3D6E')
+      setLogoFile(null)
+      setLogoPreview(null)
+    }
+    setSubmitError(null)
+  }, [isOpen, editingInstitution])
+
+  // Revoke object URL on cleanup to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (logoPreview && logoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(logoPreview)
+      }
+    }
+  }, [logoPreview])
+
+  // Close on Escape
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() },
+    [onClose]
+  )
+  useEffect(() => {
+    if (isOpen) document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, handleKeyDown])
+
+  const handleLogoChange = (file: File | null) => {
+    // Note: blob URL revocation is handled exclusively by the useEffect cleanup
+    // below. Revoking here too would cause a double-revoke when logoPreview changes.
+    if (file) {
+      const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+      if (!ALLOWED.has(file.type)) {
+        setSubmitError(`Tipe file tidak didukung: ${file.type}. Gunakan JPEG, PNG, WebP, atau GIF.`)
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setSubmitError('Ukuran file terlalu besar (maks 5 MB).')
+        return
+      }
+      setSubmitError(null)
+      setLogoFile(file)
+      setLogoPreview(URL.createObjectURL(file))
+    } else {
+      setLogoFile(null)
+      setLogoPreview(null)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('eventId', eventId)
+      formData.append('color', color)
+      if (logoFile) formData.append('logo', logoFile)
+      if (editingInstitution) formData.append('institutionId', editingInstitution.id)
+
+      const res = editingInstitution
+        ? await updateInstitutionAction(formData)
+        : await createInstitutionAction(formData)
+        
+      if (res.success) {
+        setName('')
+        setLogoFile(null)
+        setLogoPreview(null)
+        setColor('#1A3D6E')
+        onSuccess()
+        onClose()
+      } else {
+        setSubmitError(res.error ?? 'Terjadi kesalahan.')
+      }
+    } catch {
+      setSubmitError('Terjadi kesalahan. Silakan coba lagi.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+
+        {/* -- Header -- */}
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
+          <h2 className="text-base font-bold text-zinc-900">
+            {editingInstitution ? 'Edit Institusi' : 'Tambah Institusi'}
+          </h2>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            {editingInstitution ? 'Ubah data institusi.' : 'Isi data institusi untuk event ini.'}
+          </p>
+        </div>
+
+        {/* -- Body -- */}
+        <div className="px-6 py-5 space-y-4">
+
+          {/* Nama Institusi */}
+          <div>
+            <label htmlFor="inst-name" className={labelCls}>Nama Institusi</label>
+            <input
+              id="inst-name"
+              className={inputCls}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Universitas Indonesia"
+            />
+          </div>
+
+          {/* Warna */}
+          <div>
+            <label htmlFor="inst-color" className={labelCls}>Warna (Hex)</label>
+            <div className="mt-1.5 flex items-center gap-2">
+              {/* Color preview swatch - validated to prevent CSS injection */}
+              <div
+                className="h-10 w-10 shrink-0 rounded-lg border border-zinc-200"
+                style={{ backgroundColor: isValidHex(color) ? color : 'transparent' }}
+              />
+              <input
+                id="inst-color"
+                className={`${inputCls} mt-0 flex-1`}
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#1A3D6E"
+              />
+            </div>
+          </div>
+
+          {/* Logo */}
+          <div>
+            <label htmlFor="inst-logo" className={labelCls}>Logo</label>
+
+            {/* Preview image - shown when a file is selected or editing has an existing logo */}
+            {logoPreview && (
+              <div className="mt-1.5 mb-2 flex items-center gap-3">
+                <div className="h-16 w-16 shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 overflow-hidden flex items-center justify-center">
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    className="h-full w-full object-contain p-1"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {logoFile && (
+                    <span className="text-xs font-medium text-zinc-600 truncate max-w-[200px]">
+                      {logoFile.name}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleLogoChange(null)}
+                    className="text-[11px] font-semibold text-red-500 hover:text-red-600 transition-colors text-left"
+                  >
+                    Hapus logo
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <label
+              htmlFor="inst-logo"
+              className="mt-1.5 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 text-sm font-semibold text-zinc-400 transition-colors hover:border-zinc-400 hover:bg-white"
+            >
+              <svg className="h-4 w-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <span className={logoFile ? 'text-zinc-700' : ''}>
+                {logoFile ? 'Ganti gambar…' : 'Pilih gambar…'}
+              </span>
+              <input
+                id="inst-logo"
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => handleLogoChange(e.target.files?.[0] || null)}
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* -- Submit error -- */}
+        {submitError && (
+          <div className="px-6 pb-3">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+              {submitError}
+            </p>
+          </div>
+        )}
+
+        {/* -- Footer -- */}
+        <div className="px-6 pb-5 pt-4 border-t border-zinc-100 flex justify-end gap-2">
+          <Button variant="noBorder" onClick={onClose}>
+            Batal
+          </Button>
+          <Button
+            variant="filled"
+            onClick={handleSubmit}
+            disabled={saving || !name.trim()}
+          >
+            {saving ? 'Menyimpan...' : (editingInstitution ? 'Perbarui' : 'Simpan')}
+          </Button>
+        </div>
+
+      </div>
+    </div>
+  )
+}

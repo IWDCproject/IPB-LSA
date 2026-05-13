@@ -153,14 +153,14 @@ function Stage2Layout({ stats, scale, anim }: Stage2LayoutProps) {
 }
 
 function Stage3Layout({ stats, cw, anim }: Stage3LayoutProps) {
-  // Compute pixel-exact widths from measured container — no scale() transform.
+  // Compute pixel-exact widths from measured container - no scale() transform.
   const availW  = cw - S3_PAD * 2;
 
-  // Row 1 — Participants: stretches full available width, image height capped small.
+  // Row 1 - Participants: stretches full available width, image height capped small.
   const c0W     = availW;
-  const c0ImgH  = 90;   // hard cap — proportional scaling (≈182px) ate too much vertical space
+  const c0ImgH  = 90;   // hard cap - proportional scaling (≈182px) ate too much vertical space
 
-  // Row 2 — Universities (3 parts) + Official Events (2 parts).
+  // Row 2 - Universities (3 parts) + Official Events (2 parts).
   // Both share the same image height so the row aligns cleanly.
   const c1W     = Math.round((availW - CARD_GAP) * 0.6);
   const c2W     = availW - CARD_GAP - c1W;

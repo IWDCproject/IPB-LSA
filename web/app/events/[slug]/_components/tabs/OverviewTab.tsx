@@ -11,7 +11,7 @@ import type { AnimPhase } from "../shared/UseTabTransition";
 import type { MappedEvent, TabKey } from "../../_types";
 import { calculateGreedyLayout } from "./layoutEngine";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types --------------------------------------------------------------------
 
 interface Props {
   event:       MappedEvent;
@@ -20,7 +20,7 @@ interface Props {
   onTabChange: (t: TabKey) => void;
 }
 
-// ─── OverviewTab ──────────────────────────────────────────────────────────────
+// --- OverviewTab --------------------------------------------------------------
 //
 // Desktop layout strategy:
 //   1. Measure the left column's NATURAL height (with alignSelf:start so the
@@ -42,7 +42,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
   const hasUpcoming   = upcoming.length > 0;
   const hasResults    = finished.length > 0;
 
-  // ── Height measurement ──────────────────────────────────────────────────────
+  // -- Height measurement ------------------------------------------------------
   // We only need two measurements: left column natural height, and countdown
   // panel height (so the match panels share the remaining space correctly).
   // Everything else is handled by CSS flex inside the right column.
@@ -148,7 +148,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
         className="grid items-stretch"
         style={{ gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "3fr 2fr", gap: PANEL_GAP }}
       >
-        {/* ── Left column ── */}
+        {/* -- Left column -- */}
         <div ref={leftColRef} className={`flex flex-col h-full ${isMobile ? "gap-1" : "gap-2"}`}>
           {isMobile && showCountdown && (
             <div style={panelStyle(s0)}>
@@ -165,7 +165,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
           </div>
         </div>
 
-        {/* ── Right column ── */}
+        {/* -- Right column -- */}
         <div className={`flex flex-col h-full ${isMobile ? "gap-1" : "gap-2"}`}>
           {!isMobile && showCountdown && (
             <div ref={countdownRef} className="flex-none" style={panelStyle(s2)}>

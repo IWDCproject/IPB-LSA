@@ -1,5 +1,5 @@
-// server component — nggak perlu "use client"
-// BlurProvider sekarang ada di layout.jsx — halaman ini bersih dari blur logic.
+// server component - nggak perlu "use client"
+// BlurProvider sekarang ada di layout.jsx - halaman ini bersih dari blur logic.
 // Setiap section (HeroSection, NewsSection, dll.) mendaftarkan imagenya sendiri
 // via useBlurImages() di dalam komponen masing-masing.
 

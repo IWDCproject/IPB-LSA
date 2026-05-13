@@ -1,11 +1,11 @@
 "use client";
-// ─── useBlurImages ──────────────────────────────────────────────────────────
+// --- useBlurImages ----------------------------------------------------------
 //
 // The primary API for any component that needs blurred images.
 // Registers images with the shared worker on mount, returns bitmaps + ready state.
 //
 // USAGE
-// ──────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------
 //   const manifest = useMemo(() => [
 //     {
 //       url:           getAssetUrl(event.card_image),  // full Directus asset URL
@@ -24,7 +24,7 @@
 //   const cardData = bitmaps[url]?.eventcard; // { bitmap: ImageBitmap }
 //
 // NOTES
-// ──────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------
 //   - Wrap your manifest in useMemo() to keep it stable across renders.
 //     useBlurImages() uses the manifest's content as a dependency, so an
 //     unstable reference will re-register on every render.
@@ -33,7 +33,7 @@
 //     If you only care about a subset, pass a smaller manifest.
 //
 //   - Images that were already processed (e.g. on another page) resolve
-//     immediately — no re-processing, no extra worker messages.
+//     immediately - no re-processing, no extra worker messages.
 //
 //   - It is safe to call useBlurImages() in multiple components on the same
 //     page. Duplicate url+type combos are deduplicated by BlurProvider.
@@ -44,7 +44,7 @@ import { useBlur }            from "../contexts/BlurContext";
 export function useBlurImages(manifest) {
   const { register, unregister, bitmaps } = useBlur();
 
-  // Stable key derived from manifest content — prevents re-registering on
+  // Stable key derived from manifest content - prevents re-registering on
   // re-renders where the manifest array reference changes but content hasn't.
   const manifestKey = useMemo(
     () => manifest?.map((img) => `${img.url}_${img.type}`).join(",") ?? "",
@@ -55,7 +55,7 @@ export function useBlurImages(manifest) {
     if (!manifest?.length) return;
     register(manifest);
     return () => unregister(manifest.map((img) => `${img.url}_${img.type}`));
-    // manifestKey as dep — only re-register when content actually changes
+    // manifestKey as dep - only re-register when content actually changes
   }, [manifestKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // isReady: all images in this manifest have a bitmap entry in context

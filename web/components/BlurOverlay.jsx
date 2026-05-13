@@ -1,11 +1,11 @@
 "use client";
-// ─── BlurOverlay ────────────────────────────────────────────────────────────
+// --- BlurOverlay ------------------------------------------------------------
 //
 // Optional full-screen loading overlay. Drop into any page or section that
 // should block visibility until its blur images are ready.
 //
 // USAGE
-// ──────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------
 //   const { isReady } = useBlurImages(manifest);
 //   return (
 //     <>
@@ -15,7 +15,7 @@
 //   );
 //
 // PROPS
-// ──────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------
 //   isReady   boolean   When true, overlay fades out. Pass directly from useBlurImages().
 //   minMs     number    Minimum visible duration in ms. Prevents flash-of-overlay on
 //                       fast connections / cached images. Default: 1000.
@@ -24,7 +24,7 @@
 //   fadeMs    number    Fade-out duration in ms. Default: 600.
 //
 // NOTES
-// ──────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------
 //   - The overlay unmounts itself from the DOM after fade-out to free memory.
 //   - Spinner color uses the project's yellow accent (rgba(234,179,8,0.9)).
 //     Adjust to match your brand if needed.
@@ -55,7 +55,7 @@ export default function BlurOverlay({
       el.style.pointerEvents = "none";
     }
 
-    // Unmount after fade completes — frees DOM node and stops animation
+    // Unmount after fade completes - frees DOM node and stops animation
     setTimeout(() => setMounted(false), fadeMs);
   }, [fadeMs]);
 
@@ -68,7 +68,7 @@ export default function BlurOverlay({
     return () => clearTimeout(t);
   }, [isReady, minMs, lift]);
 
-  // Hard cap — always lift eventually regardless of isReady
+  // Hard cap - always lift eventually regardless of isReady
   useEffect(() => {
     const t = setTimeout(lift, maxMs);
     return () => clearTimeout(t);

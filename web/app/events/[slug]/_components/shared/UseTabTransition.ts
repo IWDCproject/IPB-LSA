@@ -24,13 +24,13 @@ export function useTabTransition<T extends string>(activeTab: T) {
       return () => clearTimeout(t);
     }
 
-    // Same tab clicked again — ignore
+    // Same tab clicked again - ignore
     if (activeTab === displayedTab) return;
 
     // Cancel any in-flight enter timer
     if (enterTimer.current) clearTimeout(enterTimer.current);
 
-    // Swap immediately — no exit delay
+    // Swap immediately - no exit delay
     setDisplayedTab(activeTab);
     setPhase("entering");
 
