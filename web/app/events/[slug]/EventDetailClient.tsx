@@ -21,9 +21,6 @@ export default function EventDetailClient({ event, initialTab }: { event: Mapped
   const mainRef      = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  const [spinnerPhase,  setSpinnerPhase]  = useState<"hidden" | "showing" | "fading">("hidden");
-  const showTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fadeTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstTab = useRef(true);
 
   const { matches, lastUpdated, isPolling, wsStatus } = useMatchState(event.slug, event.matches);
@@ -50,21 +47,6 @@ export default function EventDetailClient({ event, initialTab }: { event: Mapped
     return () => { ro.disconnect(); clearTimeout(timer); };
   }, []);
 
-  useEffect(() => {
-    if (isFirstTab.current) { isFirstTab.current = false; return; }
-    if (showTimer.current) clearTimeout(showTimer.current);
-    if (fadeTimer.current) clearTimeout(fadeTimer.current);
-    setSpinnerPhase("showing");
-    showTimer.current = setTimeout(() => {
-      setSpinnerPhase("fading");
-      fadeTimer.current = setTimeout(() => setSpinnerPhase("hidden"), 500);
-    }, 500);
-    return () => {
-      if (showTimer.current) clearTimeout(showTimer.current);
-      if (fadeTimer.current) clearTimeout(fadeTimer.current);
-    };
-  }, [activeTab]);
-
   const { displayedTab, phase } = useTabTransition(activeTab);
 
   const setTab = (t: TabKey) => {
@@ -87,105 +69,69 @@ export default function EventDetailClient({ event, initialTab }: { event: Mapped
   const TINT_COLOR = "linear-gradient(to top, rgba(13,38,194,0.7) 0%, rgba(13,38,194,0.5) 0%)";
 
   return (
-    <>
-      {/* KEYFRAMES from Animations.ts - can't go in Tailwind config as they use
-          template strings. All other keyframes live in tailwind.config.js. */}
-      <style dangerouslySetInnerHTML={{ __html: KEYFRAMES }} />
-
-      <div
-        ref={mainRef}
-        className="relative min-h-[calc(100vh-64px)] flex flex-col overflow-x-hidden"
-        style={{ background: "linear-gradient(to bottom, #0D26C2 30%, #06125C)" }}
-      >
-        {/* Batik pattern overlay */}
-        <div className="absolute top-0 left-0 right-0 h-full z-0 opacity-0 animate-edc-fade-in">
+    <div ref={mainRef} className="flex-1 flex flex-col">
+      {/* Banner image */}
+      {bannerUrl && (
+        <div
+          className="absolute top-0 left-0 right-0 overflow-hidden z-0 opacity-0 animate-edc-fade-in"
+          style={{
+            height: "clamp(500px, 65vh, 650px)",
+            WebkitMaskImage: IMAGE_MASK,
+            maskImage:        IMAGE_MASK,
+          }}
+        >
           <div
-            className="absolute left-0 right-0 max-h-[1200px] opacity-40 pointer-events-none bg-repeat-x"
-            style={{
-              top: -100, height: "100%",
-              backgroundImage: "url(/Batik_Pattern_dark.svg)",
-              backgroundSize: "1400px auto",
-              backgroundPosition: "top center",
-              transform: "scaleY(-1)",
-              WebkitMaskImage: "linear-gradient(to bottom, transparent 0px, black 250px)",
-              maskImage:        "linear-gradient(to bottom, transparent 0px, black 250px)",
-            }}
+            className="absolute inset-0 bg-cover bg-center blur-lg scale-[1.05]"
+            style={{ backgroundImage: `url(${bannerUrl})` }}
           />
+          <div className="absolute inset-0 pointer-events-none" style={{ background: TINT_COLOR }} />
         </div>
+      )}
 
-        {/* Banner image */}
-        {bannerUrl && (
-          <div
-            className="absolute top-0 left-0 right-0 overflow-hidden z-0 opacity-0 animate-edc-fade-in"
-            style={{
-              height: "clamp(500px, 65vh, 650px)",
-              WebkitMaskImage: IMAGE_MASK,
-              maskImage:        IMAGE_MASK,
-            }}
-          >
-            <div
-              className="absolute inset-0 bg-cover bg-center blur-lg scale-[1.05]"
-              style={{ backgroundImage: `url(${bannerUrl})` }}
-            />
-            <div className="absolute inset-0 pointer-events-none" style={{ background: TINT_COLOR }} />
+      {/* Main content */}
+      <div className="relative z-10 flex-1 flex flex-col opacity-0 animate-edc-fade-in">
+        <EventDetailHeader
+          event={event}
+          activeTab={activeTab}
+          onTabChange={setTab}
+          isMobile={isMobile}
+        />
+
+        <div
+          className="pb-10"
+          style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}
+        >
+          <div>
+            {displayedTab === "overview" && (
+              <ErrorBoundary label="Overview">
+                <OverviewTab event={liveEvent} isMobile={isMobile} phase={phase} onTabChange={setTab} />
+              </ErrorBoundary>
+            )}
+            {displayedTab === "matches" && (
+              <ErrorBoundary label="Matches">
+                <MatchesTab
+                  event={liveEvent}
+                  isMobile={isMobile}
+                  phase={phase}
+                  lastUpdated={lastUpdated}
+                  isPolling={isPolling}
+                  wsStatus={wsStatus}
+                />
+              </ErrorBoundary>
+            )}
+            {displayedTab === "participants" && (
+              <ErrorBoundary label="Participants">
+                <ParticipantsTab event={liveEvent} isMobile={isMobile} phase={phase} />
+              </ErrorBoundary>
+            )}
+            {displayedTab === "news" && (
+              <ErrorBoundary label="News">
+                <NewsTab event={liveEvent} isMobile={isMobile} phase={phase} />
+              </ErrorBoundary>
+            )}
           </div>
-        )}
-
-        {/* Main content */}
-        <div className="relative z-10 flex-1 flex flex-col opacity-0 animate-edc-fade-in">
-          <div className="flex-[1_0_auto] min-h-[calc(100vh-64px)]">
-            <EventDetailHeader
-              event={event}
-              activeTab={activeTab}
-              onTabChange={setTab}
-              isMobile={isMobile}
-              spinnerPhase={spinnerPhase}
-            />
-
-            <div
-              className="pb-10"
-              style={{ padding: isMobile ? "0 20px 40px" : "0 clamp(20px, 8.33vw, 160px) 40px" }}
-            >
-              <div>
-                {displayedTab === "overview" && (
-                  <ErrorBoundary label="Overview">
-                    <OverviewTab event={liveEvent} isMobile={isMobile} phase={phase} onTabChange={setTab} />
-                  </ErrorBoundary>
-                )}
-                {displayedTab === "matches" && (
-                  <ErrorBoundary label="Matches">
-                    <MatchesTab
-                      event={liveEvent}
-                      isMobile={isMobile}
-                      phase={phase}
-                      lastUpdated={lastUpdated}
-                      isPolling={isPolling}
-                      wsStatus={wsStatus}
-                    />
-                  </ErrorBoundary>
-                )}
-                {displayedTab === "participants" && (
-                  <ErrorBoundary label="Participants">
-                    <ParticipantsTab event={liveEvent} isMobile={isMobile} phase={phase} />
-                  </ErrorBoundary>
-                )}
-                {displayedTab === "news" && (
-                  <ErrorBoundary label="News">
-                    <NewsTab event={liveEvent} isMobile={isMobile} phase={phase} />
-                  </ErrorBoundary>
-                )}
-              </div>
-            </div>
-
-            <div className="opacity-0 animate-edc-marquee-up">
-              <UniversityMarquee />
-            </div>
-          </div>
-
-          <div className="h-[120px]" />
-          <Footer />
         </div>
       </div>
-    </>
+    </div>
   );
 }

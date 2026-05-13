@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createDirectus, rest, staticToken, readItem, readItems } from '@directus/sdk'
 import { auth } from '@/lib/auth'
 import { ControlPanel } from '@/components/match/ControlPanel'
+import { DEFAULT_LIVE_STATE } from '@/lib/liveStateDefaults'
 import type {
   Match, MatchFormat, CompetitionCategory, Participant,
 } from '@/types/directus'
@@ -99,7 +100,7 @@ export default async function MatchControlPage({ params }: PageProps) {
       <ControlPanel
         key={stateKey}
         matchId={matchId}
-        initialLiveState={match.live_state}
+        initialLiveState={match.live_state ?? DEFAULT_LIVE_STATE}
         format={format}
         participants={participants}
         homeParticipant={homeParticipant}

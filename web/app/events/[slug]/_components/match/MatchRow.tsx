@@ -169,7 +169,7 @@ function Logo({ inst, size = 32, isLoser = false }: { inst: MappedInstitution | 
     return (
       <div
         className="rounded-full shrink-0 transition-[filter] duration-200"
-        style={{ width: size, height: size, background: inst?.color ?? "#334155", filter: dimFilter }}
+        style={{ width: size, height: size, background: "#334155", filter: dimFilter }}
       />
     );
   }
@@ -274,7 +274,7 @@ function OpenParticipants({ match, C }: { match: MappedMatch; C: MatchColors }) 
             <div
               key={i}
               className="rounded-full border-2 shrink-0"
-              style={{ width: 32, height: 32, background: p?.institution?.color ?? "#1D4ED8", borderColor: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
+              style={{ width: 32, height: 32, background: "#1D4ED8", borderColor: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           )
         )}

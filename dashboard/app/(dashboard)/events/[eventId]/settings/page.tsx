@@ -702,7 +702,7 @@ function TimelineTab({ eventId, phases, onRefresh }: { eventId: string; phases: 
         <div className="px-6 py-4 border-b border-zinc-200 bg-zinc-50/50 flex justify-between items-center">
           <h3 className="text-sm font-bold text-zinc-900">Timeline Phase Settings</h3>
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-            Press "Save Timeline" to push all changes
+            Press &quot;Save Timeline&quot; to push all changes
           </span>
         </div>
 
@@ -920,6 +920,13 @@ export default function SettingsPage() {
   const { data: event, loading: loadingEvent } = useDirectusFetch<Event>(
     () => directus.request(readItems('events', {
       filter: { slug: { _eq: eventId } },
+      fields: [
+        'id', 'name', 'slug', 'status', 'location', 'description', 
+        'start_date', 'end_date', 'type', 'is_published', 
+        'is_registration_open', 'registration_url', 'guidebook_url', 
+        'instagram_url', 'website_url', 'url_youtube', 'contact_person', 
+        'banner_image', 'card_image'
+      ],
       limit: 1,
     })).then(res => (res as Event[])[0]) as Promise<Event>,
     [eventId, refreshKey],
@@ -928,6 +935,7 @@ export default function SettingsPage() {
   const { data: phases } = useDirectusFetch<EventPhase[]>(
     () => directus.request(readItems('event_phases', {
       filter: { event_id: { slug: { _eq: eventId } } },
+      fields: ['id', 'label', 'status', 'date_start', 'time_start', 'description', 'display_order'],
       sort: ['display_order', 'date_start'],
     })) as Promise<EventPhase[]>,
     [eventId, refreshKey],

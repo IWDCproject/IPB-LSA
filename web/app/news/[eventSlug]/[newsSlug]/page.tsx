@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import Image             from 'next/image';
 import { getNewsBySlug } from '@/lib/directus';
 import DOMPurify         from 'isomorphic-dompurify';
-import DOMPurify         from 'isomorphic-dompurify';
 import Footer            from '@/components/Footer';
 import styles            from './NewsDetail.module.css';
 import EventLink         from './_components/EventLink';

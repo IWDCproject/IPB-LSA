@@ -104,21 +104,20 @@ function ScrollRow({
   );
 }
 
-// --- Props -------------------------------------------------------------------
 interface Props {
-  event:        MappedEvent;
-  activeTab:    TabKey;
-  onTabChange:  (t: TabKey) => void;
+  event?:       MappedEvent | null;
+  loading?:     boolean;
+  activeTab?:    TabKey;
+  onTabChange?:  (t: TabKey) => void;
   isMobile:     boolean;
-  spinnerPhase: "hidden" | "showing" | "fading";
 }
 
 export default function EventDetailHeader({
   event,
-  activeTab,
-  onTabChange,
+  loading = false,
+  activeTab = "overview",
+  onTabChange = () => {},
   isMobile,
-  spinnerPhase,
 }: Props) {
   // clamp() and isMobile-conditional pixel values must stay in style
   const SIDE_PAD        = isMobile ? "20px" : "clamp(20px, 8.33vw, 160px)";
@@ -192,13 +191,13 @@ export default function EventDetailHeader({
   };
 
   // --- Meta -----------------------------------------------------------------
-  const meta = [
+  const meta = event ? [
     { label: "Registration", value: event.registration_end_date ? `Until ${fmtDate(event.registration_end_date)}` : "-" },
     { label: "Dates",        value: event.start_date ? `${fmtDate(event.start_date)} – ${fmtDate(event.end_date)}` : "-" },
     { label: "Location",     value: event.location ?? "-" },
-  ];
+  ] : [];
 
-  const videoId = getYouTubeID(event.url_youtube);
+  const videoId = event ? getYouTubeID(event.url_youtube) : null;
 
   // --- Animation delays -----------------------------------------------------
   // staggerSlideUp / staggerFadeIn return CSSProperties (opacity + animation
@@ -234,47 +233,33 @@ export default function EventDetailHeader({
           {t.label}
         </button>
       ))}
-
-      {spinnerPhase !== "hidden" && (
-        <div
-          aria-hidden
-          role="status"
-          aria-live="polite"
-          aria-label="Loading tab content"
-          className="ml-1 w-6 h-6 rounded-full border border-white/20 border-t-white animate-tab-spin shrink-0"
-          style={{
-            opacity:    spinnerPhase === "fading" ? 0 : 1,
-            transition: spinnerPhase === "fading" ? "opacity 500ms ease" : "none",
-          }}
-        />
-      )}
     </div>
   );
 
   // Register button comes first on narrow screens so it's visible without scrolling.
   const actionButtons = (
     <>
-      {isMobile && event.is_registration_open && event.registration_url && (
+      {event && isMobile && event.is_registration_open && event.registration_url && (
         <Button href={event.registration_url} variant="header-solid" size="sm" external className="!rounded-[8px] !bg-[#FFC936] !border-[#FFC936]">
           Register
         </Button>
       )}
-      {event.guidebook_url && (
+      {event?.guidebook_url && (
         <Button href={event.guidebook_url} variant="header-outline" size="sm" external className="!rounded-[8px]">
           Guidebook
         </Button>
       )}
-      {event.instagram_url && (
+      {event?.instagram_url && (
         <Button href={event.instagram_url} variant="header-outline" size="sm" external className="!rounded-[8px]">
           Instagram
         </Button>
       )}
-      {event.website_url && (
+      {event?.website_url && (
         <Button href={event.website_url} variant="header-outline" size="sm" external className="!rounded-[8px]">
           Website
         </Button>
       )}
-      {!isMobile && event.is_registration_open && event.registration_url && (
+      {event && !isMobile && event.is_registration_open && event.registration_url && (
         <Button href={event.registration_url} variant="header-solid" size="sm" external className="!rounded-[8px] !bg-[#FFC936] !border-[#FFC936]">
           Register
         </Button>
@@ -289,45 +274,63 @@ export default function EventDetailHeader({
     >
       {/* -- Status badge -- */}
       <div style={s.badge}>
-        <span
-          className="font-jakarta inline-block px-3 py-1 rounded-lg border-[1.8px] text-[11px] font-extrabold uppercase tracking-[0.06em] mb-5"
-          style={{
-            background:  STATUS_COLOR[event.status]        ?? "rgba(107, 114, 128, 0.2)",
-            borderColor: STATUS_COLOR_OPAQUE[event.status] ?? "rgba(107, 114, 128, 1)",
-            color:       STATUS_COLOR_OPAQUE[event.status] ?? "rgba(107, 114, 128, 1)",
-          }}
+        {loading || !event ? (
+          <div className="h-6 w-24 bg-white/10 rounded-lg mb-5 border border-white/5 animate-pulse" />
+        ) : (
+          <span
+            className="font-jakarta inline-block px-3 py-1 rounded-lg border-[1.8px] text-[11px] font-extrabold uppercase tracking-[0.06em] mb-5"
+            style={{
+              background:  STATUS_COLOR[event.status]        ?? "rgba(107, 114, 128, 0.2)",
+              borderColor: STATUS_COLOR_OPAQUE[event.status] ?? "rgba(107, 114, 128, 1)",
+              color:       STATUS_COLOR_OPAQUE[event.status] ?? "rgba(107, 114, 128, 1)",
+            }}
+          >
+            {STATUS_LABEL[event.status] ?? event.status}
+          </span>
+        )}
+      </div>
+
+      {/* -- Title block -- */}
+      <div style={{ ...s.title, position: "relative" }}>
+        <div
+          className="font-bebas drop-shadow-md uppercase leading-none text-white"
+          style={{ fontSize: "clamp(3rem, 4.5vw, 4rem)" }}
         >
-          {STATUS_LABEL[event.status] ?? event.status}
-        </span>
+          {loading || !event ? (
+            <span className="inline-block h-[1em] w-3/4 bg-white/10 rounded-xl border border-white/5 animate-pulse align-middle" />
+          ) : (
+            event.name
+          )}
+        </div>
 
-        {/* -- Title block -- */}
-        <div style={{ ...s.title, position: "relative" }}>
+        <div
+          className="font-jakarta font-semibold text-white/70 drop-shadow-md mt-0 flex items-center gap-2"
+          style={{ fontSize: "clamp(14px, 1.4vw, 16px)" }}
+        >
+          {loading || !event ? (
+            <span className="inline-block h-[1.2em] w-1/3 bg-white/10 rounded-lg border border-white/5 animate-pulse" />
+          ) : (
+            <>
+              <span className="italic">by</span>
+              <span className="font-bold">{event.organiser}</span>
+            </>
+          )}
+        </div>
+
+        {/* Desktop video - floats right of title block */}
+        {!isMobile && (loading || videoId) && (
           <div
-            className="font-bebas drop-shadow-md uppercase leading-none text-white"
-            style={{ fontSize: "clamp(3rem, 4.5vw, 4rem)" }}
+            className="absolute top-0 right-0 rounded-lg overflow-hidden bg-black border-2 border-white z-10"
+            style={{
+              ...s.video,
+              width:       "clamp(320px, 25vw, 330px)",
+              aspectRatio: "16/9",
+              boxShadow:   "0 10px 40px rgba(0,0,0,0.2)",
+            }}
           >
-            {event.name}
-          </div>
-
-          <div
-            className="font-jakarta font-semibold text-white/70 drop-shadow-md mt-0 flex items-center gap-2"
-            style={{ fontSize: "clamp(14px, 1.4vw, 16px)" }}
-          >
-            <span className="italic">by</span>
-            <span className="font-bold">{event.organiser}</span>
-          </div>
-
-          {/* Desktop video - floats right of title block */}
-          {!isMobile && videoId && (
-            <div
-              className="absolute top-0 right-0 rounded-lg overflow-hidden bg-black border-2 border-white z-10"
-              style={{
-                ...s.video,
-                width:       "clamp(320px, 25vw, 330px)",
-                aspectRatio: "16/9",
-                boxShadow:   "0 10px 40px rgba(0,0,0,0.2)",
-              }}
-            >
+            {loading || !event ? (
+              <div className="w-full h-full bg-white/5 animate-pulse" />
+            ) : videoId ? (
               <iframe
                 title={`${event.name} - YouTube video`}
                 width="100%" height="100%"
@@ -335,13 +338,13 @@ export default function EventDetailHeader({
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
-            </div>
-          )}
-        </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {/* Mobile video - inline between title and meta */}
-      {isMobile && videoId && (
+      {!loading && event && isMobile && videoId && (
         <div
           className="w-full rounded-lg overflow-hidden bg-black border-2 border-white z-[5] mt-1"
           style={{ ...s.video, aspectRatio: "16/9" }}
@@ -361,69 +364,90 @@ export default function EventDetailHeader({
         className="flex flex-wrap"
         style={{ gap: isMobile ? 20 : 36, ...s.meta }}
       >
-        {meta.map((m) => (
-          <div key={m.label}>
-            <div className="font-jakarta text-xs text-white font-extrabold mt-2">{m.label}</div>
-            <div className="font-jakarta text-xs text-white/70 font-extrabold mt-0.5">{m.value}</div>
-          </div>
-        ))}
+        {loading || !event ? (
+          [1, 2, 3].map(i => (
+            <div key={i}>
+              <div className="font-jakarta text-xs text-white font-extrabold mt-2">
+                <span className="inline-block h-[1em] w-16 bg-white/10 rounded border border-white/5 animate-pulse" />
+              </div>
+              <div className="font-jakarta text-xs text-white/70 font-extrabold mt-0.5">
+                <span className="inline-block h-[1em] w-24 bg-white/10 rounded border border-white/5 animate-pulse" />
+              </div>
+            </div>
+          ))
+        ) : (
+          meta.map((m) => (
+            <div key={m.label}>
+              <div className="font-jakarta text-xs text-white font-extrabold mt-2">{m.label}</div>
+              <div className="font-jakarta text-xs text-white/70 font-extrabold mt-0.5" suppressHydrationWarning>{m.value}</div>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* -- Tab row + action buttons ------------------------------------------
-          Fits?      → single row: tabs left │ spacer │ actions right
-          Overflows? → two rows: each independently scrollable with fades
-      -------------------------------------------------------------------------- */}
+      {/* -- Tab row + action buttons -- */}
       <div
         ref={containerRef}
         className="w-full min-w-0 overflow-visible -mb-5"
         style={{ marginTop: isMobile ? 16 : 30, ...s.tabRow }}
       >
-        {/* Hidden probe - measures natural combined width to decide layout */}
-        <div
-          ref={probeRef}
-          aria-hidden
-          className="absolute invisible pointer-events-none flex items-center gap-2 flex-nowrap whitespace-nowrap"
-        >
-          {TABS.map((t) => (
-            <button key={t.key} className="font-jakarta font-bold text-[13px] px-4 py-[7px] shrink-0">
-              {t.label}
-            </button>
-          ))}
-          <div className="w-8 shrink-0" />
-          {event.guidebook_url                                   && <button className="px-4 py-[7px] shrink-0">Guidebook</button>}
-          {event.instagram_url                                   && <button className="px-4 py-[7px] shrink-0">Instagram</button>}
-          {event.is_registration_open && event.registration_url && <button className="px-4 py-[7px] shrink-0">Register</button>}
-        </div>
-
-        {/* -- Single-row layout -- */}
-        {!needsTwoRows && (
-          <div className="flex items-center gap-2 w-full">
-            <div className="flex items-center gap-2 shrink-0">
-              {tabPills}
-            </div>
-            <div className="flex-1" />
-            <div className="flex items-center gap-2 shrink-0" style={s.actions}>
-              {actionButtons}
-            </div>
+        {loading || !event ? (
+          <div className="flex gap-2 mt-6 overflow-hidden animate-pulse">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-8 w-24 bg-white/10 rounded-full border border-white/5" />
+            ))}
           </div>
-        )}
-
-        {/* -- Two-row layout -- */}
-        {needsTwoRows && (
-          <div className="flex flex-col gap-2">
-            <ScrollRow className="tab-scroll">
-              {tabPills}
-            </ScrollRow>
-
-            <ScrollRow
-              className="tab-scroll"
-              style={{ ...s.actions, justifyContent: "flex-start" }}
+        ) : (
+          <>
+            {/* Hidden probe */}
+            <div
+              ref={probeRef}
+              aria-hidden
+              className="absolute invisible pointer-events-none flex items-center gap-2 flex-nowrap whitespace-nowrap"
             >
-              {actionButtons}
-            </ScrollRow>
-          </div>
+              {TABS.map((t) => (
+                <button key={t.key} className="font-jakarta font-bold text-[13px] px-4 py-[7px] shrink-0">
+                  {t.label}
+                </button>
+              ))}
+              <div className="w-8 shrink-0" />
+              {event?.guidebook_url                                   && <button className="px-4 py-[7px] shrink-0">Guidebook</button>}
+              {event?.instagram_url                                   && <button className="px-4 py-[7px] shrink-0">Instagram</button>}
+              {event?.is_registration_open && event?.registration_url && <button className="px-4 py-[7px] shrink-0">Register</button>}
+            </div>
+
+            {/* -- Single-row layout -- */}
+            {!needsTwoRows && (
+              <div className="flex items-center gap-2 w-full">
+                <div className="flex items-center gap-2 shrink-0">
+                  {tabPills}
+                </div>
+                <div className="flex-1" />
+                <div className="flex items-center gap-2 shrink-0" style={s.actions}>
+                  {actionButtons}
+                </div>
+              </div>
+            )}
+
+            {/* -- Two-row layout -- */}
+            {needsTwoRows && (
+              <div className="flex flex-col gap-2">
+                <ScrollRow className="tab-scroll">
+                  {tabPills}
+                </ScrollRow>
+
+                <ScrollRow
+                  className="tab-scroll"
+                  style={{ ...s.actions, justifyContent: "flex-start" }}
+                >
+                  {actionButtons}
+                </ScrollRow>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
   );
 }
+

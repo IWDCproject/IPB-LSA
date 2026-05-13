@@ -13,22 +13,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let slug: string | undefined
+  let slug: string | undefined;
+  let tags: string[] = [];
   try {
-    const body = await req.json()
-    slug = body?.slug
+    const body = await req.json();
+    slug = body?.slug;
+    tags = body?.tags ?? [];
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  revalidateTag('events')
-  revalidatePath('/', 'layout')
-  revalidatePath('/events')
+  // Always revalidate the home page and events list
+  revalidatePath('/', 'layout');
+  revalidatePath('/events');
+  revalidateTag('events');
+  revalidateTag('global:stats');
 
   if (slug) {
-    revalidateTag(`event-${slug}`)
-    revalidatePath(`/events/${slug}`, 'layout')
+    revalidateTag(`event:${slug}`);
+    revalidateTag(`event:${slug}:news`);
+    revalidateTag(`event:${slug}:matches`);
+    revalidateTag(`event:${slug}:participants`);
+    revalidatePath(`/events/${slug}`, 'layout');
   }
 
-  return NextResponse.json({ ok: true, revalidated: slug ?? 'all' })
+  if (tags.length > 0) {
+    tags.forEach(tag => revalidateTag(tag));
+  }
+
+  return NextResponse.json({ 
+    ok: true, 
+    revalidated: {
+      slug: slug ?? 'none',
+      tags: tags
+    }
+  });
 }

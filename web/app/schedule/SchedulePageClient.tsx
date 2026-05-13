@@ -199,7 +199,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 // --- Komponen utama -----------------------------------------------------------
 
-export default function SchedulePageClient() {
+export default function SchedulePageClient({ initialMatches, initialNews }: { initialMatches: any[], initialNews?: any[] }) {
   const [activeTab,   setActiveTab]   = useState<CategoryTab>("ALL");
   const [dateFilter,  setDateFilter]  = useState<DateFilter>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -211,7 +211,7 @@ export default function SchedulePageClient() {
 
   const debouncedSearch = useDebounce(searchInput, 350);
 
-  const [rawMatches,      setRawMatches]      = useState<any[] | null>(null);
+  const [rawMatches,      setRawMatches]      = useState<any[] | null>(initialMatches || null);
   const [ready,           setReady]           = useState(false);
   const [fetchError,      setFetchError]      = useState(false);
   const [skeletonVisible, setSkeletonVisible] = useState(false);

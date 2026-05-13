@@ -14,10 +14,11 @@ import { calculateGreedyLayout } from "./layoutEngine";
 // --- Types --------------------------------------------------------------------
 
 interface Props {
-  event:       MappedEvent;
+  event?:       MappedEvent | null;
+  loading?:     boolean;
   isMobile:    boolean;
-  phase:       AnimPhase;
-  onTabChange: (t: TabKey) => void;
+  phase?:       AnimPhase;
+  onTabChange?: (t: TabKey) => void;
 }
 
 // --- OverviewTab --------------------------------------------------------------
@@ -33,14 +34,25 @@ interface Props {
 //      After each paint, the panel counts actually-visible rows via
 //      getBoundingClientRect() and shows the correct "N more" footer.
 
-export default function OverviewTab({ event, isMobile, phase, onTabChange }: Props) {
+export default function OverviewTab({ 
+  event, 
+  loading = false,
+  isMobile, 
+  phase = "entering", 
+  onTabChange = () => {} 
+}: Props) {
   const PANEL_GAP = isMobile ? 4 : 8;
 
-  const upcoming      = (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live");
-  const finished      = (event.matches ?? []).filter((m: any) => m.status === "finished");
-  const showCountdown = !!(event.is_registration_open && event.registration_end_date);
-  const hasUpcoming   = upcoming.length > 0;
-  const hasResults    = finished.length > 0;
+  const upcoming      = !loading && event ? (event.matches ?? []).filter((m: any) => m.status === "upcoming" || m.status === "live") : [];
+  const finished      = !loading && event ? (event.matches ?? []).filter((m: any) => m.status === "finished") : [];
+  const showCountdown = !loading && event ? !!(event.is_registration_open && event.registration_end_date) : false;
+  
+  const hasUpcoming   = loading || upcoming.length > 0;
+  const hasResults    = loading || finished.length > 0;
+  const displayCountdown = loading || showCountdown;
+
+  const skeletonPanel = "bg-white/5 rounded-2xl p-6 border border-white/10 animate-pulse";
+  const skeletonItem  = "h-4 bg-white/10 rounded border border-white/5";
 
   // -- Height measurement ------------------------------------------------------
   // We only need two measurements: left column natural height, and countdown
@@ -129,7 +141,7 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
     el.style.minHeight = prevMinH;
 
     setLayoutState(prev => ({ ...prev, isMeasuring: false, upCount: res.upCount, lateCount: res.lateCount }));
-  },[isMobile, layoutState.isMeasuring, showCountdown, event.matches?.length]);
+  },[isMobile, layoutState.isMeasuring, displayCountdown, event?.matches?.length]);
 
 
   // Stagger animation helpers
@@ -150,60 +162,96 @@ export default function OverviewTab({ event, isMobile, phase, onTabChange }: Pro
       >
         {/* -- Left column -- */}
         <div ref={leftColRef} className={`flex flex-col h-full ${isMobile ? "gap-1" : "gap-2"}`}>
-          {isMobile && showCountdown && (
+          {isMobile && displayCountdown && (
             <div style={panelStyle(s0)}>
-              <CountdownPanel deadline={event.registration_end_date} registrationUrl={event.registration_url} />
+              {loading || !event ? (
+                <div className={`h-[120px] ${skeletonPanel}`} />
+              ) : (
+                <CountdownPanel deadline={event.registration_end_date!} registrationUrl={event.registration_url} />
+              )}
             </div>
           )}
 
-          <div className="flex-1 flex flex-col min-h-0" style={panelStyle(isMobile && showCountdown ? s1 : s0)}>
-            <AboutPanel event={event} isMobile={isMobile} />
+          <div className="flex-1 flex flex-col min-h-0" style={panelStyle(isMobile && displayCountdown ? s1 : s0)}>
+            {loading || !event ? (
+              <div className={`flex-1 ${skeletonPanel}`}>
+                <div className="h-8 w-48 bg-white/10 rounded mb-6" />
+                <div className="space-y-4">
+                  <div className={skeletonItem} />
+                  <div className={`w-5/6 ${skeletonItem}`} />
+                  <div className={`w-4/6 ${skeletonItem}`} />
+                </div>
+              </div>
+            ) : (
+              <AboutPanel event={event} isMobile={isMobile} />
+            )}
           </div>
 
-          <div style={panelStyle(isMobile && showCountdown ? s2 : s1)}>
-            <TimelinePanel phases={event.phases ?? []} isMobile={isMobile} />
+          <div style={panelStyle(isMobile && displayCountdown ? s2 : s1)}>
+            {loading || !event ? (
+              <div className={`h-[200px] ${skeletonPanel}`} />
+            ) : (
+              <TimelinePanel phases={event.phases ?? []} isMobile={isMobile} />
+            )}
           </div>
         </div>
 
         {/* -- Right column -- */}
         <div className={`flex flex-col h-full ${isMobile ? "gap-1" : "gap-2"}`}>
-          {!isMobile && showCountdown && (
+          {!isMobile && displayCountdown && (
             <div ref={countdownRef} className="flex-none" style={panelStyle(s2)}>
-              <CountdownPanel deadline={event.registration_end_date} registrationUrl={event.registration_url} />
+              {loading || !event ? (
+                <div className={`h-[120px] ${skeletonPanel}`} />
+              ) : (
+                <CountdownPanel deadline={event.registration_end_date!} registrationUrl={event.registration_url} />
+              )}
             </div>
           )}
 
           <div className="flex-1 flex flex-col" style={{ gap: PANEL_GAP }}>
             {hasUpcoming && (
-              <div ref={upRef} className="flex flex-col flex-1" style={panelStyle(!isMobile && showCountdown ? s3 : s2)}>
-                <UpcomingMatchesPanel 
-                   upcoming={upcoming} 
-                   isMobile={isMobile} 
-                   desktopLimit={layoutState.upCount} 
-                   onTabChange={() => onTabChange("matches")} 
-                />
+              <div ref={upRef} className="flex flex-col flex-1" style={panelStyle(!isMobile && displayCountdown ? s3 : s2)}>
+                {loading || !event ? (
+                  <div className={`flex-1 ${skeletonPanel}`} />
+                ) : (
+                  <UpcomingMatchesPanel 
+                     upcoming={upcoming} 
+                     isMobile={isMobile} 
+                     desktopLimit={layoutState.upCount} 
+                     onTabChange={() => onTabChange("matches")} 
+                  />
+                )}
               </div>
             )}
 
             {hasResults && (
-              <div ref={lateRef} className="flex flex-col flex-1" style={panelStyle(!isMobile && showCountdown ? s4 : s3)}>
-                <LatestResultsPanel 
-                   finished={finished} 
-                   isMobile={isMobile} 
-                   desktopLimit={layoutState.lateCount} 
-                   onTabChange={() => onTabChange("matches")} 
-                />
+              <div ref={lateRef} className="flex flex-col flex-1" style={panelStyle(!isMobile && displayCountdown ? s4 : s3)}>
+                {loading || !event ? (
+                  <div className={`flex-1 ${skeletonPanel}`} />
+                ) : (
+                  <LatestResultsPanel 
+                     finished={finished} 
+                     isMobile={isMobile} 
+                     desktopLimit={layoutState.lateCount} 
+                     onTabChange={() => onTabChange("matches")} 
+                  />
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {event.news?.length > 0 && (
+      {(loading || (event && event.news?.length > 0)) && (
         <div style={panelStyle(s5)}>
-          <LatestStoriesSection news={event.news} eventSlug={event.slug} isMobile={isMobile} onTabChange={onTabChange} />
+          {loading || !event ? (
+            <div className={`h-[300px] ${skeletonPanel}`} />
+          ) : (
+            <LatestStoriesSection news={event.news} eventSlug={event.slug} isMobile={isMobile} onTabChange={onTabChange!} />
+          )}
         </div>
       )}
     </div>
   );
 }
+

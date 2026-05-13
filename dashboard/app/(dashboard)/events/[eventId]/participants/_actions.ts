@@ -12,6 +12,7 @@ import {
   readItem,
 } from '@directus/sdk'
 import { revalidatePath } from 'next/cache'
+import { pingWebRevalidate } from '@/lib/revalidate'
 
 // ---------------------------------------------------------------------------
 // Directus admin client
@@ -57,16 +58,15 @@ async function assertEventAccess(
   eventId: string,
   directusId: string,
   role: string,
-): Promise<void> {
-  if (role === 'SuperAdmin') return
-
+): Promise<{ id: string; slug: string }> {
   const event = await adminDirectus.request(
-    readItem('events', eventId, { fields: ['user_created'] }),
-  )
+    readItem('events', eventId, { fields: ['id', 'slug', 'user_created'] }),
+  ) as any
 
-  if (event.user_created !== directusId) {
+  if (role !== 'SuperAdmin' && event.user_created !== directusId) {
     throw new Error('Forbidden: Anda tidak punya akses ke event ini.')
   }
+  return event
 }
 
 /**
@@ -77,16 +77,16 @@ async function assertCategoryAccess(
   categoryId: string,
   directusId: string,
   role: string,
-): Promise<string> {
+): Promise<{ id: string; slug: string }> {
   assertUUID(categoryId, 'competition_category_id')
 
   const category = await adminDirectus.request(
-    readItem('competition_categories', categoryId, { fields: ['event_id'] }),
-  )
+    readItem('competition_categories', categoryId, { fields: ['event_id.id', 'event_id.slug'] }),
+  ) as any
 
-  const eventId: string = category.event_id
-  await assertEventAccess(eventId, directusId, role)
-  return eventId
+  const event = category.event_id
+  await assertEventAccess(event.id, directusId, role)
+  return event
 }
 
 // ---------------------------------------------------------------------------
@@ -137,8 +137,7 @@ export async function createParticipantAction(payload: Record<string, unknown>) 
   }
 
   try {
-    // Verify the target category exists and the caller owns its event.
-    await assertCategoryAccess(
+    const event = await assertCategoryAccess(
       payload.competition_category_id as string,
       directusId,
       role,
@@ -148,7 +147,8 @@ export async function createParticipantAction(payload: Record<string, unknown>) 
     const safePayload = pickFields(payload, PARTICIPANT_CREATE_ALLOWED)
 
     await adminDirectus.request(createItem('participants', safePayload))
-    revalidatePath(`/events/[eventId]/participants`, 'page')
+    revalidatePath(`/events/${event.id}/participants`, 'page')
+    await pingWebRevalidate({ slug: event.slug })
     return { success: true }
   } catch (error: any) {
     console.error('createParticipantAction error:', error?.message ?? error)
@@ -185,13 +185,14 @@ export async function updateParticipantAction(
       }),
     )
 
-    await assertCategoryAccess(existing.competition_category_id, directusId, role)
+    const event = await assertCategoryAccess(existing.competition_category_id, directusId, role)
 
     // Only write known-safe fields - prevents mass assignment.
     const safePayload = pickFields(payload, PARTICIPANT_UPDATE_ALLOWED)
 
     await adminDirectus.request(updateItem('participants', participantId, safePayload))
-    revalidatePath(`/events/[eventId]/participants`, 'page')
+    revalidatePath(`/events/${event.id}/participants`, 'page')
+    await pingWebRevalidate({ slug: event.slug })
     return { success: true }
   } catch (error: any) {
     console.error('updateParticipantAction error:', error?.message ?? error)
@@ -223,8 +224,7 @@ export async function createInstitutionAction(formData: FormData) {
 
     assertUUID(eventId, 'eventId')
 
-    // Verify the caller owns this event before creating anything under it.
-    await assertEventAccess(eventId, directusId, role)
+    const event = await assertEventAccess(eventId, directusId, role)
 
     let logoId: string | null = null
 
@@ -232,20 +232,21 @@ export async function createInstitutionAction(formData: FormData) {
       validateImageFile(logoFile)
       const uploadFormData = new FormData()
       uploadFormData.append('file', logoFile)
-      const uploadedFile = await adminDirectus.request(uploadFiles(uploadFormData))
+      const uploadedFile = await adminDirectus.request(uploadFiles(uploadFormData)) as any
       logoId = uploadedFile.id
     }
 
     await adminDirectus.request(
       createItem('institutions', {
-        event_id: eventId,
+        event_id: event.id,
         name,
         logo: logoId,
         color: color || null,
       }),
     )
 
-    revalidatePath(`/events/[eventId]/participants`, 'page')
+    revalidatePath(`/events/${event.id}/participants`, 'page')
+    await pingWebRevalidate({ slug: event.slug })
     return { success: true }
   } catch (error: any) {
     console.error('createInstitutionAction error:', error?.message ?? error)
@@ -274,12 +275,11 @@ export async function updateInstitutionAction(formData: FormData) {
 
     assertUUID(institutionId, 'institutionId')
 
-    // Fetch the institution to resolve its event - IDOR guard.
     const institution = await adminDirectus.request(
       readItem('institutions', institutionId, { fields: ['event_id'] }),
-    )
+    ) as any
 
-    await assertEventAccess(institution.event_id, directusId, role)
+    const event = await assertEventAccess(institution.event_id, directusId, role)
 
     let logoId: string | undefined = undefined
 
@@ -287,7 +287,7 @@ export async function updateInstitutionAction(formData: FormData) {
       validateImageFile(logoFile)
       const uploadFormData = new FormData()
       uploadFormData.append('file', logoFile)
-      const uploadedFile = await adminDirectus.request(uploadFiles(uploadFormData))
+      const uploadedFile = await adminDirectus.request(uploadFiles(uploadFormData)) as any
       logoId = uploadedFile.id
     }
 
@@ -296,7 +296,8 @@ export async function updateInstitutionAction(formData: FormData) {
 
     await adminDirectus.request(updateItem('institutions', institutionId, updateData))
 
-    revalidatePath(`/events/[eventId]/participants`, 'page')
+    revalidatePath(`/events/${event.id}/participants`, 'page')
+    await pingWebRevalidate({ slug: event.slug })
     return { success: true }
   } catch (error: any) {
     console.error('updateInstitutionAction error:', error?.message ?? error)

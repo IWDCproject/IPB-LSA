@@ -17,22 +17,35 @@ import type {
 } from '../app/events/[slug]/_types';
 
 // --- Directus clients ---------------------------------------------------------
+const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL as string;
 
-// Live data (scores, match state) - always fresh
-const directus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
-  .with(rest({ onRequest: (options) => ({ ...options, cache: "no-store" as RequestCache }) }));
+/**
+ * Unified fetcher for Directus that handles Next.js caching and tagging.
+ */
+async function fetchDirectus<T>(
+  request: any,
+  options: { tags?: string[]; revalidate?: number | false } = {},
+): Promise<T> {
+  const { tags = [], revalidate = 60 } = options;
 
-// Stable data (news, participants, phases) - revalidate every 60s.
-// Do not merge into a single client - the dual-client pattern is intentional.
-const directusCached = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
-  .with(rest({ onRequest: (options) => ({ ...options, next: { revalidate: 60 } }) }));
-
-// Tagged cached client factory - used for collections that need on-demand
-// invalidation via revalidateTag() (e.g. event images changed from dashboard).
-function taggedCachedClient(tags: string[]) {
-  return createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL as string)
-    .with(rest({ onRequest: (options) => ({ ...options, next: { revalidate: 60, tags } }) }));
+  const client = createDirectus<any>(DIRECTUS_URL).with(
+    rest({
+      onRequest: (opts) => ({
+        ...opts,
+        next: { revalidate, tags },
+      }),
+    }),
+  );
+  return client.request(request) as Promise<T>;
 }
+
+/**
+ * Live client for cases where we absolutely cannot use the helper 
+ * (e.g. non-Next.js environments or specific SDK features).
+ */
+const directus = createDirectus<any>(DIRECTUS_URL).with(
+  rest({ onRequest: (options) => ({ ...options, cache: 'no-store' as RequestCache }) }),
+);
 
 export default directus;
 
@@ -97,23 +110,36 @@ const mapParticipant = (p: any): MappedParticipant | null => {
 };
 
 const MATCH_FIELDS = [
-  '*',
-  'competition_category_id.*',
-  'competition_category_id.event_id.*',
-  'competition_category_id.format_id.*',
-  'home_participant_id.*',
-  'home_participant_id.institution_id.*',
-  'away_participant_id.*',
-  'away_participant_id.institution_id.*',
+  'id', 'status', 'scheduled_at', 'venue', 'match_name', 'round',
+  'home_score', 'away_score', 'timer_secs', 'rankings', 'winner', 'live_state',
+  'competition_category_id.id',
+  'competition_category_id.name',
+  'competition_category_id.event_id.id',
+  'competition_category_id.event_id.name',
+  'competition_category_id.event_id.slug',
+  'competition_category_id.event_id.card_image',
+  'competition_category_id.event_id.user_created.organisation_name',
+  'competition_category_id.format_id.id',
+  'competition_category_id.format_id.name',
+  'competition_category_id.format_id.match_type',
+  'competition_category_id.format_id.modules',
+  'home_participant_id.id',
+  'home_participant_id.name',
+  'home_participant_id.institution_id.id',
+  'home_participant_id.institution_id.name',
+  'home_participant_id.institution_id.logo',
+  'away_participant_id.id',
+  'away_participant_id.name',
+  'away_participant_id.institution_id.id',
+  'away_participant_id.institution_id.name',
+  'away_participant_id.institution_id.logo',
   'participants.id',
   'participants.position',
-  'participants.participant_id.*',
-  'participants.participant_id.institution_id.*',
-  'match_name',
-  'rankings',
-  'home_score',
-  'away_score',
-  'timer_secs',
+  'participants.participant_id.id',
+  'participants.participant_id.name',
+  'participants.participant_id.institution_id.id',
+  'participants.participant_id.institution_id.name',
+  'participants.participant_id.institution_id.logo',
 ];
 
 const mapMatch = (m: any): MappedMatch => {
@@ -166,7 +192,20 @@ const mapMatch = (m: any): MappedMatch => {
   };
 };
 
-const NEWS_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug', 'event_id.banner_image.*'];
+const NEWS_LIST_FIELDS = [
+  'id', 'title', 'slug', 'excerpt', 'published_at', 'is_published',
+  'thumbnail.id', 'thumbnail.width', 'thumbnail.height',
+  'event_id.name', 'event_id.slug', 'event_id.status'
+];
+
+const NEWS_DETAIL_FIELDS = [
+  ...NEWS_LIST_FIELDS,
+  'content',
+  'url_youtube',
+  'website_url',
+  'event_id.banner_image.id',
+  'author_id.organisation_name'
+];
 
 const mapNews = (n: any): MappedNews => {
   return {
@@ -185,12 +224,15 @@ const mapNews = (n: any): MappedNews => {
 
 export const getMatches = async (): Promise<MappedMatch[]> => {
   try {
-    const res = await directus.request(readItems('matches', {
+    const res = await fetchDirectus<any[]>(readItems<any, any, any>('matches', {
       fields: MATCH_FIELDS,
       filter: { status: { _in: ['live', 'upcoming', 'finished'] } },
       sort:   ['status', 'scheduled_at'],
-    }));
-    return (res as any[]).map(mapMatch);
+    }), { 
+      tags: ['matches', 'collection:matches'],
+      revalidate: 10 // Short revalidate for match lists
+    });
+    return res.map(mapMatch);
   } catch (err) {
     console.error('[getMatches]', err);
     return [];
@@ -198,23 +240,23 @@ export const getMatches = async (): Promise<MappedMatch[]> => {
 };
 
 export const getMatchesByEvent = async (slug: string): Promise<MappedMatch[]> => {
-  const res = await directus.request(readItems('matches', {
+  const res = await fetchDirectus<any[]>(readItems<any, any, any>('matches', {
     filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
     fields: MATCH_FIELDS,
     sort:   ['status', 'scheduled_at'],
     limit:  -1,
-  }));
-  return (res as any[]).map(mapMatch);
+  }), { tags: [`event:${slug}:matches`, `event:${slug}`] });
+  return res.map(mapMatch);
 };
 
 export const getEventsForListing = async () => {
   try {
-    return await taggedCachedClient(['events']).request(readItems('events', {
+    return await fetchDirectus<any[]>(readItems<any, any, any>('events', {
       filter: { is_published: { _eq: true } },
-      fields: ['*', 'user_created.organisation_name', 'card_image.*', 'banner_image.*'],
+      fields: ['id', 'name', 'slug', 'status', 'type', 'start_date', 'end_date', 'is_published', 'is_registration_open', 'registration_end_date', 'card_image.id', 'user_created.organisation_name'],
       sort:   ['start_date'],
       limit:  -1,
-    }));
+    }), { tags: ['events', 'collection:events'] });
   } catch (err) {
     console.error("[getEventsForListing]", err);
     return [];
@@ -223,40 +265,55 @@ export const getEventsForListing = async () => {
 
 export const getEventDetail = async (slug: string): Promise<MappedEvent | null> => {
   try {
+    const eventTags = [`event:${slug}`];
+    
     const [events, phases, rawMatches, rawNews, participants] = await Promise.all([
-      // Live client - event status and match scores change at any time
-      directus.request(readItems('events', {
+      // Event basic info
+      fetchDirectus<any[]>(readItems<any, any, any>('events', {
         filter: { slug: { _eq: slug } },
-        fields: ['*', 'banner_image.*', 'card_image.*', 'user_created.organisation_name'],
+        fields: [
+          'id', 'name', 'slug', 'status', 'type', 'location', 'description', 
+          'start_date', 'end_date', 'registration_url', 'is_registration_open', 'registration_end_date',
+          'guidebook_url', 'instagram_url', 'website_url', 'url_youtube', 
+          'contact_person', 'banner_image.id', 'card_image.id', 'user_created.organisation_name'
+        ],
         limit:  1,
-      })),
-      // Cached client - phases are stable (rarely change)
-      directusCached.request(readItems('event_phases', {
+      }), { tags: eventTags }),
+      
+      // Phases
+      fetchDirectus<any[]>(readItems<any, any, any>('event_phases', {
         filter: { event_id: { slug: { _eq: slug } } },
+        fields: ['id', 'label', 'status', 'date_start', 'date_end', 'time_start', 'description', 'display_order'],
         sort:   ['display_order'],
-      })),
-      // Live client - match scores and status change frequently
-      directus.request(readItems('matches', {
+      }), { tags: [...eventTags, `event:${slug}:phases`] }),
+      
+      // Matches
+      fetchDirectus<any[]>(readItems<any, any, any>('matches', {
         filter: { competition_category_id: { event_id: { slug: { _eq: slug } } } },
         fields: MATCH_FIELDS,
         sort:   ['status', 'scheduled_at'],
         limit:  -1,
-      })),
-      // Cached client - news teaser (4 items) is stable data
-      directusCached.request(readItems('news', {
+      }), { 
+        tags: [...eventTags, `event:${slug}:matches`],
+        revalidate: 10 // Short revalidate for match lists, client updates via SSE
+      }),
+      
+      // News teaser
+      fetchDirectus<any[]>(readItems<any, any, any>('news', {
         filter: {
           event_id:     { slug: { _eq: slug } },
           is_published: { _eq: true },
         },
-        fields: NEWS_FIELDS,
+        fields: NEWS_LIST_FIELDS,
         sort:   ['-published_at'],
         limit:  4,
-      })),
-      // Cached client - participants are stable (60s revalidation)
+      }), { tags: [...eventTags, `event:${slug}:news`] }),
+      
+      // Participants
       getParticipantsByEvent(slug),
     ]);
 
-    const event = (events as any[])[0];
+    const event = events[0];
     if (!event) return null;
 
     return {
@@ -265,8 +322,8 @@ export const getEventDetail = async (slug: string): Promise<MappedEvent | null> 
       banner_url: getAssetUrl(event.banner_image),
       organiser:  event.user_created?.organisation_name ?? '',
       phases:     phases as DirectusPhase[],
-      matches:    (rawMatches as any[]).map(mapMatch),
-      news:       (rawNews as any[]).map(mapNews),
+      matches:    rawMatches.map(mapMatch),
+      news:       rawNews.map(mapNews),
       participants,
     } as MappedEvent;
   } catch (err) {
@@ -287,11 +344,11 @@ export const getNewsCountByEvent = async (
     is_published: { _eq: true },
   };
   try {
-    const countResult = await directusCached.request(aggregate('news', {
+    const countResult = await fetchDirectus<any[]>(aggregate<any, any, any>('news', {
       aggregate: { count: '*' },
       query:     { filter },
-    }));
-    const total      = Number((countResult as any)?.[0]?.count ?? 0);
+    }), { tags: [`event:${eventSlug}:news`, 'collection:news'] });
+    const total      = Number(countResult?.[0]?.count ?? 0);
     const totalPages = Math.ceil(total / pageSize);
     const offset     = (page - 1) * pageSize;
     return {
@@ -315,14 +372,14 @@ export const getNewsByEvent = async (
     is_published: { _eq: true },
   };
   try {
-    const items = await directusCached.request(readItems('news', {
+    const items = await fetchDirectus<any[]>(readItems<any, any, any>('news', {
       filter,
-      fields: NEWS_FIELDS,
+      fields: NEWS_LIST_FIELDS,
       sort:   ['-published_at'],
       limit:  pageSize,
       offset: (page - 1) * pageSize,
-    }));
-    return { items: (items as any[]).map(mapNews) };
+    }), { tags: [`event:${eventSlug}:news`, 'collection:news'] });
+    return { items: items.map(mapNews) };
   } catch (err) {
     console.error("[getNewsByEvent]", err);
     return { items: [], error: true };
@@ -334,16 +391,16 @@ export const getNewsBySlug = async (
   newsSlug: string,
 ): Promise<MappedNews | null> => {
   try {
-    const items = await directusCached.request(readItems('news', {
+    const items = await fetchDirectus<any[]>(readItems<any, any, any>('news', {
       filter: {
         slug:         { _eq: newsSlug },
         event_id:     { slug: { _eq: eventSlug } },
         is_published: { _eq: true },
       },
-      fields: ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug', 'author_id.organisation_name'],
+      fields: NEWS_DETAIL_FIELDS,
       limit: 1,
-    }));
-    const item = (items as any[])[0];
+    }), { tags: [`news:${newsSlug}`, `event:${eventSlug}:news`] });
+    const item = items[0];
     return item ? mapNews(item) : null;
   } catch (err) {
     console.error("[getNewsBySlug]", err);
@@ -354,9 +411,8 @@ export const getNewsBySlug = async (
 // --- Participants -------------------------------------------------------------
 
 const PARTICIPANT_FIELDS = [
-  '*',
-  'institution_id.*',
-  'institution_id.logo.*',
+  'id', 'name', 'members', 'seed',
+  'institution_id.id', 'institution_id.name', 'institution_id.logo',
   'competition_category_id.id',
   'competition_category_id.name',
   'competition_category_id.display_order',
@@ -367,23 +423,23 @@ export const getParticipantsByEvent = async (
 ): Promise<CategoryWithParticipants[]> => {
   try {
     const [categories, rawParticipants] = await Promise.all([
-      directusCached.request(readItems('competition_categories', {
+      fetchDirectus<any[]>(readItems<any, any, any>('competition_categories', {
         filter: { event_id: { slug: { _eq: eventSlug } } },
-        fields: ['id', 'name', 'display_order'],
+        fields: ['id', 'name', 'participant_type', 'display_order'],
         sort:   ['display_order', 'name'],
         limit:  -1,
-      })),
-      directusCached.request(readItems('participants', {
+      }), { tags: [`event:${eventSlug}:categories`, `event:${eventSlug}`] }),
+      fetchDirectus<any[]>(readItems<any, any, any>('participants', {
         filter: { competition_category_id: { event_id: { slug: { _eq: eventSlug } } } },
         fields: PARTICIPANT_FIELDS,
         sort:   ['name'],
         limit:  -1,
-      })),
+      }), { tags: [`event:${eventSlug}:participants`, `event:${eventSlug}`] }),
     ]);
 
-    const participants = (rawParticipants as any[]).map(mapParticipant).filter(Boolean) as MappedParticipant[];
+    const participants = rawParticipants.map(mapParticipant).filter(Boolean) as MappedParticipant[];
 
-    return (categories as any[]).map(cat => ({
+    return categories.map(cat => ({
       category:     cat,
       participants: participants.filter(p => {
         const catId = typeof p.competition_category_id === 'object'
@@ -407,26 +463,7 @@ export interface ScheduleMatchFilter {
   search:   string | null;
 }
 
-const SCHEDULE_FIELDS = [
-  '*',
-  'competition_category_id.*',
-  'competition_category_id.event_id.id',
-  'competition_category_id.event_id.name',
-  'competition_category_id.event_id.slug',
-  'competition_category_id.event_id.card_image.*',
-  'competition_category_id.event_id.user_created.organisation_name',
-  'competition_category_id.format_id.*',
-  'home_participant_id.*',
-  'home_participant_id.institution_id.*',
-  'away_participant_id.*',
-  'away_participant_id.institution_id.*',
-  'participants.id',
-  'participants.position',
-  'participants.participant_id.*',
-  'participants.participant_id.institution_id.*',
-  'match_name',
-  'rankings',
-];
+const SCHEDULE_FIELDS = MATCH_FIELDS;
 
 export const getMatchesSchedule = async (
   filter: ScheduleMatchFilter = { dateFrom: null, dateTo: null, category: null, search: null },
@@ -464,13 +501,16 @@ export const getMatchesSchedule = async (
   }
 
   try {
-    const res = await directusCached.request(readItems('matches', {
+    const res = await fetchDirectus<any[]>(readItems<any, any, any>('matches', {
       filter: { _and: conditions },
       fields: SCHEDULE_FIELDS,
       sort:   ['scheduled_at'],
       limit:  -1,
-    }));
-    return { items: (res as any[]).map(mapMatch) };
+    }), { 
+      tags: ['matches', 'collection:matches'],
+      revalidate: 60 
+    });
+    return { items: res.map(mapMatch) };
   } catch (err) {
     console.error('[getMatchesSchedule]', err);
     return { items: [] };
@@ -484,14 +524,14 @@ export const getEvents = async () => getEventsForListing();
 export const getStats = async () => {
   try {
     const [e, i, p] = await Promise.all([
-      directus.request(readItems('events')),
-      directus.request(readItems('institutions')),
-      directus.request(readItems('participants')),
+      fetchDirectus<any[]>(aggregate<any, any, any>('events', { aggregate: { count: '*' } }), { tags: ['events', 'global:stats'] }),
+      fetchDirectus<any[]>(aggregate<any, any, any>('institutions', { aggregate: { count: '*' } }), { tags: ['institutions', 'global:stats'] }),
+      fetchDirectus<any[]>(aggregate<any, any, any>('participants', { aggregate: { count: '*' } }), { tags: ['participants', 'global:stats'] }),
     ]);
     return {
-      eventsCount:      (e as any[]).length,
-      institutionsCount: (i as any[]).length,
-      participantsCount: (p as any[]).length,
+      eventsCount:      Number(e?.[0]?.count ?? 0),
+      institutionsCount: Number(i?.[0]?.count ?? 0),
+      participantsCount: Number(p?.[0]?.count ?? 0),
     };
   } catch (err) {
     console.error("[getStats]", err);
@@ -500,35 +540,35 @@ export const getStats = async () => {
 };
 
 export const getNews = async ({ limit = 5 }: { limit?: number } = {}): Promise<MappedNews[]> => {
-  const items = await directusCached.request(readItems('news', {
+  const items = await fetchDirectus<any[]>(readItems<any, any, any>('news', {
     filter: { is_published: { _eq: true } },
-    fields: NEWS_FIELDS,
+    fields: NEWS_LIST_FIELDS,
     sort:   ['-published_at'],
     limit,
-  }));
-  return (items as any[]).map(mapNews);
+  }), { tags: ['news', 'collection:news'] });
+  return items.map(mapNews);
 };
 
 export const getEventsWithRecentNews = async () => {
   try {
-    const events = await taggedCachedClient(['events']).request(readItems('events', {
+    const events = await fetchDirectus<any[]>(readItems<any, any, any>('events', {
       filter: { is_published: { _eq: true } },
-      fields: ['id', 'name', 'slug', 'status', 'start_date', 'banner_image.*'],
+      fields: ['id', 'name', 'slug', 'status', 'start_date', 'banner_image.id'],
       sort:   ['start_date'],
       limit:  -1,
-    }));
+    }), { tags: ['events', 'collection:events'] });
 
     const eventsWithNews = await Promise.all(
-      (events as any[]).map(async (event) => {
-        const items = await directusCached.request(readItems('news', {
+      events.map(async (event) => {
+        const items = await fetchDirectus<any[]>(readItems<any, any, any>('news', {
           filter: {
             event_id:     { slug: { _eq: event.slug } },
             is_published: { _eq: true },
           },
-          fields: NEWS_FIELDS,
+          fields: NEWS_LIST_FIELDS,
           sort:   ['-published_at'],
           limit:  6,
-        }));
+        }), { tags: [`event:${event.slug}:news`, 'collection:news'] });
         return {
           id:           event.id,
           name:         event.name,
@@ -536,7 +576,7 @@ export const getEventsWithRecentNews = async () => {
           banner_image: event.banner_image ?? null,
           banner_url:   getAssetUrl(event.banner_image),
           status:       STATUS_MAP[event.status] ?? 'concluded',
-          news:         (items as any[]).map(mapNews),
+          news:         items.map(mapNews),
         };
       })
     );
@@ -559,24 +599,24 @@ export const getAllNewsFiltered = async ({
   filter?:   any;
   sort?:     string;
 } = {}): Promise<{ items: MappedNews[]; total: number; totalPages: number }> => {
-  const FULL_FIELDS = ['*', 'thumbnail.*', 'event_id.name', 'event_id.slug', 'event_id.status'];
+  const FULL_FIELDS = NEWS_LIST_FIELDS;
   try {
     const [items, countResult] = await Promise.all([
-      directusCached.request(readItems('news', {
+      fetchDirectus<any[]>(readItems<any, any, any>('news', {
         filter,
         fields: FULL_FIELDS,
         sort:   [sort],
         limit:  pageSize,
         offset: (page - 1) * pageSize,
-      })),
-      directusCached.request(aggregate('news', {
+      }), { tags: ['news', 'collection:news'] }),
+      fetchDirectus<any[]>(aggregate<any, any, any>('news', {
         aggregate: { count: '*' },
         query:     { filter },
-      })),
+      }), { tags: ['news', 'collection:news'] }),
     ]);
-    const total = Number((countResult as any)?.[0]?.count ?? 0);
+    const total = Number(countResult?.[0]?.count ?? 0);
     return {
-      items:      (items as any[]).map(mapNews),
+      items:      items.map(mapNews),
       total,
       totalPages: Math.ceil(total / pageSize),
     };

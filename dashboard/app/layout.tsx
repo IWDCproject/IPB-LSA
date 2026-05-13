@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Providers } from './providers'
+// @ts-ignore
 import './globals.css'
 import NextTopLoader from 'nextjs-toploader'
 import { NavigationEvents } from '@/components/layout/NavigationEvents'
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={sans.variable} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <NextTopLoader color="#18181b" showSpinner={false} />
+        <NextTopLoader color="#18181b" height={3} showSpinner={false} crawl crawlSpeed={200} initialPosition={0.08} />
         <NavigationEvents />
         <Providers>{children}</Providers>
       </body>

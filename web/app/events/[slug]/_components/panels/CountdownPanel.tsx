@@ -50,12 +50,13 @@ const SecondsDisplay = memo(function SecondsDisplay({ deadline }: SecondsProps) 
         className="border-2 border-[#0D26C2] rounded-lg bg-white"
         style={{ padding: "clamp(8px,2vw,16px) clamp(4px,1.5vw,10px)", marginBottom: "clamp(4px,1vw,8px)" }}
       >
-        <div
-          className="font-bebas text-[#0D26C2] leading-none tabular-nums"
-          style={{ fontSize: "clamp(42px,11vw,56px)" }}
-        >
-          {String(seconds).padStart(2, "0")}
-        </div>
+          <div
+            className="font-bebas text-[#0D26C2] leading-none tabular-nums"
+            style={{ fontSize: "clamp(42px,11vw,56px)" }}
+            suppressHydrationWarning
+          >
+            {String(seconds).padStart(2, "0")}
+          </div>
       </div>
       <div
         className="font-jakarta font-medium text-gray-500"
@@ -83,6 +84,7 @@ const CoarseUnit = memo(function CoarseUnit({ label, value }: CoarseUnitProps) {
         <div
           className="font-bebas text-[#0D26C2] leading-none tabular-nums"
           style={{ fontSize: "clamp(42px,11vw,56px)" }}
+          suppressHydrationWarning
         >
           {String(value).padStart(2, "0")}
         </div>
@@ -155,7 +157,10 @@ export default function CountdownPanel({ deadline, registrationUrl, isMobile = f
         <span className="font-jakarta text-xs font-bold text-gray-400">Why Wait?</span>
       </div>
 
-      <div className={`font-jakarta text-xs font-medium text-gray-500 ${isMobile ? "mb-4" : "mb-6"}`}>
+      <div 
+        className={`font-jakarta text-xs font-medium text-gray-500 ${isMobile ? "mb-4" : "mb-6"}`}
+        suppressHydrationWarning
+      >
         Regist until {fmtDeadline(deadline)}
       </div>
 

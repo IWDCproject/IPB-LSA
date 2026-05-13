@@ -13,6 +13,7 @@ import {
 import { revalidatePath } from 'next/cache'
 import sanitizeHtml from 'sanitize-html'
 import { z } from 'zod'
+import { pingWebRevalidate } from '@/lib/revalidate'
 import type { NewsArticle, NewsCategory } from '@/types/directus'
 
 const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
@@ -109,8 +110,11 @@ export async function createArticleAction(rawPayload: unknown) {
     
     // Invalidate the specific event's news tab
     if (payload.event_id) {
-      const event = await adminDirectus.request(readItem('events', payload.event_id, { fields: ['slug'] }))
+      const event = await adminDirectus.request(readItem('events', payload.event_id, { fields: ['slug'] })) as any
       revalidatePath(`/events/${event.slug}`)
+      await pingWebRevalidate({ slug: event.slug, tags: ['collection:news'] })
+    } else {
+      await pingWebRevalidate({ tags: ['collection:news'] })
     }
 
     return { success: true as const, article }
@@ -168,6 +172,9 @@ export async function updateArticleAction(id: string, rawPayload: unknown) {
     if (eventSlug) {
       revalidatePath(`/events/${eventSlug}`) // Invalidate list tab
       revalidatePath(`/news/${eventSlug}/${payload.slug || existingArticle.slug}`) // Invalidate specific article
+      await pingWebRevalidate({ slug: eventSlug, tags: ['collection:news', `news:${payload.slug || existingArticle.slug}`] })
+    } else {
+      await pingWebRevalidate({ tags: ['collection:news'] })
     }
     
     return { success: true as const }

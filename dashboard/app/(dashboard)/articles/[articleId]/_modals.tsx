@@ -196,7 +196,7 @@ export function GDriveDialog({ editor, onClose }: { editor: Editor; onClose: () 
         <div className="p-6 space-y-5">
           <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-100">
             <p className="text-[11px] leading-relaxed text-zinc-500">
-              <span className="font-bold text-zinc-900 uppercase tracking-tighter mr-1">Public Access:</span> File must be set to <span className="font-bold text-zinc-700">"Anyone with the link → Viewer"</span>.
+              <span className="font-bold text-zinc-900 uppercase tracking-tighter mr-1">Public Access:</span> File must be set to <span className="font-bold text-zinc-700">&quot;Anyone with the link &rarr; Viewer&quot;</span>.
             </p>
           </div>
 

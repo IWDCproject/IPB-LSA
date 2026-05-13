@@ -10,6 +10,7 @@ import {
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { pingWebRevalidate } from '@/lib/revalidate'
 
 const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
   .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
@@ -75,22 +76,6 @@ async function requireEventOwnership(eventId: string) {
 
 // --- Web App Revalidation Helper -------------------------------
 
-async function pingWebRevalidate(slug?: string) {
-  const webUrl = process.env.WEB_APP_URL
-  const secret = process.env.REVALIDATE_SECRET
-  if (!webUrl || !secret) {
-    console.warn('[revalidate] WEB_APP_URL or REVALIDATE_SECRET not set — web cache not busted')
-    return
-  }
-  await fetch(`${webUrl}/api/revalidate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-revalidate-secret': secret,
-    },
-    body: JSON.stringify({ slug }),
-  }).catch(err => console.error('[revalidate] web app ping failed:', err.message))
-}
 
 // --- Cache Helper ----------------------------------------------
 
@@ -102,7 +87,7 @@ async function revalidateEventCache(eventId: string) {
       revalidatePath('/events')
       revalidatePath(`/events/${event.slug}`, 'layout')
       revalidatePath(`/events/${event.slug}/settings`, 'layout')
-      await pingWebRevalidate(event.slug)
+      await pingWebRevalidate({ slug: event.slug })
     }
   } catch (err) {
     console.error("Cache bust failed", err)
@@ -212,7 +197,7 @@ export async function deleteEventAction(eventId: string) {
 
     revalidatePath('/', 'layout')
     revalidatePath('/events')
-    await pingWebRevalidate(slug)
+    await pingWebRevalidate({ slug })
   } catch (err: any) {
     return { success: false, error: err.message }
   }

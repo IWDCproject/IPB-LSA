@@ -15,6 +15,7 @@ import {
 } from '@directus/sdk'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { pingWebRevalidate } from '@/lib/revalidate'
 
 
 function requireEnv(name: string): string {
@@ -137,6 +138,7 @@ export async function createMatchAction(payload: MatchActionPayload) {
     }
 
     revalidatePath(`/events/${eventSlug}/matches`, 'page')
+    await pingWebRevalidate({ slug: eventSlug })
     return { success: true }
   } catch (error) {
     console.error('[createMatchAction]', error)
@@ -232,6 +234,7 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
     }
 
     revalidatePath(`/events/${eventSlug}/matches`, 'page')
+    await pingWebRevalidate({ slug: eventSlug })
     return { success: true }
   } catch (error) {
     console.error('[updateMatchAction]', error)

@@ -83,6 +83,7 @@ export default function ParticipantsPage() {
     () => directus.request(
       readItems('institutions', {
         filter: { event_id: { slug: { _eq: eventId } } },
+        fields: ['id', 'name', 'logo', 'color'],
         limit: -1,
       })
     ) as Promise<Institution[]>,
@@ -93,7 +94,7 @@ export default function ParticipantsPage() {
     () => directus.request(
       readItems('competition_categories', {
         filter: { event_id: { slug: { _eq: eventId } } },
-        fields:['*', 'format_id.name', 'format_id.match_type'] as any,
+        fields: ['id', 'name', 'display_order', 'format_id.name', 'format_id.match_type'] as any,
         sort: ['display_order'],
         limit: -1,
       })
@@ -105,7 +106,7 @@ export default function ParticipantsPage() {
     () => directus.request(
       readItems('participants', {
         filter: { competition_category_id: { event_id: { slug: { _eq: eventId } } } },
-        fields:['*', 'institution_id.*'] as any,
+        fields: ['id', 'name', 'competition_category_id', 'institution_id.id', 'institution_id.name', 'institution_id.logo', 'members', 'seed', 'notes'] as any,
         limit: -1,
       })
     ) as Promise<RawParticipant[]>,

@@ -36,26 +36,50 @@ export default function BlurProvider({ children }) {
     worker.onmessage = ({ data }) => {
       if (data.error) {
         console.warn(`[BlurProvider] worker error for ${data.type} ${data.url}:`, data.error);
-
-        // FIX: Remove the failed key from submittedRef so the image can be
-        // retried on the next register() call (e.g. page re-visit, remount).
-        // Previously the key stayed in the set permanently, silently
-        // blacklisting any failed image for the entire session.
         if (data.url && data.type) {
           submittedRef.current.delete(`${data.url}_${data.type}`);
         }
         return;
       }
 
-      setBitmaps((prev) => ({
-        ...prev,
-        [data.url]: {
-          ...(prev[data.url] ?? {}),
-          [data.type]: data.type === "hero"
-            ? { sharp: data.sharp, blurred: data.blurred }
-            : { bitmap: data.bitmap },
-        },
-      }));
+      setBitmaps((prev) => {
+        const next = {
+          ...prev,
+          [data.url]: {
+            ...(prev[data.url] ?? {}),
+            [data.type]: data.type === "hero"
+              ? { sharp: data.sharp, blurred: data.blurred }
+              : { bitmap: data.bitmap },
+          },
+        };
+
+        // --- Memory Guard ---
+        // If we have more than 100 unique images, drop the oldest ones.
+        // Bitmaps can be large (especially hero sharp/blurred combos).
+        const keys = Object.keys(next);
+        if (keys.length > 100) {
+          const toDelete = keys.slice(0, keys.length - 100);
+          for (const k of toDelete) {
+            // Important: Explicitly close bitmaps before dropping reference
+            // to help the browser GC reclaim GPU memory immediately.
+            const entry = next[k];
+            if (entry) {
+              Object.values(entry).forEach((val) => {
+                if (val.bitmap?.close)  val.bitmap.close();
+                if (val.sharp?.close)   val.sharp.close();
+                if (val.blurred?.close) val.blurred.close();
+              });
+            }
+            delete next[k];
+            // Also allow them to be re-registered later if needed
+            for (const type of ["hero", "eventcard", "newscard", "matchcard"]) {
+              submittedRef.current.delete(`${k}_${type}`);
+            }
+          }
+        }
+
+        return next;
+      });
     };
 
     worker.onerror = (e) => {

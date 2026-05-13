@@ -14,8 +14,9 @@ export default function RootLayout({ children }) {
           showSpinner={false}
           easing="ease"
           speed={200}
-          crawlSpeed={100}
-          initialPosition={0.4}
+          crawl
+          crawlSpeed={200}
+          initialPosition={0.08}
         />
         <BlurProvider>
           <SmoothScroller>

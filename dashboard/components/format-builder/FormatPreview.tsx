@@ -23,7 +23,7 @@ import {
 // Engine panel map
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line
 const ENGINE_PANELS: Record<EngineType, React.ComponentType<any>> = {
   finish_time:  FinishTimePanel,
   score_timed:  ScoreTimedPanel,

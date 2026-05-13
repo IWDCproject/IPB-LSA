@@ -104,7 +104,7 @@ export const EventGroup = memo(function EventGroup({
     return () => gridEl.removeEventListener("transitionend", onTransitionEnd);
   }, [isOpen]);
 
-  const imageUrl     = cardImage ? getAssetUrl(cardImage) : null;
+  const imageUrl     = cardImage ? getAssetUrl(cardImage, { width: 800, quality: 80 }) : null;
   const dateGroups   = useMemo(() => groupMatchesByDate(matches), [matches]);
   const statusCounts = useMemo(() => countByStatus(matches), [matches]);
   const showDates    = dateGroups.length > 1;

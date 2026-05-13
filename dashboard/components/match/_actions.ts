@@ -12,6 +12,7 @@ import {
 import { z } from 'zod'
 import type { LiveState } from '@/types/directus'
 import { DEFAULT_LIVE_STATE } from '@/lib/liveStateDefaults'
+import { pingWebRevalidate } from '@/lib/revalidate'
 
 // --- Zod Runtime Validation Schemas ----------------------------
 
@@ -281,9 +282,12 @@ export async function setMatchStatusAction(
     await adminDirectus.request(updateItem('matches', matchId, { status, live_state: merged }))
 
     // FIX: same undefined eventId guard as patchLiveStateAction.
-    const eventId: string | undefined = current?.competition_category_id?.event_id
-    if (eventId) {
-      revalidatePath(`/events/${eventId}/matches/${matchId}/control`)
+    const event = current?.competition_category_id?.event_id
+    if (event?.id) {
+      revalidatePath(`/events/${event.id}/matches/${matchId}/control`)
+    }
+    if (event?.slug) {
+      await pingWebRevalidate({ slug: event.slug })
     }
 
     return { success: true as const, liveState: merged }

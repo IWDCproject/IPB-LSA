@@ -19,7 +19,7 @@ declare module '@tiptap/core' {
 }
 let TiptapImage: AnyExtension
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line
   TiptapImage = require('@tiptap/extension-image').default
 } catch {
   TiptapImage = { name: 'image', type: 'node' } as never

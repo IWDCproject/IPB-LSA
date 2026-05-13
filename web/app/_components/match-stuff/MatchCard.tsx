@@ -93,7 +93,7 @@ function useMatchTimerDOM(ref: React.RefObject<HTMLSpanElement>, live: any, time
 
 function InstitutionLogo({ inst, size = "calc(32px * var(--s))" }: { inst: any; size?: string }) {
   if (!inst?.logo_url) {
-    return <div style={{ width: size, height: size, borderRadius: "50%", background: inst?.color ?? "#334155", flexShrink: 0 }} />;
+    return <div style={{ width: size, height: size, borderRadius: "50%", background: "#334155", flexShrink: 0 }} />;
   }
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
@@ -306,7 +306,7 @@ export function MatchCard({ match }: { match: any }) {
     return () => ro.disconnect();
   }, []);
 
-  const imageUrl = getAssetUrl(event?.card_image);
+  const imageUrl = getAssetUrl(event?.card_image, { width: 600, quality: 75 });
   const hasBg    = !!imageUrl;
 
   return (

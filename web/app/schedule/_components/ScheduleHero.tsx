@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 const fadeUp = (delay: string): React.CSSProperties => ({
   opacity: 0,
@@ -14,9 +15,12 @@ export function ScheduleHero() {
         className="absolute left-0 hidden sm:block z-10"
         style={{ top: "50%", opacity: 0, animation: "hero-in-left 500ms ease 100ms forwards" }}
       >
-        <img
+        <Image
           src="/maskot/Cowok%20Suka.png"
           alt=""
+          width={176}
+          height={176}
+          priority
           className="w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 object-contain drop-shadow-2xl"
         />
       </div>
@@ -51,9 +55,12 @@ export function ScheduleHero() {
         className="absolute right-0 hidden md:block z-10"
         style={{ top: "50%", opacity: 0, animation: "hero-in-right 500ms ease 100ms forwards" }}
       >
-        <img
+        <Image
           src="/maskot/Cewek%20Semangat.png"
           alt=""
+          width={176}
+          height={176}
+          priority
           className="w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 object-contain drop-shadow-2xl scale-x-[-1]"
         />
       </div>

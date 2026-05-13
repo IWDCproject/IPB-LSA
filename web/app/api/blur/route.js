@@ -6,7 +6,8 @@ import path   from "path";
 
 const IS_DEV        = process.env.NODE_ENV === "development";
 const CACHE_DIR     = process.env.BLUR_CACHE_DIR ?? path.join(process.cwd(), ".blur-cache");
-const DEFAULT_TTL_S = 7 * 24 * 60 * 60;
+const DEFAULT_TTL_S = 30 * 24 * 60 * 60; // 30 days default
+const MAX_CACHE_SIZE_BYTES = 500 * 1024 * 1024; // 500MB limit
 
 const MAX_IN_FLIGHT  = 50;
 const IN_FLIGHT      = new Map();
@@ -29,16 +30,33 @@ if (!IS_DEV) {
 async function sweepExpiredCache() {
   try {
     const files = await fs.readdir(CACHE_DIR);
-    await Promise.all(files.map(async (f) => {
-      if (!f.endsWith(".webp")) return;
+    let totalSize = 0;
+    const fileInfos = [];
+
+    for (const f of files) {
+      if (!f.endsWith(".webp")) continue;
       const filePath = path.join(CACHE_DIR, f);
       const stat = await fs.stat(filePath).catch(() => null);
-      if (!stat) return;
+      if (!stat) continue;
+      
       const ageSeconds = (Date.now() - stat.mtimeMs) / 1000;
       if (ageSeconds > DEFAULT_TTL_S) {
         await fs.unlink(filePath).catch(() => {});
+      } else {
+        totalSize += stat.size;
+        fileInfos.push({ path: filePath, size: stat.size, mtime: stat.mtimeMs });
       }
-    }));
+    }
+
+    // If still over size limit, delete oldest files until under limit
+    if (totalSize > MAX_CACHE_SIZE_BYTES) {
+      fileInfos.sort((a, b) => a.mtime - b.mtime);
+      for (const info of fileInfos) {
+        await fs.unlink(info.path).catch(() => {});
+        totalSize -= info.size;
+        if (totalSize <= MAX_CACHE_SIZE_BYTES * 0.8) break; // Clear down to 80%
+      }
+    }
   } catch (err) {
     console.warn("[blur] sweep failed:", err.message);
   }
