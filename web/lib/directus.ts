@@ -253,7 +253,7 @@ export const getEventsForListing = async () => {
   try {
     return await fetchDirectus<any[]>(readItems<any, any, any>('events', {
       filter: { is_published: { _eq: true } },
-      fields: ['id', 'name', 'slug', 'status', 'type', 'start_date', 'end_date', 'is_published', 'is_registration_open', 'registration_end_date', 'card_image.id', 'user_created.organisation_name'],
+      fields: ['id', 'name', 'slug', 'status', 'type', 'location', 'description', 'start_date', 'end_date', 'is_published', 'is_registration_open', 'registration_end_date', 'card_image.id', 'user_created.organisation_name'],
       sort:   ['start_date'],
       limit:  -1,
     }), { tags: ['events', 'collection:events'] });
