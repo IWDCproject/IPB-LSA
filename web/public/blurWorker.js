@@ -74,7 +74,7 @@ function insideDims(naturalW, naturalH, maxW, maxH) {
   };
 }
 
-async function fetchBlurred(imageUrl, blurPx, canW, canH, ttl) {
+async function fetchBlurred(imageUrl, blurPx, canW, canH, ttl, retries = 3) {
   const endpoint =
     `${self.location.origin}/api/blur` +
     `?url=${encodeURIComponent(imageUrl)}` +
@@ -83,17 +83,55 @@ async function fetchBlurred(imageUrl, blurPx, canW, canH, ttl) {
     `&h=${canH}` +
     `&ttl=${ttl}`;
 
-  const res = await fetch(endpoint);
-  if (!res.ok) throw new Error(`blur API ${res.status} for blurPx=${blurPx}`);
-
-  const blob = await res.blob();
-  return createImageBitmap(blob);
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(endpoint);
+      if (res.ok) {
+        const blob = await res.blob();
+        return await createImageBitmap(blob);
+      }
+      if (res.status === 403 || res.status === 422) break; // Fail fast on validation
+    } catch (err) {
+      if (i === retries - 1) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 500 * (i + 1))); // Exp backoff
+  }
+  throw new Error(`blur API failed for blurPx=${blurPx}`);
 }
 
 async function fetchBlurMap(url, layers, canW, canH, ttl) {
-  const uniquePxs   = [...new Set(layers.map((l) => l.blurPx))];
-  const blurBitmaps = await Promise.all(uniquePxs.map((px) => fetchBlurred(url, px, canW, canH, ttl)));
-  return Object.fromEntries(uniquePxs.map((px, i) => [px, blurBitmaps[i]]));
+  const uniquePxs = [...new Set(layers.map((l) => l.blurPx))];
+
+  // Optimization: use the Batch Atlas API to get all blurs in ONE request
+  const endpoint =
+    `${self.location.origin}/api/blur` +
+    `?url=${encodeURIComponent(url)}` +
+    `&blurs=${uniquePxs.join(",")}` +
+    `&w=${canW}` +
+    `&h=${canH}` +
+    `&ttl=${ttl}`;
+
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error(`Blur Atlas API ${res.status}`);
+
+  const atlasBlob = await res.blob();
+  const atlas = await createImageBitmap(atlasBlob);
+
+  const layerW = atlas.width;
+  const layerH = Math.floor(atlas.height / uniquePxs.length);
+
+  const results = {};
+  for (let i = 0; i < uniquePxs.length; i++) {
+    const px = uniquePxs[i];
+    // Slice each layer out of the atlas vertically
+    const oc = new OffscreenCanvas(layerW, layerH);
+    const ctx = oc.getContext("2d");
+    ctx.drawImage(atlas, 0, i * layerH, layerW, layerH, 0, 0, layerW, layerH);
+    results[px] = await createImageBitmap(oc);
+  }
+
+  atlas.close();
+  return results;
 }
 
 function makeMask(W, H, stops, dir = "down") {
