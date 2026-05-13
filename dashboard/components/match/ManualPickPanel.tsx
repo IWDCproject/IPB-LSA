@@ -103,8 +103,8 @@ export default function ManualPickPanel({
     const isDraw  = currentWinner === 'draw'
 
     return (
-      <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-zinc-100">
+      <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm">
+        <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
           <p className="text-sm font-semibold text-zinc-900">Manual Pick - Winner</p>
         </div>
 
@@ -185,7 +185,7 @@ export default function ManualPickPanel({
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+    <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm">
       {/* Header */}
       <div className="px-4 py-2.5 border-b border-zinc-100 flex items-center justify-between">
         <p className="text-sm font-semibold text-zinc-900">Manual Pick - Rankings</p>
@@ -202,7 +202,7 @@ export default function ManualPickPanel({
             <label className="text-xs font-medium text-zinc-500 block mb-1.5">Add participant</label>
             <div className="flex gap-2">
               <Select value={addingId} onValueChange={setAddingId}>
-                <SelectTrigger className="h-9 flex-1 text-sm">
+                <SelectTrigger className="!h-10 rounded-lg flex-1 text-sm">
                   <SelectValue placeholder="Select participant…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,7 +214,7 @@ export default function ManualPickPanel({
               <Button
                 onClick={handleAdd}
                 disabled={!addingId}
-                className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0"
+                className="h-10 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0 rounded-lg"
               >
                 + Add
               </Button>
@@ -303,7 +303,7 @@ export default function ManualPickPanel({
           <Button
             onClick={applyRankings}
             disabled={rankedIds.length === 0}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white text-sm h-9 px-4"
+            className="bg-zinc-900 hover:bg-zinc-800 text-white text-sm h-10 px-4"
           >
             Apply Rankings
           </Button>

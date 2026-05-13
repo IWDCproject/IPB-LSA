@@ -36,9 +36,10 @@ export type SetLogEntry = {
 // id is optional to remain compatible with legacy DB rows that predate this field.
 
 export type TimeLogEntry = {
-  id?:  string   // participant UUID - optional for legacy rows
-  name: string
-  time: string   // e.g. "1m 30s" or "1m 30s 250ms"
+  id?:   string   // participant UUID - optional for legacy rows
+  rank?: number
+  name:  string
+  time:  string   // e.g. "1m 30s" or "1m 30s 250ms"
 }
 
 // --- Collections -----------------------------------------------
@@ -91,7 +92,6 @@ export type Institution = {
   event_id: string
   name: string
   logo: string | null  // UUID, pakai getAssetUrl()
-  color: string | null
 }
 
 export type Participant = {

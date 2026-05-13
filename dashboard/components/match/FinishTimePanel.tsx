@@ -13,10 +13,11 @@ type Props = EnginePanelProps & { participants: Participant[] }
 // --- Helpers -------------------------------------------------
 
 function parseTimeStr(t: string): number {
+  const d  = parseInt(t.match(/(\d+)d/)?.[1]  ?? '0', 10)
   const m  = parseInt(t.match(/(\d+)m/)?.[1]  ?? '0', 10)
   const s  = parseInt(t.match(/(\d+)s/)?.[1]  ?? '0', 10)
   const ms = parseInt(t.match(/(\d+)ms/)?.[1] ?? '0', 10)
-  return m * 60000 + s * 1000 + ms
+  return d * 86400000 + m * 60000 + s * 1000 + ms
 }
 
 // --- Component -----------------------------------------------
@@ -32,6 +33,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
   const isSolo  = participants.length === 1
 
   const [selectedId, setSelectedId] = useState('')
+  const [days, setDays] = useState('')
   const [mins, setMins] = useState('')
   const [secs, setSecs] = useState('')
   const [ms,   setMs]   = useState('')
@@ -66,42 +68,65 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
       : participants.find((p) => p.id === selectedId)
     if (!participant) return
 
+    const d_  = parseInt(days || '0', 10)
     const m_  = parseInt(mins || '0', 10)
     const s_  = parseInt(secs || '0', 10)
     const ms_ = parseInt(ms   || '0', 10)
 
-    const totalMs = m_ * 60000 + s_ * 1000 + ms_
+    const totalMs = d_ * 86400000 + m_ * 60000 + s_ * 1000 + ms_
     if (totalMs <= 0) return
 
-    const timeStr = showMs ? `${m_}m ${s_}s ${ms_}ms` : `${m_}m ${s_}s`
+    const timeStr = [
+      d_ > 0 && `${d_}d`,
+      m_ > 0 && `${m_}m`,
+      s_ > 0 && `${s_}s`,
+      showMs && ms_ > 0 && `${ms_}ms`,
+    ].filter(Boolean).join(' ') || (showMs ? '0ms' : '0s')
 
-    const newLog: TimeLogEntry[] = [
+    const rawLog = [
       ...liveState.timeLog,
       { id: participant.id, name: participant.name, time: timeStr },
     ]
+
+    // Recalculate ranks for all entries to ensure consistency
+    const sorted = buildSortedLog(rawLog)
+    const newLog: TimeLogEntry[] = rawLog.map(entry => {
+      const rank = sorted.findIndex(s => (s.id ?? s.name) === (entry.id ?? entry.name)) + 1
+      return { ...entry, rank }
+    })
+
     await onPatch({ timeLog: newLog, rankings: buildRankings(newLog) })
 
     setSelectedId('')
-    setMins(''); setSecs(''); setMs('')
+    setDays(''); setMins(''); setSecs(''); setMs('')
   }
 
   async function handleRemove(id: string) {
-    const newLog: TimeLogEntry[] = liveState.timeLog.filter(
+    const filteredLog = liveState.timeLog.filter(
       (e: TimeLogEntry) => e.id !== id && e.name !== id
     )
+    
+    // Recalculate ranks for the remaining entries
+    const sorted = buildSortedLog(filteredLog)
+    const newLog: TimeLogEntry[] = filteredLog.map(entry => {
+      const rank = sorted.findIndex(s => (s.id ?? s.name) === (entry.id ?? entry.name)) + 1
+      return { ...entry, rank }
+    })
+
     await onPatch({ timeLog: newLog, rankings: buildRankings(newLog) })
   }
 
   // FIX: disallow Record when time is 0 across all fields even if fields are filled,
   // in addition to the existing participant + at-least-one-field check.
-  const totalMs =
+  const totalMsValue =
+    parseInt(days || '0', 10) * 86400000 +
     parseInt(mins || '0', 10) * 60000 +
     parseInt(secs || '0', 10) * 1000 +
     (showMs ? parseInt(ms || '0', 10) : 0)
   const canRecord =
     (isSolo || selectedId) &&
-    (mins || secs || (showMs && ms)) &&
-    totalMs > 0
+    (days || mins || secs || (showMs && ms)) &&
+    totalMsValue > 0
 
   const sortedLog = buildSortedLog(liveState.timeLog)
 
@@ -126,7 +151,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
           <div className="flex items-center gap-2">
             {!isSolo && (
               <Select value={selectedId} onValueChange={setSelectedId}>
-                <SelectTrigger className="h-9 min-w-0 flex-[2] text-sm">
+                <SelectTrigger className="!h-10 rounded-lg min-w-0 flex-[2] text-sm">
                   <SelectValue placeholder="Select participant…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,20 +162,17 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
               </Select>
             )}
 
+            <TimeInput value={days} onChange={setDays} placeholder="0"   suffix="d"  max={2} />
             <TimeInput value={mins} onChange={setMins} placeholder="0"   suffix="m"  max={3} />
-            <span className="text-zinc-300 text-sm shrink-0">:</span>
             <TimeInput value={secs} onChange={setSecs} placeholder="00"  suffix="s"  max={2} />
             {showMs && (
-              <>
-                <span className="text-zinc-300 text-sm shrink-0">.</span>
-                <TimeInput value={ms} onChange={setMs} placeholder="000" suffix="ms" max={3} />
-              </>
+              <TimeInput value={ms} onChange={setMs} placeholder="000" suffix="ms" max={3} />
             )}
 
             <Button
               disabled={!canRecord}
               onClick={handleRecord}
-              className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0"
+              className="h-10 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0 rounded-lg"
             >
               Record
             </Button>
@@ -203,7 +225,7 @@ function TimeInput({
   placeholder: string; suffix: string; max: number
 }) {
   return (
-    <div className="flex items-center gap-1 h-9 rounded-lg border border-zinc-200 bg-white px-2 focus-within:border-zinc-400 transition-colors shrink-0">
+    <div className="flex items-center gap-1 h-10 rounded-lg border border-input bg-input/20 px-2 focus-within:border-zinc-400 transition-colors shrink-0">
       <input
         type="text"
         inputMode="numeric"

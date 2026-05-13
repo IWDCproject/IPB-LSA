@@ -11,6 +11,7 @@ import ScoreTimedPanel from '@/components/match/ScoreTimedPanel'
 import ScoreSetsPanel  from '@/components/match/ScoreSetsPanel'
 import JudgeScoresPanel from '@/components/match/JudgeScoresPanel'
 import ManualPickPanel from '@/components/match/ManualPickPanel'
+import { TimerBlock } from '@/components/match/TimerBlock'
 
 // Mock-data builders ─────────────────────────────────────────────────────────
 import {
@@ -32,55 +33,7 @@ const ENGINE_PANELS: Record<EngineType, React.ComponentType<any>> = {
   manual_pick:  ManualPickPanel,
 }
 
-// ---------------------------------------------------------------------------
-// Timer preview (kept as a local mock — TimerBlock needs a real socket)
-// ---------------------------------------------------------------------------
 
-function TimerPreview() {
-  const { addOns } = useFormatBuilder()
-  const { mode, duration } = addOns.timer
-
-  const isStopwatch  = mode === 'stopwatch'
-  const modeLabel    = mode === 'countdown' ? 'Countdown'
-                     : mode === 'stopwatch' ? 'Stopwatch'
-                     : 'Deadline'
-
-  const countdownDisplay = (() => {
-    const m = Math.floor(duration / 60).toString().padStart(2, '0')
-    const s = (duration % 60).toString().padStart(2, '0')
-    return `${m}:${s}`
-  })()
-
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-zinc-100">
-        <p className="text-sm font-semibold text-zinc-900">
-          Timer <span className="font-normal text-zinc-500">({modeLabel})</span>
-        </p>
-      </div>
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-3xl font-bold font-mono text-zinc-900">
-            {isStopwatch ? '00:00:00' : countdownDisplay}
-          </span>
-          <div className="flex gap-1.5">
-            {isStopwatch && (
-              <button className="text-xs border border-zinc-300 rounded px-2 py-1 text-zinc-600">Flag</button>
-            )}
-            <button className="text-xs border border-zinc-300 rounded px-2 py-1 text-zinc-600">Reset</button>
-            <button className="text-xs border border-zinc-300 rounded px-2 py-1 text-zinc-600">Start</button>
-          </div>
-        </div>
-        {isStopwatch && (
-          <div className="mt-3 space-y-0.5">
-            <p className="text-xs text-zinc-400 tabular-nums">1. 00:00:00</p>
-            <p className="text-xs text-zinc-400 tabular-nums">2. 00:00:00</p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Notes preview (kept as a local mock — OperatorNotes needs a real socket)
@@ -137,7 +90,16 @@ export function FormatPreview() {
         homeParticipant={participants[0] ?? null}
         awayParticipant={participants[1] ?? null}
       />
-      {addOns.timer.enabled && <TimerPreview />}
+      {addOns.timer.enabled && (
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm p-5">
+          <TimerBlock
+            liveState={liveState}
+            mode={addOns.timer.mode as any}
+            duration={addOns.timer.duration}
+            onPatch={onPatch}
+          />
+        </div>
+      )}
       {addOns.notes.enabled && <NotesPreview />}
     </div>
   )

@@ -10,6 +10,7 @@ import {
   updateItem,
   uploadFiles,
   readItem,
+  readItems,
 } from '@directus/sdk'
 import { revalidatePath } from 'next/cache'
 import { pingWebRevalidate } from '@/lib/revalidate'
@@ -67,6 +68,49 @@ async function assertEventAccess(
     throw new Error('Forbidden: Anda tidak punya akses ke event ini.')
   }
   return event
+}
+
+/**
+ * Checks if the identifier is a UUID or a Slug.
+ * Finds the real UUID in the DB and verifies the user owns the event.
+ */
+async function resolveAndVerifyEvent(identifier: string) {
+  const session = await auth()
+  if (!session?.user) throw new Error('Unauthorized')
+  
+  const role = session.user.role
+  const userId = session.user.directusId
+  
+  // Regex to check if the identifier is a UUID
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)
+
+  let event;
+
+  if (isUUID) {
+    // If it's already a UUID, just fetch it to check ownership
+    event = await adminDirectus.request(readItem('events', identifier, { 
+      fields: ['id', 'user_created', 'slug'] 
+    })) as any
+  } else {
+    // If it's a slug (e.g., 'ipb-futsal-2026'), find the record by slug
+    const results = await adminDirectus.request(readItems('events', {
+      filter: { slug: { _eq: identifier } },
+      fields: ['id', 'user_created', 'slug'],
+      limit: 1
+    })) as any
+    event = results[0]
+  }
+
+  if (!event) throw new Error('Event not found')
+
+  // Ownership Guard (Prevent IDOR)
+  if (role !== 'SuperAdmin' && role !== 'Administrator' && role !== 'PJ Ormawa') {
+    if (event.user_created !== userId) {
+      throw new Error('Forbidden: You do not own this event')
+    }
+  }
+
+  return { eventId: event.id, eventSlug: event.slug, session }
 }
 
 /**
@@ -241,7 +285,6 @@ export async function createInstitutionAction(formData: FormData) {
         event_id: event.id,
         name,
         logo: logoId,
-        color: color || null,
       }),
     )
 
@@ -291,7 +334,7 @@ export async function updateInstitutionAction(formData: FormData) {
       logoId = uploadedFile.id
     }
 
-    const updateData: Record<string, unknown> = { name, color: color || null }
+    const updateData: Record<string, unknown> = { name }
     if (logoId !== undefined) updateData.logo = logoId
 
     await adminDirectus.request(updateItem('institutions', institutionId, updateData))
@@ -302,5 +345,53 @@ export async function updateInstitutionAction(formData: FormData) {
   } catch (error: any) {
     console.error('updateInstitutionAction error:', error?.message ?? error)
     return { success: false, error: error?.message ?? 'Gagal memperbarui institusi' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Query Actions
+// ---------------------------------------------------------------------------
+
+export async function getParticipantsDataAction(eventSlugOrId: string) {
+  try {
+    const { eventId } = await resolveAndVerifyEvent(eventSlugOrId)
+
+    const [categories, rawParticipants, institutions] = await Promise.all([
+      adminDirectus.request(
+        readItems('competition_categories', {
+          filter: { event_id: { _eq: eventId } },
+          fields: ['id', 'name', 'display_order', 'format_id.name', 'format_id.match_type', 'event_id.id'] as any,
+          sort: ['display_order'],
+          limit: -1,
+        })
+      ),
+      adminDirectus.request(
+        readItems('participants', {
+          filter: { competition_category_id: { event_id: { _eq: eventId } } },
+          fields: ['id', 'name', 'competition_category_id', 'institution_id.id', 'institution_id.name', 'institution_id.logo', 'members', 'seed', 'notes'] as any,
+          limit: -1,
+        })
+      ),
+      adminDirectus.request(
+        readItems('institutions', {
+          filter: { event_id: { _eq: eventId } },
+          fields: ['id', 'name', 'logo'],
+          limit: -1,
+        })
+      ),
+    ])
+
+    return {
+      success: true,
+      data: {
+        categories: categories as any[],
+        participants: rawParticipants as any[],
+        institutions: institutions as any[],
+        eventId: eventId
+      }
+    }
+  } catch (error: any) {
+    console.error('getParticipantsDataAction error:', error?.message ?? error)
+    return { success: false, error: error?.message ?? 'Gagal memuat data.' }
   }
 }

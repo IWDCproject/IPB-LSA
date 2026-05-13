@@ -1,7 +1,7 @@
 // app/(dashboard)/events/[eventId]/participants/page.tsx
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { readItems } from '@directus/sdk'
 import { ExternalLink, Plus } from 'lucide-react'
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 
 import type { Institution, CompetitionCategory, Participant as RawParticipant } from '@/types/directus'
 
+import { getParticipantsDataAction } from './_actions'
 import AddInstitutionModal from './_components/AddInstitutionModal'
 import AddParticipantModal from './_components/AddParticipantModal'
 
@@ -78,41 +79,37 @@ export default function ParticipantsPage() {
   }
 
   // --- Data Fetching ---
+  
+  const [categories, setCategories] = useState<CategoryWithFormat[]>([])
+  const [institutions, setInstitutions] = useState<Institution[]>([])
+  const [rawParticipants, setRawParticipants] = useState<RawParticipant[]>([])
+  const [resolvedEventId, setResolvedEventId] = useState<string | null>(null)
+  
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const { data: institutions, loading: loadingInst } = useDirectusFetch<Institution[]>(
-    () => directus.request(
-      readItems('institutions', {
-        filter: { event_id: { slug: { _eq: eventId } } },
-        fields: ['id', 'name', 'logo', 'color'],
-        limit: -1,
-      })
-    ) as Promise<Institution[]>,
-    [eventId, refreshKey]
-  )
-
-  const { data: categories, loading: loadingCats } = useDirectusFetch<CategoryWithFormat[]>(
-    () => directus.request(
-      readItems('competition_categories', {
-        filter: { event_id: { slug: { _eq: eventId } } },
-        fields: ['id', 'name', 'display_order', 'format_id.name', 'format_id.match_type'] as any,
-        sort: ['display_order'],
-        limit: -1,
-      })
-    ) as Promise<CategoryWithFormat[]>,
-    [eventId, refreshKey]
-  )
-
-  const { data: rawParticipants, loading: loadingPart } = useDirectusFetch<RawParticipant[]>(
-    () => directus.request(
-      readItems('participants', {
-        filter: { competition_category_id: { event_id: { slug: { _eq: eventId } } } },
-        fields: ['id', 'name', 'competition_category_id', 'institution_id.id', 'institution_id.name', 'institution_id.logo', 'members', 'seed', 'notes'] as any,
-        limit: -1,
-      })
-    ) as Promise<RawParticipant[]>,
-    [eventId, refreshKey]
-  )
-
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true)
+      setErrorMessage(null)
+      try {
+        const res = await getParticipantsDataAction(eventId)
+        if (res.success && res.data) {
+          setCategories(res.data.categories)
+          setInstitutions(res.data.institutions)
+          setRawParticipants(res.data.participants)
+          setResolvedEventId(res.data.eventId)
+        } else {
+          setErrorMessage(res.error ?? 'Gagal memuat data.')
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message ?? 'Terjadi kesalahan jaringan.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    load()
+  }, [eventId, refreshKey])
   // Mapping FK response Directus agar jadi bentuk object utuh di frontend
   const participants = useMemo<MappedParticipant[]>(() => {
     if (!rawParticipants) return []
@@ -126,19 +123,23 @@ export default function ParticipantsPage() {
     }))
   }, [rawParticipants])
 
-  // --- Derived State ---
-  
-  const isLoading = loadingInst || loadingCats || loadingPart
   const isInstitutionsActive = activeTab === 'institutions'
   const activeCategory = categories?.find(c => c.id === activeTab)
 
   const activeParticipants = useMemo(() => {
-    if (!activeCategory) return[]
+    if (!activeCategory) return []
     return participants.filter(p => p.competition_category_id === activeCategory.id)
   }, [activeCategory, participants])
 
   return (
-    <div className="flex flex-col md:flex-row items-stretch w-full gap-6 md:gap-0">
+    <div className="flex flex-col gap-6">
+      {errorMessage && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium">
+          Error loading data: {errorMessage}. Please check your permissions or try refreshing.
+        </div>
+      )}
+      
+      <div className="flex flex-col md:flex-row items-stretch w-full gap-6 md:gap-0">
       
       {/* --- Left Sidebar (Tab Navigator) --- */}
       <div className="w-full md:w-[240px] shrink-0 flex flex-col gap-6 md:pr-6 md:border-r md:border-zinc-200">
@@ -157,7 +158,7 @@ export default function ParticipantsPage() {
               "text-xs font-semibold",
               isInstitutionsActive ? "text-background/80" : "text-foreground/60"
             )}>
-              [{loadingInst ? '...' : (institutions?.length || 0)}]
+              [{isLoading ? '...' : (institutions?.length || 0)}]
             </span>
           </button>
         </div>
@@ -185,7 +186,7 @@ export default function ParticipantsPage() {
                   <span className={cn(
                     "text-xs font-semibold shrink-0",
                     isActive ? "text-background/80" : "text-foreground/60"
-                  )}>[{loadingPart ? '...' : count}]
+                  )}>[{isLoading ? '...' : count}]
                   </span>
                 </button>
               )
@@ -239,7 +240,7 @@ export default function ParticipantsPage() {
                 },
                 { 
                   // Memakai key berbeda dari 'logo' agar tidak terjadi duplikasi React keys di DataTable
-                  key: 'color', 
+                  key: 'id', 
                   label: 'Logo URL',
                   render: (_, row) => {
                     const url = getAssetUrl(row.logo)
@@ -350,7 +351,7 @@ export default function ParticipantsPage() {
       <AddInstitutionModal 
         isOpen={isInstModalOpen}
         onClose={handleCloseInstModal}
-        eventId={eventId}
+        eventId={resolvedEventId ?? eventId}
         onSuccess={handleRefresh}
         editingInstitution={editingInstitution}
       />
@@ -363,6 +364,7 @@ export default function ParticipantsPage() {
         onSuccess={handleRefresh}
         editingParticipant={editingParticipant}
       />
+      </div>
     </div>
   )
 }

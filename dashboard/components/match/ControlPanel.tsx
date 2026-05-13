@@ -281,7 +281,7 @@ export function ControlPanel({
       </div>
 
       {/* layout 2 kolom */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-3">
         <div className="space-y-3">
           {EnginePanel && (
             <EnginePanel
@@ -384,7 +384,7 @@ function MatchWinnerSelector({
               trigger={
                 <button
                   disabled={disabled}
-                  className={`w-full rounded-md border-2 py-3 px-2 text-xs font-bold transition-all ${item.active ? activeClasses : inactiveClasses}`}
+                  className={`w-full rounded-lg border-2 py-3 px-2 text-xs font-bold transition-all ${item.active ? activeClasses : inactiveClasses}`}
                 >
                   <div className="truncate w-full">{item.label}</div>
                   {item.active && (

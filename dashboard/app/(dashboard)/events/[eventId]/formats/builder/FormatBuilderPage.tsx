@@ -145,7 +145,7 @@ export default function FormatBuilderPage() {
         the sticky save footer scroll away with the content.
         Only the inner content div scrolls.
       */}
-      <div className="w-[380px] shrink-0 flex flex-col h-full border-l border-zinc-200 bg-zinc-50 overflow-hidden">
+      <div className="w-[480px] shrink-0 flex flex-col h-full border-l border-zinc-200 bg-zinc-50 overflow-hidden">
 
         {/* Preview header */}
         <div className="px-5 py-3.5 border-b border-zinc-200 bg-white shrink-0">

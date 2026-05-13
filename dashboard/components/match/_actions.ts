@@ -27,8 +27,9 @@ const SetLogEntrySchema = z.object({
 
 const TimeLogEntrySchema = z.object({
   id: z.string().max(36).optional(),
+  rank: z.number().optional(),
   name: z.string().max(100),
-  time: z.string().max(20),
+  time: z.string().max(50),
 })
 
 const LiveStatePatchSchema = z.object({
