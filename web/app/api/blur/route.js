@@ -65,19 +65,23 @@ function validateUrl(rawUrl) {
     return { ok: false, msg: "Forbidden" };
   }
 
-  let allowedHost;
+  let allowedUrl;
   try {
-    allowedHost = new URL(allowedOrigin).hostname;
+    allowedUrl = new URL(allowedOrigin);
   } catch {
     console.error("[blur] NEXT_PUBLIC_DIRECTUS_URL is not a valid URL");
     return { ok: false, msg: "Forbidden" };
   }
 
+<<<<<<< HEAD
+  if (parsed.origin !== allowedUrl.origin) {
+=======
   if (parsed.hostname !== allowedHost) {
+>>>>>>> db071d3ae5a32ad9a4e3a1687e34b0da4d42101d
     return { ok: false, msg: "Forbidden" };
   }
 
-  return { ok: true };
+  return { ok: true, url: parsed.toString() };
 }
 
 // ---------------------------------------------------------------------------

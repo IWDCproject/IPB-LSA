@@ -74,16 +74,15 @@ export default function EventsPage() {
 
         let participantsByEvent: Record<string, number> = {}
         try {
-          const participants = (await directus.request(
-            readItems('participants', {
-              fields: ['competition_category_id.event_id'] as unknown as string[],
-              limit:  -1,
+          const partAgg = await directus.request(
+            aggregate('participants', {
+              aggregate: { count: ['id'] },
+              groupBy: ['competition_category_id.event_id'] as unknown as string[],
             })
-          )) as { competition_category_id: { event_id: string } | null }[]
-
-          for (const p of participants) {
-            const eid = p.competition_category_id?.event_id
-            if (eid) participantsByEvent[eid] = (participantsByEvent[eid] ?? 0) + 1
+          )
+          for (const row of partAgg as any[]) {
+            const eid = row.competition_category_id?.event_id
+            if (eid) participantsByEvent[eid] = Number(row.count?.id || 0)
           }
         } catch {
           // gagal ambil data peserta, ditampilkan 0

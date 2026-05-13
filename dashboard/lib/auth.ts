@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+import 'server-only'
+=======
 // lib/auth.ts
+>>>>>>> db071d3ae5a32ad9a4e3a1687e34b0da4d42101d
 import NextAuth, { getServerSession } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { createDirectus, rest, staticToken, readUsers } from '@directus/sdk'
