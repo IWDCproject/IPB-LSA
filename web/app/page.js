@@ -6,7 +6,7 @@
 import CurtainWrapper from "./_components/CurtainWrapper";
 import { getEvents, getMatches, getStats, getNews } from "@/lib/directus";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR revalidation every 60 seconds
 
 export default async function Page() {
   const [events, matches, stats, news] = await Promise.all([

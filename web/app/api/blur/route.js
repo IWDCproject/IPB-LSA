@@ -51,23 +51,19 @@ function validateUrl(rawUrl) {
     return { ok: false, msg: "Forbidden" };
   }
 
-  let allowedHost;
+  let allowedUrl;
   try {
-    allowedHost = new URL(allowedOrigin).hostname;
+    allowedUrl = new URL(allowedOrigin);
   } catch {
     console.error("[blur] NEXT_PUBLIC_DIRECTUS_URL is not a valid URL");
     return { ok: false, msg: "Forbidden" };
   }
 
-  // Compare parsed hostnames, not raw strings.
-  // The original startsWith("https://assets.example.com") allowed
-  // "https://assets.example.com.evil.com/…" and
-  // "https://assets.example.com@evil.com/…".
-  if (parsed.hostname !== allowedHost) {
+  if (parsed.origin !== allowedUrl.origin) {
     return { ok: false, msg: "Forbidden" };
   }
 
-  return { ok: true };
+  return { ok: true, url: parsed.toString() };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+import 'server-only'
 import NextAuth, { getServerSession } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { createDirectus, rest, staticToken, readUsers } from '@directus/sdk'

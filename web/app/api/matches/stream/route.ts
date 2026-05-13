@@ -92,7 +92,7 @@ function ensureHeartbeat() {
 
 // --- Route handler -----------------------------------------------------------
 
-export async function GET() {
+export async function GET(req: Request) {
   connectToDirectus();
   ensureHeartbeat();
 
@@ -107,6 +107,10 @@ export async function GET() {
     cancel() {
       clients.delete(controller);
     },
+  });
+
+  req.signal.addEventListener("abort", () => {
+    if (controller) clients.delete(controller);
   });
 
   return new NextResponse(stream, {
