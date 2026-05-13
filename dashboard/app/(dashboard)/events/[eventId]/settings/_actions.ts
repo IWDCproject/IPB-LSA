@@ -34,6 +34,7 @@ const EventUpdateSchema = z.object({
   guidebook_url: z.string().nullable().optional(),
   instagram_url: z.string().nullable().optional(),
   website_url: z.string().nullable().optional(),
+  url_youtube: z.string().nullable().optional(),
 }).strict()
 
 const PhaseSchema = z.object({
@@ -142,10 +143,11 @@ export async function updateEventInfoAction(formData: FormData) {
       type: formData.get('type'),
       is_published: formData.get('is_published') === 'true',
       is_registration_open: formData.get('is_registration_open') === 'true',
-      registration_url: formData.get('url_pendaftaran') || null,
-      guidebook_url: formData.get('url_guidebook') || null,
+      registration_url: formData.get('registration_url') || null,
+      guidebook_url: formData.get('guidebook_url') || null,
       instagram_url: formData.get('instagram_url') || null,
       website_url: formData.get('website_url') || null,
+      url_youtube: formData.get('url_youtube') || null,
     }
 
     const parsed = EventUpdateSchema.safeParse(rawData)
@@ -159,7 +161,7 @@ export async function updateEventInfoAction(formData: FormData) {
 
     const payload: any = {
       ...parsed.data,
-      contact_person: contactPersonJson
+      contact_person: [contactPersonJson]
     }
 
     const bannerId = await uploadValidImage(formData.get('banner_image') as File | null)

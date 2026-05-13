@@ -42,6 +42,7 @@ type RawMatch = {
     institution_id: { name: string } | null
   } | null
   participants: {
+    position: number
     participant_id: {
       id: string
       name: string
@@ -106,6 +107,7 @@ export default function MatchesPage() {
             'away_participant_id.id',
             'away_participant_id.name',
             'away_participant_id.institution_id.name',
+            'participants.position',
             'participants.participant_id.id',
             'participants.participant_id.name',
             'participants.participant_id.institution_id.name'
@@ -252,8 +254,9 @@ export default function MatchesPage() {
           const mps = row.participants ||[]
           
           if (mps.length > 0) {
+             const sortedMps = [...mps].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
              if (mps.length <= 3) {
-                const names = mps.map(mp => formatParticipant(mp.participant_id)).join(', ')
+                const names = sortedMps.map(mp => formatParticipant(mp.participant_id)).join(', ')
                 return <div className="truncate max-w-[160px] lg:max-w-[250px]" title={names}>{names}</div>
              }
              return `${mps.length} Participants`

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { calcAvg, getEngine, resolveWinnerName } from "./scoreUtils";
-import type { MappedMatch } from "../../_types";
+import type { MappedMatch, MatchLiveState } from "../../_types";
 
 // --- Badge Color Config -------------------------------------------------------
 
@@ -123,7 +123,7 @@ export function SolidLiveBadge() {
 // --- Set-based score display -------------------------------------------------
 
 interface SetScoreProps {
-  live:     any;
+  live:     MatchLiveState;
   compact?: boolean;
   colors?:  BadgeColors;
 }
@@ -132,7 +132,7 @@ export function ScoreSetsLive({ live, compact = false, colors = LIGHT_BADGE_COLO
   const setScore = live?.setScore ?? [0, 0];
   const setLog   = live?.setLog   ?? [];
 
-  const SetPill = ({ s, i }: { s: any; i: number }) => (
+  const SetPill = ({ s, i }: { s: { homeScore: number; awayScore: number }; i: number }) => (
     <div
       className={`border border-[#FFC936] rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
       style={{ background: "rgba(255,201,54,0.15)" }}
@@ -142,12 +142,12 @@ export function ScoreSetsLive({ live, compact = false, colors = LIGHT_BADGE_COLO
         className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
         style={{ color: colors.valueText }}
       >
-        <span className={s.home > s.away ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
-          <AnimatedScore value={String(s.home)} />
+        <span className={s.homeScore > s.awayScore ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
+          <AnimatedScore value={String(s.homeScore)} />
         </span>
         <span className="font-extrabold px-0.5" style={{ color: colors.mutedText }}> : </span>
-        <span className={s.away > s.home ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
-          <AnimatedScore value={String(s.away)} />
+        <span className={s.awayScore > s.homeScore ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
+          <AnimatedScore value={String(s.awayScore)} />
         </span>
       </div>
     </div>
@@ -165,7 +165,7 @@ export function ScoreSetsLive({ live, compact = false, colors = LIGHT_BADGE_COLO
 
       {setLog.length === 0
         ? <span className={`font-jakarta font-extrabold text-[#CA8A04] ${compact ? "text-xs" : "text-sm"}`}>vs</span>
-        : setLog.map((s: any, i: number) => <SetPill key={i} s={s} i={i} />)
+        : setLog.map((s, i) => <SetPill key={i} s={s} i={i} />)
       }
 
       <div className={pillClass}>
@@ -181,7 +181,7 @@ export function ScoreSetsFinished({ live, compact = false, colors = LIGHT_BADGE_
   const setLog = live?.setLog ?? [];
   return (
     <div className={`flex items-center flex-wrap ${compact ? "gap-1" : "gap-1.5"}`}>
-      {setLog.map((s: any, i: number) => (
+      {setLog.map((s, i) => (
         <div
           key={i}
           className={`rounded-[6px] text-center ${compact ? "p-[3px_5px] min-w-[38px]" : "p-[4px_8px] min-w-[50px]"}`}
@@ -192,12 +192,12 @@ export function ScoreSetsFinished({ live, compact = false, colors = LIGHT_BADGE_
             className={`font-jakarta font-extrabold flex items-center justify-center ${compact ? "text-[11px]" : "text-xs"}`}
             style={{ color: colors.valueText }}
           >
-            <span className={s.home > s.away ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
-              <AnimatedScore value={String(s.home)} />
+            <span className={s.homeScore > s.awayScore ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
+              <AnimatedScore value={String(s.homeScore)} />
             </span>
             <span className="font-extrabold px-0.5" style={{ color: colors.mutedText }}> : </span>
-            <span className={s.away > s.home ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
-              <AnimatedScore value={String(s.away)} />
+            <span className={s.awayScore > s.homeScore ? "border-b pb-[1px]" : ""} style={{ borderColor: colors.valueText }}>
+              <AnimatedScore value={String(s.awayScore)} />
             </span>
           </div>
         </div>
@@ -209,7 +209,7 @@ export function ScoreSetsFinished({ live, compact = false, colors = LIGHT_BADGE_
 // --- Judge score cells -------------------------------------------------------
 
 interface JudgeCellsProps {
-  live:     any;
+  live:     MatchLiveState;
   engine:   any;
   isLive:   boolean;
   compact?: boolean;
@@ -282,7 +282,7 @@ function JudgeCells({ live, engine, isLive, compact = false, colors = LIGHT_BADG
 export function JudgeScoreBadge({
   live, engine, compact = false, colors = LIGHT_BADGE_COLORS,
 }: {
-  live: any; engine: any; compact?: boolean; colors?: BadgeColors;
+  live: MatchLiveState; engine: any; compact?: boolean; colors?: BadgeColors;
 }) {
   const scores = live?.judgeScores ?? [];
   const method = engine?.config?.method ?? "avg";
@@ -318,11 +318,11 @@ export function JudgeScoreBadge({
 export function JudgeScoreLive({
   live, engine, compact = false, colors = LIGHT_BADGE_COLORS,
 }: {
-  live: any; engine: any; compact?: boolean; colors?: BadgeColors;
+  live: MatchLiveState; engine: any; compact?: boolean; colors?: BadgeColors;
 }) {
   const scores: number[] = live?.judgeScores ?? [];
   const method           = engine?.config?.method ?? "avg";
-  const submitted        = scores.filter((s: any) => s !== undefined && s !== null);
+  const submitted        = scores.filter((s) => s !== undefined && s !== null);
   const hasAny           = submitted.length > 0;
   const result           = hasAny
     ? calcAvg(submitted, method).toFixed(1).replace(".", ",")
@@ -374,7 +374,7 @@ export function ManualPickBadge({ match, colors = LIGHT_BADGE_COLORS }: { match:
 // --- MiddleBadge -------------------------------------------------------------
 
 export function MiddleBadge({ match, colors = LIGHT_BADGE_COLORS }: { match: MappedMatch; colors?: BadgeColors }) {
-  const isH2H = (match.competition_category?.format_id as any)?.match_type === "head_to_head";
+  const isH2H = match.competition_category?.format_id?.match_type === "head_to_head";
   return (
     <div
       className="font-jakarta text-[13px] font-extrabold rounded-[6px] px-4 py-1 whitespace-nowrap min-w-[50px] text-center"

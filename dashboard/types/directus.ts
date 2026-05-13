@@ -58,6 +58,12 @@ export type Event = {
   is_published: boolean
   is_registration_open: boolean
   registration_end_date: string | null
+  registration_url: string | null
+  guidebook_url: string | null
+  instagram_url: string | null
+  website_url: string | null
+  url_youtube: string | null
+  contact_person: any[] | null
   user_created: string
   created_at: string
   updated_at: string

@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { getEngine, calcAvg, fmtTime, resolveWinnerName } from "../match/scoreUtils";
-import { MiddleBadge, ScoreCell, AnimatedScore, LIGHT_BADGE_COLORS, DARK_BADGE_COLORS } from "../match/ScoreBadges";
-import type { BadgeColors } from "../match/ScoreBadges";
-import type { MappedMatch } from "../../_types";
+import { getEngine, calcAvg, fmtTime, resolveWinnerName } from "./scoreUtils";
+import { MiddleBadge, ScoreCell, AnimatedScore, LIGHT_BADGE_COLORS, DARK_BADGE_COLORS } from "./ScoreBadges";
+import type { BadgeColors } from "./ScoreBadges";
+import type { MappedMatch, MappedParticipant, MappedInstitution, MatchLiveState } from "../../_types";
 
 // Canonical setLog entry shape - must match SetLogEntry in the admin project's directus.ts.
 // Defined locally here because MatchRow lives in the public website project.
@@ -163,7 +163,7 @@ function MobileScoreCell({ match, C, badgeColors }: { match: MappedMatch; C: Mat
 
 // --- Logo & Participants -----------------------------------------------------
 
-function Logo({ inst, size = 32, isLoser = false }: { inst: any; size?: number; isLoser?: boolean }) {
+function Logo({ inst, size = 32, isLoser = false }: { inst: MappedInstitution | null; size?: number; isLoser?: boolean }) {
   const dimFilter = isLoser ? "saturate(0) opacity(0.65)" : undefined;
   if (!inst?.logo_url) {
     return (
@@ -246,11 +246,11 @@ function ParticipantInfo({ inst, name, align = "left", dimmed = false, C }: {
 
 function OpenParticipants({ match, C }: { match: MappedMatch; C: MatchColors }) {
   const entries = [...(match?.participants ?? [])]
-    .sort((a: any, b: any) => (a?.position ?? Infinity) - (b?.position ?? Infinity))
-    .map((j: any) => j.participant_id);
+    .sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity))
+    .map((j) => j.participant_id);
 
   const shown    = entries.slice(0, 4);
-  const allNames = entries.map((p: any) => p?.name).filter(Boolean);
+  const allNames = entries.map((p) => p?.name).filter(Boolean);
   const line1    = allNames.slice(0, 3).join(", ");
   const line2    = allNames.slice(3);
 
@@ -261,7 +261,7 @@ function OpenParticipants({ match, C }: { match: MappedMatch; C: MatchColors }) 
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex pr-2">
-        {shown.map((p: any, i: number) =>
+        {shown.map((p, i) =>
           p?.institution?.logo_url ? (
             <Image
               key={i}
@@ -274,7 +274,7 @@ function OpenParticipants({ match, C }: { match: MappedMatch; C: MatchColors }) 
             <div
               key={i}
               className="rounded-full border-2 shrink-0"
-              style={{ width: 32, height: 32, background: (p as any)?.institution?.color ?? "#1D4ED8", borderColor: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
+              style={{ width: 32, height: 32, background: p?.institution?.color ?? "#1D4ED8", borderColor: C.cardBg, marginLeft: i > 0 ? -12 : 0, zIndex: shown.length - i }}
             />
           )
         )}
@@ -321,13 +321,13 @@ function AwayCell({ match, isLoser = false, C }: { match: MappedMatch; isLoser?:
 
 // --- Info Cells --------------------------------------------------------------
 
-function PodiumRow({ live }: { live: any }) {
+function PodiumRow({ live }: { live: MatchLiveState }) {
   const podium = (live?.timeLog ?? []).slice(0, 3);
   const labels = ["1st", "2nd", "3rd"];
   const pct    = `${(100 / podium.length).toFixed(4)}%`;
   return (
     <div className="flex items-center w-full">
-      {podium.map((p: any, i: number) => (
+      {podium.map((p, i) => (
         <div key={i} className="flex items-center gap-2 min-w-0 px-2 shrink-0" style={{ width: pct }}>
           <div className="font-jakarta text-xs font-extrabold text-[#676767] bg-gray-100 rounded-md px-[9px] py-[3px] shrink-0">
             {labels[i]}
@@ -465,7 +465,7 @@ export function DesktopMatchRow({ match }: { match: MappedMatch }) {
 
 // --- MobileMatchRow ----------------------------------------------------------
 
-function MobileParticipantRow({ participant, isLoser, C }: { participant: any; isLoser: boolean; C: MatchColors }) {
+function MobileParticipantRow({ participant, isLoser, C }: { participant: MappedParticipant | null; isLoser: boolean; C: MatchColors }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
       {participant

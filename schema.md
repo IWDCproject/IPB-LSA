@@ -71,6 +71,7 @@ CREATE TABLE events (
   website_url           TEXT,
   card_image            UUID        REFERENCES directus_files(id) ON DELETE SET NULL,
   banner_image          UUID        REFERENCES directus_files(id) ON DELETE SET NULL,
+  url_youtube           TEXT,
   is_published          BOOLEAN     NOT NULL DEFAULT false,
   is_registration_open  BOOLEAN     NOT NULL DEFAULT false,
   registration_end_date TIMESTAMPTZ,

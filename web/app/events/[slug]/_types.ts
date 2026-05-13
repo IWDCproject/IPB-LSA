@@ -70,6 +70,7 @@ export interface DirectusPhase {
   time_start:    string | null;
   description:   string | null;
   display_order: number;
+  date_end:      string | null;
   event_id:      string;
 }
 
@@ -84,6 +85,7 @@ export interface MemberEntry {
 export interface MappedInstitution {
   id:       string;
   name:     string;
+  color:    string | null;
   logo_url: string | null;
 }
 
@@ -107,6 +109,8 @@ export interface MappedNews {
   thumbnail_width:  number | null;
   thumbnail_height: number | null;
   category:         string | null;
+  website_url:      string | null;
+  url_youtube:      string | null;
   // Always an object after mapping - NEWS_FIELDS always requests event_id.name,
   // so Directus never returns a bare ID string here. The string variant in the
   // raw RawNews shape is intentionally excluded from the mapped type.
@@ -132,10 +136,23 @@ export interface MappedCompetitionCategory {
 }
 
 export interface MatchLiveState {
+  matchStatus?: 'upcoming' | 'live' | 'finished' | 'cancelled';
   winner?:      string | null;
+  rankings?:    Array<{ rank: number; id: string; name: string }> | null;
+  notes?:       string;
+  timerSecs?:   number;
+  timerTarget?: string | null;
+  timerLastStarted?: string | null;
+  timerRunning?: boolean;
+  timerFlags?:   Array<{ label: string; secs: number }>;
   homeScore?:   number;
   awayScore?:   number;
+  periodIdx?:   number;
+  periodPhase?: 'idle' | 'active' | 'halftime';
+  setIdx?:      number;
+  setPhase?:    'idle' | 'active' | 'ending';
   setScore?:    [number, number];
+  setsWon?:     [number, number];
   // Updated to match the canonical SetLogEntry shape written by the dashboard
   setLog?:      Array<{
     set:       number;
@@ -143,20 +160,25 @@ export interface MatchLiveState {
     awayScore: number;
     winner:    'home' | 'away';
   }>;
+  pendingSetWinner?: string | null;
   judgeScores?: number[];
   timeLog?:     TimeLogEntry[];
   [key: string]: unknown;
 }
 
 export interface TimeLogEntry {
-  participant_id: string | { id: string };
-  institution:    MappedInstitution | null;
+  rank:        number;
+  participant: string;
+  name:        string;
+  time:        string;
+  institution?: MappedInstitution | null;
   [key: string]: unknown;
 }
 
 export interface ParticipantJunction {
   id:             string;
   participant_id: MappedParticipant;
+  position:       number;
 }
 
 export interface MappedMatch {
@@ -169,6 +191,14 @@ export interface MappedMatch {
   venue:                string | null;
   /** Top-level winner field (participant UUID or name), separate from live_state.winner */
   winner:               string | null;
+  /** Denormalized results columns from DB */
+  home_score?:          number;
+  away_score?:          number;
+  timer_secs?:          number;
+  /** Denormalized rankings JSONB */
+  rankings?:            Array<{ rank: number; id: string; name: string }> | null;
+  /** Custom match metadata */
+  match_name:           string | null;
   live_state:           MatchLiveState;
   competition_category: MappedCompetitionCategory;
   home_participant:     MappedParticipant | null;
@@ -183,7 +213,9 @@ export interface CategoryWithParticipants {
 
 export interface ContactPerson {
   name:    string;
-  contact: string;
+  contact?: string; // Fallback
+  link?:    string | null;
+  email?:   string | null;
 }
 
 export interface MappedEvent {
@@ -200,6 +232,7 @@ export interface MappedEvent {
   is_registration_open:  boolean;
   guidebook_url:         string | null;
   instagram_url:         string | null;
+  website_url:           string | null;
   url_youtube:           string | null;
   contact_person:        ContactPerson[];
   banner_image:          RawAsset | null;

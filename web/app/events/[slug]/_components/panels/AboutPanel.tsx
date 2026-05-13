@@ -31,9 +31,23 @@ export default function AboutPanel({
               Contact Person
             </div>
             {contacts.map((c, i) => (
-              <div key={i} className="font-jakarta text-[13px] text-gray-700 mb-1">
-                – {c.name}:{" "}
-                <span className="text-[#0D26C2]">{c.contact}</span>
+              <div key={i} className="font-jakarta text-[13px] text-gray-700 mb-2">
+                <div className="font-bold">– {c.name}</div>
+                {c.link && (
+                  <div className="pl-4 text-[#0D26C2]">
+                    <a href={c.link.startsWith('http') ? c.link : `https://${c.link}`} target="_blank" rel="noopener noreferrer">
+                      {c.link}
+                    </a>
+                  </div>
+                )}
+                {c.email && (
+                  <div className="pl-4 text-[#0D26C2]">
+                    <a href={`mailto:${c.email}`}>{c.email}</a>
+                  </div>
+                )}
+                {!c.link && !c.email && c.contact && (
+                  <div className="pl-4 text-[#0D26C2]">{c.contact}</div>
+                )}
               </div>
             ))}
           </div>

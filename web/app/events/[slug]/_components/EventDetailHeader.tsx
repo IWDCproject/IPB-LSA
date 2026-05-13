@@ -269,6 +269,11 @@ export default function EventDetailHeader({
           Instagram
         </Button>
       )}
+      {event.website_url && (
+        <Button href={event.website_url} variant="header-outline" size="sm" external className="!rounded-[8px]">
+          Website
+        </Button>
+      )}
       {!isMobile && event.is_registration_open && event.registration_url && (
         <Button href={event.registration_url} variant="header-solid" size="sm" external className="!rounded-[8px] !bg-[#FFC936] !border-[#FFC936]">
           Register

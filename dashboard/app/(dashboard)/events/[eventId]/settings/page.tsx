@@ -4,7 +4,12 @@
 import { useState, useEffect, Fragment, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { readItems } from '@directus/sdk'
-import { ChevronUp, ChevronDown, Trash2, Save, Plus } from 'lucide-react'
+import { 
+  ChevronUp, ChevronDown, Trash2, Save, Plus, 
+  User, Link, Instagram, Youtube, Globe, FileText, Mail, ExternalLink,
+  Calendar, MapPin, Info, AlignLeft, Eye, Activity, UserPlus, Type,
+  Tag, Clock, CheckCircle2, Flag
+} from 'lucide-react'
 
 import { directus, getAssetUrl } from '@/lib/directus'
 import { useDirectusFetch } from '@/hooks/useDirectusFetch'
@@ -39,10 +44,13 @@ function SectionCard({ title, children }: { title?: string; children: React.Reac
   )
 }
 
-function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldGroup({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{label}</Label>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-0.5">
+        <Label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{label}</Label>
+        {description && <p className="text-[10px] text-zinc-400 font-medium">{description}</p>}
+      </div>
       {children}
     </div>
   )
@@ -186,13 +194,14 @@ function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) 
     type:                 event.type || 'sport',
     is_published:         event.is_published ?? false,
     is_registration_open: event.is_registration_open ?? false,
-    contact_person_name:  (event as any).contact_person_name  || '',
-    contact_person_link:  (event as any).contact_person_link  || '',
-    contact_person_email: (event as any).contact_person_email || '',
-    url_pendaftaran:      (event as any).url_pendaftaran      || '',
-    url_guidebook:        (event as any).url_guidebook        || '',
-    instagram_url:        (event as any).instagram_url        || '',
-    website_url:          (event as any).website_url          || '',
+    registration_url:     event.registration_url || '',
+    guidebook_url:        event.guidebook_url || '',
+    instagram_url:        event.instagram_url || '',
+    website_url:          event.website_url   || '',
+    url_youtube:          event.url_youtube   || '',
+    contact_person_name:  event.contact_person?.[0]?.name  || '',
+    contact_person_link:  event.contact_person?.[0]?.link  || '',
+    contact_person_email: event.contact_person?.[0]?.email || '',
   })
 
   const [bannerFile, setBannerFile] = useState<File | null>(null)
@@ -259,122 +268,283 @@ function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) 
       </div>
 
       {/* Core info */}
-      <SectionCard>
+      <SectionCard title="Informasi Dasar">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <div className="space-y-5">
-            <FieldGroup label="Nama Event*">
-              <Input value={form.name} onChange={e => set('name')(e.target.value)} />
+          <div className="space-y-6">
+
+            <FieldGroup label="Nama Event*" description="Nama lengkap kejuaraan/kegiatan">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                  <Type size={12} />
+                </div>
+                <Input 
+                  className="pl-8" 
+                  value={form.name} 
+                  onChange={e => set('name')(e.target.value)} 
+                  placeholder="Contoh: IPB Sport Championship 2024"
+                />
+              </div>
             </FieldGroup>
 
-            <FieldGroup label="Deskripsi*">
-              <textarea
-                className={cn(TEXTAREA, 'h-44')}
-                value={form.description}
-                onChange={e => set('description')(e.target.value)}
-              />
+            <FieldGroup label="Deskripsi*" description="Ringkasan mengenai event (Markdown didukung)">
+              <div className="relative group">
+                <div className="absolute top-2.5 left-2.5 pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                  <AlignLeft size={12} />
+                </div>
+                <textarea
+                  className={cn(TEXTAREA, 'h-44 pl-8 pt-2 placeholder:text-zinc-400/50')}
+                  value={form.description}
+                  onChange={e => set('description')(e.target.value)}
+                  placeholder="Tuliskan detail event anda di sini..."
+                />
+              </div>
             </FieldGroup>
 
             <div className="grid grid-cols-2 gap-4">
               <FieldGroup label="Tanggal Mulai*">
-                <Input type="date" value={form.start_date} onChange={e => set('start_date')(e.target.value)} />
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                    <Calendar size={12} />
+                  </div>
+                  <Input type="date" className="pl-8" value={form.start_date} onChange={e => set('start_date')(e.target.value)} />
+                </div>
               </FieldGroup>
               <FieldGroup label="Tanggal Selesai*">
-                <Input type="date" value={form.end_date} onChange={e => set('end_date')(e.target.value)} />
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                    <Calendar size={12} />
+                  </div>
+                  <Input type="date" className="pl-8" value={form.end_date} onChange={e => set('end_date')(e.target.value)} />
+                </div>
               </FieldGroup>
             </div>
           </div>
 
           <div className="space-y-6">
-            <FieldGroup label="Lokasi / Venue*">
-              <Input value={form.location} onChange={e => set('location')(e.target.value)} />
+
+            <FieldGroup label="Lokasi / Venue*" description="Tempat pelaksanaan event">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                  <MapPin size={12} />
+                </div>
+                <Input 
+                  className="pl-8" 
+                  value={form.location} 
+                  onChange={e => set('location')(e.target.value)} 
+                  placeholder="Gedung Gymnasium IPB, Bogor"
+                />
+              </div>
             </FieldGroup>
 
-            <ImageUpload
-              label="Event Banner (Desktop)"
-              file={bannerFile}
-              existingUrl={getAssetUrl(event.banner_image)}
-              isDragging={drag.banner}
-              inputRef={bannerRef}
-              onFile={setBannerFile}
-              emptyLabel="CLICK OR DRAG TO UPLOAD BANNER"
-              className="h-36"
-              {...makeDragHandler('banner')}
-            />
+            <div className="space-y-6 pt-2">
+              <ImageUpload
+                label="Event Banner (Desktop)"
+                file={bannerFile}
+                existingUrl={getAssetUrl(event.banner_image)}
+                isDragging={drag.banner}
+                inputRef={bannerRef}
+                onFile={setBannerFile}
+                emptyLabel="CLICK OR DRAG TO UPLOAD BANNER"
+                className="h-36"
+                {...makeDragHandler('banner')}
+              />
 
-            <ImageUpload
-              label="Event Card (Poster)"
-              file={cardFile}
-              existingUrl={getAssetUrl(event.card_image)}
-              isDragging={drag.card}
-              inputRef={cardRef}
-              onFile={setCardFile}
-              emptyLabel="UPLOAD POSTER"
-              className="w-28 h-40"
-              {...makeDragHandler('card')}
-            />
+              <ImageUpload
+                label="Event Card (Poster)"
+                file={cardFile}
+                existingUrl={getAssetUrl(event.card_image)}
+                isDragging={drag.card}
+                inputRef={cardRef}
+                onFile={setCardFile}
+                emptyLabel="UPLOAD POSTER"
+                className="w-28 h-40"
+                {...makeDragHandler('card')}
+              />
+            </div>
           </div>
         </div>
       </SectionCard>
 
       {/* Contact & links */}
       <SectionCard title="Kontak & Tautan">
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <FieldGroup label="Contact Person Name">
-              <Input value={form.contact_person_name} onChange={e => set('contact_person_name')(e.target.value)} />
-            </FieldGroup>
-            <FieldGroup label="Contact Person Link">
-              <Input value={form.contact_person_link} placeholder="wa.me/628..." onChange={e => set('contact_person_link')(e.target.value)} />
-            </FieldGroup>
-            <FieldGroup label="Contact Person Email">
-              <Input type="email" value={form.contact_person_email} onChange={e => set('contact_person_email')(e.target.value)} />
-            </FieldGroup>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            <FieldGroup label="URL Pendaftaran*">
-              <Input value={form.url_pendaftaran} onChange={e => set('url_pendaftaran')(e.target.value)} />
-            </FieldGroup>
-            <FieldGroup label="URL Guidebook / TOR">
-              <Input value={form.url_guidebook} placeholder="masukkan link guidebook anda" onChange={e => set('url_guidebook')(e.target.value)} />
-            </FieldGroup>
-            <FieldGroup label="Instagram URL">
-              <Input value={form.instagram_url} placeholder="https://instagram.com/..." onChange={e => set('instagram_url')(e.target.value)} />
-            </FieldGroup>
-            <FieldGroup label="Website Event">
-              <Input value={form.website_url} placeholder="https://..." onChange={e => set('website_url')(e.target.value)} />
-            </FieldGroup>
-          </div>
-
-          <FieldGroup label="[slug] Halaman Event">
-            <div className="flex items-center max-w-xs rounded-lg border border-zinc-200 bg-zinc-50/50 overflow-hidden focus-within:bg-white">
-              <span className="pl-3 pr-1 text-sm text-zinc-400 shrink-0 select-none">ipblucky.ipb.ac.id/event/</span>
-              <input
-                value={form.slug}
-                onChange={e => set('slug')(e.target.value)}
-                className="flex-1 bg-transparent py-2 pr-3 text-sm outline-none"
-              />
+        <div className="space-y-8">
+          {/* Section 1: Official Links & Resources */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b border-zinc-100">
+              <Link size={12} className="text-zinc-400" />
+              <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Tautan & Sumber Daya</h4>
             </div>
-          </FieldGroup>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
+              <FieldGroup label="URL Pendaftaran*" description="Link pendaftaran eksternal (Google Form, dll)">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                    <ExternalLink size={12} />
+                  </div>
+                  <Input 
+                    className="pl-8" 
+                    value={form.registration_url} 
+                    onChange={e => set('registration_url')(e.target.value)} 
+                    placeholder="https://..." 
+                  />
+                </div>
+              </FieldGroup>
+
+              <FieldGroup label="URL Guidebook / TOR" description="Link ke file PDF atau Drive">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                    <FileText size={12} />
+                  </div>
+                  <Input 
+                    className="pl-8" 
+                    value={form.guidebook_url} 
+                    onChange={e => set('guidebook_url')(e.target.value)} 
+                    placeholder="masukkan link guidebook" 
+                  />
+                </div>
+              </FieldGroup>
+
+              <FieldGroup label="Website Event" description="Homepage resmi event jika ada">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                    <Globe size={12} />
+                  </div>
+                  <Input 
+                    className="pl-8" 
+                    value={form.website_url} 
+                    onChange={e => set('website_url')(e.target.value)} 
+                    placeholder="https://..." 
+                  />
+                </div>
+              </FieldGroup>
+
+              <FieldGroup label="Slug / URL Halaman Event" description="Nama unik di URL website publik">
+                <div className="flex items-center rounded-md border border-input bg-input/10 overflow-hidden focus-within:bg-white focus-within:ring-2 focus-within:ring-ring/30 transition-all">
+                  <span className="pl-2.5 pr-1 text-[10px] font-bold text-zinc-400 shrink-0 select-none">/event/</span>
+                  <input
+                    value={form.slug}
+                    onChange={e => set('slug')(e.target.value)}
+                    className="flex-1 bg-transparent py-1 pr-3 text-sm outline-none md:text-xs/relaxed"
+                  />
+                </div>
+              </FieldGroup>
+            </div>
+          </div>
+
+          {/* Section 2: Social Media */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b border-zinc-100">
+              <Instagram size={12} className="text-zinc-400" />
+              <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Media Sosial</h4>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
+              <FieldGroup label="Instagram URL">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-pink-500 transition-colors">
+                    <Instagram size={12} />
+                  </div>
+                  <Input 
+                    className="pl-8" 
+                    value={form.instagram_url} 
+                    onChange={e => set('instagram_url')(e.target.value)} 
+                    placeholder="https://instagram.com/..." 
+                  />
+                </div>
+              </FieldGroup>
+
+              <FieldGroup label="YouTube Highlight/Teaser">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-red-500 transition-colors">
+                    <Youtube size={12} />
+                  </div>
+                  <Input 
+                    className="pl-8" 
+                    value={form.url_youtube} 
+                    onChange={e => set('url_youtube')(e.target.value)} 
+                    placeholder="https://youtube.com/watch?v=..." 
+                  />
+                </div>
+              </FieldGroup>
+            </div>
+          </div>
+          
+          {/* Section 3: Contact Person */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-2 pb-1 border-b border-zinc-100">
+              <User size={12} className="text-zinc-400" />
+              <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Narahubung (Contact Person)</h4>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <FieldGroup label="Nama Kontak">
+                <Input 
+                  value={form.contact_person_name} 
+                  onChange={e => set('contact_person_name')(e.target.value)} 
+                  placeholder="Nama narahubung"
+                />
+              </FieldGroup>
+              
+              <FieldGroup label="Tautan (WhatsApp/Telegram)">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-green-600 transition-colors">
+                    <Link size={12} />
+                  </div>
+                  <Input 
+                    className="pl-8" 
+                    value={form.contact_person_link} 
+                    onChange={e => set('contact_person_link')(e.target.value)} 
+                    placeholder="wa.me/628..." 
+                  />
+                </div>
+              </FieldGroup>
+
+              <FieldGroup label="Alamat Email">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                    <Mail size={12} />
+                  </div>
+                  <Input 
+                    className="pl-8" 
+                    type="email" 
+                    value={form.contact_person_email} 
+                    onChange={e => set('contact_person_email')(e.target.value)} 
+                    placeholder="email@example.com"
+                  />
+                </div>
+              </FieldGroup>
+            </div>
+          </div>
         </div>
       </SectionCard>
 
       {/* Status & visibility */}
       <SectionCard title="Status & Visibilitas">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
-          <FieldGroup label="Tipe Event*">
-            <select value={form.type} onChange={e => set('type')(e.target.value)} className={SELECT}>
-              <option value="sport">Sport</option>
-              <option value="arts">Arts</option>
-            </select>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-end">
+          <FieldGroup label="Tipe Event*" description="Kategori utama kegiatan">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                <Activity size={12} />
+              </div>
+              <select value={form.type} onChange={e => set('type')(e.target.value)} className={cn(SELECT, 'pl-8')}>
+                <option value="sport">Sport</option>
+                <option value="arts">Arts</option>
+              </select>
+            </div>
           </FieldGroup>
 
-          <FieldGroup label="Visibilitas*">
-            <Toggle checked={form.is_published} onChange={set('is_published')} labelOn="Published" labelOff="Draft" />
+          <FieldGroup label="Visibilitas*" description="Tampilkan di website publik?">
+            <div className="flex items-center gap-3 h-7">
+              <Eye size={12} className={cn('transition-colors', form.is_published ? 'text-blue-500' : 'text-zinc-400')} />
+              <Toggle checked={form.is_published} onChange={set('is_published')} labelOn="Published" labelOff="Draft" />
+            </div>
           </FieldGroup>
 
-          <FieldGroup label="Pendaftaran*">
-            <Toggle checked={form.is_registration_open} onChange={set('is_registration_open')} labelOn="Buka" labelOff="Tutup" />
+          <FieldGroup label="Pendaftaran*" description="Status buka/tutup registrasi">
+            <div className="flex items-center gap-3 h-7">
+              <UserPlus size={12} className={cn('transition-colors', form.is_registration_open ? 'text-green-600' : 'text-zinc-400')} />
+              <Toggle checked={form.is_registration_open} onChange={set('is_registration_open')} labelOn="Buka" labelOff="Tutup" />
+            </div>
           </FieldGroup>
         </div>
       </SectionCard>
@@ -554,27 +724,76 @@ function TimelineTab({ eventId, phases, onRefresh }: { eventId: string; phases: 
                 </div>
 
                 <div className="flex-1">
-                  <FieldGroup label="Phase Name*">
-                    <Input value={phase.label} onChange={e => updatePhase(phase.id, { label: e.target.value })} className="h-9" />
+                  <FieldGroup label="Nama Fase*">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                        <Flag size={12} />
+                      </div>
+                      <Input 
+                        value={phase.label} 
+                        onChange={e => updatePhase(phase.id, { label: e.target.value })} 
+                        className="pl-8 h-7" 
+                        placeholder="Contoh: Pembukaan / Final"
+                      />
+                    </div>
                   </FieldGroup>
                 </div>
 
                 <div className="w-40">
-                  <FieldGroup label="Start Date*">
-                    <Input type="date" value={phase.date_start} onChange={e => updatePhase(phase.id, { date_start: e.target.value })} className="h-9" />
+                  <FieldGroup label="Status">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                        <CheckCircle2 size={12} />
+                      </div>
+                      <select 
+                        value={phase.status} 
+                        onChange={e => updatePhase(phase.id, { status: e.target.value as any })} 
+                        className={cn(SELECT, 'pl-8 h-7')}
+                      >
+                        <option value="upcoming">Upcoming</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="done">Done</option>
+                      </select>
+                    </div>
                   </FieldGroup>
                 </div>
 
                 <div className="w-32">
-                  <FieldGroup label="Time">
-                    <Input type="time" value={phase.time_start || '09:00'} onChange={e => updatePhase(phase.id, { time_start: e.target.value })} className="h-9 px-2" />
+                  <FieldGroup label="Tanggal Mulai*">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                        <Calendar size={12} />
+                      </div>
+                      <Input 
+                        type="date" 
+                        value={phase.date_start} 
+                        onChange={e => updatePhase(phase.id, { date_start: e.target.value })} 
+                        className="pl-8 h-7" 
+                      />
+                    </div>
+                  </FieldGroup>
+                </div>
+
+                <div className="w-24">
+                  <FieldGroup label="Waktu">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                        <Clock size={12} />
+                      </div>
+                      <Input 
+                        type="time" 
+                        value={phase.time_start || '09:00'} 
+                        onChange={e => updatePhase(phase.id, { time_start: e.target.value })} 
+                        className="pl-8 h-7" 
+                      />
+                    </div>
                   </FieldGroup>
                 </div>
 
                 <div className="pb-0.5">
                   <Button
                     variant="noBorder"
-                    className="h-9 w-9 text-zinc-400 hover:text-red-600 hover:bg-red-50 p-0 rounded-lg"
+                    className="h-7 w-9 text-zinc-400 hover:text-red-600 hover:bg-red-50 p-0 rounded-lg"
                     onClick={() => handleDelete(phase.id)}
                     disabled={loading}
                   >
@@ -584,14 +803,19 @@ function TimelineTab({ eventId, phases, onRefresh }: { eventId: string; phases: 
               </div>
 
               <div className="pl-11">
-                <FieldGroup label="Description / Notes">
+                <FieldGroup label="Deskripsi Fase" description="Opsional: detail mengenai fase ini (lokasi, syarat, dsb)...">
+                <div className="relative group">
+                  <div className="absolute top-2.5 left-2.5 pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                    <AlignLeft size={12} />
+                  </div>
                   <textarea
-                    placeholder="Opsional: detail mengenai fase ini (lokasi, syarat, dsb)..."
-                    className={cn(TEXTAREA, 'h-20 text-[13px]')}
+                    placeholder="Contoh: Dilaksanakan di GOR Pajajaran, Bogor..."
+                    className={cn(TEXTAREA, 'h-20 text-[13px] pl-8 pt-2 placeholder:text-zinc-400/50')}
                     value={phase.description || ''}
                     onChange={e => updatePhase(phase.id, { description: e.target.value })}
                   />
-                </FieldGroup>
+                </div>
+              </FieldGroup>
               </div>
             </div>
           ))}

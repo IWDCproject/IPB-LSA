@@ -74,6 +74,7 @@ const mapInstitution = (raw: any): MappedInstitution | null => {
   return {
     id:       raw.id,
     name:     raw.name,
+    color:    raw.color,
     logo_url: getAssetUrl(raw.logo),
   };
 };
@@ -105,8 +106,14 @@ const MATCH_FIELDS = [
   'away_participant_id.*',
   'away_participant_id.institution_id.*',
   'participants.id',
+  'participants.position',
   'participants.participant_id.*',
   'participants.participant_id.institution_id.*',
+  'match_name',
+  'rankings',
+  'home_score',
+  'away_score',
+  'timer_secs',
 ];
 
 const mapMatch = (m: any): MappedMatch => {
@@ -414,8 +421,11 @@ const SCHEDULE_FIELDS = [
   'away_participant_id.*',
   'away_participant_id.institution_id.*',
   'participants.id',
+  'participants.position',
   'participants.participant_id.*',
   'participants.participant_id.institution_id.*',
+  'match_name',
+  'rankings',
 ];
 
 export const getMatchesSchedule = async (
