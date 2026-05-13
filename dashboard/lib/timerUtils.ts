@@ -5,8 +5,15 @@ export function calcCurrentSecs(live: LiveState, mode: TimerMode): number {
   const isStopwatch = mode === 'stopwatch'
   const snapshot    = Math.max(0, live.timerSecs ?? 0)
   if (!live.timerRunning || !live.timerLastStarted) return snapshot
-  const elapsed = Math.max(0, (Date.now() - new Date(live.timerLastStarted).getTime()) / 1000)
-  return isStopwatch ? snapshot + elapsed : Math.max(0, snapshot - elapsed)
+  
+  const startTime = new Date(live.timerLastStarted).getTime()
+  if (isNaN(startTime)) return snapshot
+
+  const elapsed = Math.max(0, (Date.now() - startTime) / 1000)
+  const result  = isStopwatch ? snapshot + elapsed : Math.max(0, snapshot - elapsed)
+  
+  if (isNaN(result)) return snapshot
+  return Math.round(result)
 }
 
 export function formatSecs(totalSecs: number): string {

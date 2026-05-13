@@ -4,7 +4,7 @@
 // - custom indexes
 
 export async function up(knex) {
-  // ── Functions ────────────────────────────────────────────────
+  // -- Functions ------------------------------------------------
 
   await knex.raw(`
     CREATE OR REPLACE FUNCTION set_updated_at()
@@ -43,7 +43,7 @@ export async function up(knex) {
     $$ LANGUAGE plpgsql;
   `)
 
-  // ── updated_at triggers ──────────────────────────────────────
+  // -- updated_at triggers --------------------------------------
   // Excluded: match_participants (no updated_at), activity_logs (append-only)
 
   const updatedAtTables = [
@@ -66,7 +66,7 @@ export async function up(knex) {
     `)
   }
 
-  // ── Match denorm trigger ─────────────────────────────────────
+  // -- Match denorm trigger -------------------------------------
 
   await knex.raw(`
     DROP TRIGGER IF EXISTS trg_match_denorm ON matches;
@@ -75,7 +75,7 @@ export async function up(knex) {
       FOR EACH ROW EXECUTE FUNCTION sync_match_denorm();
   `)
 
-  // ── Indexes ──────────────────────────────────────────────────
+  // -- Indexes --------------------------------------------------
 
   await knex.raw(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_events_slug         ON events(slug);

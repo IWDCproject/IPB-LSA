@@ -5,15 +5,15 @@ import { useFormatBuilder } from '@/stores/formatBuilder'
 import type { LiveState } from '@/types/directus'
 import type { EngineType } from '@/types/directus'
 
-// Real engine panels ─────────────────────────────────────────────────────────
+// Real engine panels ---------------------------------------------------------
 import FinishTimePanel from '@/components/match/FinishTimePanel'
 import ScoreTimedPanel from '@/components/match/ScoreTimedPanel'
-import ScoreSetsPanel  from '@/components/match/ScoreSetsPanel'
+import ScoreSetsPanel from '@/components/match/ScoreSetsPanel'
 import JudgeScoresPanel from '@/components/match/JudgeScoresPanel'
 import ManualPickPanel from '@/components/match/ManualPickPanel'
 import { TimerBlock } from '@/components/match/TimerBlock'
 
-// Mock-data builders ─────────────────────────────────────────────────────────
+// Mock-data builders ---------------------------------------------------------
 import {
   getMockParticipants,
   getMockLiveState,
@@ -26,11 +26,11 @@ import {
 
 // eslint-disable-next-line
 const ENGINE_PANELS: Record<EngineType, React.ComponentType<any>> = {
-  finish_time:  FinishTimePanel,
-  score_timed:  ScoreTimedPanel,
-  score_sets:   ScoreSetsPanel,
+  finish_time: FinishTimePanel,
+  score_timed: ScoreTimedPanel,
+  score_sets: ScoreSetsPanel,
   judge_scores: JudgeScoresPanel,
-  manual_pick:  ManualPickPanel,
+  manual_pick: ManualPickPanel,
 }
 
 
@@ -76,9 +76,9 @@ export function FormatPreview() {
     setLiveState((prev) => ({ ...prev, ...partial }))
   }, [])
 
-  const format       = buildMockFormat(engine, matchType)
+  const format = buildMockFormat(engine, matchType)
   const participants = getMockParticipants(matchType)
-  const Panel        = ENGINE_PANELS[engine.type]
+  const Panel = ENGINE_PANELS[engine.type]
 
   return (
     <div className="space-y-3">

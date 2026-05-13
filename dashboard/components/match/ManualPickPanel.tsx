@@ -18,19 +18,19 @@ export default function ManualPickPanel({
   const { allow_draw, top_n, ranked_order } = cfg
   const isH2H = format.match_type === 'head_to_head'
 
-  // ── H2H: winner pick ────────────────────────────────────────
+  // -- H2H: winner pick ----------------------------------------
 
   const currentWinner = liveState.winner
 
   async function pickWinner(side: 'home' | 'away' | 'draw') {
     const id: string | null =
-      side === 'draw'   ? 'draw'
-      : side === 'home' ? (homeParticipant?.id ?? null)
-      :                   (awayParticipant?.id ?? null)
+      side === 'draw' ? 'draw'
+        : side === 'home' ? (homeParticipant?.id ?? null)
+          : (awayParticipant?.id ?? null)
     await onPatch({ winner: id })
   }
 
-  // ── Open: ranked list via dropdown ──────────────────────────
+  // -- Open: ranked list via dropdown --------------------------
 
   const pool = top_n > 0 ? participants.slice(0, top_n) : participants
 
@@ -75,10 +75,10 @@ export default function ManualPickPanel({
   function move(id: string, dir: -1 | 1) {
     setRankedIds((prev) => {
       const arr = [...prev]
-      const i   = arr.indexOf(id)
-      const j   = i + dir
+      const i = arr.indexOf(id)
+      const j = i + dir
       if (i < 0 || j < 0 || j >= arr.length) return arr
-      ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
+        ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
       return arr
     })
   }
@@ -95,12 +95,12 @@ export default function ManualPickPanel({
     lastExternalIdsRef.current = rankedIds
   }
 
-  // ── Render: H2H ─────────────────────────────────────────────
+  // -- Render: H2H ---------------------------------------------
 
   if (isH2H) {
     const homeWon = currentWinner === homeParticipant?.id
     const awayWon = currentWinner === awayParticipant?.id
-    const isDraw  = currentWinner === 'draw'
+    const isDraw = currentWinner === 'draw'
 
     return (
       <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm">
@@ -112,9 +112,8 @@ export default function ManualPickPanel({
           <div className={`grid gap-3 items-center ${allow_draw ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-2'}`}>
             <ConfirmDialog
               trigger={
-                <button className={`w-full rounded-lg border-2 py-5 px-3 text-sm font-bold transition-colors text-center ${
-                  homeWon ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:border-zinc-400 text-zinc-800'
-                }`}>
+                <button className={`w-full rounded-lg border-2 py-5 px-3 text-sm font-bold transition-colors text-center ${homeWon ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:border-zinc-400 text-zinc-800'
+                  }`}>
                   {homeParticipant?.name ?? 'Home'}
                   {homeWon && <div className="text-xs font-normal mt-1 opacity-70">✓ Winner</div>}
                 </button>
@@ -129,9 +128,8 @@ export default function ManualPickPanel({
             {allow_draw && (
               <ConfirmDialog
                 trigger={
-                  <button className={`rounded-lg border-2 py-2 px-3 text-xs font-bold transition-colors whitespace-nowrap ${
-                    isDraw ? 'border-zinc-500 bg-zinc-500 text-white' : 'border-zinc-200 hover:border-zinc-400 text-zinc-500'
-                  }`}>
+                  <button className={`rounded-lg border-2 py-2 px-3 text-xs font-bold transition-colors whitespace-nowrap ${isDraw ? 'border-zinc-500 bg-zinc-500 text-white' : 'border-zinc-200 hover:border-zinc-400 text-zinc-500'
+                    }`}>
                     {isDraw ? '✓ Draw' : 'Draw'}
                   </button>
                 }
@@ -145,9 +143,8 @@ export default function ManualPickPanel({
 
             <ConfirmDialog
               trigger={
-                <button className={`w-full rounded-lg border-2 py-5 px-3 text-sm font-bold transition-colors text-center ${
-                  awayWon ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:border-zinc-400 text-zinc-800'
-                }`}>
+                <button className={`w-full rounded-lg border-2 py-5 px-3 text-sm font-bold transition-colors text-center ${awayWon ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:border-zinc-400 text-zinc-800'
+                  }`}>
                   {awayParticipant?.name ?? 'Away'}
                   {awayWon && <div className="text-xs font-normal mt-1 opacity-70">✓ Winner</div>}
                 </button>
@@ -175,7 +172,7 @@ export default function ManualPickPanel({
     )
   }
 
-  // ── Render: Open / Solo ─────────────────────────────────────
+  // -- Render: Open / Solo -------------------------------------
 
   const rankLabel = (i: number) => {
     if (i === 0) return 'text-amber-500'
@@ -196,7 +193,7 @@ export default function ManualPickPanel({
 
       <div className="p-4 space-y-4">
 
-        {/* ── Add participant row ── */}
+        {/* -- Add participant row -- */}
         {unranked.length > 0 && (
           <div>
             <label className="text-xs font-medium text-zinc-500 block mb-1.5">Add participant</label>
@@ -222,7 +219,7 @@ export default function ManualPickPanel({
           </div>
         )}
 
-        {/* ── Ranked list ── */}
+        {/* -- Ranked list -- */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
@@ -291,7 +288,7 @@ export default function ManualPickPanel({
           )}
         </div>
 
-        {/* ── Apply button ── */}
+        {/* -- Apply button -- */}
         <div className="flex items-center justify-between pt-1">
           {hasUnsaved ? (
             <span className="text-xs text-amber-500">Unsaved changes</span>
@@ -309,7 +306,7 @@ export default function ManualPickPanel({
           </Button>
         </div>
 
-        {/* ── Saved rankings (read-only summary) ── */}
+        {/* -- Saved rankings (read-only summary) -- */}
         {savedRankings.length > 0 && (
           <div className="pt-3 border-t border-zinc-100">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">Saved</p>

@@ -55,9 +55,9 @@ const LiveStatePatchSchema = z.object({
   setsWon: z.tuple([z.number(), z.number()]).optional(),
   setLog: z.array(SetLogEntrySchema).optional(),
   pendingSetWinner: z.string().max(36).nullable().optional(),
-  judgeScores: z.array(z.number()).optional(),
-  timeLog: z.array(TimeLogEntrySchema).optional(),
-}).strict()
+  judgeScores: z.array(z.number()).nullable().optional(),
+  timeLog: z.array(TimeLogEntrySchema).nullable().optional(),
+})
 
 // --- Admin client ----------------------------------------------
 //
@@ -117,6 +117,7 @@ function safeError(context: string, error: unknown): string {
     if (
       error.message === 'Unauthorized' ||
       error.message === 'Forbidden: Insufficient privileges' ||
+      error.message.startsWith('Invalid payload') ||
       error.message.endsWith('bukan UUID yang valid.')
     ) {
       return error.message
@@ -207,14 +208,17 @@ export async function patchLiveStateAction(matchId: string, rawPartial: Partial<
     await verifyMatchOwnership(matchId)
 
     const parsed = LiveStatePatchSchema.safeParse(rawPartial)
-    if (!parsed.success) throw new Error('Invalid payload data')
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')
+      throw new Error(`Invalid payload: ${msg}`)
+    }
 
     const partial = parsed.data as Partial<LiveState>
 
     const adminDirectus = createAdminClient()
     const current = await adminDirectus.request(
       readItem('matches', matchId, {
-        fields: ['live_state', 'competition_category_id.event_id'],
+        fields: ['live_state', 'competition_category_id.event_id.id', 'competition_category_id.event_id.slug'],
       })
     ) as any
 
@@ -232,9 +236,11 @@ export async function patchLiveStateAction(matchId: string, rawPartial: Partial<
     // FIX: eventId could be undefined if the relation wasn't expanded correctly
     // (e.g. competition_category_id returned as a raw UUID string). Guard before
     // calling revalidatePath to avoid caching a path like /events/undefined/...
-    const eventId: string | undefined = current?.competition_category_id?.event_id
-    if (eventId) {
-      revalidatePath(`/events/${eventId}/matches/${matchId}/control`)
+    const event = current?.competition_category_id?.event_id
+    const eventSlugOrId = typeof event === 'object' ? (event.slug || event.id) : event
+
+    if (eventSlugOrId) {
+      revalidatePath(`/events/${eventSlugOrId}/matches/${matchId}`)
     }
 
     return { success: true as const, liveState: merged }
@@ -269,7 +275,7 @@ export async function setMatchStatusAction(
     const adminDirectus = createAdminClient()
     const current = await adminDirectus.request(
       readItem('matches', matchId, {
-        fields: ['live_state', 'competition_category_id.event_id'],
+        fields: ['live_state', 'competition_category_id.event_id.*'],
       })
     ) as any
 
@@ -284,11 +290,14 @@ export async function setMatchStatusAction(
 
     // FIX: same undefined eventId guard as patchLiveStateAction.
     const event = current?.competition_category_id?.event_id
-    if (event?.id) {
-      revalidatePath(`/events/${event.id}/matches/${matchId}/control`)
-    }
-    if (event?.slug) {
-      await pingWebRevalidate({ slug: event.slug })
+    if (event) {
+      const slugOrId = typeof event === 'object' ? (event.slug || event.id) : event
+      revalidatePath(`/events/${slugOrId}/matches/${matchId}`)
+      
+      const slug = typeof event === 'object' ? event.slug : null
+      if (slug) {
+        await pingWebRevalidate({ slug })
+      }
     }
 
     return { success: true as const, liveState: merged }

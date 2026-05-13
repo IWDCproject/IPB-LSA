@@ -301,7 +301,7 @@ export function ControlPanel({
               homeParticipant={homeParticipant}
               awayParticipant={awayParticipant}
               onPatch={patch}
-              disabled={patching}
+              disabled={isFinished}
             />
           )}
 
@@ -316,7 +316,7 @@ export function ControlPanel({
                 mode={timerModule.config.mode}
                 duration={timerModule.config.duration ?? 0}
                 onPatch={patch}
-                disabled={patching || isFinished}
+                disabled={isFinished}
               />
             </div>
           )}

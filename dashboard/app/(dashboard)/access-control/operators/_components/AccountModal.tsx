@@ -8,9 +8,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Button }      from '@/components/ui/button'
-import { Input }       from '@/components/ui/input'
-import { Label }       from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -22,19 +22,19 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { createAccount, updateAccount, deleteAccount } from '../_actions'
 import type { OperatorUser } from '../_actions'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -- Types ---------------------------------------------------------------------
 
 type Mode = 'create' | 'edit'
 
 interface AccountModalProps {
-  mode:          Mode
-  open:          boolean
-  onClose:       () => void
-  user?:         OperatorUser   // populated when mode === 'edit'
+  mode: Mode
+  open: boolean
+  onClose: () => void
+  user?: OperatorUser   // populated when mode === 'edit'
   currentUserId: string         // logged-in SuperAdmin's own ID
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
 
 function resolveRoleKey(user: OperatorUser): 'super_admin' | 'operator' {
   const name =
@@ -44,7 +44,7 @@ function resolveRoleKey(user: OperatorUser): 'super_admin' | 'operator' {
   return name === 'Administrator' || name === 'SuperAdmin' ? 'super_admin' : 'operator'
 }
 
-// ── Feedback components ────────────────────────────────────────────────────────
+// -- Feedback components --------------------------------------------------------
 
 function InlineError({ message }: { message: string }) {
   return <p className="text-xs text-red-500 mt-1" role="alert">{message}</p>
@@ -54,7 +54,7 @@ function InlineSuccess({ message }: { message: string }) {
   return <p className="text-xs text-green-600 mt-1" role="status">{message}</p>
 }
 
-// ── Main modal ────────────────────────────────────────────────────────────────
+// -- Main modal ----------------------------------------------------------------
 
 export function AccountModal({
   mode,
@@ -65,16 +65,16 @@ export function AccountModal({
 }: AccountModalProps) {
   const isEdit = mode === 'edit'
 
-  // ── Form state
+  // -- Form state
   const [orgName, setOrgName] = useState('')
-  const [email,   setEmail]   = useState('')
-  const [role,    setRole]    = useState<'super_admin' | 'operator'>('operator')
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<'super_admin' | 'operator'>('operator')
 
-  // ── Feedback
-  const [error,   setError]   = useState<string | null>(null)
+  // -- Feedback
+  const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const [isPending,       startTransition]       = useTransition()
+  const [isPending, startTransition] = useTransition()
   const [isDeletePending, startDeleteTransition] = useTransition()
 
   // Populate / reset on open
@@ -93,7 +93,7 @@ export function AccountModal({
     setSuccess(null)
   }, [open, isEdit, user])
 
-  const isSelf         = isEdit && user?.id === currentUserId
+  const isSelf = isEdit && user?.id === currentUserId
   const selfRoleLocked = isSelf
 
   function handleClose() {
@@ -108,8 +108,8 @@ export function AccountModal({
 
     const fd = new FormData()
     fd.set('organisationName', orgName)
-    fd.set('email',            email)
-    fd.set('role',             role)
+    fd.set('email', email)
+    fd.set('role', role)
 
     startTransition(async () => {
       const result = isEdit && user
@@ -149,7 +149,7 @@ export function AccountModal({
     <Dialog open={open} onOpenChange={v => !v && handleClose()}>
       <DialogContent
         onInteractOutside={e => { if (isPending || isDeletePending) e.preventDefault() }}
-        onEscapeKeyDown={e  => { if (isPending || isDeletePending) e.preventDefault() }}
+        onEscapeKeyDown={e => { if (isPending || isDeletePending) e.preventDefault() }}
       >
         <DialogHeader>
           <DialogTitle>
@@ -242,7 +242,7 @@ export function AccountModal({
           </div>
 
           {/* Feedback */}
-          {error   && <InlineError   message={error}   />}
+          {error && <InlineError message={error} />}
           {success && <InlineSuccess message={success} />}
 
           {/* Footer */}
@@ -261,10 +261,10 @@ export function AccountModal({
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
                       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                       strokeLinejoin="round" aria-hidden>
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                      <path d="M10 11v6M14 11v6"/>
-                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                     </svg>
                     Hapus Akun
                   </Button>

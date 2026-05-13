@@ -8,47 +8,47 @@ import {
 } from '@directus/sdk'
 import { z } from 'zod'
 
-// ── Admin SDK — server only, never exposed to client ─────────────────────────
+// -- Admin SDK — server only, never exposed to client -------------------------
 const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
   .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
   .with(rest())
 
 const REVALIDATE_PATH = '/access-control/operators'
 
-// ── Shared result type ────────────────────────────────────────────────────────
+// -- Shared result type --------------------------------------------------------
 export type ActionResult<T = void> =
-  | { success: true;  data?: T }
+  | { success: true; data?: T }
   | { success: false; error: string }
 
-// ── Internal types ────────────────────────────────────────────────────────────
+// -- Internal types ------------------------------------------------------------
 type RoleKey = 'super_admin' | 'operator'
 
 type DirectusRole = { id: string; name: string }
 
 type DirectusUserRaw = {
-  id:                string
-  email:             string
+  id: string
+  email: string
   organisation_name: string | null
-  avatar:            string | null   // Directus file UUID → /assets/<uuid>
-  status:            'active' | 'inactive' | 'suspended' | 'invited' | 'draft'
-  role:              { id: string; name: string } | string | null
+  avatar: string | null   // Directus file UUID → /assets/<uuid>
+  status: 'active' | 'inactive' | 'suspended' | 'invited' | 'draft'
+  role: { id: string; name: string } | string | null
 }
 
 export type OperatorUser = DirectusUserRaw
 
-// ── Security guard ─────────────────────────────────────────────────────────────
+// -- Security guard -------------------------------------------------------------
 async function requireSuperAdmin() {
   const session = await auth()
-  if (!session?.user)                     throw new Error('NOT_AUTHENTICATED')
+  if (!session?.user) throw new Error('NOT_AUTHENTICATED')
   if (session.user.role !== 'SuperAdmin') throw new Error('FORBIDDEN')
   return session
 }
 
-// ── Input validation schemas ──────────────────────────────────────────────────
+// -- Input validation schemas --------------------------------------------------
 // Zod v4: use `message` (not `errorMap`), and `.issues` (not `.errors`)
 const orgNameField = z
   .string()
-  .min(1,   'Nama organisasi wajib diisi.')
+  .min(1, 'Nama organisasi wajib diisi.')
   .max(100, 'Nama terlalu panjang (max 100 karakter).')
   .trim()
   .refine(v => !/[<>"'`]/.test(v), { message: 'Nama mengandung karakter yang tidak diizinkan.' })
@@ -69,47 +69,47 @@ const uuidField = z.string().uuid('ID pengguna tidak valid.')
 
 const createSchema = z.object({
   organisationName: orgNameField,
-  email:            emailField,
-  role:             roleField,
+  email: emailField,
+  role: roleField,
 })
 
 const updateSchema = z.object({
   organisationName: orgNameField,
-  role:             roleField,
+  role: roleField,
 })
 
-// ── Role map helper ────────────────────────────────────────────────────────────
+// -- Role map helper ------------------------------------------------------------
 async function getRoleMap(): Promise<Record<RoleKey, string>> {
   const roles = (await adminDirectus.request(
     readRoles({ fields: ['id', 'name'], limit: -1 })
   )) as DirectusRole[]
 
-  const adminRole    = roles.find(r => r.name === 'Administrator' || r.name === 'SuperAdmin')
+  const adminRole = roles.find(r => r.name === 'Administrator' || r.name === 'SuperAdmin')
   const operatorRole = roles.find(r => r.name === 'PJ Ormawa')
 
-  if (!adminRole)    throw new Error('Role "Administrator" tidak ditemukan di Directus.')
+  if (!adminRole) throw new Error('Role "Administrator" tidak ditemukan di Directus.')
   if (!operatorRole) throw new Error('Role "PJ Ormawa" tidak ditemukan di Directus.')
 
   return { super_admin: adminRole.id, operator: operatorRole.id }
 }
 
-// ── Activity log ──────────────────────────────────────────────────────────────
+// -- Activity log --------------------------------------------------------------
 // Non-fatal — log failures must never block the main mutation.
 async function logActivity(
-  actorId:     string,
-  action:      string,
-  entity:      string,
-  entityId:    string | null,
+  actorId: string,
+  action: string,
+  entity: string,
+  entityId: string | null,
   description: string,
 ) {
   try {
     await adminDirectus.request(
       createItem('activity_logs' as any, {
-        user_id:     actorId,
-        event_id:    null,
+        user_id: actorId,
+        event_id: null,
         action,
         entity,
-        entity_id:   entityId,
+        entity_id: entityId,
         description,
       })
     )
@@ -118,11 +118,11 @@ async function logActivity(
   }
 }
 
-// ── Last-SuperAdmin lockout guard ─────────────────────────────────────────────
+// -- Last-SuperAdmin lockout guard ---------------------------------------------
 async function assertNotLastSuperAdmin(
   targetId: string,
-  roleMap:  Record<RoleKey, string>,
-  context:  'demote' | 'disable' | 'delete',
+  roleMap: Record<RoleKey, string>,
+  context: 'demote' | 'disable' | 'delete',
 ): Promise<ActionResult> {
   const [target] = (await adminDirectus.request(
     readUsers({ filter: { id: { _eq: targetId } }, fields: ['role.id'], limit: 1 })
@@ -136,7 +136,7 @@ async function assertNotLastSuperAdmin(
   if (targetRoleId !== roleMap.super_admin) return { success: true }
 
   const filter: Record<string, unknown> = {
-    role:   { _eq: roleMap.super_admin },
+    role: { _eq: roleMap.super_admin },
     status: { _eq: 'active' },
   }
   if (context !== 'delete') filter['id'] = { _neq: targetId }
@@ -165,8 +165,8 @@ export async function getOperators(): Promise<ActionResult<OperatorUser[]>> {
     const users = (await adminDirectus.request(
       readUsers({
         fields: ['id', 'email', 'organisation_name', 'status', 'role.id', 'role.name'],
-        limit:  -1,
-        sort:   ['organisation_name'],
+        limit: -1,
+        sort: ['organisation_name'],
       })
     )) as OperatorUser[]
     return { success: true, data: users }
@@ -187,17 +187,17 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
 
   const parsed = createSchema.safeParse({
     organisationName: formData.get('organisationName'),
-    email:            formData.get('email'),
-    role:             formData.get('role'),
+    email: formData.get('email'),
+    role: formData.get('role'),
   })
   if (!parsed.success) {
-		const firstIssue = parsed.error.issues.at(0)
+    const firstIssue = parsed.error.issues.at(0)
 
-		return {
-			success: false,
-			error: firstIssue?.message ?? "Validation failed",
-		}
-	}
+    return {
+      success: false,
+      error: firstIssue?.message ?? "Validation failed",
+    }
+  }
 
   const { organisationName, email, role } = parsed.data
 
@@ -216,8 +216,8 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
       createUser({
         email,
         organisation_name: organisationName,
-        role:     roleMap[role],
-        status:   'active',
+        role: roleMap[role],
+        status: 'active',
         // Random password — login is Google OAuth only; this password is never used
         password: `${crypto.randomUUID()}-${crypto.randomUUID()}`,
       } as any)
@@ -242,7 +242,7 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
 // ============================================================================
 
 export async function updateAccount(
-  userId:   string,
+  userId: string,
   formData: FormData,
 ): Promise<ActionResult> {
   let session: Awaited<ReturnType<typeof requireSuperAdmin>>
@@ -254,16 +254,16 @@ export async function updateAccount(
 
   const parsed = updateSchema.safeParse({
     organisationName: formData.get('organisationName'),
-    role:             formData.get('role'),
+    role: formData.get('role'),
   })
   if (!parsed.success) {
-		const firstIssue = parsed.error.issues.at(0)
+    const firstIssue = parsed.error.issues.at(0)
 
-		return {
-			success: false,
-			error: firstIssue?.message ?? "Validation failed",
-		}
-	}
+    return {
+      success: false,
+      error: firstIssue?.message ?? "Validation failed",
+    }
+  }
 
   const { organisationName, role } = parsed.data
 

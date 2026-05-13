@@ -22,9 +22,16 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
 
   // ---- Countdown / Stopwatch display ----------------------------
   const [display, setDisplay] = useState(() =>
-    isDeadline ? calcDeadlineSecs(liveState.timerTarget ?? null) : calcCurrentSecs(liveState, mode)
+    isDeadline ? Math.round(calcDeadlineSecs(liveState.timerTarget ?? null)) : Math.round(liveState.timerSecs ?? 0)
   )
+  const [mounted, setMounted] = useState(false)
+  const [isOverriding, setIsOverriding] = useState(false)
+  const [overrideDraft, setOverrideDraft] = useState<string[]>([])
   const rafRef = useRef<number>(0)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // For countdown/stopwatch: only run RAF when timer is running.
   // For deadline: always run RAF so the live countdown updates every frame.
@@ -137,26 +144,119 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
     })
   }
 
+  // ---- Override Logic ------------------------------------------
+  function handleToggleOverride() {
+    if (isOverriding) {
+      setIsOverriding(false)
+    } else {
+      // Snapshot the current values into a fixed 4-part draft [d, h, m, s]
+      const s = Math.floor(display)
+      const sec = s % 60
+      const min = Math.floor(s / 60) % 60
+      const hrs = Math.floor(s / 3_600) % 24
+      const day = Math.floor(s / 86_400)
+      
+      setOverrideDraft([
+        String(day),
+        String(hrs).padStart(2, '0'),
+        String(min).padStart(2, '0'),
+        String(sec).padStart(2, '0')
+      ])
+      setIsOverriding(true)
+      if (liveState.timerRunning) {
+        handleStop()
+      }
+    }
+  }
+
+  async function handleApplyOverride() {
+    const [d, h, m, s] = overrideDraft
+    const total = 
+      parseInt(d || '0') * 86400 +
+      parseInt(h || '0') * 3600 +
+      parseInt(m || '0') * 60 +
+      parseInt(s || '0')
+
+    await onPatch({
+      timerSecs:        total,
+      timerRunning:     false,
+      timerLastStarted: null,
+    })
+    setIsOverriding(false)
+  }
+
   // ---- Render --------------------------------------------------
   return (
     <div>
-      <p className="text-xs font-medium text-zinc-500 mb-2">
-        Timer <span className="text-zinc-400">({mode})</span>
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-zinc-500">
+          Timer <span className="text-zinc-400">({mode})</span>
+        </p>
+        {!isDeadline && (
+          <button
+            onClick={handleToggleOverride}
+            className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              isOverriding ? 'text-amber-600 hover:text-amber-700' : 'text-zinc-400 hover:text-zinc-900'
+            }`}
+          >
+            {isOverriding ? 'Cancel' : 'Override'}
+          </button>
+        )}
+      </div>
+
+      {/* --- Override Inputs --- */}
+      {isOverriding && (
+        <div className="mb-4 p-3 bg-zinc-50 rounded-lg border border-zinc-100 flex items-end gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="flex-1 grid grid-cols-4 gap-2">
+            {[
+              { label: 'days', val: overrideDraft[0], max: 3 },
+              { label: 'hrs',  val: overrideDraft[1], max: 2 },
+              { label: 'mins', val: overrideDraft[2], max: 2 },
+              { label: 'secs', val: overrideDraft[3], max: 2 },
+            ].map((input, i) => (
+              <div key={input.label}>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase mb-1 block">{input.label}</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={input.val ?? ''}
+                  onChange={(e) => {
+                    const next = [...overrideDraft]
+                    next[i] = e.target.value.replace(/\D/g, '').slice(0, input.max)
+                    setOverrideDraft(next)
+                  }}
+                  className="w-full h-9 rounded border border-zinc-200 bg-white text-sm font-bold text-center focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all tabular-nums"
+                />
+              </div>
+            ))}
+          </div>
+          <Button
+            className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded"
+            onClick={handleApplyOverride}
+          >
+            Save
+          </Button>
+        </div>
+      )}
 
       {/* Big display */}
       <div suppressHydrationWarning className="mb-4">
         <div className="flex justify-start items-start text-zinc-900 tracking-tight leading-none">
-          {formatSecs(display).split(':').map((part, i, arr) => {
-            const label = arr.length === 4 ? ['d', 'hh', 'mm', 'ss'][i] 
+          {formatSecs(mounted ? display : Math.round(liveState.timerSecs ?? 0)).split(':').map((part, i, arr) => {
+            const label = arr.length === 4 ? ['d', 'hh', 'mm', 'ss'][i]
                         : arr.length === 3 ? ['hh', 'mm', 'ss'][i]
                         : ['mm', 'ss'][i]
             const fSize = arr.length === 4 ? '2.75rem' : arr.length === 3 ? '3.25rem' : '3.5rem'
             return (
               <Fragment key={label}>
                 <div className="flex flex-col items-center flex-1">
-                  <span className="font-[800] tabular-nums" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: fSize }}>{part}</span>
-                  {/* Unit labels always shown now, properly aligned under the digits! */}
+                  <span 
+                    suppressHydrationWarning
+                    className="font-[800] tabular-nums" 
+                    style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: fSize }}
+                  >
+                    {part}
+                  </span>
                   <span className="text-[10px] font-medium text-zinc-400 mt-1 uppercase">{label}</span>
                 </div>
                 {i < arr.length - 1 && (
@@ -211,7 +311,7 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
             variant="noBorder"
             className="flex-1"
             onClick={handleReset}
-            disabled={disabled || isRunning}
+            disabled={disabled || isRunning || isOverriding}
           >
             Reset
           </Button>
@@ -219,7 +319,7 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
             <Button
               className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
               onClick={handleStop}
-              disabled={disabled}
+              disabled={disabled || isOverriding}
             >
               Stop
             </Button>
@@ -227,7 +327,7 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
             <Button
               className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white"
               onClick={handleStart}
-              disabled={disabled || (mode === 'countdown' && display <= 0)}
+              disabled={disabled || (mode === 'countdown' && display <= 0) || isOverriding}
             >
               Start
             </Button>
@@ -255,7 +355,7 @@ export function TimerBlock({ liveState, mode, duration, onPatch, disabled }: Pro
 /** Seconds remaining until the absolute target ISO string. */
 function calcDeadlineSecs(target: string | null): number {
   if (!target) return 0
-  return Math.max(0, (new Date(target).getTime() - Date.now()) / 1000)
+  return Math.max(0, Math.round((new Date(target).getTime() - Date.now()) / 1000))
 }
 
 /**

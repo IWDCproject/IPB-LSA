@@ -1,9 +1,9 @@
 'use client'
 
 import { useOptimistic, useState, useTransition } from 'react'
-import { Button }      from '@/components/ui/button'
-import { Badge }       from '@/components/ui/badge'
-import { DataTable }   from '@/components/shared/DataTable'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { DataTable } from '@/components/shared/DataTable'
 import { AccountModal } from './AccountModal'
 import {
   Select,
@@ -15,7 +15,7 @@ import {
 import { toggleAccess, updateAccount } from '../_actions'
 import type { OperatorUser } from '../_actions'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
 
 function getRoleKey(user: OperatorUser): 'super_admin' | 'operator' {
   const name =
@@ -29,10 +29,10 @@ function isActive(u: OperatorUser) {
   return u.status === 'active'
 }
 
-// ── Avatar — same logic as UserMenu, different src ───────────────────────────
+// -- Avatar — same logic as UserMenu, different src ---------------------------
 
 function UserAvatar({ user }: { user: OperatorUser }) {
-  const name     = user.organisation_name ?? user.email
+  const name = user.organisation_name ?? user.email
   const initials = name.slice(0, 2).toUpperCase()
   const avatarUrl = user.avatar
     ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${user.avatar}`
@@ -52,7 +52,7 @@ function UserAvatar({ user }: { user: OperatorUser }) {
   )
 }
 
-// ── Toggle ────────────────────────────────────────────────────────────────────
+// -- Toggle --------------------------------------------------------------------
 
 function AccessToggle({
   userId, enabled, disabled, onToggle,
@@ -92,7 +92,7 @@ function AccessToggle({
   )
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// -- Toast ---------------------------------------------------------------------
 
 type ToastItem = { id: number; message: string }
 
@@ -120,11 +120,11 @@ function ToastStack({ toasts }: { toasts: ToastItem[] }) {
   )
 }
 
-// ── Optimistic reducer ────────────────────────────────────────────────────────
+// -- Optimistic reducer --------------------------------------------------------
 
 type OptAction =
   | { type: 'toggle'; id: string; enabled: boolean }
-  | { type: 'role';   id: string; roleKey: 'super_admin' | 'operator' }
+  | { type: 'role'; id: string; roleKey: 'super_admin' | 'operator' }
 
 function applyOpt(state: OperatorUser[], action: OptAction): OperatorUser[] {
   return state.map(u => {
@@ -141,12 +141,12 @@ function applyOpt(state: OperatorUser[], action: OptAction): OperatorUser[] {
   })
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// -- Main ----------------------------------------------------------------------
 
 interface Props {
   initialOperators: OperatorUser[]
-  currentUserId:    string
-  eventCount:       number
+  currentUserId: string
+  eventCount: number
 }
 
 export function OperatorsTab({ initialOperators, currentUserId, eventCount }: Props) {
@@ -154,8 +154,8 @@ export function OperatorsTab({ initialOperators, currentUserId, eventCount }: Pr
   const [, startTransition] = useTransition()
   const { toasts, addToast } = useToast()
 
-  const [modalOpen,   setModalOpen]   = useState(false)
-  const [modalMode,   setModalMode]   = useState<'create' | 'edit'>('create')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [editingUser, setEditingUser] = useState<OperatorUser | undefined>(undefined)
 
   function openCreate() { setModalMode('create'); setEditingUser(undefined); setModalOpen(true) }
@@ -185,7 +185,7 @@ export function OperatorsTab({ initialOperators, currentUserId, eventCount }: Pr
       key: 'organisation_name' as const,
       label: 'User Name',
       render: (_: unknown, user: OperatorUser) => {
-        const name   = user.organisation_name ?? user.email.split('@').at(0) ?? user.email
+        const name = user.organisation_name ?? user.email.split('@').at(0) ?? user.email
         const isSelf = user.id === currentUserId
         return (
           <div className="flex items-center gap-2">
@@ -250,9 +250,9 @@ export function OperatorsTab({ initialOperators, currentUserId, eventCount }: Pr
           <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
             strokeLinejoin="round" aria-hidden>
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
           </svg>
         </button>
       ),

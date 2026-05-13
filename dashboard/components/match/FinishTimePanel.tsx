@@ -13,9 +13,9 @@ type Props = EnginePanelProps & { participants: Participant[] }
 // --- Helpers -------------------------------------------------
 
 function parseTimeStr(t: string): number {
-  const d  = parseInt(t.match(/(\d+)d/)?.[1]  ?? '0', 10)
-  const m  = parseInt(t.match(/(\d+)m/)?.[1]  ?? '0', 10)
-  const s  = parseInt(t.match(/(\d+)s/)?.[1]  ?? '0', 10)
+  const d = parseInt(t.match(/(\d+)d/)?.[1] ?? '0', 10)
+  const m = parseInt(t.match(/(\d+)m/)?.[1] ?? '0', 10)
+  const s = parseInt(t.match(/(\d+)s/)?.[1] ?? '0', 10)
   const ms = parseInt(t.match(/(\d+)ms/)?.[1] ?? '0', 10)
   return d * 86400000 + m * 60000 + s * 1000 + ms
 }
@@ -28,15 +28,15 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
     config: { unit: 's' | 'ms'; rank_order: 'asc' | 'desc' }
   }).config
 
-  const showMs  = cfg.unit === 'ms'
+  const showMs = cfg.unit === 'ms'
   const rankAsc = cfg.rank_order === 'asc'
-  const isSolo  = participants.length === 1
+  const isSolo = participants.length === 1
 
   const [selectedId, setSelectedId] = useState('')
   const [days, setDays] = useState('')
   const [mins, setMins] = useState('')
   const [secs, setSecs] = useState('')
-  const [ms,   setMs]   = useState('')
+  const [ms, setMs] = useState('')
 
   // FIX: use participant.id as the canonical set key, falling back to name for
   // legacy rows. Using both caused ambiguity when a participant's name happened
@@ -57,7 +57,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
   function buildRankings(log: TimeLogEntry[]) {
     return buildSortedLog(log).map((e, i) => ({
       rank: i + 1,
-      id:   e.id ?? e.name,
+      id: e.id ?? e.name,
       name: e.name,
     }))
   }
@@ -68,10 +68,10 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
       : participants.find((p) => p.id === selectedId)
     if (!participant) return
 
-    const d_  = parseInt(days || '0', 10)
-    const m_  = parseInt(mins || '0', 10)
-    const s_  = parseInt(secs || '0', 10)
-    const ms_ = parseInt(ms   || '0', 10)
+    const d_ = parseInt(days || '0', 10)
+    const m_ = parseInt(mins || '0', 10)
+    const s_ = parseInt(secs || '0', 10)
+    const ms_ = parseInt(ms || '0', 10)
 
     const totalMs = d_ * 86400000 + m_ * 60000 + s_ * 1000 + ms_
     if (totalMs <= 0) return
@@ -105,7 +105,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
     const filteredLog = liveState.timeLog.filter(
       (e: TimeLogEntry) => e.id !== id && e.name !== id
     )
-    
+
     // Recalculate ranks for the remaining entries
     const sorted = buildSortedLog(filteredLog)
     const newLog: TimeLogEntry[] = filteredLog.map(entry => {
@@ -146,7 +146,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
 
       <div className="p-4 space-y-4">
 
-        {/* ── Input row ── */}
+        {/* -- Input row -- */}
         {!allDone && (
           <div className="flex items-center gap-2">
             {!isSolo && (
@@ -162,9 +162,9 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
               </Select>
             )}
 
-            <TimeInput value={days} onChange={setDays} placeholder="0"   suffix="d"  max={2} />
-            <TimeInput value={mins} onChange={setMins} placeholder="0"   suffix="m"  max={3} />
-            <TimeInput value={secs} onChange={setSecs} placeholder="00"  suffix="s"  max={2} />
+            <TimeInput value={days} onChange={setDays} placeholder="0" suffix="d" max={2} />
+            <TimeInput value={mins} onChange={setMins} placeholder="0" suffix="m" max={3} />
+            <TimeInput value={secs} onChange={setSecs} placeholder="00" suffix="s" max={2} />
             {showMs && (
               <TimeInput value={ms} onChange={setMs} placeholder="000" suffix="ms" max={3} />
             )}
@@ -179,7 +179,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
           </div>
         )}
 
-        {/* ── Results list ── */}
+        {/* -- Results list -- */}
         <div>
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">
             Results - {sortedLog.length} / {participants.length}

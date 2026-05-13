@@ -69,10 +69,10 @@ function highlight(raw: string, diffStatuses?: ('unchanged' | 'changed')[]): str
         }
       )
 
-      const status    = diffStatuses?.[idx] ?? 'unchanged'
+      const status = diffStatuses?.[idx] ?? 'unchanged'
       const isChanged = status === 'changed'
-      const bg        = isChanged ? 'background-color: rgba(234, 179, 8, 0.15);' : ''
-      const shadow    = isChanged ? 'box-shadow: inset 3px 0 0 #eab308;' : ''
+      const bg = isChanged ? 'background-color: rgba(234, 179, 8, 0.15);' : ''
+      const shadow = isChanged ? 'box-shadow: inset 3px 0 0 #eab308;' : ''
 
       return `<div style="min-width: 100%; width: max-content; padding: 0 12px 0 16px; height: 20px; ${bg} ${shadow}">${colorized}</div>`
     })
@@ -107,24 +107,24 @@ const MAX_DRAFT_BYTES = 64_000
 // ---------------------------------------------------------------------------
 type Props = {
   liveState: LiveState
-  onPatch:   (partial: Partial<LiveState>) => Promise<void>
+  onPatch: (partial: Partial<LiveState>) => Promise<void>
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 export function OperatorOverride({ liveState, onPatch }: Props) {
-  const [open,           setOpen]           = useState(false)
-  const [editing,        setEditing]        = useState(false)
-  const [draft,          setDraft]          = useState('')
-  const [parseError,     setParseError]     = useState<string | null>(null)
-  const [applyError,     setApplyError]     = useState<string | null>(null)
-  const [isApplying,     setIsApplying]     = useState(false)
-  const [lastSavedAt,    setLastSavedAt]    = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [parseError, setParseError] = useState<string | null>(null)
+  const [applyError, setApplyError] = useState<string | null>(null)
+  const [isApplying, setIsApplying] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const [externalUpdate, setExternalUpdate] = useState(false)
 
-  const preRef      = useRef<HTMLPreElement>(null)
-  const editingRef  = useRef(editing)
+  const preRef = useRef<HTMLPreElement>(null)
+  const editingRef = useRef(editing)
 
   useEffect(() => { editingRef.current = editing }, [editing])
 
@@ -174,14 +174,14 @@ export function OperatorOverride({ liveState, onPatch }: Props) {
     } else {
       setExternalUpdate(true)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canonical])
 
   // ---- scroll sync ----------------------------------------------------------
 
   function handleScroll(e: React.UIEvent<HTMLTextAreaElement>) {
     if (preRef.current) {
-      preRef.current.scrollTop  = e.currentTarget.scrollTop
+      preRef.current.scrollTop = e.currentTarget.scrollTop
       preRef.current.scrollLeft = e.currentTarget.scrollLeft
     }
   }
@@ -267,7 +267,7 @@ export function OperatorOverride({ liveState, onPatch }: Props) {
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden flex flex-col w-full max-w-full">
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <button
         onClick={handleToggle}
         className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-zinc-50 transition-colors bg-white relative z-20"
@@ -298,7 +298,7 @@ export function OperatorOverride({ liveState, onPatch }: Props) {
       {open && (
         <div className="border-t border-zinc-100 flex flex-col w-full max-w-full relative">
 
-          {/* ── External-update warning ── */}
+          {/* -- External-update warning -- */}
           {externalUpdate && editing && (
             <div className="flex items-center justify-between gap-3 px-4 py-2 bg-sky-50 border-b border-sky-100">
               <p className="text-xs text-sky-800 font-medium">
@@ -313,7 +313,7 @@ export function OperatorOverride({ liveState, onPatch }: Props) {
             </div>
           )}
 
-          {/* ── JSON view / edit ── */}
+          {/* -- JSON view / edit -- */}
           <div className="relative bg-white w-full max-w-full">
             {!editing ? (
               <div className="relative w-full overflow-hidden">
@@ -357,7 +357,7 @@ export function OperatorOverride({ liveState, onPatch }: Props) {
             )}
           </div>
 
-          {/* ── Error bar ── */}
+          {/* -- Error bar -- */}
           {(parseError || applyError) && (
             <div className="flex items-start gap-2 px-4 py-2 bg-red-50 border-t border-red-100">
               <span className="shrink-0 text-[10px] font-bold mt-px px-1.5 py-0.5 rounded bg-red-100 text-red-600 leading-none">
@@ -369,7 +369,7 @@ export function OperatorOverride({ liveState, onPatch }: Props) {
             </div>
           )}
 
-          {/* ── Action bar ── */}
+          {/* -- Action bar -- */}
           <div className="px-4 py-3 bg-white flex items-center justify-end gap-3 flex-wrap border-t border-zinc-100">
             <div className="flex items-center gap-2">
               {editing ? (
