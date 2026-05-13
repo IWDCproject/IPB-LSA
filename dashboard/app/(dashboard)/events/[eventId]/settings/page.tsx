@@ -8,7 +8,7 @@ import {
   ChevronUp, ChevronDown, Trash2, Save, Plus, 
   User, Link, Instagram, Youtube, Globe, FileText, Mail, ExternalLink,
   Calendar, MapPin, Info, AlignLeft, Eye, Activity, UserPlus, Type,
-  Tag, Clock, CheckCircle2, Flag
+  Tag, Clock, CheckCircle2, Flag, AlertTriangle, Settings2, ShieldAlert
 } from 'lucide-react'
 
 import { directus, getAssetUrl } from '@/lib/directus'
@@ -637,7 +637,7 @@ function TimelineTab({ eventId, phases, onRefresh }: { eventId: string; phases: 
 
       {/* Graph preview */}
       <SectionCard title="Live Preview Graph">
-        <div className="relative w-full h-[140px] px-8 md:px-12">
+        <div className="relative w-full h-[180px] px-8 md:px-12 pt-8">
           {localPhases.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <span className="text-sm text-zinc-400 italic">Belum ada fase.</span>
@@ -846,9 +846,14 @@ function DangerTab({ event, onRefresh }: { event: Event; onRefresh: () => void }
 
   return (
     <div className="space-y-6 pb-12">
-      <div>
-        <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Danger Zone</h2>
-        <p className="text-sm text-zinc-500 mt-1">Tindakan di sini bersifat permanen dan tidak bisa dibatalkan.</p>
+      <div className="flex items-start gap-3">
+        <div className="mt-1 p-2 bg-red-50 rounded-lg">
+          <ShieldAlert size={20} className="text-red-600" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Danger Zone</h2>
+          <p className="text-sm text-zinc-500 mt-1">Tindakan di sini bersifat permanen dan tidak bisa dibatalkan.</p>
+        </div>
       </div>
 
       <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm divide-y divide-zinc-200">
@@ -859,20 +864,25 @@ function DangerTab({ event, onRefresh }: { event: Event; onRefresh: () => void }
             <p className="text-[13px] text-zinc-500 mt-0.5 lg:max-w-sm">Ubah status event secara manual. Beberapa status mungkin mempengaruhi tampilan publik.</p>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={status}
-              onChange={e => setStatus(e.target.value as Event['status'])}
-              disabled={loading}
-              className={cn(SELECT, 'w-full md:w-44 font-semibold')}
-            >
-              <option value="draft">Draft</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="active">Ongoing (Active)</option>
-              <option value="finished">Finished</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <Button variant="filled" onClick={handleSaveStatus} disabled={loading || status === event.status} className="h-9">
-              Save
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+                <Settings2 size={12} />
+              </div>
+              <select
+                value={status}
+                onChange={e => setStatus(e.target.value as Event['status'])}
+                disabled={loading}
+                className={cn(SELECT, 'w-full md:w-44 font-semibold pl-8 h-9')}
+              >
+                <option value="draft">Draft</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="active">Ongoing (Active)</option>
+                <option value="finished">Finished</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <Button variant="filled" onClick={handleSaveStatus} disabled={loading || status === event.status} className="h-9 min-w-[80px]">
+              {loading ? '...' : 'Save'}
             </Button>
           </div>
         </div>
@@ -885,10 +895,11 @@ function DangerTab({ event, onRefresh }: { event: Event; onRefresh: () => void }
           </div>
           <Button
             variant="filled"
-            className="bg-red-600 hover:bg-red-700 border-none text-white w-full lg:w-auto h-9 text-sm font-semibold"
+            className="bg-red-600 hover:bg-red-700 border-none text-white w-full lg:w-auto h-9 text-sm font-bold flex items-center gap-2"
             onClick={handleDelete}
             disabled={loading}
           >
+            <Trash2 size={14} />
             {loading ? 'Menghapus...' : 'Hapus Event'}
           </Button>
         </div>
