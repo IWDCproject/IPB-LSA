@@ -14,6 +14,6 @@ export default async function ActivityLogsPage() {
   const logs = result.success ? result.data : []
 
   return (
-    <ActivityLogsTab logs={logs} />
+    <ActivityLogsTab initialLogs={logs} />
   )
 }

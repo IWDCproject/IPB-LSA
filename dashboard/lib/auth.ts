@@ -6,6 +6,7 @@ import { createDirectus, rest, staticToken, readUsers } from '@directus/sdk'
 import { redirect } from 'next/navigation'
 import { authConfig } from './auth.config'
 import type { UserRole } from '@/types/directus'
+import { ROLES } from './constants'
 
 // SDK Khusus Server untuk cek database saat login
 const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
@@ -23,7 +24,7 @@ type DirectusUserRow = {
  */
 function toUserRole(roleName: string): UserRole {
   // Jika di Directus namanya Administrator atau SuperAdmin, jadikan SuperAdmin di app
-  if (roleName === 'SuperAdmin' || roleName === 'Administrator') return 'SuperAdmin'
+  if (roleName === ROLES.SUPER_ADMIN || roleName === ROLES.ADMINISTRATOR) return 'SuperAdmin'
   return 'PJ Ormawa'
 }
 

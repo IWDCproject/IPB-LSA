@@ -17,6 +17,7 @@ import { pingWebRevalidate } from '@/lib/revalidate'
 
 import { adminDirectus } from '@/lib/directus-admin'
 import { logActivity } from '@/lib/activity'
+import { ROLES } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Validation helpers
@@ -30,12 +31,12 @@ function assertUUID(value: unknown, label: string): asserts value is string {
   }
 }
 
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_LOGO_BYTES = 5 * 1024 * 1024 // 5 MB
 
 function validateImageFile(file: File): void {
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    throw new Error(`Tipe file tidak didukung: ${file.type}. Gunakan JPEG, PNG, WebP, atau GIF.`)
+    throw new Error(`Tipe file tidak didukung: ${file.type}. Gunakan JPEG, PNG, atau WebP.`)
   }
   if (file.size > MAX_LOGO_BYTES) {
     throw new Error(`Ukuran file terlalu besar (maks 5 MB).`)
@@ -59,7 +60,7 @@ async function assertEventAccess(
     readItem('events', eventId, { fields: ['id', 'slug', 'user_created'] }),
   ) as any
 
-  if (role !== 'SuperAdmin' && event.user_created !== directusId) {
+  if (role !== ROLES.SUPER_ADMIN && event.user_created !== directusId) {
     throw new Error('Forbidden: Anda tidak punya akses ke event ini.')
   }
   return event
@@ -99,7 +100,7 @@ async function resolveAndVerifyEvent(identifier: string) {
   if (!event) throw new Error('Event not found')
 
   // Ownership Guard (Prevent IDOR)
-  if (role !== 'SuperAdmin' && role !== 'Administrator' && role !== 'PJ Ormawa') {
+  if (role !== ROLES.SUPER_ADMIN && role !== ROLES.ADMINISTRATOR && role !== ROLES.OPERATOR) {
     if (event.user_created !== userId) {
       throw new Error('Forbidden: You do not own this event')
     }
@@ -171,7 +172,7 @@ export async function createParticipantAction(payload: Record<string, unknown>) 
 
   const { role, directusId } = session.user
 
-  if (role !== 'SuperAdmin' && role !== 'PJ Ormawa') {
+  if (role !== ROLES.SUPER_ADMIN && role !== ROLES.OPERATOR) {
     return { success: false, error: `Forbidden: Role anda (${role}) tidak punya akses.` }
   }
 
@@ -217,7 +218,7 @@ export async function updateParticipantAction(
 
   const { role, directusId } = session.user
 
-  if (role !== 'SuperAdmin' && role !== 'PJ Ormawa') {
+  if (role !== ROLES.SUPER_ADMIN && role !== ROLES.OPERATOR) {
     return { success: false, error: `Forbidden: Role anda (${role}) tidak punya akses.` }
   }
 
@@ -266,7 +267,7 @@ export async function createInstitutionAction(formData: FormData) {
 
   const { role, directusId } = session.user
 
-  if (role !== 'SuperAdmin' && role !== 'PJ Ormawa') {
+  if (role !== ROLES.SUPER_ADMIN && role !== ROLES.OPERATOR) {
     return { success: false, error: 'Forbidden' }
   }
 

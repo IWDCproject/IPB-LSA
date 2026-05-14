@@ -109,7 +109,7 @@ function ImageUpload({
   file: File | null
   existingUrl: string | null | undefined
   isDragging: boolean
-  inputRef: React.RefObject<HTMLInputElement | null>
+  inputRef: React.RefObject<HTMLInputElement>
   onFile: (f: File | null) => void
   onDrag: (e: React.DragEvent, active: boolean) => void
   onDrop: (e: React.DragEvent) => void

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { DataTable } from '@/components/shared/DataTable'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -10,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { ActivityLog } from '../_actions'
+import { getActivityLogs, type ActivityLog } from '../_actions'
+import { Loader2 } from 'lucide-react'
 
 function UserAvatar({ name }: { name: string }) {
   const initials = name.slice(0, 2).toUpperCase()
@@ -22,10 +24,13 @@ function UserAvatar({ name }: { name: string }) {
 }
 
 interface Props {
-  logs: ActivityLog[]
+  initialLogs: ActivityLog[]
 }
 
-export function ActivityLogsTab({ logs }: Props) {
+export function ActivityLogsTab({ initialLogs }: Props) {
+  const [logs, setLogs] = useState<ActivityLog[]>(initialLogs)
+  const [loading, setLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(initialLogs.length >= 50)
   const [search, setSearch] = useState('')
   const [actionFilter, setActionFilter] = useState('all')
   const [entityFilter, setEntityFilter] = useState('all')
@@ -50,6 +55,17 @@ export function ActivityLogsTab({ logs }: Props) {
     })
     return Array.from(uniqueUsers.entries())
   }, [logs])
+
+  const fetchMore = async () => {
+    if (loading) return
+    setLoading(true)
+    const result = await getActivityLogs({ offset: logs.length, limit: 50 })
+    if (result.success && result.data) {
+      setLogs(prev => [...prev, ...result.data])
+      setHasMore(result.data.length === 50)
+    }
+    setLoading(false)
+  }
 
   const columns = [
     {
@@ -188,6 +204,20 @@ export function ActivityLogsTab({ logs }: Props) {
         count={filteredLogs.length}
         countLabel={filteredLogs.length === 1 ? 'event' : 'events'}
       />
+
+      {hasMore && (
+        <div className="flex justify-center pt-4">
+          <Button 
+            variant="default" 
+            onClick={fetchMore} 
+            disabled={loading}
+            className="min-w-[120px]"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {loading ? 'Loading...' : 'Load More'}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -15,6 +15,7 @@ import { adminDirectus } from '@/lib/directus-admin'
 import { logActivity } from '@/lib/activity'
 import { z } from 'zod'
 import { pingWebRevalidate } from '@/lib/revalidate'
+import { ROLES, ALL_OPERATOR_ROLES } from '@/lib/constants'
 
 // --- Strict Runtime Payload Validation ---
 const MatchPayloadSchema = z.object({
@@ -49,11 +50,11 @@ const MatchPayloadSchema = z.object({
 
 export type MatchActionPayload = z.input<typeof MatchPayloadSchema>
 
-const OPERATOR_ROLES = ['SuperAdmin', 'Administrator', 'PJ Ormawa'] as const
+const OPERATOR_ROLES = ALL_OPERATOR_ROLES
 type OperatorRole = typeof OPERATOR_ROLES[number]
 
 function isOperator(role: string | undefined): role is OperatorRole {
-  return OPERATOR_ROLES.includes(role as OperatorRole)
+  return (OPERATOR_ROLES as readonly string[]).includes(role as string)
 }
 
 export async function createMatchAction(payload: MatchActionPayload) {
@@ -71,7 +72,7 @@ export async function createMatchAction(payload: MatchActionPayload) {
 
   try {
     // 1. Authorization: Verify Category Ownership
-    if (session.user.role === 'PJ Ormawa') {
+    if (session.user.role === ROLES.OPERATOR) {
       const category = await adminDirectus.request(
         readItem('competition_categories', matchData.competition_category_id, {
           fields: ['event_id.user_created']

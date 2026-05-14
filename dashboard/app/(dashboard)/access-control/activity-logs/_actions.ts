@@ -26,11 +26,17 @@ export type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string }
 
-export async function getActivityLogs(): Promise<ActionResult<ActivityLog[]>> {
+export async function getActivityLogs(params?: { 
+  limit?: number; 
+  offset?: number 
+}): Promise<ActionResult<ActivityLog[]>> {
   const session = await auth()
   if (!session || session.user.role !== 'SuperAdmin') {
     return { success: false, error: 'Unauthorized' }
   }
+
+  const limit = params?.limit ?? 50
+  const offset = params?.offset ?? 0
 
   try {
     const logs = await adminDirectus.request(
@@ -49,7 +55,8 @@ export async function getActivityLogs(): Promise<ActionResult<ActivityLog[]>> {
           'event_id.slug',
         ],
         sort: ['-created_at'],
-        limit: 100, // For now, simple limit. Pagination can be added later.
+        limit,
+        offset,
       })
     ) as unknown as ActivityLog[]
 
