@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, ChevronDown, ExternalLink } from 'lucide-react'
 import type { NewsArticle } from '@/types/directus'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // --- Types -----------------------------------------------------
 
@@ -134,35 +135,42 @@ export default function ArticlesPage() {
             />
           </div>
           
-          <FilterSelect 
-            value={statusFilter} 
-            onChange={setStatusFilter}
-            options={[
-              { value: 'all', label: 'All Status' },
-              { value: 'published', label: 'Published' },
-              { value: 'draft', label: 'Draft' },
-            ]} 
-          />
-          <FilterSelect 
-            value={eventFilter} 
-            onChange={setEventFilter}
-            options={[
-              { value: 'all', label: 'All Events' },
-              ...events.map(e => ({ value: e.id, label: e.name })),
-              { value: 'none', label: 'No Event' }
-            ]} 
-          />
-          <FilterSelect 
-            value={categoryFilter} 
-            onChange={setCategoryFilter}
-            options={[
-              { value: 'all', label: 'All Categories' },
-              { value: 'announcement', label: 'Announcement' },
-              { value: 'result', label: 'Result' },
-              { value: 'news', label: 'News' },
-              { value: 'update', label: 'Update' }
-            ]} 
-          />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40 h-11 bg-white border-zinc-300">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={eventFilter} onValueChange={setEventFilter}>
+            <SelectTrigger className="w-56 h-11 bg-white border-zinc-300">
+              <SelectValue placeholder="All Events" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              {events.map(e => (
+                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+              ))}
+              <SelectItem value="none">No Event</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-44 h-11 bg-white border-zinc-300">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="announcement">Announcement</SelectItem>
+              <SelectItem value="result">Result</SelectItem>
+              <SelectItem value="news">News</SelectItem>
+              <SelectItem value="update">Update</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {loading ? (
@@ -253,23 +261,6 @@ export default function ArticlesPage() {
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-function FilterSelect({ value, onChange, options }: { value: string; onChange: (val: string) => void; options: { value: string; label: string }[] }) {
-  return (
-    <div className="relative shrink-0">
-      <select 
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none outline-none w-full pl-4 pr-10 py-2 bg-white border border-zinc-300 rounded-lg cursor-pointer hover:bg-zinc-50 min-w-[140px] h-11 shadow-sm transition-colors text-sm text-zinc-600 font-medium"
-      >
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
     </div>
   )
 }

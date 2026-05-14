@@ -8,6 +8,7 @@ import {
   staticToken,
   createItem,
   updateItem,
+  deleteItem,
   uploadFiles,
   readItem,
   readItems,
@@ -407,17 +408,95 @@ export async function getParticipantsDataAction(eventSlugOrId: string) {
       ),
     ])
 
-    return {
-      success: true,
-      data: {
-        categories: categories as any[],
-        participants: rawParticipants as any[],
-        institutions: institutions as any[],
-        eventId: eventId
-      }
-    }
+    return { success: true, data: { categories: categories as any[], participants: rawParticipants as any[], institutions: institutions as any[], eventId: eventId } }
   } catch (error: any) {
     console.error('getParticipantsDataAction error:', error?.message ?? error)
     return { success: false, error: error?.message ?? 'Gagal memuat data.' }
+  }
+}
+
+export async function deleteParticipantAction(participantId: string) {
+  const session = await auth()
+  if (!session?.user) return { success: false, error: 'Unauthorized' }
+  const { role, directusId } = session.user
+  if (role !== ROLES.SUPER_ADMIN && role !== ROLES.OPERATOR) return { success: false, error: 'Forbidden' }
+
+  try {
+    assertUUID(participantId, 'participantId')
+
+    const participant = await adminDirectus.request(readItem('participants', participantId, { fields: ['competition_category_id', 'name'] }))
+    const event = await assertCategoryAccess(participant.competition_category_id, directusId, role)
+
+    // Check if used in matches
+    const [h2hMatches, matchParts] = await Promise.all([
+      adminDirectus.request(readItems('matches', {
+        filter: { _or: [{ home_participant_id: { _eq: participantId } }, { away_participant_id: { _eq: participantId } }] },
+        limit: 1
+      })),
+      adminDirectus.request(readItems('match_participants', {
+        filter: { participant_id: { _eq: participantId } },
+        limit: 1
+      }))
+    ])
+
+    if (h2hMatches.length > 0 || matchParts.length > 0) {
+      return { success: false, error: 'Partisipan ini sudah terdaftar dalam pertandingan. Hapus pertandingan terkait terlebih dahulu.' }
+    }
+
+    await adminDirectus.request(deleteItem('participants', participantId))
+    revalidatePath(`/events/${event.id}/participants`, 'page')
+    await pingWebRevalidate({ slug: event.slug })
+    await logActivity({
+      action: 'delete_participant',
+      entity: 'participants',
+      entityId: participantId,
+      description: `Menghapus partisipan "${participant.name}"`,
+      eventId: event.id,
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('deleteParticipantAction error:', error?.message ?? error)
+    return { success: false, error: error?.message ?? 'Gagal menghapus partisipan' }
+  }
+}
+
+export async function deleteInstitutionAction(institutionId: string) {
+  const session = await auth()
+  if (!session?.user) return { success: false, error: 'Unauthorized' }
+  const { role, directusId } = session.user
+  if (role !== ROLES.SUPER_ADMIN && role !== ROLES.OPERATOR) return { success: false, error: 'Forbidden' }
+
+  try {
+    assertUUID(institutionId, 'institutionId')
+
+    const institution = await adminDirectus.request(readItem('institutions', institutionId, { fields: ['event_id', 'name'] }))
+    const event = await assertEventAccess(institution.event_id, directusId, role)
+
+    // Check if used by participants
+    const parts = await adminDirectus.request(readItems('participants', {
+      filter: { institution_id: { _eq: institutionId } },
+      limit: 1
+    }))
+
+    if (parts.length > 0) {
+      return { success: false, error: 'Institusi ini masih digunakan oleh beberapa partisipan. Hapus atau pindahkan partisipan tersebut terlebih dahulu.' }
+    }
+
+    await adminDirectus.request(deleteItem('institutions', institutionId))
+    revalidatePath(`/events/${event.id}/participants`, 'page')
+    await pingWebRevalidate({ slug: event.slug })
+    await logActivity({
+      action: 'delete_institution',
+      entity: 'institutions',
+      entityId: institutionId,
+      description: `Menghapus institusi "${institution.name}"`,
+      eventId: event.id,
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('deleteInstitutionAction error:', error?.message ?? error)
+    return { success: false, error: error?.message ?? 'Gagal menghapus institusi' }
   }
 }

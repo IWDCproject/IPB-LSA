@@ -199,7 +199,7 @@ export default function ManualPickPanel({
             <label className="text-xs font-medium text-zinc-500 block mb-1.5">Add participant</label>
             <div className="flex gap-2">
               <Select value={addingId} onValueChange={setAddingId}>
-                <SelectTrigger className="!h-10 rounded-lg flex-1 text-sm">
+                <SelectTrigger className="rounded-lg flex-1 text-sm">
                   <SelectValue placeholder="Select participant…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,7 +211,7 @@ export default function ManualPickPanel({
               <Button
                 onClick={handleAdd}
                 disabled={!addingId}
-                className="h-10 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0 rounded-lg"
+                className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0 rounded-lg"
               >
                 + Add
               </Button>
@@ -300,7 +300,7 @@ export default function ManualPickPanel({
           <Button
             onClick={applyRankings}
             disabled={rankedIds.length === 0}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white text-sm h-10 px-4"
+            className="bg-zinc-900 hover:bg-zinc-800 text-white text-sm h-9 px-4"
           >
             Apply Rankings
           </Button>

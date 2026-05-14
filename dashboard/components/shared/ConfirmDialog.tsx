@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 // --- Types -------------------------------------------------------------------
 
@@ -50,29 +51,34 @@ export function ConfirmDialog({
   return (
     <>
       {/* Trigger - rendered inline, opens dialog on click */}
-      <span onClick={() => setOpen(true)} className="contents">
+      <div onClick={() => setOpen(true)} className="contents cursor-pointer">
         {trigger}
-      </span>
+      </div>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 ease-out"
           onClick={(e) => e.target === e.currentTarget && !loading && setOpen(false)}
         >
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-
-            {/* -- Header -- */}
-            <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
-              <h2 className="text-base font-bold text-zinc-900">{title}</h2>
-              <p className="mt-1 text-sm text-zinc-500 leading-relaxed break-words">{description}</p>
+          <div className="bg-white w-full max-w-[440px] rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 ease-out flex flex-col overflow-hidden max-h-[90vh]">
+            
+            {/* -- Header Content -- */}
+            <div className="p-6 sm:p-8 text-left">
+              <h2 className="text-lg font-bold text-zinc-900 leading-tight whitespace-normal break-words">
+                {title}
+              </h2>
+              <p className="mt-2.5 text-sm text-zinc-500 leading-relaxed whitespace-normal break-words">
+                {description}
+              </p>
             </div>
 
-            {/* -- Footer -- */}
-            <div className="px-6 pb-5 pt-4 border-t border-zinc-100 flex justify-end gap-2">
+            {/* -- Footer Actions -- */}
+            <div className="px-6 py-5 sm:px-8 bg-zinc-50/50 border-t border-zinc-100 flex flex-col-reverse sm:flex-row justify-end gap-3">
               <Button
                 variant="noBorder"
                 onClick={() => setOpen(false)}
                 disabled={loading}
+                className="w-full sm:w-auto font-semibold text-sm text-zinc-500 hover:text-zinc-900"
               >
                 Cancel
               </Button>
@@ -80,8 +86,12 @@ export function ConfirmDialog({
                 variant={variant}
                 onClick={handleConfirm}
                 disabled={loading}
+                className={cn(
+                  "w-full sm:w-auto font-bold text-sm px-8 h-10",
+                  variant === 'destructive' ? 'bg-red-600 hover:bg-red-700 text-white border-red-600 shadow-md shadow-red-500/10' : ''
+                )}
               >
-                {loading ? 'Loading...' : confirmLabel}
+                {loading ? 'Processing...' : confirmLabel}
               </Button>
             </div>
 

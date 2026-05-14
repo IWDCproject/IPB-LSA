@@ -9,7 +9,7 @@ import { AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
 
 // --- Shared Constants ------------------------------------------
 
-const labelCls = 'block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5'
+const labelCls = 'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
 
 // --- Helpers ---------------------------------------------------
 
@@ -64,14 +64,14 @@ export function YoutubeDialog({ editor, onClose }: { editor: Editor; onClose: ()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 ease-out" onClick={onClose}>
       <div 
-        className="w-full max-w-[480px] rounded-2xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-[480px] rounded-xl bg-white shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-5 border-b border-zinc-100 flex items-start justify-between">
           <div>
-            <h2 className="text-base font-bold text-zinc-900">Embed YouTube Video</h2>
+            <h2 className="text-base font-bold text-zinc-900 leading-tight">Embed YouTube Video</h2>
             <p className="mt-0.5 text-xs text-zinc-400">Add a video player to your article content.</p>
           </div>
           <button onClick={onClose} className="p-1 text-zinc-400 hover:text-zinc-900 transition-colors">
@@ -82,7 +82,7 @@ export function YoutubeDialog({ editor, onClose }: { editor: Editor; onClose: ()
         <div className="p-6 space-y-5">
           <div>
             <label className={labelCls}>Video URL</label>
-            <div className="flex gap-2">
+            <div className="mt-1.5 flex gap-2">
               <input
                 autoFocus
                 type="url"
@@ -90,9 +90,9 @@ export function YoutubeDialog({ editor, onClose }: { editor: Editor; onClose: ()
                 value={url}
                 onChange={(e) => { setUrl(e.target.value); setVideoId(null); setThumbOk(null); setChecked(false) }}
                 onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
-                className="flex-1 h-10 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white"
+                className="flex-1 h-9 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 placeholder:italic focus:border-zinc-900 focus:bg-white"
               />
-              <Button variant="default" className="h-10 px-4 font-bold uppercase tracking-widest text-[10px] border-zinc-200" onClick={handleCheck} disabled={!url.trim()}>
+              <Button variant="default" className="h-9 px-4 font-bold uppercase tracking-widest text-[10px] border-zinc-200" onClick={handleCheck} disabled={!url.trim()}>
                 Check
               </Button>
             </div>
@@ -178,14 +178,14 @@ export function GDriveDialog({ editor, onClose }: { editor: Editor; onClose: () 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 ease-out" onClick={onClose}>
       <div 
-        className="w-full max-w-[480px] rounded-2xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-[480px] rounded-xl bg-white shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-5 border-b border-zinc-100 flex items-start justify-between">
           <div>
-            <h2 className="text-base font-bold text-zinc-900">Google Drive Image</h2>
+            <h2 className="text-base font-bold text-zinc-900 leading-tight">Google Drive Image</h2>
             <p className="mt-0.5 text-xs text-zinc-400">Embed images shared from Google Drive.</p>
           </div>
           <button onClick={onClose} className="p-1 text-zinc-400 hover:text-zinc-900 transition-colors">
@@ -202,7 +202,7 @@ export function GDriveDialog({ editor, onClose }: { editor: Editor; onClose: () 
 
           <div>
             <label className={labelCls}>File URL</label>
-            <div className="flex gap-2">
+            <div className="mt-1.5 flex gap-2">
               <input
                 autoFocus
                 type="url"
@@ -210,9 +210,9 @@ export function GDriveDialog({ editor, onClose }: { editor: Editor; onClose: () 
                 value={url}
                 onChange={(e) => { setUrl(e.target.value); setFileId(null); setStatus('idle') }}
                 onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
-                className="flex-1 h-10 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all focus:border-zinc-900 focus:bg-white"
+                className="flex-1 h-9 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all focus:border-zinc-900 focus:bg-white"
               />
-              <Button variant="default" className="h-10 border border-zinc-200 font-bold uppercase tracking-widest text-[10px]" onClick={handleCheck} disabled={!url.trim()}>
+              <Button variant="default" className="h-9 border border-zinc-200 font-bold uppercase tracking-widest text-[10px]" onClick={handleCheck} disabled={!url.trim()}>
                 Check
               </Button>
             </div>
@@ -271,7 +271,7 @@ export function PreviewModal({ title, content, thumbnailId, category, publishedA
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#fafafa]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#fafafa] animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out">
       
       {/* Admin Top Bar - Styled to reference but separate from content */}
       <div className="sticky top-0 z-50 flex items-center justify-between border-b border-zinc-200 bg-white/95 backdrop-blur-sm px-6 py-3">

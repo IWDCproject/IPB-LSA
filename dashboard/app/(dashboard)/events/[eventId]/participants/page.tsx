@@ -11,10 +11,16 @@ import { useDirectusFetch } from '@/hooks/useDirectusFetch'
 import { DataTable } from '@/components/shared/DataTable'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { Trash2, SquarePen } from 'lucide-react'
 
 import type { Institution, CompetitionCategory, Participant as RawParticipant } from '@/types/directus'
 
-import { getParticipantsDataAction } from './_actions'
+import { 
+  getParticipantsDataAction, 
+  deleteParticipantAction, 
+  deleteInstitutionAction 
+} from './_actions'
 import AddInstitutionModal from './_components/AddInstitutionModal'
 import AddParticipantModal from './_components/AddParticipantModal'
 
@@ -258,11 +264,27 @@ export default function ParticipantsPage() {
                   label: 'Action', 
                   className: 'text-right',
                   render: (_, row) => (
-                    <div 
-                      onClick={() => handleEditInstitution(row)}
-                      className="flex items-center justify-end text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer"
-                    >
-                      Edit <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                    <div className="flex items-center justify-end gap-3">
+                      <div 
+                        onClick={() => handleEditInstitution(row)}
+                        className="flex items-center text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer text-sm font-bold"
+                      >
+                        Edit <SquarePen className="ml-1.5 h-3.5 w-3.5" />
+                      </div>
+                      <ConfirmDialog
+                        trigger={
+                          <div className="flex items-center text-red-500 hover:text-red-700 transition-colors cursor-pointer text-sm font-bold">
+                            Hapus <Trash2 className="ml-1.5 h-3.5 w-3.5" />
+                          </div>
+                        }
+                        title="Delete Institution"
+                        description={`Are you sure you want to delete "${row.name}"? This action cannot be undone.`}
+                        onConfirm={async () => {
+                          const res = await deleteInstitutionAction(row.id)
+                          if (res.success) handleRefresh()
+                          else alert(res.error)
+                        }}
+                      />
                     </div>
                   )
                 }
@@ -327,11 +349,27 @@ export default function ParticipantsPage() {
                   label: 'Action', 
                   className: 'text-right',
                   render: (_, row) => (
-                    <div 
-                      onClick={() => handleEditParticipant(row)}
-                      className="flex items-center justify-end text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer"
-                    >
-                      Edit <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                    <div className="flex items-center justify-end gap-3">
+                      <div 
+                        onClick={() => handleEditParticipant(row)}
+                        className="flex items-center text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer text-sm font-bold"
+                      >
+                        Edit <SquarePen className="ml-1.5 h-3.5 w-3.5" />
+                      </div>
+                      <ConfirmDialog
+                        trigger={
+                          <div className="flex items-center text-red-500 hover:text-red-700 transition-colors cursor-pointer text-sm font-bold">
+                            Hapus <Trash2 className="ml-1.5 h-3.5 w-3.5" />
+                          </div>
+                        }
+                        title="Delete Participant"
+                        description={`Are you sure you want to delete "${row.name}"? This action cannot be undone.`}
+                        onConfirm={async () => {
+                          const res = await deleteParticipantAction(row.id)
+                          if (res.success) handleRefresh()
+                          else alert(res.error)
+                        }}
+                      />
                     </div>
                   )
                 }

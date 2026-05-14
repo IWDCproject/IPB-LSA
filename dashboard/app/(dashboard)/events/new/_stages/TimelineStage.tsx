@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SectionCard, FieldGroup, TEXTAREA } from '../_components'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { EventForm, Phase } from '../_types'
 
 // --- Konstanta untuk grafik preview (sama persis dari settings) ---
@@ -262,15 +263,19 @@ export function TimelineStage({
                       <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
                         <CheckCircle2 size={12} />
                       </div>
-                      <select
+                      <Select
                         value={phase.status || 'upcoming'}
-                        onChange={e => onUpdatePhase(phase.id, { status: e.target.value as any })}
-                        className={cn(SELECT, 'pl-8 h-7')}
+                        onValueChange={v => onUpdatePhase(phase.id, { status: v as any })}
                       >
-                        <option value="upcoming">Upcoming</option>
-                        <option value="ongoing">Ongoing</option>
-                        <option value="done">Done</option>
-                      </select>
+                        <SelectTrigger className="pl-8 h-7 bg-zinc-50/50 border-zinc-200">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="upcoming">Upcoming</SelectItem>
+                          <SelectItem value="ongoing">Ongoing</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </FieldGroup>
                 </div>

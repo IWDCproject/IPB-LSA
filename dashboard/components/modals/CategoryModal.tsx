@@ -86,12 +86,12 @@ export function CategoryDialog({ open, onClose, onSave, formats, editCategory }:
   return (
     <Dialog open={open} onOpenChange={(io) => !io && onClose()}>
       {/* Tambahkan bg-white di sini agar tidak transparan */}
-      <DialogContent className="bg-white sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{editCategory ? 'Edit Kategori' : 'Tambah Kategori'}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-5 px-6 py-6">
           {error && <p className="text-xs text-red-500 font-bold bg-red-50 p-2 rounded">{error}</p>}
 
           <div className="space-y-1.5">

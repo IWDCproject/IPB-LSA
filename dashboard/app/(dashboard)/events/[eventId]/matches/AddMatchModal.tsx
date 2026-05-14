@@ -13,6 +13,7 @@ import { directus } from '@/lib/directus'
 import { readItems } from '@directus/sdk'
 import type { MatchType } from '@/types/directus'
 import { createMatchAction, updateMatchAction } from './_actions'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // --- Types -------------------------------------------------------------------
 
@@ -46,7 +47,7 @@ const chevronSvg =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2371717a' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")"
 
 const inputBase =
-  'h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white'
+  'h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 placeholder:italic focus:border-zinc-900 focus:bg-white'
 
 const selectBase = [
   inputBase,
@@ -261,21 +262,16 @@ export function AddMatchModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      {/*
-        To enable backdrop-blur on this Dialog, update your dialog.tsx overlay to add:
-          className="... backdrop-blur-sm"
-        on the <DialogPrimitive.Overlay> element.
-      */}
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-white p-0 shadow-2xl border-0 rounded-2xl">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         {/* -- Header -- */}
-        <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
-          <DialogTitle className="text-base font-bold text-zinc-900">
+        <DialogHeader>
+          <DialogTitle>
             {matchToEdit ? 'Edit Match' : 'Add a Match'}
           </DialogTitle>
-          <DialogDescription className="mt-0.5 text-xs text-zinc-400">
+          <DialogDescription>
             Lengkapi informasi pertandingan di bawah ini.
           </DialogDescription>
-        </div>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
           {/* -- Main Info -- */}
@@ -284,17 +280,20 @@ export function AddMatchModal({
             {/* Category */}
             <div className="space-y-1.5">
               <label className={labelCls}>Category *</label>
-              <select
+              <Select
                 required
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className={selectBase}
+                onValueChange={setCategoryId}
               >
-                <option value="" disabled>- Select Category -</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="- Select Category -" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Scheduled At */}
@@ -324,7 +323,7 @@ export function AddMatchModal({
                     onBlur={handleHourBlur}
                     placeholder="HH"
                     maxLength={2}
-                    className="w-7 bg-transparent text-sm font-bold text-zinc-900 outline-none text-center placeholder:text-zinc-300"
+                    className="w-7 bg-transparent text-sm font-bold text-zinc-900 outline-none text-center placeholder:text-zinc-300 placeholder:italic"
                   />
                   <span className="text-zinc-300 font-bold select-none">:</span>
                   <input
@@ -336,7 +335,7 @@ export function AddMatchModal({
                     onBlur={handleMinBlur}
                     placeholder="MM"
                     maxLength={2}
-                    className="w-7 bg-transparent text-sm font-bold text-zinc-900 outline-none text-center placeholder:text-zinc-300"
+                    className="w-7 bg-transparent text-sm font-bold text-zinc-900 outline-none text-center placeholder:text-zinc-300 placeholder:italic"
                   />
                 </div>
               </div>
@@ -404,18 +403,22 @@ export function AddMatchModal({
                   ].map(({ label, value, onChange, disabledId }) => (
                     <div key={label} className="space-y-1.5">
                       <label className={labelCls}>{label}</label>
-                      <select
+                      <Select
                         value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        className={selectBase}
+                        onValueChange={onChange}
                       >
-                        <option value="">- Kosongkan -</option>
-                        {participants.map((p) => (
-                          <option key={p.id} value={p.id} disabled={p.id === disabledId}>
-                            {p.institutionName} – {p.name}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="- Kosongkan -" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">- Kosongkan -</SelectItem>
+                          {participants.map((p) => (
+                            <SelectItem key={p.id} value={p.id} disabled={p.id === disabledId}>
+                              {p.institutionName} – {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   ))}
                 </div>
@@ -425,18 +428,22 @@ export function AddMatchModal({
               {matchType === 'solo' && (
                 <div className="space-y-1.5 md:w-1/2">
                   <label className={labelCls}>Contestant</label>
-                  <select
+                  <Select
                     value={participantSolo}
-                    onChange={(e) => setParticipantSolo(e.target.value)}
-                    className={selectBase}
+                    onValueChange={setParticipantSolo}
                   >
-                    <option value="">- Kosongkan -</option>
-                    {participants.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.institutionName} – {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="- Kosongkan -" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">- Kosongkan -</SelectItem>
+                      {participants.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.institutionName} – {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 

@@ -151,7 +151,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
           <div className="flex items-center gap-2">
             {!isSolo && (
               <Select value={selectedId} onValueChange={setSelectedId}>
-                <SelectTrigger className="!h-10 rounded-lg min-w-0 flex-[2] text-sm">
+                <SelectTrigger className="rounded-lg min-w-0 flex-[2] text-sm">
                   <SelectValue placeholder="Select participant…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,7 +172,7 @@ export default function FinishTimePanel({ liveState, onPatch, format, participan
             <Button
               disabled={!canRecord}
               onClick={handleRecord}
-              className="h-10 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0 rounded-lg"
+              className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-sm shrink-0 rounded-lg"
             >
               Record
             </Button>
@@ -225,7 +225,7 @@ function TimeInput({
   placeholder: string; suffix: string; max: number
 }) {
   return (
-    <div className="flex items-center gap-1 h-10 rounded-lg border border-input bg-input/20 px-2 focus-within:border-zinc-400 transition-colors shrink-0">
+    <div className="flex items-center gap-1 h-9 rounded-lg border border-input bg-zinc-50 px-2 focus-within:border-zinc-900 focus-within:bg-white transition-all shrink-0">
       <input
         type="text"
         inputMode="numeric"

@@ -10,10 +10,14 @@ import { DataTable } from '@/components/shared/DataTable'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ExternalLink, Plus } from 'lucide-react'
+import { Plus, Trash2, SquarePen } from 'lucide-react'
 
 import { CategoryDialog } from '@/components/modals/CategoryModal'
-import { upsertCategoryAction, deleteCategoryAction } from './_actions'
+import { 
+  upsertCategoryAction, 
+  deleteCategoryAction,
+  deleteFormatAction
+} from './_actions'
 
 import type { CompetitionCategory, MatchFormat, FormatModule, MatchType, ParticipantType } from '@/types/directus'
 
@@ -67,6 +71,13 @@ export default function FormatsPage() {
   const handleDeleteCategory = async (id: string) => {
     const res = await deleteCategoryAction(id)
     if (res.success) refetch()
+    else alert(res.error)
+  }
+
+  const handleDeleteFormat = async (id: string) => {
+    const res = await deleteFormatAction(id)
+    if (res.success) refetch()
+    else alert(res.error)
   }
 
   const formatMap = new Map(formats?.map(f => [f.id, f]) ?? [])
@@ -96,10 +107,23 @@ export default function FormatsPage() {
             {
               key: '_actions', label: '', className: 'w-0',
               render: (_, row) => (
-                <div className="flex items-center gap-2">
-                  <Button variant="noBorder" onClick={() => router.push(`/events/${eventId}/formats/builder?formatId=${row.id}`)}>Edit</Button>
-                  {/* Delete format via client side readItems/deleteItem atau bikin action lagi jika mau */}
-                  <Button variant="noBorder" className="text-red-500">Delete</Button>
+                <div className="flex items-center justify-end gap-3">
+                  <div 
+                    onClick={() => router.push(`/events/${eventId}/formats/builder?formatId=${row.id}`)}
+                    className="flex items-center text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer text-sm font-bold"
+                  >
+                    Edit <SquarePen className="ml-1.5 h-3.5 w-3.5" />
+                  </div>
+                  <ConfirmDialog
+                    trigger={
+                      <div className="flex items-center text-red-500 hover:text-red-700 transition-colors cursor-pointer text-sm font-bold">
+                        Hapus <Trash2 className="ml-1.5 h-3.5 w-3.5" />
+                      </div>
+                    }
+                    title="Delete Format"
+                    description={`Are you sure you want to delete "${row.name}"? This will only work if the format is not used by any categories.`}
+                    onConfirm={() => handleDeleteFormat(row.id)}
+                  />
                 </div>
               )
             }
@@ -141,12 +165,21 @@ export default function FormatsPage() {
             {
               key: '_actions', label: '', className: 'w-0',
               render: (_, row) => (
-                <div className="flex items-center gap-2">
-                  <Button variant="noBorder" onClick={() => openEdit(row)}>Edit</Button>
+                <div className="flex items-center justify-end gap-3">
+                  <div 
+                    onClick={() => openEdit(row)}
+                    className="flex items-center text-zinc-900 hover:text-zinc-600 transition-colors cursor-pointer text-sm font-bold"
+                  >
+                    Edit <SquarePen className="ml-1.5 h-3.5 w-3.5" />
+                  </div>
                   <ConfirmDialog
-                    trigger={<Button variant="noBorder" className="text-red-500">Delete</Button>}
-                    title="Hapus kategori?"
-                    description={`Semua data peserta di "${row.name}" akan ikut terhapus.`}
+                    trigger={
+                      <div className="flex items-center text-red-500 hover:text-red-700 transition-colors cursor-pointer text-sm font-bold">
+                        Hapus <Trash2 className="ml-1.5 h-3.5 w-3.5" />
+                      </div>
+                    }
+                    title="Delete Category"
+                    description={`Are you sure you want to delete "${row.name}"? All participants and matches in this category will be inaccessible.`}
                     onConfirm={() => handleDeleteCategory(row.id)}
                   />
                 </div>

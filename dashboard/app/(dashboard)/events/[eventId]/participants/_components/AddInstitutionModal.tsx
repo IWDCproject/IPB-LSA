@@ -20,7 +20,7 @@ const labelCls =
   'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
 
 const inputCls =
-  'mt-1.5 h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white'
+  'mt-1.5 h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 placeholder:italic focus:border-zinc-900 focus:bg-white'
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -135,14 +135,14 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 ease-out"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out overflow-hidden">
 
         {/* -- Header -- */}
         <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
-          <h2 className="text-base font-bold text-zinc-900">
+          <h2 className="text-base font-bold text-zinc-900 leading-tight">
             {editingInstitution ? 'Edit Institusi' : 'Tambah Institusi'}
           </h2>
           <p className="mt-0.5 text-xs text-zinc-400">
@@ -171,7 +171,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
             <div className="mt-1.5 flex items-center gap-2">
               {/* Color preview swatch - validated to prevent CSS injection */}
               <div
-                className="h-10 w-10 shrink-0 rounded-lg border border-zinc-200"
+                className="h-9 w-9 shrink-0 rounded-lg border border-zinc-200"
                 style={{ backgroundColor: isValidHex(color) ? color : 'transparent' }}
               />
               <input
@@ -217,7 +217,7 @@ export default function AddInstitutionModal({ isOpen, onClose, eventId, onSucces
 
             <label
               htmlFor="inst-logo"
-              className="mt-1.5 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 text-sm font-semibold text-zinc-400 transition-colors hover:border-zinc-400 hover:bg-white"
+              className="mt-1.5 flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 text-sm font-semibold text-zinc-400 transition-colors hover:border-zinc-400 hover:bg-white"
             >
               <svg className="h-4 w-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

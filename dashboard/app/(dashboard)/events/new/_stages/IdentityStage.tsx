@@ -37,7 +37,7 @@ export function IdentityStage({ form, errors, touched, onChange, onBlur }: Props
                   <Type size={12} />
                 </div>
                 <Input
-                  className="pl-8 placeholder:italic placeholder:text-zinc-500"
+                  className="pl-8 placeholder:italic placeholder:text-zinc-300"
                   placeholder="Contoh: IPB Sport Championship 2024"
                   value={form.name}
                   onChange={e => onChange('name')(e.target.value)}
@@ -95,7 +95,7 @@ export function IdentityStage({ form, errors, touched, onChange, onBlur }: Props
                   <MapPin size={12} />
                 </div>
                 <Input
-                  className="pl-8 placeholder:italic placeholder:text-zinc-500"
+                  className="pl-8 placeholder:italic placeholder:text-zinc-300"
                   placeholder="Gedung Gymnasium IPB, Bogor"
                   value={form.location}
                   onChange={e => onChange('location')(e.target.value)}

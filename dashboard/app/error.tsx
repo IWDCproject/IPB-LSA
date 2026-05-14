@@ -17,7 +17,7 @@ export default function Error({
 
   return (
     <div className="h-full min-h-[400px] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white border border-zinc-200 p-10 rounded-2xl shadow-xl text-center space-y-8">
+      <div className="max-w-md w-full bg-white border border-zinc-200 p-10 rounded-xl shadow-xl text-center space-y-8">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-50 text-amber-500">
           <AlertTriangle size={40} />
         </div>

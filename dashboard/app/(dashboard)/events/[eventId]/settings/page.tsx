@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import type { Event, EventPhase } from '@/types/directus'
 
@@ -424,7 +425,7 @@ function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) 
                   <input
                     value={form.slug}
                     onChange={e => set('slug')(e.target.value)}
-                    className="flex-1 bg-transparent py-1 pr-3 text-sm outline-none md:text-xs/relaxed"
+                    className="flex-1 bg-transparent py-1 pr-3 text-sm outline-none md:text-xs/relaxed lowercase placeholder:italic"
                   />
                 </div>
               </FieldGroup>
@@ -526,10 +527,15 @@ function InfoTab({ event, onRefresh }: { event: Event; onRefresh: () => void }) 
               <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
                 <Activity size={12} />
               </div>
-              <select value={form.type} onChange={e => set('type')(e.target.value)} className={cn(SELECT, 'pl-8')}>
-                <option value="sport">Sport</option>
-                <option value="arts">Arts</option>
-              </select>
+              <Select value={form.type} onValueChange={set('type')}>
+                <SelectTrigger className="pl-8 bg-zinc-50/50 border-zinc-200">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sport">Sport</SelectItem>
+                  <SelectItem value="arts">Arts</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </FieldGroup>
 
@@ -745,15 +751,19 @@ function TimelineTab({ eventId, phases, onRefresh }: { eventId: string; phases: 
                       <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
                         <CheckCircle2 size={12} />
                       </div>
-                      <select 
+                      <Select 
                         value={phase.status} 
-                        onChange={e => updatePhase(phase.id, { status: e.target.value as any })} 
-                        className={cn(SELECT, 'pl-8 h-7')}
+                        onValueChange={v => updatePhase(phase.id, { status: v as any })} 
                       >
-                        <option value="upcoming">Upcoming</option>
-                        <option value="ongoing">Ongoing</option>
-                        <option value="done">Done</option>
-                      </select>
+                        <SelectTrigger className="pl-8 h-7 bg-zinc-50/50 border-zinc-200">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="upcoming">Upcoming</SelectItem>
+                          <SelectItem value="ongoing">Ongoing</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </FieldGroup>
                 </div>
@@ -868,18 +878,22 @@ function DangerTab({ event, onRefresh }: { event: Event; onRefresh: () => void }
               <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-blue-500 transition-colors">
                 <Settings2 size={12} />
               </div>
-              <select
+              <Select
                 value={status}
-                onChange={e => setStatus(e.target.value as Event['status'])}
+                onValueChange={v => setStatus(v as Event['status'])}
                 disabled={loading}
-                className={cn(SELECT, 'w-full md:w-44 font-semibold pl-8 h-9')}
               >
-                <option value="draft">Draft</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="active">Ongoing (Active)</option>
-                <option value="finished">Finished</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+                <SelectTrigger className="w-full md:w-44 font-semibold pl-8 h-9 bg-zinc-50/50 border-zinc-200">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="active">Ongoing (Active)</SelectItem>
+                  <SelectItem value="finished">Finished</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button variant="filled" onClick={handleSaveStatus} disabled={loading || status === event.status} className="h-9 min-w-[80px]">
               {loading ? '...' : 'Save'}

@@ -192,10 +192,27 @@ export async function deleteCategoryAction(id: string) {
       return { success: false, error: 'Hanya Admin yang dapat menghapus kategori.' }
     }
 
-    // Fetch the slug before deleting so we can clear the cache
     const category = await adminDirectus.request(
-      readItem('competition_categories', id, { fields: ['event_id.slug'] })
+      readItem('competition_categories', id, { fields: ['id', 'name', 'event_id.id', 'event_id.slug'] })
     ) as any
+
+    // Integrity Check: Are there participants?
+    const parts = await adminDirectus.request(readItems('participants', {
+      filter: { competition_category_id: { _eq: id } },
+      limit: 1
+    }))
+    if (parts.length > 0) {
+      return { success: false, error: 'Kategori ini masih memiliki peserta. Hapus semua peserta terlebih dahulu.' }
+    }
+
+    // Integrity Check: Are there matches?
+    const matches = await adminDirectus.request(readItems('matches', {
+      filter: { competition_category_id: { _eq: id } },
+      limit: 1
+    }))
+    if (matches.length > 0) {
+      return { success: false, error: 'Kategori ini masih memiliki data pertandingan. Hapus semua pertandingan terkait terlebih dahulu.' }
+    }
 
     await adminDirectus.request(deleteItem('competition_categories', id))
     
@@ -207,13 +224,54 @@ export async function deleteCategoryAction(id: string) {
       action: 'delete_category',
       entity: 'competition_categories',
       entityId: id,
-      description: `Menghapus kategori (ID: ${id})`,
+      description: `Menghapus kategori "${category.name}"`,
       eventId: category?.event_id?.id || null,
     })
 
     return { success: true }
   } catch (error: any) {
     console.error("[deleteCategoryAction]", error)
-    return { success: false, error: 'Gagal menghapus kategori' }
+    return { success: false, error: error.message || 'Gagal menghapus kategori' }
+  }
+}
+
+export async function deleteFormatAction(id: string) {
+  try {
+    const session = await auth()
+    if (!session || (session.user.role !== 'SuperAdmin' && session.user.role !== 'Administrator')) {
+      return { success: false, error: 'Hanya Admin yang dapat menghapus format.' }
+    }
+
+    const format = await adminDirectus.request(
+      readItem('match_formats', id, { fields: ['id', 'name', 'event_id.id', 'event_id.slug'] })
+    ) as any
+
+    // Integrity Check: Is it used by any categories?
+    const categories = await adminDirectus.request(readItems('competition_categories', {
+      filter: { format_id: { _eq: id } },
+      limit: 1
+    }))
+    if (categories.length > 0) {
+      return { success: false, error: 'Format ini masih digunakan oleh kategori kompetisi. Ubah kategori tersebut ke format lain terlebih dahulu.' }
+    }
+
+    await adminDirectus.request(deleteItem('match_formats', id))
+    
+    if (format?.event_id?.slug) {
+      revalidatePath(`/events/${format.event_id.slug}/formats`)
+    }
+
+    await logActivity({
+      action: 'delete_format',
+      entity: 'match_formats',
+      entityId: id,
+      description: `Menghapus format pertandingan "${format.name}"`,
+      eventId: format?.event_id?.id || null,
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("[deleteFormatAction]", error)
+    return { success: false, error: error.message || 'Gagal menghapus format' }
   }
 }

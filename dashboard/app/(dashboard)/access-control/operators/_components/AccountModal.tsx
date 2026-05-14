@@ -148,7 +148,6 @@ export function AccountModal({
   return (
     <Dialog open={open} onOpenChange={v => !v && handleClose()}>
       <DialogContent
-        className="bg-white rounded-2xl border-none shadow-2xl"
         onInteractOutside={e => { if (isPending || isDeletePending) e.preventDefault() }}
         onEscapeKeyDown={e => { if (isPending || isDeletePending) e.preventDefault() }}
       >

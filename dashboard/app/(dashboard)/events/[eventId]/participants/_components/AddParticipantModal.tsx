@@ -44,7 +44,7 @@ const labelCls =
   'block text-[10px] font-bold uppercase tracking-widest text-zinc-400'
 
 const inputCls =
-  'mt-1.5 h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white'
+  'mt-1.5 h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 placeholder:italic focus:border-zinc-900 focus:bg-white'
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -103,7 +103,7 @@ function TeamMembersEditor({
       {/* Add row */}
       <div className="mt-1.5 flex gap-2">
         <input
-          className="h-10 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:bg-white"
+          className="h-9 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm font-semibold text-zinc-900 outline-none transition-all placeholder:text-zinc-300 placeholder:italic focus:border-zinc-900 focus:bg-white"
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember() } }}
@@ -113,7 +113,7 @@ function TeamMembersEditor({
           type="button"
           onClick={addMember}
           disabled={!newName.trim() || members.length >= MAX_MEMBERS}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white transition-colors hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white transition-colors hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -333,14 +333,14 @@ export default function AddParticipantModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 ease-out"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* -- Header -- */}
         <div className="px-6 pt-6 pb-5 border-b border-zinc-100 shrink-0">
-          <h2 className="text-base font-bold text-zinc-900">
+          <h2 className="text-base font-bold text-zinc-900 leading-tight">
             {editingParticipant ? 'Edit Peserta' : 'Tambah Peserta'}
           </h2>
           <p className="mt-0.5 text-xs text-zinc-400">
@@ -366,7 +366,7 @@ export default function AddParticipantModal({
           <div>
             <label className={labelCls}>Kategori</label>
             <Select value={categoryId} onValueChange={(val) => { setCategoryId(val); setMembers([]); setSubmitError(null) }}>
-              <SelectTrigger className="mt-1.5 h-10 rounded-lg border-zinc-200 bg-zinc-50 pr-4 text-sm font-semibold focus:border-zinc-900 focus:bg-white transition-all [&>span]:truncate">
+              <SelectTrigger className="mt-1.5 rounded-lg border-zinc-200 bg-zinc-50 pr-4 text-sm font-semibold focus:border-zinc-900 focus:bg-white transition-all [&>span]:truncate">
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent>
@@ -407,7 +407,7 @@ export default function AddParticipantModal({
           <div>
             <label className={labelCls}>Institusi</label>
             <Select value={institutionId} onValueChange={setInstitutionId}>
-              <SelectTrigger className="mt-1.5 h-10 rounded-lg border-zinc-200 bg-zinc-50 pr-4 text-sm font-semibold focus:border-zinc-900 focus:bg-white transition-all [&>span]:truncate">
+              <SelectTrigger className="mt-1.5 rounded-lg border-zinc-200 bg-zinc-50 pr-4 text-sm font-semibold focus:border-zinc-900 focus:bg-white transition-all [&>span]:truncate">
                 <SelectValue placeholder="Pilih institusi (opsional)" />
               </SelectTrigger>
               <SelectContent>
