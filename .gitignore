@@ -37,3 +37,7 @@ backend/uploads/
 !backend/schema-sync/**
 
 .geminiignore
+# playwright
+**/playwright-report/
+**/test-results/
+**/blob-report/
