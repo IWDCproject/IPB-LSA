@@ -258,8 +258,6 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
   useEffect(() => { setMounted(true); }, []);
 
   const isMobile        = cw < 1024;
-  const isCrampedDesktop = !isMobile && cw < 1320;
-  const heroMinHeight = isCrampedDesktop ? 820 : undefined;
   const mobileCardPx    = cw * MOBILE_CARD_VW;
   const mobileCardScale = Math.min(1, mobileCardPx / MOBILE_CARD_REF);
   const mobileCardH     = Math.min(195, Math.round(mobileCardPx * 1.4));
@@ -348,7 +346,7 @@ export default function HeroSection({ paused = false, events: rawEvents = [] }) 
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative w-full h-full flex flex-col overflow-hidden bg-black" style={{ "--s": scale }}>
+    <section ref={sectionRef} className="relative w-full min-h-full flex flex-col overflow-hidden bg-black" style={{ "--s": scale }}>
       <style dangerouslySetInnerHTML={{ __html: NOTCH_POP_CSS }} />
 
       <div className="absolute inset-0 z-0">
