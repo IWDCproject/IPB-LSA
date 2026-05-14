@@ -279,12 +279,6 @@ export function Sidebar() {
                 active={pathname === '/access-control/activity-logs'}
                 indent={1}
               />
-              <NavLink
-                href="/settings"
-                label="Settings"
-                active={pathname === '/settings'}
-                indent={1}
-              />
             </SectionGroup>
           </>
         )}

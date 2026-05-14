@@ -11,5 +11,9 @@ export function useRouter() {
       NProgress.start()
       router.push(href)
     },
+    replace: (href: string) => {
+      NProgress.start()
+      router.replace(href)
+    },
   }
 }

@@ -3,8 +3,10 @@
 import { useOptimistic, useState, useTransition } from 'react'
 import Link        from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button }     from '@/components/ui/button'
+import { AccountModal } from '../operators/_components/AccountModal'
 import type { OperatorUser } from '../operators/_actions'
 
 const TABS = [
@@ -18,6 +20,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
 }
 
 export function AccessControlHeader() {
+  const { data: session } = useSession()
   const pathname      = usePathname()
   const router        = useRouter()
   const activeSegment = pathname.split('/').pop() ?? ''
@@ -72,7 +75,7 @@ export function AccessControlHeader() {
           <Button variant="default" onClick={openCreate}>
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-              strokeLinejoin="round" aria-hidden>
+              strokeLinejoin="round" aria-hidden className="mr-1.5">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5"  y1="12" x2="19" y2="12"/>
             </svg>
@@ -80,6 +83,14 @@ export function AccessControlHeader() {
           </Button>
         )}
       </div>
+      
+      <AccountModal
+        mode={modalMode}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        user={editingUser}
+        currentUserId={(session?.user as any)?.directusId || ''}
+      />
     </div>
   )
 }
