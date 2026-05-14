@@ -18,7 +18,7 @@ import { directus } from '@/lib/directus'
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-2 pt-5 pb-1 text-[12px] font-bold text-black/50 tracking-wide">
+    <p className="px-2 pt-3 pb-0.5 text-[12px] font-bold text-black/50 tracking-wide">
       {children}
     </p>
   )
@@ -46,14 +46,27 @@ function NavLink({
       href={href}
       style={{ paddingLeft: `${8 + indent * 8}px` }}
       className={cn(
-        'flex items-center rounded-lg py-2.5 pr-3 pl-3 text-sm transition-all duration-200 ease-in-out',
+        'group flex items-center gap-2 rounded-lg py-1.5 pr-3 pl-3 text-sm transition-all duration-200 ease-in-out relative',
         bold ? 'font-[800]' : 'font-medium',
         active
-          ? 'bg-zinc-900 hover:bg-zinc-800 text-white shadow-md'
+          ? 'text-zinc-900'
           : 'text-foreground/60 hover:bg-muted hover:text-foreground hover:translate-x-1'
       )}
     >
-      {label}
+      <span className={cn(
+        'transition-all duration-200',
+        active && 'font-black'
+      )}>
+        {label}
+      </span>
+      
+      {active && (
+        <span className="flex items-center text-[11px] font-black tracking-[-0.1em] text-zinc-900 translate-y-[0.5px] animate-in slide-in-from-right-2 fade-in duration-500">
+          <span className="animate-[pulse_1.2s_infinite_0ms]">{'<'}</span>
+          <span className="animate-[pulse_1.2s_infinite_200ms]">{'<'}</span>
+          <span className="animate-[pulse_1.2s_infinite_400ms]">{'<'}</span>
+        </span>
+      )}
     </Link>
   )
 }
@@ -74,7 +87,7 @@ function SectionGroup({
   bold?:     boolean
 }) {
   const labelClass = cn(
-    'flex-1 pl-2 py-2.5 text-sm leading-none truncate text-foreground/60',
+    'flex-1 pl-2 py-1.5 text-sm leading-none truncate text-foreground/60',
     bold ? 'font-[800]' : 'font-[600]'
   )
 
@@ -112,7 +125,7 @@ export function Sidebar() {
 
   const eventMatch     = pathname.match(/^\/events\/([^/]+)/)
   const currentEventId = eventMatch?.[1]   // slug from URL
-  const isInEvent      = !!currentEventId
+  const isInEvent      = !!currentEventId && currentEventId !== 'new' && currentEventId !== 'new-wizard'
 
   const [sidebarEvent, setSidebarEvent] = useState<StoredEvent | null>(null)
 
@@ -148,8 +161,29 @@ export function Sidebar() {
       .catch(() => null)
   }, [isInEvent])
 
+  useEffect(() => {
+    // If we are in an event, and we have a slug, but no name in context yet
+    if (isInEvent && currentEventId && !currentEventName) {
+      // Try to find in sidebarEvent first (from localStorage)
+      if (sidebarEvent?.slug === currentEventId) return
+
+      // Otherwise fetch it
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentEventId)
+      const filter = isUuid ? { id: { _eq: currentEventId } } : { slug: { _eq: currentEventId } }
+
+      directus.request(readItems('events', {
+        filter,
+        fields: ['name', 'slug'],
+        limit: 1
+      })).then(results => {
+        const e = results[0] as StoredEvent | undefined
+        if (e) setSidebarEvent(e)
+      }).catch(() => null)
+    }
+  }, [isInEvent, currentEventId, currentEventName, sidebarEvent?.slug])
+
   const displaySlug = isInEvent ? currentEventId! : sidebarEvent?.slug
-  const displayName = isInEvent ? (currentEventName ?? sidebarEvent?.name) : sidebarEvent?.name
+  const displayName = isInEvent ? (currentEventName || sidebarEvent?.name || '...') : sidebarEvent?.name
 
   const eventSubPages = displaySlug
     ?[
@@ -187,6 +221,12 @@ export function Sidebar() {
             active={pathname === '/events'}
             indent={1}
           />
+          <NavLink
+            href="/events/new"
+            label="Create Event"
+            active={pathname === '/events/new'}
+            indent={1}
+          />
           {displaySlug && displayName && (
             <SectionGroup
               label={displayName}
@@ -205,6 +245,7 @@ export function Sidebar() {
           )}
         </SectionGroup>
 
+        <div style={{ height: '16px' }} /> {/* Gap between Events and Articles */}
         <SectionGroup label="Articles" bold>
           <NavLink
             href="/articles"
@@ -222,7 +263,7 @@ export function Sidebar() {
 
         {showAdminSection && (
           <>
-            <div style={{ height: '10px' }} />
+            <div style={{ height: '24px' }} />
             <SectionLabel>Super Admin Only</SectionLabel>
 
             <SectionGroup label="Access Control" bold>

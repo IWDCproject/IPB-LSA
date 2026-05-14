@@ -41,9 +41,14 @@ export default function EventLayout({ children }: { children: React.ReactNode })
   const isBuilder = pathname.includes('/builder')
 
   useEffect(() => {
+    if (!eventId) return
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)
+    const filter = isUuid ? { id: { _eq: eventId } } : { slug: { _eq: eventId } }
+
     directus
       .request(readItems('events', {
-        filter: { slug: { _eq: eventId } },
+        filter,
         fields: ['name', 'status', 'slug'],
         limit:  1,
       }))
@@ -55,7 +60,13 @@ export default function EventLayout({ children }: { children: React.ReactNode })
       })
       .catch(() => null)
 
-    return () => setCurrentEventName(null)
+    return () => {
+      // Only clear if we're actually leaving the events section
+      // (This prevents flickering when navigating between event tabs)
+      if (!window.location.pathname.includes('/events/')) {
+        setCurrentEventName(null)
+      }
+    }
   }, [eventId, setCurrentEventName])
 
   const activeSegment = pathname.split('/').pop() ?? ''

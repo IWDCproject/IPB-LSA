@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from '@/hooks/useRouter'
 import { readItems, aggregate } from '@directus/sdk'
-import { ExternalLink } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { directus } from '@/lib/directus'
 import type { Event, EventStatus } from '@/types/directus'
 import { DataTable } from '@/components/shared/DataTable'
@@ -45,62 +45,63 @@ export default function EventsPage() {
   const [eventRows, setEventRows] = useState<EventRow[]>([])
   const [loading,   setLoading]   = useState(true)
 
-  useEffect(() => {
-    const load = async () => {
+  const load = async () => {
+    setLoading(true)
+    try {
+      const [events, institutionAgg, storyAgg] = await Promise.all([
+        directus.request(
+          readItems('events', {
+            fields: ['id', 'name', 'slug', 'status', 'start_date', 'end_date', 'registration_end_date'],
+            sort:   ['-created_at'],
+          })
+        ),
+        directus.request(
+          aggregate('institutions', {
+            aggregate: { count: ['id'] },
+            groupBy:   ['event_id'],
+          })
+        ),
+        directus.request(
+          aggregate('news', {
+            aggregate: { count: ['id'] },
+            groupBy:   ['event_id'],
+          })
+        ),
+      ])
+
+      const institutionsByEvent = toEventCountMap(institutionAgg as AggRow[])
+      const storiesByEvent      = toEventCountMap(storyAgg as AggRow[])
+
+      let participantsByEvent: Record<string, number> = {}
       try {
-        const [events, institutionAgg, storyAgg] = await Promise.all([
-          directus.request(
-            readItems('events', {
-              fields: ['id', 'name', 'slug', 'status', 'start_date', 'end_date', 'registration_end_date'],
-              sort:   ['-created_at'],
-            })
-          ),
-          directus.request(
-            aggregate('institutions', {
-              aggregate: { count: ['id'] },
-              groupBy:   ['event_id'],
-            })
-          ),
-          directus.request(
-            aggregate('news', {
-              aggregate: { count: ['id'] },
-              groupBy:   ['event_id'],
-            })
-          ),
-        ])
-
-        const institutionsByEvent = toEventCountMap(institutionAgg as AggRow[])
-        const storiesByEvent      = toEventCountMap(storyAgg as AggRow[])
-
-        let participantsByEvent: Record<string, number> = {}
-        try {
-          const partAgg = await directus.request(
-            aggregate('participants', {
-              aggregate: { count: ['id'] },
-              groupBy: ['competition_category_id.event_id'] as unknown as string[],
-            })
-          )
-          for (const row of partAgg as any[]) {
-            const eid = row.competition_category_id?.event_id
-            if (eid) participantsByEvent[eid] = Number(row.count?.id || 0)
-          }
-        } catch {
-          // gagal ambil data peserta, ditampilkan 0
-        }
-
-        setEventRows(
-          (events as Event[]).map((e) => ({
-            ...e,
-            participantCount: participantsByEvent[e.id] ?? 0,
-            institutionCount: institutionsByEvent[e.id] ?? 0,
-            storyCount:       storiesByEvent[e.id]      ?? 0,
-          }))
+        const partAgg = await directus.request(
+          aggregate('participants', {
+            aggregate: { count: ['id'] },
+            groupBy: ['competition_category_id.event_id'] as unknown as string[],
+          })
         )
-      } finally {
-        setLoading(false)
+        for (const row of partAgg as any[]) {
+          const eid = row.competition_category_id?.event_id
+          if (eid) participantsByEvent[eid] = Number(row.count?.id || 0)
+        }
+      } catch {
+        // gagal ambil data peserta, ditampilkan 0
       }
-    }
 
+      setEventRows(
+        (events as Event[]).map((e) => ({
+          ...e,
+          participantCount: participantsByEvent[e.id] ?? 0,
+          institutionCount: institutionsByEvent[e.id] ?? 0,
+          storyCount:       storiesByEvent[e.id]      ?? 0,
+        }))
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     load()
   }, [])
 
@@ -112,7 +113,7 @@ export default function EventsPage() {
           title="Events"
           actions={
             <Button onClick={() => router.push('/events/new')}>
-              New Event <ExternalLink size={14} className="ml-1.5" />
+              New Event <Plus size={14} className="ml-1.5" />
             </Button>
           }
         />
