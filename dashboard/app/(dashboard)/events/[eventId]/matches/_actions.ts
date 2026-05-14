@@ -3,9 +3,6 @@
 
 import { auth } from '@/lib/auth'
 import {
-  createDirectus,
-  rest,
-  staticToken,
   createItem,
   createItems,
   updateItem,
@@ -14,21 +11,10 @@ import {
   readItem
 } from '@directus/sdk'
 import { revalidatePath } from 'next/cache'
+import { adminDirectus } from '@/lib/directus-admin'
+import { logActivity } from '@/lib/activity'
 import { z } from 'zod'
 import { pingWebRevalidate } from '@/lib/revalidate'
-
-
-function requireEnv(name: string): string {
-  const val = process.env[name]
-  if (!val) throw new Error(`Missing required environment variable: ${name}`)
-  return val
-}
-
-function createAdminClient() {
-  return createDirectus(requireEnv('DIRECTUS_URL'))
-    .with(staticToken(requireEnv('DIRECTUS_STATIC_TOKEN')))
-    .with(rest())
-}
 
 // --- Strict Runtime Payload Validation ---
 const MatchPayloadSchema = z.object({
@@ -84,8 +70,6 @@ export async function createMatchAction(payload: MatchActionPayload) {
   const { eventSlug, participant_ids, ...matchData } = parsed.data
 
   try {
-    const adminDirectus = createAdminClient()
-
     // 1. Authorization: Verify Category Ownership
     if (session.user.role === 'PJ Ormawa') {
       const category = await adminDirectus.request(
@@ -138,6 +122,25 @@ export async function createMatchAction(payload: MatchActionPayload) {
     }
 
     revalidatePath(`/events/${eventSlug}/matches`, 'page')
+
+    // Fetch the event ID for logging
+    const event = await adminDirectus.request(
+      readItems('events', {
+        filter: { slug: { _eq: eventSlug } },
+        fields: ['id'],
+        limit: 1
+      })
+    ) as any[]
+    const eventId = event[0]?.id
+
+    await logActivity({
+      action: 'create_match',
+      entity: 'matches',
+      entityId: match.id,
+      description: `Membuat pertandingan "${matchData.match_name || 'Match'}" di kategori ${matchData.competition_category_id}`,
+      eventId: eventId || null,
+    })
+
     await pingWebRevalidate({ slug: eventSlug })
     return { success: true }
   } catch (error) {
@@ -148,7 +151,6 @@ export async function createMatchAction(payload: MatchActionPayload) {
 
 export async function updateMatchAction(matchId: string, payload: MatchActionPayload) {
   const session = await auth()
-  // FIX: same missing Administrator role as createMatchAction above.
   if (!session || !isOperator(session.user.role)) {
     return { success: false, error: 'Unauthorized' }
   }
@@ -162,8 +164,6 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
   const { eventSlug, participant_ids, ...matchData } = parsed.data
 
   try {
-    const adminDirectus = createAdminClient()
-
     // 1. Fetch existing match + open participants in parallel
     const [existingMatch, existingJunctions] = await Promise.all([
       adminDirectus.request(
@@ -172,6 +172,7 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
             'status',
             'home_participant_id',
             'away_participant_id',
+            'competition_category_id.event_id.id',
             'competition_category_id.event_id.user_created',
           ]
         })
@@ -211,11 +212,6 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
     await adminDirectus.request(updateItem('matches', matchId, matchData))
 
     // 4. Reconcile Open Participants
-    // NOTE: This is a non-atomic delete-then-recreate. If createItems fails
-    // after deleteItems succeeds, the match will have no participants. Directus
-    // doesn't expose transactions over REST, so this is an accepted limitation.
-    // A compensating re-insert is the safest recovery if this becomes a problem
-    // in practice (e.g. wrap in try/catch and attempt to restore existingJunctions).
     if (participant_ids !== undefined) {
       if (existingJunctions.length > 0) {
         await adminDirectus.request(
@@ -234,6 +230,17 @@ export async function updateMatchAction(matchId: string, payload: MatchActionPay
     }
 
     revalidatePath(`/events/${eventSlug}/matches`, 'page')
+
+    const eventId = existingMatch?.competition_category_id?.event_id?.id
+
+    await logActivity({
+      action: 'update_match',
+      entity: 'matches',
+      entityId: matchId,
+      description: `Memperbarui detail pertandingan "${matchData.match_name || 'Match'}" (Meta: Venue/Schedule/Participants)`,
+      eventId: eventId || null,
+    })
+
     await pingWebRevalidate({ slug: eventSlug })
     return { success: true }
   } catch (error) {

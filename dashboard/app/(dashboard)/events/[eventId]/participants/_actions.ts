@@ -15,13 +15,8 @@ import {
 import { revalidatePath } from 'next/cache'
 import { pingWebRevalidate } from '@/lib/revalidate'
 
-// ---------------------------------------------------------------------------
-// Directus admin client
-// ---------------------------------------------------------------------------
-
-const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
-  .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
-  .with(rest())
+import { adminDirectus } from '@/lib/directus-admin'
+import { logActivity } from '@/lib/activity'
 
 // ---------------------------------------------------------------------------
 // Validation helpers
@@ -193,6 +188,13 @@ export async function createParticipantAction(payload: Record<string, unknown>) 
     await adminDirectus.request(createItem('participants', safePayload))
     revalidatePath(`/events/${event.id}/participants`, 'page')
     await pingWebRevalidate({ slug: event.slug })
+    await logActivity({
+      action: 'create_participant',
+      entity: 'participants',
+      description: `Menambah partisipan "${payload.name}" ke kategori ${payload.competition_category_id}`,
+      eventId: event.id,
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error('createParticipantAction error:', error?.message ?? error)
@@ -237,6 +239,14 @@ export async function updateParticipantAction(
     await adminDirectus.request(updateItem('participants', participantId, safePayload))
     revalidatePath(`/events/${event.id}/participants`, 'page')
     await pingWebRevalidate({ slug: event.slug })
+    await logActivity({
+      action: 'update_participant',
+      entity: 'participants',
+      entityId: participantId,
+      description: `Memperbarui partisipan "${payload.name || participantId}"`,
+      eventId: event.id,
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error('updateParticipantAction error:', error?.message ?? error)
@@ -290,6 +300,13 @@ export async function createInstitutionAction(formData: FormData) {
 
     revalidatePath(`/events/${event.id}/participants`, 'page')
     await pingWebRevalidate({ slug: event.slug })
+    await logActivity({
+      action: 'create_institution',
+      entity: 'institutions',
+      description: `Menambah institusi "${name}"`,
+      eventId: event.id,
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error('createInstitutionAction error:', error?.message ?? error)
@@ -341,6 +358,14 @@ export async function updateInstitutionAction(formData: FormData) {
 
     revalidatePath(`/events/${event.id}/participants`, 'page')
     await pingWebRevalidate({ slug: event.slug })
+    await logActivity({
+      action: 'update_institution',
+      entity: 'institutions',
+      entityId: institutionId,
+      description: `Memperbarui institusi "${name}"`,
+      eventId: event.id,
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error('updateInstitutionAction error:', error?.message ?? error)

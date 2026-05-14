@@ -12,9 +12,8 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { pingWebRevalidate } from '@/lib/revalidate'
 
-const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
-  .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
-  .with(rest())
+import { adminDirectus } from '@/lib/directus-admin'
+import { logActivity } from '@/lib/activity'
 
 // --- Zod Schemas -----------------------------------------------
 
@@ -158,6 +157,14 @@ export async function updateEventInfoAction(formData: FormData) {
     await adminDirectus.request(updateItem('events', eventId, payload));
     await revalidateEventCache(eventId);
     
+    await logActivity({
+      action: 'update_event_info',
+      entity: 'events',
+      entityId: eventId,
+      description: `Memperbarui informasi event "${payload.name}"`,
+      eventId: eventId,
+    })
+
     return { success: true }
   } catch (err: any) {
     if (err?.errors?.[0]?.extensions?.code === 'RECORD_NOT_UNIQUE') {
@@ -177,6 +184,14 @@ export async function updateEventStatusAction(eventId: string, rawStatus: unknow
     await adminDirectus.request(updateItem('events', eventId, { status: parsed.data }));
     await revalidateEventCache(eventId);
     
+    await logActivity({
+      action: 'update_event_status',
+      entity: 'events',
+      entityId: eventId,
+      description: `Mengubah status event menjadi "${parsed.data}"`,
+      eventId: eventId,
+    })
+
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -197,6 +212,13 @@ export async function deleteEventAction(eventId: string) {
 
     revalidatePath('/', 'layout')
     revalidatePath('/events')
+    await logActivity({
+      action: 'delete_event',
+      entity: 'events',
+      description: `Menghapus event "${slug || eventId}"`,
+      eventId: eventId,
+    })
+
     await pingWebRevalidate({ slug })
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -227,6 +249,13 @@ export async function saveTimelinePhasesAction(eventId: string, rawPhases: unkno
     );
     await revalidateEventCache(eventId);
     
+    await logActivity({
+      action: 'update_event_phases',
+      entity: 'event_phases',
+      description: `Memperbarui timeline event`,
+      eventId: eventId,
+    })
+
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -252,6 +281,13 @@ export async function createEventPhaseAction(eventId: string, rawData: unknown) 
     }));
     
     await revalidateEventCache(eventId);
+    await logActivity({
+      action: 'create_event_phase',
+      entity: 'event_phases',
+      description: `Menambahkan fase timeline "${data.label}"`,
+      eventId: eventId,
+    })
+
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -270,6 +306,13 @@ export async function deleteEventPhaseAction(eventId: string, phaseId: string) {
     await adminDirectus.request(deleteItem('event_phases', phaseId));
     await revalidateEventCache(eventId);
     
+    await logActivity({
+      action: 'delete_event_phase',
+      entity: 'event_phases',
+      description: `Menghapus fase timeline`,
+      eventId: eventId,
+    })
+
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }

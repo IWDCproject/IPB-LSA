@@ -16,9 +16,8 @@ import { z } from 'zod'
 import { pingWebRevalidate } from '@/lib/revalidate'
 import type { NewsArticle, NewsCategory } from '@/types/directus'
 
-const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
-  .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
-  .with(rest())
+import { adminDirectus } from '@/lib/directus-admin'
+import { logActivity } from '@/lib/activity'
 
 // --- Zod Schemas for Runtime Validation ------------------------
 
@@ -127,6 +126,14 @@ export async function createArticleAction(rawPayload: unknown) {
       await pingWebRevalidate({ tags: ['collection:news'] })
     }
 
+    await logActivity({
+      action: 'create_article',
+      entity: 'news',
+      entityId: article.id,
+      description: `Membuat artikel "${payload.title}"`,
+      eventId: payload.event_id,
+    })
+
     return { success: true as const, article }
   } catch (err: any) {
     // Handle Postgres Unique Constraint Gracefully
@@ -187,6 +194,14 @@ export async function updateArticleAction(id: string, rawPayload: unknown) {
       await pingWebRevalidate({ tags: ['collection:news'] })
     }
     
+    await logActivity({
+      action: 'update_article',
+      entity: 'news',
+      entityId: id,
+      description: `Memperbarui artikel "${payload.title || existingArticle.title}"`,
+      eventId: payload.event_id || existingArticle.event_id?.id,
+    })
+
     return { success: true as const }
   } catch (err: any) {
     if (err?.errors?.[0]?.extensions?.code === 'RECORD_NOT_UNIQUE') {

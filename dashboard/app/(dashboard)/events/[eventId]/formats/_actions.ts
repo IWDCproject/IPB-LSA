@@ -15,9 +15,8 @@ import {
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
-  .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
-  .with(rest())
+import { adminDirectus } from '@/lib/directus-admin'
+import { logActivity } from '@/lib/activity'
 
 // --- Zod Runtime Validation Schemas ----------------------------
 
@@ -127,6 +126,15 @@ export async function upsertFormatAction(rawPayload: unknown) {
     
     // 4. Instant Cache Update
     revalidatePath(`/events/${eventSlug}/formats`)
+
+    await logActivity({
+      action: data.id ? 'update_format' : 'create_format',
+      entity: 'match_formats',
+      entityId: data.id || null,
+      description: `${data.id ? 'Memperbarui' : 'Membuat'} format pertandingan "${data.name}"`,
+      eventId: eventId,
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error("[upsertFormatAction]", error)
@@ -161,6 +169,15 @@ export async function upsertCategoryAction(rawPayload: unknown) {
     }
 
     revalidatePath(`/events/${eventSlug}/formats`)
+
+    await logActivity({
+      action: data.id ? 'update_category' : 'create_category',
+      entity: 'competition_categories',
+      entityId: data.id || null,
+      description: `${data.id ? 'Memperbarui' : 'Membuat'} kategori "${data.name}"`,
+      eventId: eventId,
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error("[upsertCategoryAction]", error)
@@ -185,6 +202,15 @@ export async function deleteCategoryAction(id: string) {
     if (category?.event_id?.slug) {
       revalidatePath(`/events/${category.event_id.slug}/formats`)
     }
+
+    await logActivity({
+      action: 'delete_category',
+      entity: 'competition_categories',
+      entityId: id,
+      description: `Menghapus kategori (ID: ${id})`,
+      eventId: category?.event_id?.id || null,
+    })
+
     return { success: true }
   } catch (error: any) {
     console.error("[deleteCategoryAction]", error)

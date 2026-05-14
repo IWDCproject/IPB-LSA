@@ -2,16 +2,10 @@
 
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import {
-  createDirectus, rest, staticToken,
-  readUsers, createUser, updateUser, deleteUser, readRoles, createItem,
-} from '@directus/sdk'
+import { adminDirectus } from '@/lib/directus-admin'
+import { logActivity } from '@/lib/activity'
+import { readUsers, readRoles, createUser, updateUser, deleteUser } from '@directus/sdk'
 import { z } from 'zod'
-
-// -- Admin SDK — server only, never exposed to client -------------------------
-const adminDirectus = createDirectus(process.env.NEXT_PUBLIC_DIRECTUS_URL!)
-  .with(staticToken(process.env.DIRECTUS_STATIC_TOKEN!))
-  .with(rest())
 
 const REVALIDATE_PATH = '/access-control/operators'
 
@@ -93,30 +87,6 @@ async function getRoleMap(): Promise<Record<RoleKey, string>> {
   return { super_admin: adminRole.id, operator: operatorRole.id }
 }
 
-// -- Activity log --------------------------------------------------------------
-// Non-fatal — log failures must never block the main mutation.
-async function logActivity(
-  actorId: string,
-  action: string,
-  entity: string,
-  entityId: string | null,
-  description: string,
-) {
-  try {
-    await adminDirectus.request(
-      createItem('activity_logs' as any, {
-        user_id: actorId,
-        event_id: null,
-        action,
-        entity,
-        entity_id: entityId,
-        description,
-      })
-    )
-  } catch (err) {
-    console.error('[ActivityLog] Write failed (non-fatal):', err)
-  }
-}
 
 // -- Last-SuperAdmin lockout guard ---------------------------------------------
 async function assertNotLastSuperAdmin(
@@ -223,11 +193,11 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
       } as any)
     )
 
-    await logActivity(
-      session.user.directusId,
-      'create_account', 'directus_users', null,
-      `Membuat akun "${email}" sebagai ${role === 'super_admin' ? 'Super Admin' : 'Operator'}`,
-    )
+    await logActivity({
+      action: 'create_account',
+      entity: 'directus_users',
+      description: `Membuat akun "${email}" sebagai ${role === 'super_admin' ? 'Super Admin' : 'Operator'}`,
+    })
 
     revalidatePath(REVALIDATE_PATH)
     return { success: true }
@@ -286,11 +256,12 @@ export async function updateAccount(
       } as any)
     )
 
-    await logActivity(
-      session.user.directusId,
-      'update_account', 'directus_users', userId,
-      `Memperbarui akun ${userId}: nama="${organisationName}", role=${role}`,
-    )
+    await logActivity({
+      action: 'update_account',
+      entity: 'directus_users',
+      entityId: userId,
+      description: `Memperbarui akun ${userId}: nama="${organisationName}", role=${role}`,
+    })
 
     revalidatePath(REVALIDATE_PATH)
     return { success: true }
@@ -330,11 +301,12 @@ export async function toggleAccess(
       updateUser(userId, { status: enable ? 'active' : 'inactive' } as any)
     )
 
-    await logActivity(
-      session.user.directusId,
-      enable ? 'enable_account' : 'disable_account', 'directus_users', userId,
-      `${enable ? 'Mengaktifkan' : 'Menonaktifkan'} akun ${userId}`,
-    )
+    await logActivity({
+      action: enable ? 'enable_account' : 'disable_account',
+      entity: 'directus_users',
+      entityId: userId,
+      description: `${enable ? 'Mengaktifkan' : 'Menonaktifkan'} akun ${userId}`,
+    })
 
     revalidatePath(REVALIDATE_PATH)
     return { success: true }
@@ -371,11 +343,11 @@ export async function deleteAccount(userId: string): Promise<ActionResult> {
 
     await adminDirectus.request(deleteUser(userId))
 
-    await logActivity(
-      session.user.directusId,
-      'delete_account', 'directus_users', null,
-      `Menghapus akun "${target?.email ?? userId}"`,
-    )
+    await logActivity({
+      action: 'delete_account',
+      entity: 'directus_users',
+      description: `Menghapus akun "${target?.email ?? userId}"`,
+    })
 
     revalidatePath(REVALIDATE_PATH)
     return { success: true }

@@ -1,7 +1,19 @@
-export default function ActivityLogsPage() {
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { getActivityLogs } from './_actions'
+import { ActivityLogsTab } from './_components/ActivityLogsTab'
+
+export default async function ActivityLogsPage() {
+  const session = await auth()
+  
+  if (!session || session.user.role !== 'SuperAdmin') {
+    redirect('/dashboard') // Or some other safe place
+  }
+
+  const result = await getActivityLogs()
+  const logs = result.success ? result.data : []
+
   return (
-    <div className="py-20 text-center text-zinc-400 font-medium text-sm">
-      Activity log coming soon.
-    </div>
+    <ActivityLogsTab logs={logs} />
   )
 }
