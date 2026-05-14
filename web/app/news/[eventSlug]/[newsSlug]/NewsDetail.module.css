@@ -279,6 +279,63 @@
   margin: 2em 0;
 }
 
+/* YouTube / iframe embeds
+   Tiptap serialises YouTube nodes as:
+     <div data-youtube-video=""><iframe width="640" height="360" …></iframe></div>
+
+   WHY THE IFRAME SHIFTS DOWN:
+   - The iframe carries inline HTML width/height attributes (640×360).
+   - `width: 100%; height: 100%` on an absolutely-positioned child computes
+     height relative to the containing block's *height property* — which is 0
+     when using the padding-bottom trick, or can be undefined with aspect-ratio.
+     The browser falls back to the HTML height="360" attribute and the iframe
+     ends up taller than the wrapper and misaligned.
+   - Any whitespace text node between <div> and <iframe> also nudges the
+     iframe down when it briefly renders as inline.
+
+   FIX:
+   - Use `inset: 0` (= top/right/bottom/left all 0) instead of width/height
+     percentages. Inset stretches the absolutely-positioned child to fill the
+     *padding box* of the containing block, which correctly includes the
+     padding-bottom area, regardless of the height property value.
+   - Add font-size/line-height: 0 on the wrapper to kill whitespace text nodes.
+   - Use !important to win over any .prose / Tailwind overrides. */
+
+.body :global(div[data-youtube-video]) {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; /* 9/16 locks a 16:9 box from the width alone */
+  margin: 1.6em 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #E5E7EB;
+  /* Eliminate any whitespace text-node gap that pushes the iframe down */
+  font-size: 0;
+  line-height: 0;
+}
+
+.body :global(div[data-youtube-video] iframe) {
+  display: block !important;   /* prevent inline baseline shift */
+  position: absolute !important;
+  inset: 0 !important;         /* stretch to the full padding-box, not height:100% */
+  width: 100% !important;      /* belt-and-suspenders over HTML width="640" */
+  height: 100% !important;     /* inset already handles this but keeps specificity */
+  border: none;
+}
+
+/* Fallback for bare <iframe> tags (e.g. pasted embeds or Drive previews).
+   !important overrides the inline height="…" HTML attribute. */
+.body :global(iframe) {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  border: none;
+  border-radius: 8px;
+  margin: 1.6em 0;
+}
+
 .body :global(table) {
   width: 100%;
   border-collapse: collapse;

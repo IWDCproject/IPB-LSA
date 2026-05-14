@@ -201,8 +201,8 @@ const NEWS_LIST_FIELDS = [
 const NEWS_DETAIL_FIELDS = [
   ...NEWS_LIST_FIELDS,
   'content',
-  'url_youtube',
-  'website_url',
+  //'url_youtube',
+  //'website_url',
   'event_id.banner_image.id',
   'author_id.organisation_name'
 ];
@@ -393,15 +393,13 @@ export const getNewsBySlug = async (
   try {
     const items = await fetchDirectus<any[]>(readItems<any, any, any>('news', {
       filter: {
-        slug:         { _eq: newsSlug },
-        event_id:     { slug: { _eq: eventSlug } },
-        is_published: { _eq: true },
+        slug: { _eq: newsSlug },
       },
       fields: NEWS_DETAIL_FIELDS,
       limit: 1,
-    }), { tags: [`news:${newsSlug}`, `event:${eventSlug}:news`] });
-    const item = items[0];
-    return item ? mapNews(item) : null;
+    }), { tags: [`news:${newsSlug}`] });
+
+    return items[0] ? mapNews(items[0]) : null;
   } catch (err) {
     console.error("[getNewsBySlug]", err);
     return null;

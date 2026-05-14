@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "nextjs-toploader/app";
 import { useState } from "react";
 import HomepageNewsCard from "@/app/_components/news-stuff/HomepageNewsCard";
 import Button from "@/components/Button";
@@ -21,47 +20,6 @@ interface Props {
   cw:         number;
   isMobile:   boolean;
   pad:        number;
-}
-
-// --- Hover card wrapper --------------------------------------------------------
-
-function HoverCard({
-  children,
-  style,
-  onClick,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-  onClick?: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        borderRadius: 10,
-        overflow: "hidden",
-        position: "relative",
-        cursor: onClick ? "pointer" : "default",
-        ...style,
-      }}
-    >
-      {children}
-
-      {/* Border overlay - sits above the card image so it's always visible */}
-      <div style={{
-        position: "absolute", inset: 0,
-        borderRadius: 10,
-        border: `2px solid ${hovered ? "#FFD43B" : "rgba(255,255,255,0.55)"}`,
-        transition: "border-color 0.18s ease",
-        pointerEvents: "none",
-        zIndex: 10,
-      }} />
-    </div>
-  );
 }
 
 // --- Ghost card ---------------------------------------------------------------
@@ -99,7 +57,6 @@ function LatestGhost({ style }: { style?: React.CSSProperties }) {
 // --- Desktop grid -------------------------------------------------------------
 
 function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
-  const router  = useRouter();
   const rowH    = Math.min(260, Math.max(160, cw * 0.135));
   const [main, ...rest] = news;
 
@@ -116,17 +73,14 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
       {/* Main slot - always 2 rows tall */}
       <div style={{ gridRow: "1 / 3" }}>
         {main ? (
-          <HoverCard
-            style={{ height: "100%" }}
-            onClick={() => router.push(`/news/${main.event_id?.slug}/${main.slug}`)}
-          >
-            <HomepageNewsCard
-              thumbnail_url={main.thumbnail_url}
-              tag={main.event_id?.name ?? null}
-              title={main.title}
-              isMain
-            />
-          </HoverCard>
+          <HomepageNewsCard
+            thumbnail_url={main.thumbnail_url}
+            tag={main.event_id?.name ?? null}
+            title={main.title}
+            slug={main.slug}
+            eventSlug={main.event_id?.slug}
+            isMain
+          />
         ) : (
           <LatestGhost />
         )}
@@ -135,17 +89,14 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
       {/* 4 small slots */}
       {smallSlots.map((item, i) =>
         item ? (
-          <HoverCard
+          <HomepageNewsCard
             key={item.id}
-            style={{ minHeight: 0 }}
-            onClick={() => router.push(`/news/${item.event_id?.slug}/${item.slug}`)}
-          >
-            <HomepageNewsCard
-              thumbnail_url={item.thumbnail_url}
-              tag={item.event_id?.name ?? null}
-              title={item.title}
-            />
-          </HoverCard>
+            thumbnail_url={item.thumbnail_url}
+            tag={item.event_id?.name ?? null}
+            title={item.title}
+            slug={item.slug}
+            eventSlug={item.event_id?.slug}
+          />
         ) : (
           <LatestGhost key={`ghost-${i}`} />
         )
@@ -157,7 +108,6 @@ function DesktopGrid({ news, cw }: { news: NewsItem[]; cw: number }) {
 // --- Mobile stack -------------------------------------------------------------
 
 function MobileStack({ news }: { news: NewsItem[] }) {
-  const router = useRouter();
   const [main, ...rest] = news;
   const smallSlots = Array.from({ length: 4 }, (_, i) => rest[i] ?? null);
 
@@ -166,12 +116,15 @@ function MobileStack({ news }: { news: NewsItem[] }) {
       {/* Main */}
       <div style={{ width: "100%", height: "clamp(200px, 52vw, 280px)" }}>
         {main ? (
-          <HoverCard
-            style={{ height: "100%" }}
-            onClick={() => router.push(`/news/${main.event_id?.slug}/${main.slug}`)}
-          >
-            <HomepageNewsCard thumbnail_url={main.thumbnail_url} tag={main.event_id?.name ?? null} title={main.title} isMain compact />
-          </HoverCard>
+          <HomepageNewsCard 
+            thumbnail_url={main.thumbnail_url} 
+            tag={main.event_id?.name ?? null} 
+            title={main.title} 
+            slug={main.slug}
+            eventSlug={main.event_id?.slug}
+            isMain 
+            compact 
+          />
         ) : (
           <LatestGhost />
         )}
@@ -185,13 +138,15 @@ function MobileStack({ news }: { news: NewsItem[] }) {
       }}>
         {smallSlots.map((item, i) =>
           item ? (
-            <HoverCard
-              key={item.id}
-              style={{ minHeight: 0 }}
-              onClick={() => router.push(`/news/${item.event_id?.slug}/${item.slug}`)}
-            >
-              <HomepageNewsCard thumbnail_url={item.thumbnail_url} tag={item.event_id?.name ?? null} title={item.title} compact />
-            </HoverCard>
+            <HomepageNewsCard 
+              key={item.id} 
+              thumbnail_url={item.thumbnail_url} 
+              tag={item.event_id?.name ?? null} 
+              title={item.title} 
+              slug={item.slug}
+              eventSlug={item.event_id?.slug}
+              compact 
+            />
           ) : (
             <LatestGhost key={`ghost-${i}`} />
           )

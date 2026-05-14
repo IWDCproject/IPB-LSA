@@ -156,7 +156,7 @@ export default function NewsCard({ item, isMobile = false }: { item: any; isMobi
   }, [isHovered]);
 
   const badge     = item.event_id?.name ?? item.category;
-  const eventSlug = item.event_id?.slug ?? '';
+  const eventSlug = item.event_id?.slug ?? 'official';
 
   return (
     <Link

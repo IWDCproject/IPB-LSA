@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { gsap }    from "gsap";
+import Link from "next/link";
 import ArrowIcon   from "@/app/icons/arrow-up-right.svg";
 import { useBlur } from "@/contexts/BlurContext";
 
@@ -119,12 +120,23 @@ interface NewsCardProps {
   thumbnail_url: string | null;
   tag:           string | null;
   title:         string;
+  slug?:         string;
+  eventSlug?:    string;
   isMain?:       boolean;
   compact?:      boolean;
   bitmap?:       ImageBitmap | null;
 }
 
-export default function NewsCard({ thumbnail_url, tag, title, isMain = false, compact = false, bitmap: bitmapProp = null }: NewsCardProps) {
+export default function NewsCard({ 
+  thumbnail_url, 
+  tag, 
+  title, 
+  slug,
+  eventSlug,
+  isMain = false, 
+  compact = false, 
+  bitmap: bitmapProp = null 
+}: NewsCardProps) {
   const wrapRef  = useRef(null);
   const arrowRef = useRef(null);
 
@@ -154,7 +166,7 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
     if (!paths?.length) return;
     paths.forEach((el) => {
       const len = el.getTotalLength?.() ?? 100;
-      gsap.set(el, { strokeDasharray: len, strokeDashoffset: len, opacity: 1 });
+      gsap.set(el, { strokeDasharray: len, strokeDashoffset: len, opacity: 0 });
     });
   }, []);
 
@@ -168,7 +180,7 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
     });
     paths?.forEach((el) => {
       gsap.killTweensOf(el);
-      gsap.to(el, { strokeDashoffset: 0, duration: 0.35, ease: "power2.out" });
+      gsap.to(el, { strokeDashoffset: 0, opacity: 1, duration: 0.35, ease: "power2.out" });
     });
   }
 
@@ -183,12 +195,15 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
     paths?.forEach((el) => {
       const len = el.getTotalLength?.() ?? 100;
       gsap.killTweensOf(el);
-      gsap.to(el, { strokeDashoffset: len, duration: 0.2, ease: "power2.in" });
+      gsap.to(el, { strokeDashoffset: len, opacity: 0, duration: 0.2, ease: "power2.in" });
     });
   }
 
+  const href = slug ? `/news/${eventSlug || 'official'}/${slug}` : "#";
+
   return (
-    <div
+    <Link
+      href={href}
       ref={wrapRef}
       style={styles.wrap(compact)}
       onMouseEnter={onEnter}
@@ -217,12 +232,14 @@ export default function NewsCard({ thumbnail_url, tag, title, isMain = false, co
         </div>
 
       </div>
-    </div>
+    </Link>
   );
 }
 
 const styles = {
   wrap: (compact: boolean): React.CSSProperties => ({
+    display:      "block",
+    textDecoration: "none",
     position:     "relative",
     width:        "100%",
     height:       "100%",

@@ -19,7 +19,7 @@ interface NewsItem {
   thumbnail_height: number | null;
   category:      string;
   published_at:  string;
-  event_id:      { name: string } | null;
+  event_id:      { name: string; slug: string } | null;
 }
 
 interface NewsSectionProps {
@@ -211,6 +211,8 @@ export default function NewsSection({ news }: NewsSectionProps) {
                 thumbnail_url={main.thumbnail_url}
                 tag={main.event_id?.name ?? null}
                 title={main.title}
+                slug={main.slug}
+                eventSlug={main.event_id?.slug}
                 isMain
                 compact
               />
@@ -218,10 +220,12 @@ export default function NewsSection({ news }: NewsSectionProps) {
             <div style={styles.mobileSmallGrid}>
               {rest.map((item) => (
                 <div key={item.id} style={styles.mobileSmallCell}>
-                  <NewsCard
+                   <NewsCard
                     thumbnail_url={item.thumbnail_url}
                     tag={item.event_id?.name ?? null}
                     title={item.title}
+                    slug={item.slug}
+                    eventSlug={item.event_id?.slug}
                     compact
                   />
                 </div>
@@ -236,6 +240,8 @@ export default function NewsSection({ news }: NewsSectionProps) {
                 thumbnail_url={main?.thumbnail_url}
                 tag={main?.event_id?.name ?? null}
                 title={main?.title}
+                slug={main?.slug}
+                eventSlug={main?.event_id?.slug}
                 isMain
               />
             </div>
@@ -245,6 +251,8 @@ export default function NewsSection({ news }: NewsSectionProps) {
                   thumbnail_url={item.thumbnail_url}
                   tag={item.event_id?.name ?? null}
                   title={item.title}
+                  slug={item.slug}
+                  eventSlug={item.event_id?.slug}
                 />
               </div>
             ))}

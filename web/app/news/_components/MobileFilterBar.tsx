@@ -64,16 +64,16 @@ function CheckRow({
         width: "100%", display: "flex", alignItems: "center", gap: 12,
         padding: "9px 14px", background: "none", border: "none",
         cursor: "pointer", textAlign: "left",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        borderBottom: "1px solid rgba(6, 18, 92, 0.05)",
         opacity: 0,
         animation: `mob-item-in 220ms ease ${animIndex * 38}ms forwards`,
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(6, 18, 92, 0.04)"; }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "none"; }}
     >
       <span style={{
         width: 18, height: 18, borderRadius: 5, flexShrink: 0,
-        border: checked ? `2px solid ${YELLOW}` : "2px solid rgba(255,255,255,0.25)",
+        border: checked ? `2px solid ${YELLOW}` : "2px solid rgba(6, 18, 92, 0.2)",
         background: checked ? YELLOW : "transparent",
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "all 0.15s",
@@ -84,7 +84,7 @@ function CheckRow({
           </svg>
         )}
       </span>
-      <span style={{ ...JK, fontSize: 14, fontWeight: 600, color: checked ? "#fff" : "rgba(255,255,255,0.75)", flex: 1, lineHeight: 1.3 }}>
+      <span style={{ ...JK, fontSize: 14, fontWeight: 600, color: checked ? NAVY : "rgba(6, 18, 92, 0.75)", flex: 1, lineHeight: 1.3 }}>
         {label}
       </span>
     </button>
@@ -99,13 +99,13 @@ function ClearBtn({ onClick, disabled }: { onClick: () => void; disabled?: boole
       onClick={disabled ? undefined : onClick}
       style={{
         ...JK, width: "100%", padding: "9px 16px", background: "none", border: "none",
-        borderTop: "1px solid rgba(255,255,255,0.08)",
+        borderTop: "1px solid rgba(6, 18, 92, 0.08)",
         cursor: disabled ? "default" : "pointer", textAlign: "center", fontSize: 11, fontWeight: 700,
-        color: disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.4)",
+        color: disabled ? "rgba(6, 18, 92, 0.2)" : "rgba(6, 18, 92, 0.45)",
         letterSpacing: "0.08em", textTransform: "uppercase",
       }}
-      onMouseEnter={e => { if (!disabled) (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.75)"; }}
-      onMouseLeave={e => { if (!disabled) (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)"; }}
+      onMouseEnter={e => { if (!disabled) (e.currentTarget as HTMLElement).style.color = NAVY; }}
+      onMouseLeave={e => { if (!disabled) (e.currentTarget as HTMLElement).style.color = "rgba(6, 18, 92, 0.45)"; }}
     >
       Hapus filter
     </button>
@@ -197,13 +197,12 @@ export function MobileFilterBar({
           key={panelKey}
           style={{
             position: "absolute", left: 0, right: 0,
-            top: "calc(100% + 5px)", zIndex: 100,
-            background: "rgba(6, 18, 92, 0.55)",
-            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10, boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+            top: "calc(100% + 8px)", zIndex: 100,
+            background: "#ffffff",
+            border: "1px solid #E5E7EB",
+            borderRadius: 12, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
             display: "flex", flexDirection: "column",
-            maxHeight: 300, overflow: "hidden",
+            maxHeight: 320, overflow: "hidden",
             transformOrigin: "top",
             animation: "mob-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
           }}
@@ -229,9 +228,9 @@ export function MobileFilterBar({
           {openPanel === "event" && (
             <>
               {/* Search bar - pinned, doesn't scroll */}
-              <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+              <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(6, 18, 92, 0.08)", flexShrink: 0 }}>
                 <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(6, 18, 92, 0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     style={{ position: "absolute", left: 9, pointerEvents: "none" }}>
                     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                   </svg>
@@ -244,15 +243,15 @@ export function MobileFilterBar({
                     style={{
                       ...JK, width: "100%", paddingLeft: 28, paddingRight: eventSearch ? 26 : 10,
                       paddingTop: 6, paddingBottom: 6,
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      borderRadius: 6, color: "#fff", fontSize: 12, outline: "none",
+                      background: "rgba(6, 18, 92, 0.05)",
+                      border: "1px solid rgba(6, 18, 92, 0.1)",
+                      borderRadius: 6, color: NAVY, fontSize: 12, outline: "none",
                     }}
                   />
                   {eventSearch && (
                     <button onClick={() => setEventSearch("")} style={{
                       position: "absolute", right: 6, background: "none", border: "none",
-                      cursor: "pointer", color: "rgba(255,255,255,0.4)", lineHeight: 1, fontSize: 14,
+                      cursor: "pointer", color: "rgba(6, 18, 92, 0.4)", lineHeight: 1, fontSize: 14,
                     }}>×</button>
                   )}
                 </div>
@@ -261,7 +260,7 @@ export function MobileFilterBar({
               {/* Scrollable list */}
               <div style={{ overflowY: "auto", flex: 1 }}>
                 {filteredEvents.length === 0 && (
-                  <div style={{ ...JK, padding: "16px", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
+                  <div style={{ ...JK, padding: "16px", textAlign: "center", fontSize: 13, color: "rgba(6, 18, 92, 0.4)" }}>
                     Tidak ada event
                   </div>
                 )}

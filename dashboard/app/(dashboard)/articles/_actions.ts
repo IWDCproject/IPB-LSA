@@ -45,15 +45,25 @@ const ArticleSchema = z.object({
 function sanitizeContent(html: string): string {
   return sanitizeHtml(html, {
     // Note: 'h1' is removed. Users should use h2 and below in content to preserve page SEO structure.
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'img', 'h2', 'h3', 'h4', 'u', 's' ]),
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'img', 'h2', 'h3', 'h4', 'u', 's', 'iframe' ]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       'a':[ 'href', 'name', 'target', 'rel' ],
-      'img':[ 'src', 'alt', 'title', 'width', 'height' ]
+      'img':[ 'src', 'alt', 'title', 'width', 'height' ],
+      // Allowlisted attrs only — no srcdoc, sandbox, or onload to prevent injection vectors.
+      'iframe': [ 'src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'title' ],
+      // Preserve the Tiptap YouTube node wrapper so the embed round-trips correctly
+      // through save → load. Without this attr, Tiptap can't re-parse the node.
+      'div': [ 'data-youtube-video' ],
     },
     // Strictly HTTP/S. Removed 'data' to prevent 10MB base64 image injections in the DB.
     allowedSchemes:[ 'http', 'https', 'mailto' ],
-    allowedSchemesByTag: { img: [ 'http', 'https' ] },
+    allowedSchemesByTag: {
+      img: [ 'http', 'https' ],
+      iframe: [ 'https' ], // Force HTTPS-only for all embeds.
+    },
+    // Allowlist only trusted embed hosts — all other iframe src values are stripped.
+    allowedIframeHostnames: [ 'www.youtube.com', 'www.youtube-nocookie.com', 'drive.google.com' ],
     allowProtocolRelative: false,
   })
 }

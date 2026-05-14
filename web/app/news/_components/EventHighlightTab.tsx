@@ -108,7 +108,7 @@ function EventNewsDesktopGrid({ news }: { news: NewsItem[] }) {
       {displayed.map((item, i) => (
         <div
           key={item.id}
-          onClick={() => router.push(`/news/${item.event_id?.slug}/${item.slug}`)}
+          onClick={() => router.push(`/news/${item.event_id?.slug || 'official'}/${item.slug}`)}
           style={{
             cursor: "pointer", borderRadius: 8,
             opacity: 0,
@@ -186,7 +186,7 @@ function EventNewsMobileScroll({ news, pad }: { news: NewsItem[]; pad: number })
         {news.map(item => (
           <div
             key={item.id}
-            onClick={() => router.push(`/news/${item.event_id?.slug}/${item.slug}`)}
+            onClick={() => router.push(`/news/${item.event_id?.slug || 'official'}/${item.slug}`)}
             style={{ flexShrink: 0, width: MOB_CARD_W, cursor: "pointer", borderRadius: 8 }}
           >
             <NewsCard item={item} isMobile />

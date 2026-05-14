@@ -217,15 +217,30 @@ function DriveImageNodeView({ node, deleteNode, editor, getPos }: NodeViewProps)
 
 /**
  * Renders YouTube iframes inside the editor with a hover-activated delete button.
- * `node.attrs.src` is already the full embed URL built by the YouTube extension.
+ *
+ * Tiptap stores the raw URL (e.g. watch?v=...) in node.attrs.src and only applies
+ * the /embed/ transformation inside its own renderHTML. Since we override the node
+ * view with a custom React component, we must transform the URL ourselves.
  */
-function YoutubeNodeView({ node, deleteNode }: NodeViewProps) {
+function toYoutubeEmbedUrl(src: string): string {
+  const match = src?.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/|youtube-nocookie\.com\/embed\/)([a-zA-Z0-9_-]{11})/
+  )
+  const videoId = match?.[1]
+  // Always use nocookie to match the extension's nocookie:true config
+  return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : src
+}
+
+function YoutubeNodeView({ node, deleteNode, editor, getPos }: NodeViewProps) {
   const [hovered, setHovered] = useState(false)
   const width  = (node.attrs.width  as number) || 640
   const height = (node.attrs.height as number) || 360
+  const embedSrc = toYoutubeEmbedUrl(node.attrs.src as string)
 
   return (
-    <NodeViewWrapper>
+    // "block" ensures ProseMirror doesn't treat this as an inline node,
+    // which would cause the inner div to be offset inside an inline box.
+    <NodeViewWrapper className="block">
       <div
         className="relative my-4"
         onMouseEnter={() => setHovered(true)}
@@ -235,25 +250,47 @@ function YoutubeNodeView({ node, deleteNode }: NodeViewProps) {
           className="w-full overflow-hidden rounded-lg bg-zinc-100"
           style={{ aspectRatio: `${width} / ${height}` }}
         >
+          {/* No width/height HTML attrs — the CSS w-full/h-full handles sizing.
+              Mixing pixel attrs + percentage CSS causes browsers to resolve height
+              inconsistently, producing the vertical offset. */}
           <iframe
-            src={node.attrs.src as string}
-            width={width}
-            height={height}
+            src={embedSrc}
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
-            className="w-full h-full"
+            className="w-full h-full block"
+            style={{ margin: 0 }}
           />
         </div>
         {hovered && (
-          <button
-            type="button"
-            onMouseDown={(e) => { e.preventDefault(); deleteNode() }}
-            className="absolute top-2 right-2 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-black/80"
-            title="Remove video"
-          >
-            <X size={14} />
-          </button>
+          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/60 p-1 shadow-sm backdrop-blur-sm">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                if (typeof getPos === 'function') {
+                  const pos = getPos()
+                  if (typeof pos === 'number') {
+                    editor.chain().setNodeSelection(pos).run()
+                  }
+                }
+                window.dispatchEvent(new CustomEvent('open-youtube'))
+              }}
+              className="rounded p-1.5 text-white/90 transition-colors hover:bg-black/50 hover:text-white"
+              title="Change video"
+            >
+              <RefreshCcw size={14} />
+            </button>
+            <div className="h-4 w-px bg-white/20" />
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); deleteNode() }}
+              className="rounded p-1.5 text-white/90 transition-colors hover:bg-black/50 hover:text-red-400"
+              title="Remove video"
+            >
+              <X size={14} />
+            </button>
+          </div>
         )}
       </div>
     </NodeViewWrapper>
@@ -532,6 +569,12 @@ export default function ArticleEditorPage({ params }: { params: { articleId: str
     const handler = () => setGdriveOpen(true)
     window.addEventListener('open-gdrive', handler)
     return () => window.removeEventListener('open-gdrive', handler)
+  }, [])
+
+  useEffect(() => {
+    const handler = () => setYoutubeOpen(true)
+    window.addEventListener('open-youtube', handler)
+    return () => window.removeEventListener('open-youtube', handler)
   }, [])
 
   const handleToggleRaw = () => {
